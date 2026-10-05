@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://span-magnitude.dev/schema/v1.json",
+  "title": "SpanMagnitudeDocument",
+  "description": "Schema for span-magnitude-viz documents (DESIGN.md §4)",
+  "type": "object",
+  "required": ["version", "unit", "marks"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "unit": { "enum": ["date", "number"] },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "magnitudeLabel": { "type": "string" },
+    "spanLabel": { "type": "string" },
+    "countLabel": { "type": "string" },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "geometry": { "enum": ["arc", "bar", "lane"] },
+        "colorScheme": { "type": "string" },
+        "animate": { "type": "boolean" },
+        "tickers": {
+          "type": "array",
+          "items": { "enum": ["count", "magnitudeSum", "spanSum"] }
+        }
+      }
+    },
+    "marks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/mark" }
+    }
+  },
+  "$defs": {
+    "mark": {
+      "type": "object",
+      "required": ["id", "span", "magnitude"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "span": {
+          "type": "object",
+          "required": ["start", "end"],
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": ["string", "number"] },
+            "end": { "type": ["string", "number"] }
+          }
+        },
+        "magnitude": { "type": "number", "minimum": 0 },
+        "revealAt": { "type": ["string", "number"] },
+        "cohort": { "type": ["string", "number"] },
+        "group": { "type": "string" },
+        "meta": { "type": "object" }
+      }
+    }
+  }
+}

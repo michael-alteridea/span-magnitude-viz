@@ -1,7 +1,52 @@
 {
   "name": "span-magnitude-viz",
   "version": "1.0.0",
-  "private": false,
+  "description": "Temporal magnitude storytelling: span × magnitude marks with animated reveal and cumulative tickers",
   "type": "module",
-  "license": "MIT"
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./schema/v1.json": "./schema/v1.json"
+  },
+  "files": [
+    "dist",
+    "schema",
+    "DESIGN.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external d3,zod",
+    "dev": "vite --config demo/vite.config.ts",
+    "demo": "vite --config demo/vite.config.ts",
+    "preview": "vite preview --config demo/vite.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "visualization",
+    "d3",
+    "svg",
+    "temporal",
+    "span",
+    "magnitude",
+    "storytelling"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^7.9.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/node": "^26.6.4",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  },
+  "sideEffects": false
 }
