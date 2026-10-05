@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "unit": "date",
+  "title": "Sample projects",
+  "magnitudeLabel": "Budget (USD)",
+  "spanLabel": "Timeline",
+  "countLabel": "Projects",
+  "marks": [
+    {
+      "id": "p1",
+      "label": "Mobile App v1",
+      "span": { "start": "2020-01-15", "end": "2020-09-30" },
+      "magnitude": 250000,
+      "cohort": "2020",
+      "group": "Product"
+    },
+    {
+      "id": "p2",
+      "label": "Data Platform",
+      "span": { "start": "2020-06-01", "end": "2022-03-01" },
+      "magnitude": 1100000,
+      "cohort": "2020",
+      "group": "Infrastructure"
+    },
+    {
+      "id": "p3",
+      "label": "EU Expansion",
+      "span": { "start": "2021-02-01", "end": "2021-12-15" },
+      "magnitude": 780000,
+      "cohort": "2021",
+      "group": "GTM"
+    }
+  ]
+}

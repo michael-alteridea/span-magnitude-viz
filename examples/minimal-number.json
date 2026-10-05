@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "unit": "number",
+  "magnitudeLabel": "Impact score",
+  "spanLabel": "Years",
+  "countLabel": "Initiatives",
+  "marks": [
+    {
+      "id": "a",
+      "label": "Alpha",
+      "span": { "start": 2019, "end": 2021.5 },
+      "magnitude": 12,
+      "cohort": 2019,
+      "group": "R&D"
+    },
+    {
+      "id": "b",
+      "label": "Beta",
+      "span": { "start": 2020, "end": 2024 },
+      "magnitude": 40,
+      "cohort": 2020,
+      "group": "Ops"
+    }
+  ]
+}
