@@ -1,0 +1,788 @@
+{
+  "version": 1,
+  "unit": "date",
+  "title": "Contrats & subventions 2020\u20132025",
+  "description": "Termes contractuels et ACV / montants de subventions (donn\u00e9es synth\u00e9tiques).",
+  "magnitudeLabel": "ACV / Award (USD)",
+  "spanLabel": "P\u00e9riode",
+  "countLabel": "Contrats",
+  "defaults": {
+    "geometry": "arc",
+    "colorScheme": "warm",
+    "animate": true,
+    "tickers": [
+      "count",
+      "magnitudeSum"
+    ]
+  },
+  "marks": [
+    {
+      "id": "ctr-014",
+      "label": "Initech \u2014 Grant",
+      "span": {
+        "start": "2020-01-06",
+        "end": "2022-01-06"
+      },
+      "magnitude": 53000,
+      "revealAt": "2020-01-06",
+      "cohort": "2020",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-003",
+      "label": "Globex \u2014 Services",
+      "span": {
+        "start": "2020-02-05",
+        "end": "2020-08-05"
+      },
+      "magnitude": 136000,
+      "revealAt": "2020-02-05",
+      "cohort": "2020",
+      "group": "Services",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-025",
+      "label": "Umbrella Soft \u2014 License",
+      "span": {
+        "start": "2020-02-29",
+        "end": "2023-02-28"
+      },
+      "magnitude": 76000,
+      "revealAt": "2020-02-29",
+      "cohort": "2020",
+      "group": "License",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-022",
+      "label": "Acme Cloud \u2014 Support",
+      "span": {
+        "start": "2020-03-16",
+        "end": "2022-03-16"
+      },
+      "magnitude": 30000,
+      "revealAt": "2020-03-16",
+      "cohort": "2020",
+      "group": "Support",
+      "meta": {
+        "vendor": "Acme Cloud",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-018",
+      "label": "Fabrikam Labs \u2014 SaaS",
+      "span": {
+        "start": "2020-03-22",
+        "end": "2022-03-22"
+      },
+      "magnitude": 72000,
+      "revealAt": "2020-03-22",
+      "cohort": "2020",
+      "group": "SaaS",
+      "meta": {
+        "vendor": "Fabrikam Labs",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-035",
+      "label": "Acme Cloud \u2014 Services",
+      "span": {
+        "start": "2020-07-04",
+        "end": "2022-07-04"
+      },
+      "magnitude": 242000,
+      "revealAt": "2020-07-04",
+      "cohort": "2020",
+      "group": "Services",
+      "meta": {
+        "vendor": "Acme Cloud",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-017",
+      "label": "Northwind SaaS \u2014 Support",
+      "span": {
+        "start": "2020-09-11",
+        "end": "2022-09-11"
+      },
+      "magnitude": 1457000,
+      "revealAt": "2020-09-11",
+      "cohort": "2020",
+      "group": "Support",
+      "meta": {
+        "vendor": "Northwind SaaS",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-045",
+      "label": "Stark Systems \u2014 Services",
+      "span": {
+        "start": "2020-09-27",
+        "end": "2023-09-27"
+      },
+      "magnitude": 215000,
+      "revealAt": "2020-09-27",
+      "cohort": "2020",
+      "group": "Services",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-020",
+      "label": "Umbrella Soft \u2014 Services",
+      "span": {
+        "start": "2021-01-06",
+        "end": "2024-01-06"
+      },
+      "magnitude": 1086000,
+      "revealAt": "2021-01-06",
+      "cohort": "2021",
+      "group": "Services",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-002",
+      "label": "Stark Systems \u2014 Support",
+      "span": {
+        "start": "2021-01-26",
+        "end": "2021-07-26"
+      },
+      "magnitude": 184000,
+      "revealAt": "2021-01-26",
+      "cohort": "2021",
+      "group": "Support",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-016",
+      "label": "Initech \u2014 Services",
+      "span": {
+        "start": "2021-04-05",
+        "end": "2022-04-05"
+      },
+      "magnitude": 116000,
+      "revealAt": "2021-04-05",
+      "cohort": "2021",
+      "group": "Services",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-026",
+      "label": "Initech \u2014 License",
+      "span": {
+        "start": "2021-04-05",
+        "end": "2021-10-05"
+      },
+      "magnitude": 407000,
+      "revealAt": "2021-04-05",
+      "cohort": "2021",
+      "group": "License",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-007",
+      "label": "Acme Cloud \u2014 Services",
+      "span": {
+        "start": "2021-04-10",
+        "end": "2022-10-10"
+      },
+      "magnitude": 157000,
+      "revealAt": "2021-04-10",
+      "cohort": "2021",
+      "group": "Services",
+      "meta": {
+        "vendor": "Acme Cloud",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-011",
+      "label": "Umbrella Soft \u2014 License",
+      "span": {
+        "start": "2021-05-23",
+        "end": "2021-11-23"
+      },
+      "magnitude": 186000,
+      "revealAt": "2021-05-23",
+      "cohort": "2021",
+      "group": "License",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-005",
+      "label": "Fabrikam Labs \u2014 Grant",
+      "span": {
+        "start": "2021-05-29",
+        "end": "2022-05-29"
+      },
+      "magnitude": 129000,
+      "revealAt": "2021-05-29",
+      "cohort": "2021",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Fabrikam Labs",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-028",
+      "label": "Stark Systems \u2014 Services",
+      "span": {
+        "start": "2021-07-19",
+        "end": "2023-07-19"
+      },
+      "magnitude": 523000,
+      "revealAt": "2021-07-19",
+      "cohort": "2021",
+      "group": "Services",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-015",
+      "label": "Northwind SaaS \u2014 Support",
+      "span": {
+        "start": "2021-08-02",
+        "end": "2023-08-02"
+      },
+      "magnitude": 139000,
+      "revealAt": "2021-08-02",
+      "cohort": "2021",
+      "group": "Support",
+      "meta": {
+        "vendor": "Northwind SaaS",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-041",
+      "label": "Acme Cloud \u2014 License",
+      "span": {
+        "start": "2021-08-28",
+        "end": "2023-02-28"
+      },
+      "magnitude": 26000,
+      "revealAt": "2021-08-28",
+      "cohort": "2021",
+      "group": "License",
+      "meta": {
+        "vendor": "Acme Cloud",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-040",
+      "label": "Globex \u2014 License",
+      "span": {
+        "start": "2021-09-10",
+        "end": "2022-09-10"
+      },
+      "magnitude": 1385000,
+      "revealAt": "2021-09-10",
+      "cohort": "2021",
+      "group": "License",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-021",
+      "label": "Umbrella Soft \u2014 Services",
+      "span": {
+        "start": "2021-10-19",
+        "end": "2022-04-19"
+      },
+      "magnitude": 1743000,
+      "revealAt": "2021-10-19",
+      "cohort": "2021",
+      "group": "Services",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-036",
+      "label": "Umbrella Soft \u2014 Grant",
+      "span": {
+        "start": "2021-10-26",
+        "end": "2022-04-26"
+      },
+      "magnitude": 171000,
+      "revealAt": "2021-10-26",
+      "cohort": "2021",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-046",
+      "label": "Globex \u2014 Support",
+      "span": {
+        "start": "2021-11-24",
+        "end": "2022-05-24"
+      },
+      "magnitude": 99000,
+      "revealAt": "2021-11-24",
+      "cohort": "2021",
+      "group": "Support",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-001",
+      "label": "Acme Cloud \u2014 License",
+      "span": {
+        "start": "2021-12-27",
+        "end": "2023-06-27"
+      },
+      "magnitude": 860000,
+      "revealAt": "2021-12-27",
+      "cohort": "2021",
+      "group": "License",
+      "meta": {
+        "vendor": "Acme Cloud",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-048",
+      "label": "Fabrikam Labs \u2014 License",
+      "span": {
+        "start": "2022-01-30",
+        "end": "2022-07-30"
+      },
+      "magnitude": 732000,
+      "revealAt": "2022-01-30",
+      "cohort": "2022",
+      "group": "License",
+      "meta": {
+        "vendor": "Fabrikam Labs",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-047",
+      "label": "Umbrella Soft \u2014 Services",
+      "span": {
+        "start": "2022-03-19",
+        "end": "2022-09-19"
+      },
+      "magnitude": 376000,
+      "revealAt": "2022-03-19",
+      "cohort": "2022",
+      "group": "Services",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-032",
+      "label": "Contoso Research \u2014 Support",
+      "span": {
+        "start": "2022-06-20",
+        "end": "2022-12-20"
+      },
+      "magnitude": 196000,
+      "revealAt": "2022-06-20",
+      "cohort": "2022",
+      "group": "Support",
+      "meta": {
+        "vendor": "Contoso Research",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-024",
+      "label": "Stark Systems \u2014 Support",
+      "span": {
+        "start": "2022-06-24",
+        "end": "2022-12-24"
+      },
+      "magnitude": 812000,
+      "revealAt": "2022-06-24",
+      "cohort": "2022",
+      "group": "Support",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-012",
+      "label": "Northwind SaaS \u2014 License",
+      "span": {
+        "start": "2022-06-25",
+        "end": "2023-12-25"
+      },
+      "magnitude": 80000,
+      "revealAt": "2022-06-25",
+      "cohort": "2022",
+      "group": "License",
+      "meta": {
+        "vendor": "Northwind SaaS",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-029",
+      "label": "Globex \u2014 Support",
+      "span": {
+        "start": "2022-07-03",
+        "end": "2025-07-03"
+      },
+      "magnitude": 2030000,
+      "revealAt": "2022-07-03",
+      "cohort": "2022",
+      "group": "Support",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-033",
+      "label": "Umbrella Soft \u2014 Services",
+      "span": {
+        "start": "2022-08-19",
+        "end": "2024-02-19"
+      },
+      "magnitude": 46000,
+      "revealAt": "2022-08-19",
+      "cohort": "2022",
+      "group": "Services",
+      "meta": {
+        "vendor": "Umbrella Soft",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-031",
+      "label": "Globex \u2014 Grant",
+      "span": {
+        "start": "2022-08-26",
+        "end": "2024-08-26"
+      },
+      "magnitude": 49000,
+      "revealAt": "2022-08-26",
+      "cohort": "2022",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-009",
+      "label": "Northwind SaaS \u2014 SaaS",
+      "span": {
+        "start": "2022-09-07",
+        "end": "2024-09-07"
+      },
+      "magnitude": 1417000,
+      "revealAt": "2022-09-07",
+      "cohort": "2022",
+      "group": "SaaS",
+      "meta": {
+        "vendor": "Northwind SaaS",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-027",
+      "label": "Contoso Research \u2014 Grant",
+      "span": {
+        "start": "2022-09-15",
+        "end": "2024-09-15"
+      },
+      "magnitude": 1196000,
+      "revealAt": "2022-09-15",
+      "cohort": "2022",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Contoso Research",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-006",
+      "label": "Fabrikam Labs \u2014 SaaS",
+      "span": {
+        "start": "2022-09-18",
+        "end": "2024-03-18"
+      },
+      "magnitude": 787000,
+      "revealAt": "2022-09-18",
+      "cohort": "2022",
+      "group": "SaaS",
+      "meta": {
+        "vendor": "Fabrikam Labs",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-010",
+      "label": "Initech \u2014 License",
+      "span": {
+        "start": "2022-10-04",
+        "end": "2023-04-04"
+      },
+      "magnitude": 241000,
+      "revealAt": "2022-10-04",
+      "cohort": "2022",
+      "group": "License",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-042",
+      "label": "Initech \u2014 Grant",
+      "span": {
+        "start": "2022-10-14",
+        "end": "2024-04-14"
+      },
+      "magnitude": 138000,
+      "revealAt": "2022-10-14",
+      "cohort": "2022",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-023",
+      "label": "Stark Systems \u2014 License",
+      "span": {
+        "start": "2023-01-16",
+        "end": "2025-01-16"
+      },
+      "magnitude": 442000,
+      "revealAt": "2023-01-16",
+      "cohort": "2023",
+      "group": "License",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "one-shot"
+      }
+    },
+    {
+      "id": "ctr-004",
+      "label": "Initech \u2014 Support",
+      "span": {
+        "start": "2023-02-07",
+        "end": "2026-01-01"
+      },
+      "magnitude": 813000,
+      "revealAt": "2023-02-07",
+      "cohort": "2023",
+      "group": "Support",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-008",
+      "label": "Initech \u2014 License",
+      "span": {
+        "start": "2023-02-07",
+        "end": "2024-08-07"
+      },
+      "magnitude": 69000,
+      "revealAt": "2023-02-07",
+      "cohort": "2023",
+      "group": "License",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-019",
+      "label": "Stark Systems \u2014 Support",
+      "span": {
+        "start": "2023-03-24",
+        "end": "2026-01-01"
+      },
+      "magnitude": 148000,
+      "revealAt": "2023-03-24",
+      "cohort": "2023",
+      "group": "Support",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-044",
+      "label": "Contoso Research \u2014 Support",
+      "span": {
+        "start": "2023-04-01",
+        "end": "2024-10-01"
+      },
+      "magnitude": 342000,
+      "revealAt": "2023-04-01",
+      "cohort": "2023",
+      "group": "Support",
+      "meta": {
+        "vendor": "Contoso Research",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-038",
+      "label": "Stark Systems \u2014 SaaS",
+      "span": {
+        "start": "2023-04-09",
+        "end": "2024-04-09"
+      },
+      "magnitude": 510000,
+      "revealAt": "2023-04-09",
+      "cohort": "2023",
+      "group": "SaaS",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-013",
+      "label": "Northwind SaaS \u2014 Grant",
+      "span": {
+        "start": "2023-07-05",
+        "end": "2024-07-05"
+      },
+      "magnitude": 249000,
+      "revealAt": "2023-07-05",
+      "cohort": "2023",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Northwind SaaS",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-034",
+      "label": "Initech \u2014 Grant",
+      "span": {
+        "start": "2023-07-07",
+        "end": "2025-07-07"
+      },
+      "magnitude": 80000,
+      "revealAt": "2023-07-07",
+      "cohort": "2023",
+      "group": "Grant",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-043",
+      "label": "Stark Systems \u2014 Services",
+      "span": {
+        "start": "2023-09-12",
+        "end": "2024-09-12"
+      },
+      "magnitude": 65000,
+      "revealAt": "2023-09-12",
+      "cohort": "2023",
+      "group": "Services",
+      "meta": {
+        "vendor": "Stark Systems",
+        "renewal": "auto"
+      }
+    },
+    {
+      "id": "ctr-039",
+      "label": "Initech \u2014 Support",
+      "span": {
+        "start": "2023-10-19",
+        "end": "2026-01-01"
+      },
+      "magnitude": 702000,
+      "revealAt": "2023-10-19",
+      "cohort": "2023",
+      "group": "Support",
+      "meta": {
+        "vendor": "Initech",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-037",
+      "label": "Fabrikam Labs \u2014 License",
+      "span": {
+        "start": "2023-10-28",
+        "end": "2024-10-28"
+      },
+      "magnitude": 2148000,
+      "revealAt": "2023-10-28",
+      "cohort": "2023",
+      "group": "License",
+      "meta": {
+        "vendor": "Fabrikam Labs",
+        "renewal": "manual"
+      }
+    },
+    {
+      "id": "ctr-030",
+      "label": "Globex \u2014 SaaS",
+      "span": {
+        "start": "2023-11-29",
+        "end": "2024-11-29"
+      },
+      "magnitude": 2488000,
+      "revealAt": "2023-11-29",
+      "cohort": "2023",
+      "group": "SaaS",
+      "meta": {
+        "vendor": "Globex",
+        "renewal": "one-shot"
+      }
+    }
+  ]
+}
