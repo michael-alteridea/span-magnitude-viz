@@ -1,0 +1,1044 @@
+{
+  "version": 1,
+  "unit": "date",
+  "title": "Portfolio projets 2019\u20132025",
+  "description": "Budgets et dur\u00e9es de 64 projets synth\u00e9tiques \u2014 d\u00e9mo g\u00e9n\u00e9rique span \u00d7 magnitude.",
+  "magnitudeLabel": "Budget (USD)",
+  "spanLabel": "Calendrier",
+  "countLabel": "Projets",
+  "defaults": {
+    "geometry": "arc",
+    "colorScheme": "warm",
+    "animate": true,
+    "tickers": [
+      "count",
+      "magnitudeSum"
+    ]
+  },
+  "marks": [
+    {
+      "id": "proj-015",
+      "label": "Cascade Platform",
+      "span": {
+        "start": "2019-02-09",
+        "end": "2019-06-09"
+      },
+      "magnitude": 514000,
+      "revealAt": "2019-02-09",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-057",
+      "label": "Yellowstone Migration",
+      "span": {
+        "start": "2019-02-09",
+        "end": "2020-08-09"
+      },
+      "magnitude": 53000,
+      "revealAt": "2019-02-09",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-054",
+      "label": "Drift Rollout",
+      "span": {
+        "start": "2019-03-01",
+        "end": "2020-03-01"
+      },
+      "magnitude": 3176000,
+      "revealAt": "2019-03-01",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-002",
+      "label": "Ridge Expansion",
+      "span": {
+        "start": "2019-03-07",
+        "end": "2019-06-07"
+      },
+      "magnitude": 63000,
+      "revealAt": "2019-03-07",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-006",
+      "label": "Maple Pilot",
+      "span": {
+        "start": "2019-04-04",
+        "end": "2021-10-04"
+      },
+      "magnitude": 98000,
+      "revealAt": "2019-04-04",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-013",
+      "label": "Quasar Upgrade",
+      "span": {
+        "start": "2019-08-17",
+        "end": "2020-04-17"
+      },
+      "magnitude": 1729000,
+      "revealAt": "2019-08-17",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-039",
+      "label": "Tide Dashboard",
+      "span": {
+        "start": "2019-08-25",
+        "end": "2020-04-25"
+      },
+      "magnitude": 85000,
+      "revealAt": "2019-08-25",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-027",
+      "label": "Nebula Service",
+      "span": {
+        "start": "2019-09-03",
+        "end": "2021-09-03"
+      },
+      "magnitude": 103000,
+      "revealAt": "2019-09-03",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-048",
+      "label": "Tide Service",
+      "span": {
+        "start": "2019-10-01",
+        "end": "2020-12-01"
+      },
+      "magnitude": 3799000,
+      "revealAt": "2019-10-01",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-025",
+      "label": "Xenon v2",
+      "span": {
+        "start": "2019-11-14",
+        "end": "2020-05-14"
+      },
+      "magnitude": 115000,
+      "revealAt": "2019-11-14",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-052",
+      "label": "Prism Redesign",
+      "span": {
+        "start": "2020-02-28",
+        "end": "2021-02-28"
+      },
+      "magnitude": 2580000,
+      "revealAt": "2020-02-28",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-004",
+      "label": "Beacon Integration",
+      "span": {
+        "start": "2020-03-16",
+        "end": "2020-12-16"
+      },
+      "magnitude": 1578000,
+      "revealAt": "2020-03-16",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-018",
+      "label": "Summit Rewrite",
+      "span": {
+        "start": "2020-04-05",
+        "end": "2020-08-05"
+      },
+      "magnitude": 221000,
+      "revealAt": "2020-04-05",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-019",
+      "label": "Ion Portal",
+      "span": {
+        "start": "2020-04-13",
+        "end": "2020-08-13"
+      },
+      "magnitude": 538000,
+      "revealAt": "2020-04-13",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-051",
+      "label": "Kepler Toolkit",
+      "span": {
+        "start": "2020-04-18",
+        "end": "2021-04-18"
+      },
+      "magnitude": 4199000,
+      "revealAt": "2020-04-18",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-020",
+      "label": "Lumen Dashboard",
+      "span": {
+        "start": "2020-05-12",
+        "end": "2021-07-12"
+      },
+      "magnitude": 2897000,
+      "revealAt": "2020-05-12",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-064",
+      "label": "Beacon v2",
+      "span": {
+        "start": "2020-05-14",
+        "end": "2021-07-14"
+      },
+      "magnitude": 2617000,
+      "revealAt": "2020-05-14",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-031",
+      "label": "Tide Expansion",
+      "span": {
+        "start": "2020-06-25",
+        "end": "2020-10-25"
+      },
+      "magnitude": 1118000,
+      "revealAt": "2020-06-25",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-010",
+      "label": "Cascade API",
+      "span": {
+        "start": "2020-06-26",
+        "end": "2020-11-26"
+      },
+      "magnitude": 3576000,
+      "revealAt": "2020-06-26",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-030",
+      "label": "Vector Toolkit",
+      "span": {
+        "start": "2020-08-06",
+        "end": "2021-01-06"
+      },
+      "magnitude": 152000,
+      "revealAt": "2020-08-06",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-060",
+      "label": "Summit Rewrite",
+      "span": {
+        "start": "2020-09-30",
+        "end": "2022-09-30"
+      },
+      "magnitude": 136000,
+      "revealAt": "2020-09-30",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-042",
+      "label": "Vector API",
+      "span": {
+        "start": "2020-10-30",
+        "end": "2021-10-30"
+      },
+      "magnitude": 3285000,
+      "revealAt": "2020-10-30",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-033",
+      "label": "Ridge Redesign",
+      "span": {
+        "start": "2020-11-14",
+        "end": "2021-04-14"
+      },
+      "magnitude": 4309000,
+      "revealAt": "2020-11-14",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-035",
+      "label": "Tide Rollout",
+      "span": {
+        "start": "2021-01-02",
+        "end": "2021-07-02"
+      },
+      "magnitude": 5695000,
+      "revealAt": "2021-01-02",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-007",
+      "label": "Tide Upgrade",
+      "span": {
+        "start": "2021-01-28",
+        "end": "2021-10-28"
+      },
+      "magnitude": 93000,
+      "revealAt": "2021-01-28",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-056",
+      "label": "Ion Dashboard",
+      "span": {
+        "start": "2021-02-15",
+        "end": "2021-11-15"
+      },
+      "magnitude": 3882000,
+      "revealAt": "2021-02-15",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-012",
+      "label": "Vector Launch",
+      "span": {
+        "start": "2021-02-20",
+        "end": "2023-02-20"
+      },
+      "magnitude": 159000,
+      "revealAt": "2021-02-20",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-037",
+      "label": "Lumen MVP",
+      "span": {
+        "start": "2021-02-22",
+        "end": "2021-05-22"
+      },
+      "magnitude": 5844000,
+      "revealAt": "2021-02-22",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-009",
+      "label": "Granite Portal",
+      "span": {
+        "start": "2021-04-01",
+        "end": "2021-12-01"
+      },
+      "magnitude": 1961000,
+      "revealAt": "2021-04-01",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-043",
+      "label": "Zephyr v2",
+      "span": {
+        "start": "2021-04-11",
+        "end": "2022-10-11"
+      },
+      "magnitude": 3360000,
+      "revealAt": "2021-04-11",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-041",
+      "label": "Xenon MVP",
+      "span": {
+        "start": "2021-06-02",
+        "end": "2021-10-02"
+      },
+      "magnitude": 124000,
+      "revealAt": "2021-06-02",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-050",
+      "label": "Cascade Toolkit",
+      "span": {
+        "start": "2021-06-19",
+        "end": "2021-10-19"
+      },
+      "magnitude": 1356000,
+      "revealAt": "2021-06-19",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-003",
+      "label": "Willow Dashboard",
+      "span": {
+        "start": "2021-07-08",
+        "end": "2023-07-08"
+      },
+      "magnitude": 206000,
+      "revealAt": "2021-07-08",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-046",
+      "label": "Prism API",
+      "span": {
+        "start": "2021-07-21",
+        "end": "2022-07-21"
+      },
+      "magnitude": 5352000,
+      "revealAt": "2021-07-21",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-008",
+      "label": "Atlas Migration",
+      "span": {
+        "start": "2021-08-04",
+        "end": "2022-08-04"
+      },
+      "magnitude": 1249000,
+      "revealAt": "2021-08-04",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-026",
+      "label": "Cedar Platform",
+      "span": {
+        "start": "2021-10-26",
+        "end": "2023-04-26"
+      },
+      "magnitude": 258000,
+      "revealAt": "2021-10-26",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-011",
+      "label": "Zephyr Dashboard",
+      "span": {
+        "start": "2021-11-09",
+        "end": "2023-01-09"
+      },
+      "magnitude": 248000,
+      "revealAt": "2021-11-09",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-022",
+      "label": "Harbor Platform",
+      "span": {
+        "start": "2022-01-03",
+        "end": "2023-03-03"
+      },
+      "magnitude": 3640000,
+      "revealAt": "2022-01-03",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-017",
+      "label": "Orion Service",
+      "span": {
+        "start": "2022-01-09",
+        "end": "2022-07-09"
+      },
+      "magnitude": 2175000,
+      "revealAt": "2022-01-09",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-034",
+      "label": "Echo Migration",
+      "span": {
+        "start": "2022-01-22",
+        "end": "2022-04-22"
+      },
+      "magnitude": 3106000,
+      "revealAt": "2022-01-22",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-055",
+      "label": "Beacon Pipeline",
+      "span": {
+        "start": "2022-04-27",
+        "end": "2024-04-27"
+      },
+      "magnitude": 285000,
+      "revealAt": "2022-04-27",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-040",
+      "label": "Aurora Dashboard",
+      "span": {
+        "start": "2022-05-26",
+        "end": "2023-11-26"
+      },
+      "magnitude": 1980000,
+      "revealAt": "2022-05-26",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-063",
+      "label": "Kepler Rewrite",
+      "span": {
+        "start": "2022-06-15",
+        "end": "2023-12-15"
+      },
+      "magnitude": 1692000,
+      "revealAt": "2022-06-15",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-029",
+      "label": "Echo Integration",
+      "span": {
+        "start": "2022-06-26",
+        "end": "2024-06-26"
+      },
+      "magnitude": 1901000,
+      "revealAt": "2022-06-26",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-001",
+      "label": "Xenon Launch",
+      "span": {
+        "start": "2022-08-02",
+        "end": "2022-12-02"
+      },
+      "magnitude": 481000,
+      "revealAt": "2022-08-02",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-023",
+      "label": "Falcon Dashboard",
+      "span": {
+        "start": "2022-08-28",
+        "end": "2024-02-28"
+      },
+      "magnitude": 295000,
+      "revealAt": "2022-08-28",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-038",
+      "label": "Lumen Service",
+      "span": {
+        "start": "2022-09-13",
+        "end": "2023-03-13"
+      },
+      "magnitude": 1370000,
+      "revealAt": "2022-09-13",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-028",
+      "label": "Orion v2",
+      "span": {
+        "start": "2022-10-03",
+        "end": "2023-07-03"
+      },
+      "magnitude": 1610000,
+      "revealAt": "2022-10-03",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-021",
+      "label": "Zephyr Launch",
+      "span": {
+        "start": "2022-10-11",
+        "end": "2025-04-11"
+      },
+      "magnitude": 1624000,
+      "revealAt": "2022-10-11",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-044",
+      "label": "Vector Platform",
+      "span": {
+        "start": "2022-10-15",
+        "end": "2023-04-15"
+      },
+      "magnitude": 684000,
+      "revealAt": "2022-10-15",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-032",
+      "label": "Cedar Dashboard",
+      "span": {
+        "start": "2022-11-08",
+        "end": "2025-05-08"
+      },
+      "magnitude": 107000,
+      "revealAt": "2022-11-08",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-059",
+      "label": "Yellowstone Upgrade",
+      "span": {
+        "start": "2022-12-03",
+        "end": "2023-08-03"
+      },
+      "magnitude": 134000,
+      "revealAt": "2022-12-03",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-005",
+      "label": "Atlas Integration",
+      "span": {
+        "start": "2023-02-03",
+        "end": "2024-04-03"
+      },
+      "magnitude": 1575000,
+      "revealAt": "2023-02-03",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-049",
+      "label": "Yellowstone Service",
+      "span": {
+        "start": "2023-03-04",
+        "end": "2024-05-04"
+      },
+      "magnitude": 2339000,
+      "revealAt": "2023-03-04",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-047",
+      "label": "Aurora Toolkit",
+      "span": {
+        "start": "2023-03-18",
+        "end": "2023-07-18"
+      },
+      "magnitude": 5793000,
+      "revealAt": "2023-03-18",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-016",
+      "label": "Ion Service",
+      "span": {
+        "start": "2023-04-07",
+        "end": "2024-10-07"
+      },
+      "magnitude": 331000,
+      "revealAt": "2023-04-07",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "proj-061",
+      "label": "Cedar Service",
+      "span": {
+        "start": "2023-06-19",
+        "end": "2025-06-01"
+      },
+      "magnitude": 1891000,
+      "revealAt": "2023-06-19",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-045",
+      "label": "Northwind Migration",
+      "span": {
+        "start": "2023-08-04",
+        "end": "2024-02-04"
+      },
+      "magnitude": 430000,
+      "revealAt": "2023-08-04",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "proj-058",
+      "label": "Vector Launch",
+      "span": {
+        "start": "2023-09-15",
+        "end": "2023-12-15"
+      },
+      "magnitude": 3017000,
+      "revealAt": "2023-09-15",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-014",
+      "label": "Ridge Service",
+      "span": {
+        "start": "2023-09-20",
+        "end": "2025-06-01"
+      },
+      "magnitude": 403000,
+      "revealAt": "2023-09-20",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-062",
+      "label": "Willow Rollout",
+      "span": {
+        "start": "2023-10-06",
+        "end": "2024-10-06"
+      },
+      "magnitude": 3983000,
+      "revealAt": "2023-10-06",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "proj-053",
+      "label": "Prism Rewrite",
+      "span": {
+        "start": "2023-10-14",
+        "end": "2024-10-14"
+      },
+      "magnitude": 759000,
+      "revealAt": "2023-10-14",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-024",
+      "label": "Ion Pipeline",
+      "span": {
+        "start": "2023-11-06",
+        "end": "2024-11-06"
+      },
+      "magnitude": 2508000,
+      "revealAt": "2023-11-06",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "proj-036",
+      "label": "Zephyr Rewrite",
+      "span": {
+        "start": "2023-12-11",
+        "end": "2024-12-11"
+      },
+      "magnitude": 3860000,
+      "revealAt": "2023-12-11",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    }
+  ]
+}
