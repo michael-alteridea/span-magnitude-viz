@@ -29,6 +29,8 @@ import {
   formatRatio,
   formatSignedMeasure,
   formatSignedPct,
+  formatGrowth,
+  formatTimes,
   joinList,
   measureLabel,
   monthIndexLong,
@@ -199,7 +201,81 @@ function isOpenFilter(spec: ChartSpec, stage: string | null): boolean {
 
 type Analyzer = (spec: ChartSpec, eff: Dataset, ctx: Ctx) => Analysis | null;
 
-/** Tendance : hausse / baisse sur un an, dernière période vs précédente, TCAM, point haut. */
+/** Pas suivant d'une période (mois, trimestre, semaine, jour, année), en UTC. */
+function nextPeriod(t: number, grain: string): number {
+  const d = new Date(t);
+  if (grain === "month") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  if (grain === "quarter") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 1);
+  if (grain === "year") return Date.UTC(d.getUTCFullYear() + 1, 0, 1);
+  if (grain === "week") return t + 7 * DAY;
+  return t + DAY;
+}
+
+/** Comparaison de deux fenêtres appariées (même période, un an d'écart) + indicateurs de robustesse. */
+export interface TrendComparison {
+  /** Croissance des sommes (fenêtre courante / fenêtre de référence − 1). */
+  growth: number;
+  /** Croissance des médianes (amortit les pics). */
+  medianGrowth: number;
+  /** Part des périodes appariées qui vont dans le sens de `growth` (0..1). */
+  consistency: number;
+  /** Croissance la plus faible (en valeur absolue) en retirant une période à la fois. */
+  leaveOneOut: number;
+  /** Part de la période la plus forte dans la fenêtre courante (pic isolé si élevée). */
+  peakShare: number;
+  confident: boolean;
+  /** Croissance retenue pour le titre (prudente si la confiance est faible). */
+  headline: number;
+}
+
+/** Robustesse d'une hausse / baisse : médianes, constance mois par mois, sensibilité à un mois isolé. */
+export function compareWindows(cur: number[], ref: number[]): TrendComparison | null {
+  const n = Math.min(cur.length, ref.length);
+  if (!n) return null;
+  const a = ref.slice(-n);
+  const b = cur.slice(-n);
+  const sa = S.sum(a);
+  const sb = S.sum(b);
+  if (!(sa > 0) || sb < 0) return null;
+  const growth = sb / sa - 1;
+  const ma = S.median(a);
+  const mb = S.median(b);
+  const medianGrowth = ma > 0 ? mb / ma - 1 : growth;
+  const dir = Math.sign(growth);
+  let agreeN = 0;
+  for (let i = 0; i < n; i++) {
+    const d = Math.sign(b[i]! - a[i]!);
+    agreeN += d === dir ? 1 : d === 0 ? 0.5 : 0;
+  }
+  const consistency = n ? agreeN / n : 0;
+  let loo = growth;
+  if (n >= 3) {
+    for (let i = 0; i < n; i++) {
+      const ra = sa - a[i]!;
+      const rb = sb - b[i]!;
+      if (!(ra > 0)) continue;
+      const g = rb / ra - 1;
+      if (Math.sign(g) !== dir || Math.abs(g) < Math.abs(loo)) loo = g;
+    }
+  }
+  const peakShare = sb > 0 ? Math.max(...b) / sb : 0;
+  const small = Math.abs(growth) < 0.03;
+  const confident =
+    n >= 3 &&
+    (small ||
+      (consistency >= 0.6 && Math.sign(medianGrowth) === dir && Math.sign(loo) === dir && Math.abs(loo) >= Math.abs(growth) * 0.5 && !(n >= 6 && peakShare > 0.35)));
+  // Titre prudent : la plus petite des estimations de même signe (somme, médiane, sans le mois le plus influent)
+  const sameSign = [growth, medianGrowth, loo].filter((g) => Math.sign(g) === dir);
+  const headline = confident ? growth : sameSign.length === 3 ? sameSign.reduce((x, y) => (Math.abs(y) < Math.abs(x) ? y : x)) : 0;
+  return { growth, medianGrowth, consistency, leaveOneOut: loo, peakShare, confident, headline };
+}
+
+/**
+ * Tendance : période complète uniquement (mois en cours exclu), cumul depuis janvier (ou 12 mois glissants)
+ * vs même période un an plus tôt, contrôlée par les médianes et la constance mois par mois.
+ * Au-delà de ±100 %, le titre passe en multiplicateur (« ×2,5 ») si le constat est net, en valeurs absolues sinon.
+ */
+const pctMeasureOf = (u: MUnit) => u === "pct";
 const analyzeTrend: Analyzer = (spec, eff, ctx) => {
   const xCol = columnOf(eff, spec.encoding.x);
   const yField = spec.encoding.y[0];
@@ -210,73 +286,168 @@ const analyzeTrend: Analyzer = (spec, eff, ctx) => {
   let pts = m.keys
     .map((k, i) => ({ t: k as number, v: m.values.reduce((s, row) => s + (Number.isFinite(row[i]!) ? row[i]! : 0), 0), any: m.values.some((row) => Number.isFinite(row[i]!)) }))
     .filter((p) => p.any && typeof p.t === "number");
-  // Période en cours (incomplète) exclue de l'analyse
+  // Périodes complètes uniquement : la période en cours (incomplète) et le futur sont exclus
   const cur = bucketDate(ctx.today, grain);
-  pts = pts.filter((p) => p.t < cur || p.t > ctx.today);
-  pts = pts.filter((p) => p.t <= ctx.today);
+  pts = pts.filter((p) => p.t < cur).sort((a, b) => a.t - b.t);
   if (pts.length < 3) return null;
+  // Sommes / comptages : une période sans ligne vaut 0 (sinon elle disparaîtrait des comparaisons)
+  const additive = spec.encoding.aggregate === "sum" || spec.encoding.aggregate === "count";
+  if (additive && ["month", "quarter", "year", "week"].includes(grain)) {
+    const byT = new Map(pts.map((p) => [p.t, p]));
+    const filled: typeof pts = [];
+    for (let t = pts[0]!.t; t <= pts[pts.length - 1]!.t; t = nextPeriod(t, grain)) filled.push(byT.get(t) ?? { t, v: 0, any: true });
+    if (filled.length <= 400) pts = filled;
+  }
   const u = measureUnit(sp, yField, ctx);
   const label = str(spec.story.params.subject) ?? (spec.encoding.aggregate === "count" ? "nombre de lignes" : measureLabel(yField!));
-  const last = pts[pts.length - 1]!;
-  const prev = pts[pts.length - 2]!;
-  const perYear = grain === "month" ? 12 : grain === "quarter" ? 4 : grain === "week" ? 52 : grain === "year" ? 1 : 365;
-  let growth: number;
-  let basis: string;
-  if (pts.length >= perYear * 2 && perYear > 1) {
-    const a = S.sum(pts.slice(-2 * perYear, -perYear).map((p) => p.v));
-    const b = S.sum(pts.slice(-perYear).map((p) => p.v));
-    growth = a ? b / a - 1 : NaN;
-    basis = grain === "month" ? "sur 12 mois glissants" : "sur un an";
-  } else if (pts.length >= perYear + 3 && perYear >= 12) {
-    const a = S.sum(pts.slice(-perYear - 3, -perYear).map((p) => p.v));
-    const b = S.sum(pts.slice(-3).map((p) => p.v));
-    growth = a ? b / a - 1 : NaN;
-    basis = `sur un an (${monthYear(pts[pts.length - 3]!.t).split(" ")[0]}–${monthYear(last.t)} vs ${new Date(last.t).getUTCFullYear() - 1})`;
-  } else if (pts.length > perYear && perYear > 1) {
-    const yAgo = pts[pts.length - 1 - perYear]!;
-    growth = yAgo.v ? last.v / yAgo.v - 1 : NaN;
-    basis = `vs ${grain === "month" ? monthYear(yAgo.t) : grain === "quarter" ? quarterOf(yAgo.t) : "un an plus tôt"}`;
-  } else {
-    const h = Math.floor(pts.length / 2);
-    const a = S.mean(pts.slice(0, h).map((p) => p.v));
-    const b = S.mean(pts.slice(-h).map((p) => p.v));
-    growth = a ? b / a - 1 : NaN;
-    basis = "sur la période";
-  }
-  if (!Number.isFinite(growth)) return null;
-  const spanYears = (last.t - pts[0]!.t) / (365.25 * DAY);
-  // TCAM sur années glissantes complètes (neutralise la saisonnalité)
-  const cagr =
-    perYear > 1 && pts.length >= 2 * perYear
-      ? S.cagr(S.sum(pts.slice(0, perYear).map((p) => p.v)), S.sum(pts.slice(-perYear).map((p) => p.v)), (pts.length - perYear) / perYear)
-      : perYear === 1 && pts.length >= 3
-        ? S.cagr(pts[0]!.v, last.v, spanYears)
-        : NaN;
-  const peak = pts.reduce((a, b) => (b.v > a.v ? b : a));
-  const lvp = prev.v ? last.v / prev.v - 1 : NaN;
-  const fmtT = (t: number) => (grain === "month" ? monthYear(t) : grain === "quarter" ? quarterOf(t) : grain === "year" ? String(new Date(t).getUTCFullYear()) : dayMonthYear(t));
   const Subject = capitalize(label);
-  const title =
-    growth >= 0.03
-      ? `${Subject} en hausse de ${formatPct(growth)} ${basis}`
-      : growth <= -0.03
-        ? `${Subject} en baisse de ${formatPct(-growth)} ${basis}`
-        : `${Subject} stable ${basis} (${formatSignedPct(growth)})`;
-  const comments = [
-    `Dernière période (${fmtT(last.t)}) : ${fm(last.v, u)}, ${Number.isFinite(lvp) ? formatSignedPct(lvp) : "–"} vs ${fmtT(prev.t)}.`,
-  ];
-  if (Number.isFinite(cagr) && Math.abs(cagr) < 1) comments.push(`Rythme annuel moyen (TCAM) : ${formatSignedPct(cagr)} depuis ${fmtT(pts[0]!.t)}.`);
-  if (peak !== last) comments.push(`Point haut : ${fmtT(peak.t)} (${fm(peak.v, u)}).`);
-  else comments.push(`${fmtT(last.t)} est le point le plus haut de la série.`);
+  const last = pts[pts.length - 1]!;
+  const perYear = grain === "month" ? 12 : grain === "quarter" ? 4 : grain === "week" ? 52 : grain === "year" ? 1 : 365;
+  const fmtT = (t: number) => (grain === "month" ? monthYear(t) : grain === "quarter" ? quarterOf(t) : grain === "year" ? String(new Date(t).getUTCFullYear()) : dayMonthYear(t));
+  const shortMonth = (t: number) => monthYear(t).split(" ")[0]!;
+  const lastYear = new Date(last.t).getUTCFullYear();
+  const n = pts.length;
+  const vals = pts.map((p) => p.v);
+
+  // 1. Choix des fenêtres comparées
+  let curW: typeof pts = [];
+  let refW: typeof pts = [];
+  let basis = "";
+  let periodTxt = "";
+  if (perYear > 1 && perYear <= 12 && n >= perYear + 3) {
+    const ytd = pts.filter((p) => new Date(p.t).getUTCFullYear() === lastYear).length;
+    const k = n >= 2 * perYear && (ytd < 3 || ytd === perYear) ? perYear : ytd >= 3 ? ytd : Math.min(perYear, n - perYear);
+    curW = pts.slice(-k);
+    refW = pts.slice(-k - perYear, -perYear);
+    const a = curW[0]!.t;
+    const span = (t0: number, t1: number) => (grain === "month" ? `${shortMonth(t0)}–${monthYear(t1)}` : `${fmtT(t0).split(" ")[0]}–${fmtT(t1)}`);
+    if (k === perYear && n >= 2 * perYear) {
+      basis = grain === "month" ? "sur 12 mois glissants" : "sur 4 trimestres glissants";
+      periodTxt = `${span(a, last.t)}`;
+    } else {
+      const isYtd = new Date(a).getUTCMonth() === 0 && new Date(a).getUTCFullYear() === lastYear;
+      basis = isYtd ? `sur un an (${span(a, last.t)} vs ${lastYear - 1})` : `sur un an (${span(a, last.t)} vs N-1)`;
+      periodTxt = span(a, last.t);
+    }
+  } else if (perYear === 1 && n >= 2) {
+    curW = pts.slice(-1);
+    refW = pts.slice(-2, -1);
+    basis = `en ${lastYear} vs ${lastYear - 1}`;
+    periodTxt = String(lastYear);
+  } else {
+    // Moins d'un an de recul : 2e moitié vs 1re moitié de la période (comparée sur les médianes)
+    const h = Math.floor(n / 2);
+    curW = pts.slice(-h);
+    refW = pts.slice(0, h);
+    basis = "sur la période";
+    periodTxt = `${fmtT(curW[0]!.t)} – ${fmtT(last.t)}`;
+  }
+  const paired = perYear > 1 ? refW.length === curW.length && curW.length > 0 : true;
+  let cmp = paired && curW.length ? compareWindows(curW.map((p) => p.v), refW.map((p) => p.v)) : null;
+  const halves = basis === "sur la période";
+  if (halves && cmp) {
+    // Moitiés non appariées : on juge sur les médianes et la pente
+    const reg = S.linreg(pts.map((_, i) => i), vals);
+    const g = cmp.medianGrowth;
+    const confident = Math.sign(g) === Math.sign(cmp.growth) && reg.r2 >= 0.3 && Math.sign(reg.slope) === Math.sign(g);
+    cmp = { ...cmp, confident: confident || Math.abs(cmp.growth) < 0.03, headline: confident ? g : Math.sign(g) === Math.sign(cmp.growth) ? (Math.abs(g) < Math.abs(cmp.growth) ? g : cmp.growth) * 0.5 : 0 };
+  }
+  if (!cmp || !Number.isFinite(cmp.growth)) return null;
+  const sumCur = S.sum(curW.map((p) => p.v));
+  const sumRef = S.sum(refW.map((p) => p.v));
+  let g = cmp.headline;
+  const shown = additive || perYear === 1;
+
+  // 2. Titre : prudent si irrégulier, multiplicateur au-delà de +100 %, valeurs absolues si le constat est fragile
+  const peak = pts.reduce((a, b) => (b.v > a.v ? b : a));
+  // Pic isolé : comparé aux périodes voisines (±3), pour ne pas confondre une croissance forte et un pic
+  const localMedian = (p: (typeof pts)[number]) => {
+    const i = pts.indexOf(p);
+    return S.median(pts.slice(Math.max(0, i - 3), i + 4).filter((q) => q !== p).map((q) => q.v));
+  };
+  const spikeOf = (p: (typeof pts)[number]) => !pctMeasureOf(u) && localMedian(p) > 0 && p.v >= 2.5 * localMedian(p);
+  const isolatedPeak = spikeOf(peak);
+  const med = localMedian(peak);
+  const curPeak = curW.reduce((a, b) => (b.v > a.v ? b : a), curW[0]!);
+  // Un multiplicateur (« ×2,5 ») n'est affiché que si le constat est net : médiane et « sans le meilleur mois » le confirment
+  const extremeOk = cmp.confident && cmp.medianGrowth >= 0.5 && cmp.leaveOneOut >= 0.7 && !spikeOf(curPeak) && curW.length >= 3;
+  if (cmp.growth >= 1 && !extremeOk) {
+    const same = [cmp.growth, cmp.medianGrowth, cmp.leaveOneOut].filter((x) => x > 0);
+    g = same.length === 3 ? Math.min(...same) : 0;
+    cmp = { ...cmp, confident: false, headline: g };
+  }
+  const pctMeasure = u === "pct";
+  const meanCur = S.mean(curW.map((p) => p.v));
+  const meanRef = S.mean(refW.map((p) => p.v));
+  const dPts = meanCur - meanRef;
+  let title: string;
+  let qualifier = "";
+  if (pctMeasure && refW.length) {
+    // Taux / marges : écart en points de moyenne, jamais en % relatif
+    title = Math.abs(dPts) < 0.5 ? `${Subject} stable ${basis} : ${fm(meanCur, u)} (${formatPoints(dPts)})` : `${Subject} en ${dPts > 0 ? "hausse" : "baisse"} de ${formatPoints(Math.abs(dPts)).replace(/^[+−]/, "")} ${basis} (${fm(meanCur, u)})`;
+  } else if (Math.abs(cmp.growth) < 0.03) title = `${Subject} stable ${basis} : ${formatSignedPct(cmp.growth)}`;
+  else if (cmp.confident) {
+    if (cmp.growth >= 1) title = `${Subject} : ${formatTimes(1 + cmp.growth)} ${basis}`;
+    else title = `${Subject} en ${cmp.growth > 0 ? "hausse" : "baisse"} de ${formatPct(Math.abs(cmp.growth))} ${basis}`;
+  } else if (Math.abs(cmp.growth) >= 1 && shown) {
+    title = `${Subject} : ${fm(sumCur, u)} ${halves ? "en fin de période" : `en ${periodTxt}`} contre ${fm(sumRef, u)} ${halves ? "au début" : "un an plus tôt"}${spikeOf(curPeak) ? `, dont ${fm(curPeak.v, u)} en ${fmtT(curPeak.t)}` : ", mois irréguliers"}`;
+    qualifier = "irrégulier";
+  } else if (Math.abs(g) >= 0.03) {
+    title = `${Subject} plutôt en ${g > 0 ? "hausse" : "baisse"} ${basis} : ${formatSignedPct(g)}, ${perYear === 12 ? "mois" : "périodes"} irréguli${perYear === 12 ? "ers" : "ères"}`;
+    qualifier = "irrégulier";
+  } else {
+    title = `${Subject} sans tendance nette ${basis} : évolution irrégulière`;
+    qualifier = "contrasté";
+  }
+
+  // 3. Commentaires
+  const comments: string[] = [];
+  if (pctMeasure && refW.length) comments.push(`Moyenne ${halves ? "en fin de période" : periodTxt} : ${fm(meanCur, u)}, contre ${fm(meanRef, u)} ${halves ? "au début" : "un an plus tôt"}.`);
+  else if (shown && refW.length) comments.push(`${halves ? "Fin de période" : capitalize(periodTxt)} : ${fm(sumCur, u)}, contre ${fm(sumRef, u)} ${halves ? "en début de période" : "un an plus tôt"} (${formatGrowth(cmp.growth)}).`);
+  if (!halves && perYear > 1 && curW.length >= 3 && Math.abs(cmp.growth) >= 0.03 && !pctMeasure) {
+    const up = Math.round(cmp.consistency * curW.length);
+    comments.push(cmp.confident ? `${count(up, perYear === 12 ? "mois" : "période", perYear === 12 ? "mois" : "périodes")} sur ${curW.length} ${cmp.growth >= 0 ? "au-dessus" : "en dessous"} de l'an dernier : tendance régulière.` : `${count(up, perYear === 12 ? "mois" : "période", perYear === 12 ? "mois" : "périodes")} sur ${curW.length} ${cmp.growth >= 0 ? "au-dessus" : "en dessous"} de l'an dernier ; en médiane : ${formatGrowth(cmp.medianGrowth)}.`);
+  }
+  const cagr =
+    perYear > 1 && n >= 2 * perYear
+      ? S.cagr(S.sum(pts.slice(0, perYear).map((p) => p.v)), S.sum(pts.slice(-perYear).map((p) => p.v)), (n - perYear) / perYear)
+      : perYear === 1 && n >= 3
+        ? S.cagr(pts[0]!.v, last.v, (last.t - pts[0]!.t) / (365.25 * DAY))
+        : NaN;
+  if (Number.isFinite(cagr) && Math.abs(cagr) < 1 && cmp.confident && !pctMeasure && comments.length < 3) comments.push(`Rythme annuel moyen (TCAM) : ${formatSignedPct(cagr)} depuis ${fmtT(pts[0]!.t)}.`);
+  if (isolatedPeak) comments.push(`Pic isolé en ${fmtT(peak.t)} : ${fm(peak.v, u)}, ${formatRatio(peak.v / med)} les ${perYear === 12 ? "mois" : "périodes"} voisin${perYear === 12 ? "s" : "es"}.`);
+  else if (comments.length < 3) comments.push(peak !== last ? `Point haut : ${fmtT(peak.t)} (${fm(peak.v, u)}).` : `${capitalize(fmtT(last.t))} est le point le plus haut de la série.`);
+  if (!comments.length) comments.push(`Dernière période complète (${fmtT(last.t)}) : ${fm(last.v, u)}.`);
+
+  const why = !cmp.confident
+    ? `Tendance fragile : l'écart tient à quelques ${perYear === 12 ? "mois" : "périodes"} exceptionnel${perYear === 12 ? "s" : "les"} ; à confirmer avant de conclure.`
+    : pctMeasure
+      ? `Situe le niveau : ${fm(meanCur, u)} en moyenne, ${formatPoints(dPts)} sur un an.`
+      : Number.isFinite(cagr) && Math.abs(cagr) < 1
+      ? `Situe la dynamique : rythme annuel moyen de ${formatSignedPct(cagr)}.`
+      : `Situe la dynamique récente : ${formatGrowth(cmp.growth)} ${basis}.`;
+  const conf = cmp.confident ? 1 : 0.4;
   return {
     kind: "trend",
     title,
     comments: comments.slice(0, 3),
-    why: Number.isFinite(cagr) && Math.abs(cagr) < 1 ? `Situe la dynamique : rythme annuel moyen de ${formatSignedPct(cagr)}.` : `Situe la dynamique récente : ${formatSignedPct(growth)} ${basis}.`,
+    why,
     role: "context",
-    effect: S.clamp01(Math.abs(growth) / 0.3),
-    coverage: S.clamp01(pts.length / Math.max(6, m.keys.length)),
-    facts: { growth, cagr: Number.isFinite(cagr) ? cagr : "", last: last.v, prev: prev.v, peak: peak.v, points: pts.length },
+    effect: (pctMeasure ? S.clamp01(Math.abs(dPts) / 5) : S.clamp01(Math.abs(cmp.confident ? cmp.growth : g) / 0.3)) * conf * (curW.length >= 6 || perYear === 1 ? 1 : 0.8),
+    coverage: S.clamp01(n / Math.max(6, m.keys.length)) * (cmp.confident ? 1 : 0.7),
+    facts: {
+      growth: cmp.growth,
+      headlineGrowth: g,
+      medianGrowth: cmp.medianGrowth,
+      consistency: cmp.consistency,
+      confidence: cmp.confident ? "élevée" : "faible",
+      qualifier,
+      current: sumCur,
+      reference: sumRef,
+      cagr: Number.isFinite(cagr) ? cagr : "",
+      peak: peak.v,
+      points: n,
+    },
   };
 };
 
@@ -359,7 +530,7 @@ const analyzeRanking: Analyzer = (spec, eff, ctx) => {
     kind: "ranking",
     title,
     comments,
-    why: Number.isFinite(ratio) && u !== "pct" ? `Écart de ${formatRatio(ratio)} entre le premier et le dernier : un levier de rattrapage.` : `Dispersion entre ${noun.pl} : ${formatPoints(best.v - worst.v)} d'écart.`,
+    why: Number.isFinite(ratio) && u !== "pct" ? `Écart de ${formatRatio(ratio)} entre ${best.l} et ${worst.l} : la moyenne masque de fortes disparités.` : `Dispersion entre ${noun.pl} : ${formatPoints(best.v - worst.v).replace(/^\+/, "")} d'écart.`,
     role: "revelation",
     effect: S.clamp01(disp / 1.0),
     coverage: 1,
@@ -400,28 +571,35 @@ const analyzeSeasonality: Analyzer = (spec, eff, ctx) => {
     for (const [m, v] of months) idx[m]!.push(v / avg);
     if (months.size === 12) peaks.push([...months.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0]);
   }
-  const mIdx = idx.map((a) => (a.length ? S.mean(a) : NaN));
+  // Médiane des indices annuels : un mois exceptionnel une année ne fait pas une saisonnalité
+  const mIdx = idx.map((a) => (a.length ? S.median(a) : NaN));
   const valid = mIdx.map((v, i) => ({ v, i })).filter((p) => Number.isFinite(p.v));
   if (valid.length < 10) return null;
   const peak = valid.reduce((a, b) => (b.v > a.v ? b : a));
   const trough = valid.reduce((a, b) => (b.v < a.v ? b : a));
   const amplitude = peak.v - trough.v;
   const consistent = peaks.length >= 1 && peaks.every((p) => p === peak.i);
+  // Confiance : le mois de pic doit être observé au moins deux années et rester au-dessus de la moyenne chaque fois
+  const peakObs = idx[peak.i]!;
+  const confident = peakObs.length >= 2 && peakObs.every((v) => v > 1.1);
+  const peakYears = [...byYear.entries()].filter(([, months]) => months.size >= 6 && months.has(peak.i)).map(([y]) => y);
   const nextPeak = peak.i >= cd.getUTCMonth() ? `${monthIndexLong(peak.i)} ${cd.getUTCFullYear()}` : `${monthIndexLong(peak.i)} ${cd.getUTCFullYear() + 1}`;
   const P = capitalize(monthIndexLong(peak.i));
+  const strength = peak.v >= 2 ? `${formatRatio(peak.v)} un mois moyen` : `${formatSignedPct(peak.v - 1)} par rapport à un mois moyen`;
+  const title = confident ? `${P}, mois le plus fort : ${strength}` : `${P}, mois le plus fort en ${joinList(peakYears.map(String))} : ${strength}`;
   return {
     kind: "seasonality",
-    title: `${P}, mois le plus fort : ${formatSignedPct(peak.v - 1)} par rapport à un mois moyen`,
+    title,
     comments: [
       `Creux en ${monthIndexLong(trough.i)} : ${formatSignedPct(trough.v - 1)} par rapport à la moyenne.`,
       consistent && peaks.length > 1 ? `Pic en ${monthIndexLong(peak.i)} chaque année complète (${peaks.length} ans).` : `Écart pic / creux : ${formatRatio(peak.v / Math.max(0.01, trough.v))}.`,
-      `Prochain pic attendu : ${nextPeak}.`,
+      confident ? `Prochain pic attendu : ${nextPeak}.` : `Une seule année observée pour ${monthIndexLong(peak.i)} : à confirmer en ${nextPeak}.`,
     ],
-    why: `Anticiper la charge : ${monthIndexLong(peak.i)} pèse ${formatRatio(peak.v)} un mois moyen.`,
+    why: confident ? `Anticiper la charge : ${monthIndexLong(peak.i)} pèse ${formatRatio(peak.v)} un mois moyen.` : `Profil à confirmer : ${monthIndexLong(peak.i)} n'est observé que sur ${count(peakObs.length, "année", "années")}.`,
     role: "context",
-    effect: S.clamp01((amplitude - 0.12) / 0.6),
+    effect: S.clamp01((amplitude - 0.12) / 0.6) * (confident ? 1 : 0.45),
     coverage: S.clamp01(cells.size / 24),
-    facts: { peakMonth: peak.i + 1, peakIndex: peak.v, troughMonth: trough.i + 1, troughIndex: trough.v, months: cells.size },
+    facts: { peakMonth: peak.i + 1, peakIndex: peak.v, troughMonth: trough.i + 1, troughIndex: trough.v, months: cells.size, confidence: confident ? "élevée" : "faible" },
   };
 };
 
@@ -516,11 +694,20 @@ const analyzeVariance: Analyzer = (spec, eff, ctx) => {
     if (!fav && !isFavourable(worst.d, pol)) comments.splice(2, 1, `Recommandation : plan d'action ciblé sur ${worst.l}.`);
   }
   const spread = items.length > 1 ? S.stdev(items.map((p) => p.r)) : 0;
+  // « Explique l'essentiel » seulement si l'écart total est défavorable et que l'élément en porte au moins la moitié
+  const varianceWhy = (): string => {
+    const generic = `Écart ${fav ? "favorable" : "défavorable"} de ${formatSignedPct(t.rel)} ${refSc === "py" ? "sur un an" : `face ${refSc === "budget" ? "au budget" : "à la référence"}`}.`;
+    if (!multi || !worst || isFavourable(worst.d, pol)) return generic;
+    if (fav) return `Malgré un écart favorable, ${worst.l} recule : ${formatSignedMeasure(worst.d, u)} (${formatSignedPct(worst.r)}).`;
+    const unfav = S.sum(items.filter((p) => !isFavourable(p.d, pol)).map((p) => p.d));
+    const share = unfav ? worst.d / unfav : 0;
+    return share >= 0.5 ? `${worst.l} explique l'essentiel de l'écart : ${formatSignedMeasure(worst.d, u)}.` : `${worst.l} pèse le plus dans l'écart (${formatPct(share)} des écarts défavorables) : ${formatSignedMeasure(worst.d, u)}.`;
+  };
   return {
     kind: "variance",
     title,
     comments: comments.slice(0, 3),
-    why: multi && worst && !isFavourable(worst.d, pol) ? `${worst.l} explique l'essentiel de l'écart : ${formatSignedMeasure(worst.d, u)}.` : `Écart ${fav ? "favorable" : "défavorable"} de ${formatSignedPct(t.rel)} ${refSc === "py" ? "sur un an" : `face ${refSc === "budget" ? "au budget" : "à la référence"}`}.`,
+    why: varianceWhy(),
     role: fav ? "revelation" : "tension",
     effect: S.clamp01(0.5 * S.clamp01(Math.abs(t.rel) / 0.06) + 0.5 * (worst && multi ? S.clamp01(Math.abs(worst.r) / 0.15) : S.clamp01(spread / 0.15))),
     coverage: vm.coverage,
@@ -725,7 +912,7 @@ const analyzeConversion: Analyzer = (spec, eff, ctx) => {
       if (pp.won.includes(String(r[pp.stage!]))) e.w++;
       by.set(k, e);
     }
-    const list = [...by.entries()].filter(([, e]) => e.n >= 3).map(([k, e]) => ({ k, r: e.w / e.n, n: e.n })).sort((a, b) => b.r - a.r);
+    const list = [...by.entries()].filter(([, e]) => e.n >= 5).map(([k, e]) => ({ k, r: e.w / e.n, n: e.n })).sort((a, b) => b.r - a.r);
     if (list.length >= 2) {
       const b = list[0]!;
       const w = list[list.length - 1]!;
@@ -787,7 +974,7 @@ const analyzeGeo: Analyzer = (spec, eff, ctx) => {
   comments.push(`${agree(noun, "Les autres", "Les autres")} ${noun.pl} pèsent ${formatPct(1 - share)}.`);
   return {
     kind: "geo",
-    title: `${joinList(pairs.slice(0, n).map((p) => p[0]))} : ${formatPct(share)} ${partitive(mLabel)}`,
+    title: `${joinList(pairs.slice(0, n).map((p) => p[0]))} : ${formatPct(share)} ${ctx.roles.isPipeline && isOpenFilter(spec, ctx.roles.stage?.name ?? null) ? "du pipeline ouvert" : partitive(mLabel)}`,
     comments,
     why: "Lecture territoriale : où se concentre l'activité en France et en Belgique.",
     role: "context",
@@ -806,16 +993,18 @@ const analyzeCorrelation: Analyzer = (spec, eff, ctx) => {
   const r = S.pearson(pts.map((p) => p[0]), pts.map((p) => p[1]));
   const a = Math.abs(r);
   const strength = a >= 0.7 ? "fort" : a >= 0.4 ? "modéré" : "faible";
+  const smallSample = pts.length < 10;
   return {
     kind: "correlation",
     title: `Lien ${strength} entre ${measureLabel(x)} et ${measureLabel(y)} (r = ${formatNumber(r, 2)})`,
     comments: [
       `${count(pts.length, "point")} ; ${r >= 0 ? "les deux mesures évoluent dans le même sens" : "les deux mesures évoluent en sens inverse"}.`,
-      `R² = ${formatNumber(r * r, 2)} : ${formatPct(r * r)} de la variation de ${measureLabel(y)} est liée à ${measureLabel(x)}.`,
+      `R² = ${formatNumber(r * r, 2)} : ${formatPct(r * r)} de la variation de ${measureLabel(y)} va de pair avec ${measureLabel(x)}.`,
+      ...(smallSample ? [`Échantillon réduit (${count(pts.length, "point")}) : lien à confirmer sur plus de données.`] : []),
     ],
     why: "Une corrélation n'est pas une causalité, mais elle oriente l'analyse.",
     role: "revelation",
-    effect: S.clamp01(a),
+    effect: S.clamp01(a) * (smallSample ? 0.75 : 1),
     coverage: S.clamp01(pts.length / Math.max(1, ctx.ds.rows.length)),
     facts: { r, n: pts.length },
   };
@@ -1180,7 +1369,7 @@ const PRIOR: Record<InsightKind, number> = {
 };
 
 /** Groupe de quasi-doublons : même kind + même axe X, ou concentration/classement sur la même colonne. */
-function dupGroup(i: Insight): string {
+function baseDupGroup(i: Insight): string {
   const x = i.spec.encoding.x ?? "";
   if (i.kind === "concentration" || i.kind === "ranking") return `cat:${x}:${i.spec.encoding.y[0]}`;
   if (i.kind === "variance") return `var:${i.spec.encoding.y[1]}:${i.spec.story.params.landing ? "L" : ""}`;
@@ -1247,6 +1436,9 @@ export function explore(ds: Dataset, sc: StoryContext, opts: ExploreOptions = {}
   if (!ds.rows.length) return [];
   const all = allInsights(ds, sc);
   // dédoublonnage strict (id) puis sélection gloutonne avec pénalité de répétition
+  // La carte FR/BE couvre déjà la répartition par ville / région : pas de barres en doublon sur la même colonne
+  const geoKeys = new Set(all.filter((i) => i.kind === "geo").map((i) => `${String(i.spec.story.params.place ?? "")}|${i.spec.encoding.y[0]}`));
+  const dupGroup = (i: Insight) => ((i.kind === "concentration" || i.kind === "ranking") && geoKeys.has(`${i.spec.encoding.x ?? ""}|${i.spec.encoding.y[0]}`) ? "geo" : baseDupGroup(i));
   const byId = new Map<string, Insight>();
   for (const i of all) if (!byId.has(i.id) || byId.get(i.id)!.score < i.score) byId.set(i.id, i);
   const pool = [...byId.values()].sort((a, b) => b.score - a.score);
@@ -1276,7 +1468,9 @@ export function explore(ds: Dataset, sc: StoryContext, opts: ExploreOptions = {}
     if (chosen.some((c) => c.kind === must)) continue;
     const cand = pool.find((p) => p.kind === must);
     if (!cand) continue;
-    if (chosen.length < max) chosen.push(cand);
+    const clash = chosen.findIndex((c) => dupGroup(c) === dupGroup(cand));
+    if (clash >= 0) chosen.splice(clash, 1, cand);
+    else if (chosen.length < max) chosen.push(cand);
     else {
       const counts = new Map<InsightKind, number>();
       chosen.forEach((c) => counts.set(c.kind, (counts.get(c.kind) ?? 0) + 1));

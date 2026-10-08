@@ -88,7 +88,7 @@ describe("détecteurs (déterministes)", () => {
     const ds = sample("pipeline");
     const ins = explore(ds, sc(ds));
     const titles = ins.map((i) => norm(i.analysis.title));
-    expect(titles).toContain("Le pipeline T4 repose à 60 % sur 3 comptes");
+    expect(titles).toContain("Le pipeline T4 repose à 53 % sur 2 comptes");
     expect(titles.some((t) => /^22 affaires en retard : \d+ k€/.test(t))).toBe(true);
     const kinds = new Set(ins.map((i) => i.kind));
     expect(kinds.has("pipelineConversion")).toBe(true);

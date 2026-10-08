@@ -1,39 +1,13 @@
 /**
- * « Explorer mes données » : panneau superposé à l'aperçu qui propose 5 à 8 pistes classées
- * (vignette SVG, titre calculé, pourquoi c'est important, « Ouvrir »). Détection déterministe.
+ * « Explorer mes données » : panneau superposé à l'aperçu et aux réglages qui propose 5 à 8 pistes classées
+ * (mini-graphique lisible, titre calculé, pourquoi c'est important, « Ouvrir »). Détection déterministe.
  */
 import type { Store } from "../state";
-import { chartSpecSchema, isSpecial, type ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
 import { explore, KIND_LABELS, type Insight, type StoryContext } from "../story/insights";
-import { prepareCache, renderChart } from "../charts/render";
 import { ROLE_LABELS } from "../story/snapshots";
+import { miniThumbnail } from "./miniCharts";
 import { h, svgIcon, ICONS } from "./dom";
-
-const THUMB_W = 480;
-const THUMB_H = 270;
-
-/** Vignette : le graphique seul, petit format, sans textes ni signature. */
-export function thumbnailSvg(spec: ChartSpec, ds: Dataset): SVGSVGElement {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("class", "explorer-thumb-svg");
-  if (isSpecial(spec.type)) {
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.innerHTML = `<rect width="24" height="24" fill="transparent"/><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" transform="translate(4 4) scale(.66)">${spec.type === "map" ? ICONS.map : ICONS.film}</g>`;
-    return svg;
-  }
-  const small = chartSpecSchema.parse({
-    ...spec,
-    mode: { ...spec.mode, kind: "static" },
-    style: { ...spec.style, size: { preset: "custom", width: THUMB_W, height: THUMB_H }, valueLabels: false, legend: "none" },
-    axes: { ...spec.axes, x: { ...spec.axes.x, title: "" }, y: { ...spec.axes.y, title: "" } },
-  });
-  const cache = prepareCache(small, ds, null, -1);
-  renderChart(svg, small, ds, cache, { build: 1, timePos: null }, { thumb: true });
-  svg.removeAttribute("width");
-  svg.removeAttribute("height");
-  return svg;
-}
 
 export class Explorer {
   readonly root: HTMLElement;
@@ -92,7 +66,7 @@ export class Explorer {
   private card(ins: Insight, i: number, ds: Dataset): HTMLElement {
     let thumb: Node;
     try {
-      thumb = thumbnailSvg(ins.spec, ds);
+      thumb = miniThumbnail(ins, ds);
     } catch {
       thumb = h("div", { class: "explorer-thumb-missing" }, "Aperçu indisponible");
     }

@@ -2,9 +2,6 @@ import { axisBottom, scaleLinear, select } from "d3";
 import type { Selection } from "d3";
 import {
   computeLayout,
-  formatAxisValue,
-  formatMagnitude,
-  formatSpanRange,
   type LayoutResult,
 } from "../layout.js";
 import {
@@ -18,6 +15,7 @@ import {
   type AnimationController,
   type RevealSchedule,
 } from "../animate.js";
+import { formatAxisValueLocale, formatSpanRangeLocale, magnitudeFormatter } from "../numberFormat.js";
 import {
   createTickerDom,
   updateTickers,
@@ -264,18 +262,19 @@ export function mountSvg(
     const postal = m.meta.postal ?? m.meta.code_postal ?? m.meta.postalCode;
     if (postal != null && String(postal) !== "") geoBits.push(`CP ${escapeHtml(String(postal))}`);
     if (lat != null && lon != null) geoBits.push(`${escapeHtml(String(lat))}, ${escapeHtml(String(lon))}`);
+    const colon = currentOpts.locale === "fr" ? "\u00a0: " : ": ";
     const metaRows = Object.entries(m.meta)
       .filter(([k]) => !["lat","lon","lng","latitude","longitude","postal","postalCode","code_postal","codePostal","zip","ZIP","cp"].includes(k))
       .map(
         ([k, v]) =>
-          `<div>${escapeHtml(k)}: ${escapeHtml(String(v))}</div>`
+          `<div>${escapeHtml(k)}${colon}${escapeHtml(String(v))}</div>`
       )
       .join("");
     tooltip.innerHTML = `
       <div class="smv-tooltip-title">${escapeHtml(m.label)}</div>
-      <div class="smv-tooltip-row">${escapeHtml(currentDoc.spanLabel)}: ${escapeHtml(formatSpanRange(m.start, m.end, currentDoc.unit))}</div>
-      <div class="smv-tooltip-row">${escapeHtml(currentDoc.magnitudeLabel)}: ${escapeHtml(formatMagnitude(m.magnitude))}</div>
-      <div class="smv-tooltip-row">Cohort: ${escapeHtml(m.cohort)} · Group: ${escapeHtml(m.group)}</div>
+      <div class="smv-tooltip-row">${escapeHtml(currentDoc.spanLabel)}${colon}${escapeHtml(formatSpanRangeLocale(m.start, m.end, currentDoc.unit, currentOpts.locale))}</div>
+      <div class="smv-tooltip-row">${escapeHtml(currentDoc.magnitudeLabel)}${colon}${escapeHtml(magnitudeFormatter(currentOpts)(m.magnitude))}</div>
+      <div class="smv-tooltip-row">${currentOpts.locale === "fr" ? `Cohorte : ${escapeHtml(m.cohort)} · Groupe : ${escapeHtml(m.group)}` : `Cohort: ${escapeHtml(m.cohort)} · Group: ${escapeHtml(m.group)}`}</div>
       ${geoBits.length ? `<div class="smv-tooltip-row">${geoBits.join(" · ")}</div>` : ""}
       ${metaRows ? `<div class="smv-tooltip-meta">${metaRows}</div>` : ""}
     `;
@@ -339,7 +338,7 @@ export function mountSvg(
           .attr("text-anchor", "middle")
           .text(ann.label);
       }
-      if (tickerEls) updateTickers(tickerEls, state, currentDoc.unit);
+      if (tickerEls) updateTickers(tickerEls, state, currentDoc.unit, currentOpts);
       currentOpts.onTick?.(state);
       return;
     }
@@ -424,7 +423,7 @@ export function mountSvg(
       });
     }
 
-    if (tickerEls) updateTickers(tickerEls, state, currentDoc.unit);
+    if (tickerEls) updateTickers(tickerEls, state, currentDoc.unit, currentOpts);
     currentOpts.onTick?.(state);
   }
 
@@ -471,7 +470,7 @@ export function mountSvg(
 
       const kinds = resolveTickers(currentDoc, currentOpts);
       if (kinds.length) {
-        tickerEls = createTickerDom(root, currentDoc, kinds, theme);
+        tickerEls = createTickerDom(root, currentDoc, kinds, theme, currentOpts);
       }
 
       const svg = select(chartArea)
@@ -560,7 +559,7 @@ export function mountSvg(
 
       const kinds = resolveTickers(currentDoc, currentOpts);
       if (kinds.length) {
-        tickerEls = createTickerDom(root, currentDoc, kinds, theme);
+        tickerEls = createTickerDom(root, currentDoc, kinds, theme, currentOpts);
       }
 
       const svg = select(chartArea)
@@ -592,7 +591,7 @@ export function mountSvg(
         .call(
           axisBottom(xAxisScale)
             .ticks(8)
-            .tickFormat((d) => formatAxisValue(Number(d), currentDoc.unit))
+            .tickFormat((d) => formatAxisValueLocale(Number(d), currentDoc.unit, currentOpts.locale))
         );
 
       g.append("text")

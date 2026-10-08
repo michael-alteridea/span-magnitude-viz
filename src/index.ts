@@ -48,6 +48,16 @@ export {
   prefersReducedMotion,
 } from "./animate.js";
 export { mountSvg } from "./render/svg.js";
+export {
+  formatMagnitudeFr,
+  formatCountLocale,
+  formatSpanSumLocale,
+  formatAxisValueLocale,
+  formatSpanRangeLocale,
+  magnitudeFormatter,
+  NNBSP,
+} from "./numberFormat.js";
+export type { NumberLocale, NumberFormatOptions } from "./numberFormat.js";
 
 export {
   ALTAIRADY_REDS,

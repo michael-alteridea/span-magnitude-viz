@@ -1,5 +1,5 @@
 import type { NormalizedDocument, TickerKind, TickerState } from "./types.js";
-import { formatMagnitude } from "./layout.js";
+import { formatCountLocale, formatSpanSumLocale, magnitudeFormatter, type NumberFormatOptions } from "./numberFormat.js";
 
 export interface TickerElements {
   root: HTMLElement;
@@ -12,7 +12,8 @@ export function createTickerDom(
   container: HTMLElement,
   doc: NormalizedDocument,
   kinds: TickerKind[],
-  theme: "dark" | "light"
+  theme: "dark" | "light",
+  fmt: NumberFormatOptions = {}
 ): TickerElements {
   const root = document.createElement("div");
   root.className = `smv-tickers smv-tickers--${theme}`;
@@ -39,7 +40,7 @@ export function createTickerDom(
   if (kinds.includes("spanSum")) {
     const box = document.createElement("div");
     box.className = "smv-ticker smv-ticker--span";
-    box.innerHTML = `<div class="smv-ticker-value" data-role="span">0</div><div class="smv-ticker-label">${escapeHtml(doc.spanLabel)} (sum)</div>`;
+    box.innerHTML = `<div class="smv-ticker-value" data-role="span">0</div><div class="smv-ticker-label">${escapeHtml(doc.spanLabel)} (${fmt.locale === "fr" ? "somme" : "sum"})</div>`;
     spanEl = box.querySelector("[data-role=span]");
     root.appendChild(box);
   }
@@ -51,22 +52,17 @@ export function createTickerDom(
 export function updateTickers(
   els: TickerElements,
   state: TickerState,
-  unit: "date" | "number"
+  unit: "date" | "number",
+  fmt: NumberFormatOptions = {}
 ): void {
   if (els.countEl) {
-    els.countEl.textContent = String(Math.round(state.count));
+    els.countEl.textContent = formatCountLocale(state.count, fmt.locale);
   }
   if (els.magnitudeEl) {
-    els.magnitudeEl.textContent = formatMagnitude(state.magnitudeSum);
+    els.magnitudeEl.textContent = magnitudeFormatter(fmt)(state.magnitudeSum);
   }
   if (els.spanEl) {
-    if (unit === "date") {
-      const days = state.spanSum / (1000 * 60 * 60 * 24);
-      els.spanEl.textContent =
-        days >= 365 ? `${(days / 365).toFixed(1)}y` : `${Math.round(days)}d`;
-    } else {
-      els.spanEl.textContent = formatMagnitude(state.spanSum);
-    }
+    els.spanEl.textContent = formatSpanSumLocale(state.spanSum, unit, fmt);
   }
 }
 

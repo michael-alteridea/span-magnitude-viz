@@ -411,10 +411,11 @@ preview.onEditText = (field, value) => {
     store.set("story.comments", c.map((x) => (x ?? "").trim()).filter(Boolean));
   }
 };
-const center = h("section", { class: "center" }, gallery.root, h("div", { class: "center-stack" }, preview.root, explorer.root), storyStrip.root);
+const center = h("section", { class: "center" }, gallery.root, h("div", { class: "center-stack" }, preview.root), storyStrip.root);
 const leftRail = h("button", { class: "rail rail-left", title: "Afficher les données", onclick: () => store.setUi({ leftCollapsed: false }) }, h("span", { html: svgIcon(ICONS.table, 18) }), h("span", { class: "rail-label" }, "Données"));
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
-const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail);
+// L'Explorer recouvre l'aperçu et les réglages (vignettes plus grandes, 4 colonnes sur grand écran)
+const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
 const app = h("div", { class: "app" }, header, workspace);
 document.getElementById("app")!.replaceChildren(app);
 

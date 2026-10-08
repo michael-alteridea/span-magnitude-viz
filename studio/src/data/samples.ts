@@ -123,11 +123,15 @@ const OFFERS: [string, number][] = [["Audit", 0.7], ["Licence", 1.5], ["Accompag
 const SOURCES = ["Site web", "Salon", "Partenaire", "Recommandation", "Prospection", "Webinaire"];
 const STAGE_PROBA: Record<string, number> = { Prospection: 10, Qualification: 20, Proposition: 50, Négociation: 75, "Fermée gagnée": 100, "Fermée perdue": 0 };
 
+/**
+ * Pipeline : rythme de création régulier (≈ 14 affaires par mois, +16 %/an, creux d'août), affaires
+ * conclues 1 à 5 mois après leur création, grands comptes répartis sur toute la période (gros contrats
+ * signés en 2025, gros contrats ouverts à signer au T4 2026), grappe d'affaires en retard.
+ */
 function pipelineRows(): Record<string, unknown>[] {
   const r = rng(4242);
   const pick = <T,>(a: readonly T[]) => a[Math.floor(r() * a.length)]!;
   const day = 86400000;
-  const t0 = Date.UTC(2025, 0, 6);
   const today = Date.UTC(2026, 9, 8);
   const rows: Record<string, unknown>[] = [];
   const add = (o: { created: number; close: number; stage: string; account: [string, number]; owner: string; amount: number; offer: string; type?: string }) => {
@@ -148,54 +152,100 @@ function pipelineRows(): Record<string, unknown>[] {
       Pays: country,
     });
   };
-  const amountFor = (offer: string) => Math.exp(9.35 + r() * 1.9) * (OFFERS.find((x) => x[0] === offer)?.[1] ?? 1);
+  // Montants log-uniformes resserrés (≈ 12 k€ → 60 k€ × facteur d'offre) : pas de méga-affaire hors grands comptes
+  // Quantile stratifié par mois (q) : chaque mois a un mélange représentatif de petites et grosses affaires
+  const amountFor = (offer: string, q = r()) => Math.exp(9.55 + q * 1.5) * Math.pow(OFFERS.find((x) => x[0] === offer)?.[1] ?? 1, 0.2);
   const small = ACCOUNTS.slice(3);
-  // 1. Affaires conclues (créées janv. 2025 → août 2026), clôtures concentrées en juin et décembre
-  for (let i = 0; i < 176; i++) {
-    const created = t0 + Math.floor(Math.pow(r(), 1.25) * ((Date.UTC(2026, 7, 20) - t0) / day)) * day;
-    let close = created + Math.round(25 + r() * 120) * day;
-    const cd = new Date(close);
-    if (r() < 0.38) {
-      // poussée de fin de semestre : fin juin / fin décembre suivant
-      const m = cd.getUTCMonth();
-      const target = m <= 5 ? Date.UTC(cd.getUTCFullYear(), 5, 18 + Math.floor(r() * 11)) : Date.UTC(cd.getUTCFullYear(), 11, 10 + Math.floor(r() * 12));
-      if (target > created + 20 * day) close = target;
-    }
-    if (close > today - 2 * day) close = today - Math.round(3 + r() * 40) * day;
-    if (close < created + 10 * day) close = created + 10 * day;
-    const [owner, win] = pick(OWNERS);
-    const offer = pick(OFFERS)[0];
-    const acc = r() < 0.08 ? ACCOUNTS[Math.floor(r() * 3)]! : pick(small);
-    add({ created, close, stage: r() < win ? "Fermée gagnée" : "Fermée perdue", account: acc, owner, amount: amountFor(offer), offer });
-  }
-  // 2. Grands comptes : 16 grosses affaires ouvertes à signer au T4 2026
   const keyOwners = ["Camille Martin", "Nicolas Peeters", "Sarah Janssens"];
-  for (let i = 0; i < 16; i++) {
-    const acc = ACCOUNTS[i % 3]!;
-    const created = Date.UTC(2026, 1, 1) + Math.floor(r() * 220) * day;
-    const close = Date.UTC(2026, 9, 20) + Math.floor(Math.pow(r(), 0.6) * 70) * day;
-    const offer = pick(["Licence", "Intégration", "Accompagnement"] as const);
-    add({ created, close, stage: pick(["Proposition", "Négociation", "Négociation", "Qualification"] as const), account: acc, owner: keyOwners[i % 3]!, amount: 190000 + r() * 260000, offer, type: "Client existant" });
+  const season = [1.0, 1.04, 1.08, 1.0, 0.98, 1.02, 0.9, 0.7, 1.1, 1.1, 1.04, 0.86];
+  const firstMonday = Date.UTC(2025, 0, 6);
+  type Deal = { created: number; key: boolean; q: number };
+  const deals: Deal[] = [];
+  // 1. Calendrier de création régulier : janv. 2025 → 8 oct. 2026 (300 affaires au total)
+  const months: { start: number; n: number }[] = [];
+  for (let t = 0; t < 22; t++) {
+    const start = Date.UTC(2025, t, 1);
+    const end = Math.min(Date.UTC(2025, t + 1, 1), today + day);
+    const frac = (end - Math.max(start, firstMonday)) / (Date.UTC(2025, t + 1, 1) - start);
+    months.push({ start: Math.max(start, firstMonday), n: 13.2 * Math.pow(1.16, t / 12) * season[t % 12]! * frac });
   }
-  // 3. Grappe d'affaires en retard : clôture prévue dépassée mais toujours ouvertes
-  for (let i = 0; i < 22; i++) {
-    const owner = i < 12 ? "Hugo Lefèvre" : i < 17 ? "Thomas Girard" : pick(OWNERS)[0];
-    const close = Date.UTC(2026, 5, 10) + Math.floor(r() * 115) * day;
-    const created = close - Math.round(70 + r() * 200) * day;
+  const target = 300;
+  const tot = months.reduce((a, m) => a + m.n, 0);
+  let acc = 0;
+  let made = 0;
+  months.forEach((m, t) => {
+    acc += (m.n * target) / tot;
+    const n = Math.round(acc) - made;
+    made += n;
+    const end = Math.min(Date.UTC(2025, t + 1, 1), today + day);
+    const span = Math.max(1, Math.floor((end - m.start) / day));
+    // Un grand compte par mois (sauf août), à date régulière
+    const keyAt = season[t % 12]! >= 0.8 ? Math.floor(n / 2) : -1;
+    // Mélange de Fisher-Yates (déterministe quel que soit le moteur JS, contrairement à sort aléatoire)
+    const order = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [order[i], order[j]] = [order[j]!, order[i]!];
+    }
+    for (let i = 0; i < n; i++) deals.push({ created: m.start + Math.floor(((i + r()) / n) * span) * day, key: i === keyAt, q: (order[i]! + r()) / n });
+  });
+  const openNormal: Deal[] = [];
+  for (const d of deals) {
+    const age = (today - d.created) / day;
+    if (d.key) {
+      const acc = ACCOUNTS[Math.floor(r() * 3)]!;
+      const owner = keyOwners[ACCOUNTS.indexOf(acc)]!;
+      const offer = pick(["Licence", "Intégration", "Accompagnement"] as const);
+      const amount = 240000 * Math.pow(1.16, (d.created - firstMonday) / (365 * day)) * (0.9 + r() * 0.2);
+      if (d.created < Date.UTC(2025, 8, 15)) {
+        // Gros contrats 2025, signés (ou perdus) en fin de semestre
+        const cd = new Date(d.created + 90 * day);
+        let close = cd.getUTCMonth() <= 5 ? Date.UTC(cd.getUTCFullYear(), 5, 16 + Math.floor(r() * 12)) : Date.UTC(cd.getUTCFullYear(), 11, 8 + Math.floor(r() * 14));
+        close = Math.max(close, d.created + 60 * day);
+        add({ created: d.created, close, stage: r() < 0.62 ? "Fermée gagnée" : "Fermée perdue", account: acc, owner, amount, offer, type: "Client existant" });
+      } else {
+        const close = Date.UTC(2026, 9, 20) + Math.floor(Math.pow(r(), 0.6) * 70) * day;
+        add({ created: d.created, close, stage: pick(["Proposition", "Négociation", "Négociation", "Qualification"] as const), account: acc, owner, amount, offer, type: "Client existant" });
+      }
+      continue;
+    }
+    const pClosed = age > 300 ? 0.93 : age > 180 ? 0.8 : age > 100 ? 0.55 : age > 45 ? 0.22 : 0.03;
+    if (r() < pClosed) {
+      let close = d.created + Math.round(25 + r() * 120) * day;
+      const cd = new Date(close);
+      if (r() < 0.35) {
+        // poussée de fin de semestre : fin juin / fin décembre
+        const m = cd.getUTCMonth();
+        const t = m <= 5 ? Date.UTC(cd.getUTCFullYear(), 5, 18 + Math.floor(r() * 11)) : Date.UTC(cd.getUTCFullYear(), 11, 10 + Math.floor(r() * 12));
+        if (t > d.created + 20 * day) close = t;
+      }
+      if (close > today - 2 * day) close = today - Math.round(3 + r() * 30) * day;
+      if (close < d.created + 10 * day) close = d.created + 10 * day;
+      const [owner, win] = pick(OWNERS);
+      const offer = pick(OFFERS)[0];
+      add({ created: d.created, close, stage: r() < win ? "Fermée gagnée" : "Fermée perdue", account: r() < 0.06 ? ACCOUNTS[Math.floor(r() * 3)]! : pick(small), owner, amount: amountFor(offer, d.q), offer });
+    } else openNormal.push(d);
+  }
+  // 2. Affaires ouvertes : les 22 plus anciennes créées en 2026 ou avant (hors 6 très anciennes) ont une clôture dépassée
+  const byAge = [...openNormal].sort((a, b) => a.created - b.created);
+  const late = new Set(byAge.filter((d) => (today - d.created) / day > 75).slice(6, 28));
+  let li = 0;
+  for (const d of openNormal) {
     const offer = pick(OFFERS)[0];
-    add({ created, close: Math.min(close, today - 2 * day), stage: pick(["Proposition", "Négociation", "Qualification"] as const), account: pick(small), owner, amount: amountFor(offer) * 1.2, offer });
-  }
-  // 4. Affaires ouvertes courantes, clôtures oct. → déc. 2026 (dont quelques anciennes, créées en 2025)
-  for (let i = 0; i < 86; i++) {
-    const stale = i < 14;
-    const created = stale ? t0 + Math.floor(r() * 240) * day : Date.UTC(2026, 0, 5) + Math.floor(Math.pow(r(), 0.6) * ((today - Date.UTC(2026, 0, 5)) / day)) * day;
+    const age = (today - d.created) / day;
+    if (late.has(d)) {
+      const owner = li < 12 ? "Hugo Lefèvre" : li < 17 ? "Thomas Girard" : pick(OWNERS)[0];
+      li++;
+      const close = Math.min(today - 2 * day, Math.max(d.created + 60 * day, Date.UTC(2026, 5, 10) + Math.floor(r() * 115) * day));
+      add({ created: d.created, close, stage: pick(["Proposition", "Négociation", "Qualification"] as const), account: pick(small), owner, amount: amountFor(offer, d.q) * 1.2, offer });
+      continue;
+    }
     const u = r();
     const month = u < 0.27 ? 9 : u < 0.57 ? 10 : 11;
     const close = Math.max(today + 5 * day, Date.UTC(2026, month, 1 + Math.floor(r() * 28)));
-    const offer = pick(OFFERS)[0];
     const s = r();
-    const stage = s < 0.22 ? "Prospection" : s < 0.48 ? "Qualification" : s < 0.78 ? "Proposition" : "Négociation";
-    add({ created, close, stage, account: pick(small), owner: pick(OWNERS)[0], amount: amountFor(offer), offer });
+    const stage = age < 30 ? (s < 0.6 ? "Prospection" : "Qualification") : s < 0.18 ? "Prospection" : s < 0.45 ? "Qualification" : s < 0.76 ? "Proposition" : "Négociation";
+    add({ created: d.created, close, stage, account: pick(small), owner: pick(OWNERS)[0], amount: amountFor(offer, d.q), offer });
   }
   rows.sort((a, b) => String(a["Date de création"]).localeCompare(String(b["Date de création"])));
   return rows;

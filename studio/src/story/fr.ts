@@ -94,6 +94,20 @@ export function formatRatio(r: number): string {
   return `${formatNumber(r, r >= 10 ? 0 : 1)}×`;
 }
 
+/** Multiplicateur en tête : « ×2,5 » (croissances de plus de 100 %). */
+export function formatTimes(r: number): string {
+  return `×${formatNumber(r, r >= 10 ? 0 : 1)}`;
+}
+
+/**
+ * Variation relative lisible : « +12 % », « −40 % » ; au-delà de +100 % le pourcentage devient
+ * un multiplicateur (« ×2,5 »), plus parlant et moins spectaculaire qu'un « +152 % ».
+ */
+export function formatGrowth(r: number): string {
+  if (!Number.isFinite(r)) return "–";
+  return r >= 1 ? formatTimes(1 + r) : formatSignedPct(r);
+}
+
 /** Valeur selon l'unité de la mesure. */
 export function formatMeasure(v: number, unit: "eur" | "pct" | "count" | "plain"): string {
   if (unit === "eur") return formatAmount(v, true);

@@ -263,6 +263,20 @@ try {
       await sleep(300);
     }
   }
+  // Compteurs du film au format français (bibliothèque, locale « fr ») : « 10,6 M€ », espace fine insécable
+  await page.evaluate(() => window.r4d.seek(1));
+  await sleep(400);
+  const counters = await page.evaluate(() => ({
+    mag: document.querySelector("[data-testid=special-host] [data-role=magnitude]")?.textContent ?? "",
+    count: document.querySelector("[data-testid=special-host] [data-role=count]")?.textContent ?? "",
+    labels: [...document.querySelectorAll("[data-testid=special-host] .smv-ticker-label")].map((e) => e.textContent).join(" | "),
+    ticks: [...document.querySelectorAll("[data-testid=special-host] .smv-axis text")].map((e) => e.textContent).slice(0, 3).join(" | "),
+  }));
+  check(
+    "Film 4D : compteurs et axe au format français",
+    /^(\d{1,3}(,\d)?\u202f(k|M)€|\d{1,3}(\u202f\d{3})?\u202f€)$/.test(counters.mag) && /^\d+$/.test(counters.count.replace(/\u202f/g, "")) && !/\./.test(counters.mag) && /Affaires/i.test(counters.labels) && !/^\d{4}-\d{2}/.test(counters.ticks),
+    `${counters.count} · ${counters.mag} · ${counters.labels} · ${counters.ticks}`
+  );
   const before0 = readdirSync(dl);
   await domClick("[data-testid=export-svg]");
   const filmSvg = await waitDownload(".svg", before0);
@@ -409,9 +423,25 @@ try {
     await sleep(700);
     await domClick("[data-testid=explore-data]");
     await page.waitForSelector("[data-testid=explorer-card]", { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => !document.querySelector(".explorer-thumb svg[data-loading]"), { timeout: 8000 }).catch(() => {});
     await sleep(500);
-    const cards = await page.$$eval("[data-testid=explorer-card]", (els) => els.map((e) => ({ kind: e.dataset.kind, title: e.querySelector("h3")?.textContent ?? "", why: e.querySelector(".explorer-why")?.textContent ?? "", thumb: e.querySelectorAll(".explorer-thumb svg *").length })));
+    const cards = await page.$$eval("[data-testid=explorer-card]", (els) =>
+      els.map((e) => {
+        const svg = e.querySelector(".explorer-thumb svg");
+        const r = svg?.getBoundingClientRect();
+        const vb = svg?.viewBox?.baseVal;
+        const k = r && vb?.width ? r.width / vb.width : 0;
+        const sizes = [...(svg?.querySelectorAll("text") ?? [])].map((t) => Number(t.getAttribute("font-size") || 0) * k);
+        return { kind: e.dataset.kind, title: e.querySelector("h3")?.textContent ?? "", why: e.querySelector(".explorer-why")?.textContent ?? "", thumb: svg?.querySelectorAll("*").length ?? 0, w: Math.round(r?.width ?? 0), minFont: sizes.length ? Math.min(...sizes) : 0, texts: sizes.length, paths: svg?.querySelectorAll(".mini-map path").length ?? 0 };
+      })
+    );
     check(`Explorer « ${id} » : 5 à 8 pistes avec vignette, titre, pourquoi`, cards.length >= 5 && cards.length <= 8 && cards.every((c) => c.title.length > 10 && c.why.length > 10 && c.thumb > 0), `${cards.length} : ${cards.map((c) => c.kind).join(", ")}`);
+    // Vignettes lisibles : au moins 340 px de large, 1 à 3 libellés, aucun texte sous 12 px ; carte = vraie choroplèthe FR/BE
+    check(
+      `Explorer « ${id} » : vignettes lisibles (≥ 340 px, textes ≥ 12 px, carte FR/BE)`,
+      cards.every((c) => c.w >= 340 && c.texts >= 1 && c.texts <= 3 && c.minFont >= 12) && cards.filter((c) => c.kind === "geo").every((c) => c.paths > 50),
+      cards.map((c) => `${c.kind} ${c.w}px ${c.texts}×≥${c.minFont.toFixed(1)}px${c.kind === "geo" ? ` ${c.paths} zones` : ""}`).join(" · ")
+    );
     if (SHOTS) await page.screenshot({ path: join(shotsDir, shot) });
     const pick = id === "pipeline" ? cards.findIndex((c) => c.kind === "concentration") : cards.findIndex((c) => c.kind === "variance" && /budget/i.test(c.title));
     const idx = Math.max(0, pick);
@@ -420,7 +450,7 @@ try {
     const opened = await page.evaluate(() => ({ kind: window.r4d.getSpec().story.kind, title: window.r4d.getSpec().style.title, explorer: !document.querySelector("[data-testid=explorer]").classList.contains("hidden"), comments: document.querySelectorAll("[data-testid=chart-svg] .r4d-comment").length, svgTitle: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-title")].map((t) => t.textContent).join(" ") }));
     const info = await stageInfo();
     check(`Explorer « ${id} » : « Ouvrir » charge le graphique et son récit`, opened.kind === cards[idx].kind && opened.title === cards[idx].title && !opened.explorer && opened.comments >= 1 && (info.marks > 0 || info.special > 0), `${opened.kind} · « ${opened.title} » · ${opened.comments} commentaire(s)`);
-    if (id === "pipeline") check("titre de l'exemple demandé", opened.title.replace(/[\u00a0\u202f]/g, " ") === "Le pipeline T4 repose à 60 % sur 3 comptes", opened.title);
+    if (id === "pipeline") check("titre de l'exemple demandé", opened.title.replace(/[\u00a0\u202f]/g, " ") === "Le pipeline T4 repose à 53 % sur 2 comptes", opened.title);
   }
 
   // Titre modifié directement sur le graphique (double-clic) → conservé → « Régénérer » le rétablit

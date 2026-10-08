@@ -89,9 +89,9 @@ export function buildSpanDocument(spec: ChartSpec, ds: Dataset): { doc: unknown;
     unit,
     mapping,
     title: "",
-    magnitudeLabel: magCol.name,
+    magnitudeLabel: magnitudeUnitOf(spec, magCol.name) ? magCol.name.replace(/\s*\((?:€|k€|m€|eur|euros?)\)\s*$/i, "") : magCol.name,
     spanLabel: endCol === startCol ? startCol.name : `${startCol.name} → ${endCol.name}`,
-    countLabel: "Éléments",
+    countLabel: countLabelOf(spec),
   });
   // Garde-fou : fin ≥ début (inversions fréquentes dans les exports)
   const marks = (doc as { marks: { span: { start: string | number; end: string | number } }[] }).marks;
@@ -101,6 +101,25 @@ export function buildSpanDocument(spec: ChartSpec, ds: Dataset): { doc: unknown;
   }
   if (!marks.length) return { doc: null, unit, error: "Aucune ligne exploitable (début, fin et magnitude doivent être renseignés)." };
   return { doc, unit, error: null };
+}
+
+function magName(spec: ChartSpec): string {
+  return spec.encoding.y[0] ?? "";
+}
+
+/** Unité des compteurs : € si l'axe ou la colonne est monétaire, unité libre sinon. */
+export function magnitudeUnitOf(spec: Pick<ChartSpec, "axes">, column: string): string {
+  const u = spec.axes.y.unit;
+  if (u === "eur" || u === "keur" || u === "meur" || /€|\beur\b|euros?\b/i.test(column)) return "€";
+  if (u === "custom") return spec.axes.y.unitCustom.trim();
+  return "";
+}
+
+/** Libellé du compteur d'éléments : « Affaires » pour un pipeline, sinon nom des libellés. */
+function countLabelOf(spec: ChartSpec): string {
+  const l = spec.encoding.label ?? "";
+  if (/opportunit|affaire|deal/i.test(l)) return "Affaires";
+  return "Éléments";
 }
 
 export function mountSpecial(
@@ -139,6 +158,9 @@ export function mountSpecial(
     facetSummary: false,
     colorScheme: libColorScheme(spec.style.palette),
     colorBy: spec.encoding.series ? "group" : "magnitude",
+    // Compteurs, info-bulle et graduations au format français (10,6 M€, févr. 2025)
+    locale: "fr",
+    magnitudeUnit: magnitudeUnitOf(spec, magName(spec)),
     cascadeSpeed: "normal",
     onTick: opts.onTick,
     onComplete: opts.onComplete,

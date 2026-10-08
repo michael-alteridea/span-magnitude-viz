@@ -131,6 +131,15 @@ export interface VizOptions {
   /** First k marks animate slowly with labels. Default 2. */
   slowFirst?: number;
   tickers?: boolean | TickerKind[];
+  /**
+   * Number / date locale for tickers, tooltip and axis ticks. Default `"en"`
+   * (`10.6M`, `2025-02`); `"fr"` → `10,6 M€`, `févr. 2025` (narrow no-break spaces).
+   */
+  locale?: "en" | "fr";
+  /** Unit appended to magnitudes in tickers and tooltip (e.g. `"€"`). */
+  magnitudeUnit?: string;
+  /** Custom magnitude formatter (overrides `locale` / `magnitudeUnit`). */
+  formatMagnitude?: (v: number) => string;
   /** Dark storytelling theme. */
   theme?: "dark" | "light";
   /** Cohort to show; null = all. */

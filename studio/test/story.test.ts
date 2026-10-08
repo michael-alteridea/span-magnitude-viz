@@ -75,7 +75,7 @@ describe("récit calculé", () => {
   const ins = explore(d, sc).find((i) => i.kind === "concentration")!;
   it("titre affirmatif, sous-titre IBCS (entité · mesure · unité · période), 1 à 3 commentaires", () => {
     const n = narrate(ins.spec, d, sc)!;
-    expect(norm(n.title)).toBe("Le pipeline T4 repose à 60 % sur 3 comptes");
+    expect(norm(n.title)).toBe("Le pipeline T4 repose à 53 % sur 2 comptes");
     expect(norm(n.subtitle)).toMatch(/^Pipeline Salesforce · Montant en (k€|M€) · affaires ouvertes · /);
     expect(n.comments.length).toBeGreaterThanOrEqual(1);
     expect(n.comments.length).toBeLessThanOrEqual(3);
@@ -94,7 +94,7 @@ describe("récit calculé", () => {
   it("narration générique quand l'encodage change (empreinte différente)", () => {
     const changed = { ...ins.spec, encoding: { ...ins.spec.encoding, x: "Propriétaire" } };
     const n = narrate(changed, d, sc)!;
-    expect(n.title).not.toBe("Le pipeline T4 repose à 60 % sur 3 comptes");
+    expect(n.title).not.toBe("Le pipeline T4 repose à 53 % sur 2 comptes");
     expect(narrativeKey(changed, 1, sc)).not.toBe(narrativeKey(ins.spec, 1, sc));
   });
 });

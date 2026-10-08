@@ -23,7 +23,7 @@ const plugin = {
   name: "r4d-offline",
   setup(b) {
     b.onResolve({ filter: /^span-magnitude-viz$/ }, () => ({ path: join(repo, "src/index.ts") }));
-    b.onResolve({ filter: /^span-magnitude-viz\// }, (a) => ({ path: join(repo, "src", a.path.slice("span-magnitude-viz/".length)) + (a.path.endsWith(".ts") ? "" : ".ts") }));
+    b.onResolve({ filter: /^span-magnitude-viz\// }, (a) => ({ path: join(repo, "src", a.path.slice("span-magnitude-viz/".length)) + (/\.(ts|json)$/.test(a.path) ? "" : ".ts") }));
     b.onResolve({ filter: /\?url$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?url$/, "")), namespace: "dataurl" }));
     b.onResolve({ filter: /\?inline$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?inline$/, "")), namespace: "dataurl" }));
     b.onResolve({ filter: /\?raw$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?raw$/, "")), namespace: "raw" }));

@@ -141,6 +141,9 @@ if (!result.ok) {
 | `slowFirst` | `2` | Premières marques lentes + labels |
 | `durationMs` | adaptatif | Durée totale de l’animation |
 | `tickers` | `true` | Compteur + somme des magnitudes |
+| `locale` | `"en"` | Format des compteurs, info-bulle et graduations : `"en"` (`10.6M`, `2025-02`) ou `"fr"` (`10,6 M€`, `févr. 2025`, espaces fines insécables) |
+| `magnitudeUnit` | — | Unité ajoutée aux magnitudes (ex. `"€"`) |
+| `formatMagnitude` | — | Formateur personnalisé des magnitudes (prioritaire sur `locale`) |
 | `theme` | `"dark"` | `"dark"` \| `"light"` |
 | `cohortFilter` | `null` | Filtrer une cohorte |
 | `mirrorSplit` | `false` | Cohorte A au-dessus de l’axe, reste en dessous |
