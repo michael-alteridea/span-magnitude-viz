@@ -119,6 +119,14 @@ async function domClick(sel) {
   }, sel);
   if (!ok) throw new Error("élément introuvable : " + sel);
 }
+/** Choisit un type dans la bande du haut (variante B) : clic réel sur le pictogramme, ou via « Plus +n ▾ » s'il y est rangé. */
+async function clickType(t, pg = page) {
+  const hidden = await pg.evaluate((t) => { const b = document.querySelector(`[data-testid=type-${t}]`); return !b || b.hidden || b.offsetParent === null; }, t);
+  if (!hidden) return pg.click(`[data-testid=type-${t}]`);
+  await pg.click("[data-testid=type-more]");
+  await pg.waitForSelector(`[data-testid=type-menu-${t}]`, { visible: true, timeout: 3000 });
+  await pg.click(`[data-testid=type-menu-${t}]`);
+}
 async function selectValue(sel, value) {
   await page.evaluate(
     (s, v) => {
@@ -562,7 +570,7 @@ async function reelEditChecks(pg, shot, tag, ipad = false, mode = "type") {
   check(`Reel (${tag}) : Valider met à jour la scène 2 sur place (même id, même ordre), retouches et rythme conservés`, JSON.stringify(st1.ids) === JSON.stringify(st0.ids) && st1.type2 === newType && st1.pal === "petroleGris" && (mode === "type" || st1.focus === "@max") && st1.title === "Titre retouché de la scène 2" && st1.field === st1.title && st1.number === "42 %" && st1.dur === 5 && st1.rhythm === "calme" && !st1.bar && st1.t > 0, JSON.stringify(st1));
   const fr = await pg.evaluate(async () => { const d = window.r4d.reelDialog(); d.setPlaying(false); d.seek(d.time + 3); await new Promise((r) => requestAnimationFrame(r)); return document.querySelectorAll("[data-testid=reel-frame] .reel-chart .r4d-marks *").length; });
   check(`Reel (${tag}) : scène 2 redessinée avec le nouveau graphique`, fr > 0, String(fr));
-  if (shot && !ipad) await (await pg.$("[data-testid=reel-dialog] .rv-dialog")).screenshot({ path: join(shotsDir, "111-reel-scene-modifiee.png") }).catch(() => {});
+  if (SHOTS && !ipad) await (await pg.$("[data-testid=reel-dialog] .rv-dialog")).screenshot({ path: join(shotsDir, "111-reel-scene-modifiee.png") }).catch(() => {});
   // Annuler : rien ne change, l'éditeur retrouve son état
   const before = await pg.evaluate(() => ({ type: window.r4d.getSpec().type, id1: window.r4d.reelDialog().currentPlan.scenes[0].id, t1: window.r4d.reelDialog().sceneItems[0].snap.spec.type }));
   await press(`[data-testid=reel-scene][data-scene-id="${before.id1}"] [data-testid=reel-edit-chart]`);
@@ -1108,19 +1116,88 @@ try {
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "72-panneau-accordeon.png") });
   }
 
-  /* Galerie des types : aucun libellé ne déborde ; sélection = filets pétrole au-dessus du pictogramme et sous le libellé */
+  /* Menu du haut, variante B « Deux niveaux calmes » : barre fine + bande de types sur une ligne, « Plus +n ▾ » */
   {
     await page.evaluate(() => window.r4d.pickType("barH"));
     await sleep(500);
     const gal = await page.evaluate(() => {
-      const tiles = [...document.querySelectorAll("[data-testid=gallery] .type-tile")];
-      const over = tiles.filter((t) => { const l = t.querySelector(".tile-label"); if (!l || l.offsetParent === null) return false; const a = l.getBoundingClientRect(), b = t.getBoundingClientRect(); return l.scrollWidth > l.clientWidth + 1 || a.left < b.left - 0.5 || a.right > b.right + 0.5; }).map((t) => t.dataset.type);
-      const act = document.querySelector("[data-testid=gallery] .type-tile.active");
+      const g = document.querySelector("[data-testid=gallery]");
+      const tiles = [...g.querySelectorAll(".type-tile")].filter((t) => !t.hidden);
+      const act = g.querySelector(".type-tile.active");
       const lab = act.querySelector(".tile-label"), ic = act.querySelector(".tile-icon");
-      const after = getComputedStyle(lab, "::after"), before = getComputedStyle(ic, "::before");
-      return { over, type: act.dataset.type, outline: getComputedStyle(act).borderTopWidth + "/" + getComputedStyle(act).boxShadow, barUnder: after.transform, barOver: before.transform, color: after.backgroundColor, labW: lab.getBoundingClientRect().width, tileW: act.getBoundingClientRect().width };
+      const before = getComputedStyle(ic, "::before");
+      const others = tiles.filter((t) => t !== act && t.querySelector(".tile-label").offsetParent !== null).map((t) => t.dataset.type);
+      return { type: act.dataset.type, labVisible: lab.offsetParent !== null && lab.textContent, others, barOver: before.transform, color: before.backgroundColor, h: Math.round(g.getBoundingClientRect().height), families: g.querySelectorAll(".family-label").length, top: Math.round(document.querySelector(".topbar").getBoundingClientRect().height), tip: tiles.find((t) => t.dataset.type === "line")?.dataset.tip };
     });
-    check("galerie des types : aucun libellé ne déborde ; « Horizontales » sélectionnée = filet sous le libellé + filet au-dessus du pictogramme (sans cadre)", gal.over.length === 0 && gal.type === "barH" && /^0px\/none$/.test(gal.outline) && /matrix\(1, 0, 0, 1/.test(gal.barUnder) && /matrix\(1, 0, 0, 1/.test(gal.barOver) && gal.labW <= gal.tileW, JSON.stringify(gal));
+    check("bande des types : une ligne de 46 px sans intitulé de famille, libellé seulement sur « Horizontales » (filet pétrole au-dessus du pictogramme), info-bulle « Lignes »", gal.type === "barH" && gal.labVisible === "Horizontales" && gal.others.length === 0 && /matrix\(1, 0, 0, 1/.test(gal.barOver) && gal.h === 46 && gal.families === 0 && gal.top === 48 && /Lignes/.test(gal.tip ?? ""), JSON.stringify(gal));
+    const top = await page.evaluate(() => ({
+      buttons: [...document.querySelectorAll(".topbar button")].filter((b) => b.offsetParent !== null).map((b) => b.textContent.replace(/\s+/g, " ").trim()),
+      snap: !!document.querySelector("[data-testid=snapshot-top]"), pptx: !!document.querySelector("[data-testid=story-pptx]"), storySnap: !!document.querySelector("[data-testid=snapshot]"),
+      tagline: !!document.querySelector(".brand .tagline"),
+      explore: (() => { const e = document.querySelector("[data-testid=data-panel] .panel-body > [data-testid=explore-data]"); return !!e && e === e.parentElement.firstElementChild; })(),
+      scen: !!document.querySelector("[data-testid=data-panel] .ex-head [data-testid=scenario-open]") && /Exemples/.test(document.querySelector("[data-testid=data-panel] .ex-head h3")?.textContent ?? ""),
+      exportPptx: !!document.querySelector("[data-testid=export-pptx]"),
+      hint: document.querySelector(".acc-type small")?.textContent ?? "",
+    }));
+    check("barre du haut : logo, Mes revues, Fichier, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios à droite d'« Exemples » ; un seul PowerPoint (Exporter)", top.buttons.length === 3 && /^Mes revues/.test(top.buttons[0]) && /Fichier/.test(top.buttons[1]) && /Exporter/.test(top.buttons[2]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
+    // « Plus » : un type rangé dedans est choisi par le menu, puis reste visible dans la bande
+    await page.click("[data-testid=type-more]");
+    await sleep(200);
+    const menu = await page.evaluate(() => {
+      const m = document.querySelector("[data-testid=type-menu]");
+      const items = [...m.querySelectorAll(".type-menu-item")].filter((i) => !i.hidden).map((i) => i.dataset.type);
+      const r = m.getBoundingClientRect();
+      return { open: !m.hidden, items, more: document.querySelector("[data-testid=type-more]").textContent.replace(/\s+/g, " ").trim(), inView: r.right <= innerWidth && r.bottom <= innerHeight && r.left >= 0, expanded: document.querySelector("[data-testid=type-more]").getAttribute("aria-expanded") };
+    });
+    if (SHOTS) {
+      await page.mouse.move(1, 1);
+      await page.screenshot({ path: join(shotsDir, "116-menu-plus-ouvert.png"), clip: { x: 0, y: 0, width: 1600, height: 420 } });
+    }
+    await page.click("[data-testid=type-menu-stackedArea]");
+    await sleep(500);
+    const after = await page.evaluate(() => ({ type: window.r4d.getSpec().type, vis: !document.querySelector("[data-testid=type-stackedArea]").hidden, open: !document.querySelector("[data-testid=type-menu]").hidden, n: [...document.querySelectorAll("[data-testid=gallery] .type-tile")].filter((t) => !t.hidden).length }));
+    check("« Plus +3 ▾ » (≥ 1200 px) : Aires empilées, Arcs radiaux, Film 4D ; le type choisi passe dans la bande", menu.open && menu.expanded === "true" && menu.inView && menu.more === "Plus +3" && menu.items.join() === "stackedArea,radialBar,film" && after.type === "stackedArea" && after.vis && !after.open && after.n === 12, JSON.stringify({ menu, after }));
+    await page.click("[data-testid=type-more]");
+    await sleep(150);
+    await page.keyboard.press("Escape");
+    await sleep(150);
+    const escClosed = await page.evaluate(() => document.querySelector("[data-testid=type-menu]").hidden);
+    check("menu « Plus » : Échap le ferme", escClosed);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.evaluate(() => window.r4d.pickType("bar"));
+    await sleep(400);
+    // jamais de débordement à 1024 / 1366 / 1920 (avec « Barres » sélectionné, comme la maquette)
+    const sizes = [];
+    for (const [w, hgt] of [[1024, 768], [1366, 1024], [1920, 1080]]) {
+      await page.setViewport({ width: w, height: hgt, deviceScaleFactor: 1 });
+      await sleep(SHOTS ? 1400 : 450);
+      sizes.push(await page.evaluate((w) => {
+        const bad = [];
+        for (const e of document.querySelectorAll(".topbar *, [data-testid=gallery] > *, [data-testid=data-panel] .panel-body > button, [data-testid=data-panel] .ex-head *")) {
+          if (e.offsetParent === null || e.closest("[hidden]")) continue;
+          const r = e.getBoundingClientRect();
+          if (r.right > w + 0.5 || r.left < -0.5) bad.push(e.className || e.tagName);
+          if (e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0 && getComputedStyle(e).overflow !== "visible") bad.push("scroll:" + (e.className || e.tagName));
+        }
+        const g = document.querySelector("[data-testid=gallery]");
+        const t = document.querySelector(".topbar");
+        if (g.scrollWidth > g.clientWidth + 1) bad.push("strip " + g.scrollWidth + ">" + g.clientWidth);
+        if (t.scrollWidth > t.clientWidth + 1) bad.push("topbar " + t.scrollWidth + ">" + t.clientWidth);
+        const lastVis = [...g.children].filter((c) => !c.hidden && c.offsetParent !== null && !c.classList.contains("type-menu")).pop();
+        if (lastVis && lastVis.getBoundingClientRect().right > g.getBoundingClientRect().right + 0.5) bad.push("strip-right");
+        const vis = [...g.querySelectorAll(".type-tile")].filter((x) => !x.hidden).map((x) => x.dataset.type);
+        return { w, bad, n: vis.length, more: document.querySelector("[data-testid=type-more]").hidden ? "" : document.querySelector("[data-testid=type-more]").textContent.trim(), doc: document.documentElement.scrollWidth <= w, act: vis.includes(window.r4d.getSpec().type) };
+      }, w));
+      if (SHOTS) {
+        await page.mouse.move(1, 1);
+        if (w === 1366) await page.screenshot({ path: join(shotsDir, "114-menu-haut-1366.png"), clip: { x: 0, y: 0, width: w, height: 300 } });
+        if (w === 1024) await page.screenshot({ path: join(shotsDir, "115-menu-haut-1024.png"), clip: { x: 0, y: 0, width: w, height: 300 } });
+        if (w === 1920) await page.screenshot({ path: join(shotsDir, "117-menu-haut-1920.png"), clip: { x: 0, y: 0, width: w, height: 240 } });
+      }
+    }
+    await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 1.5 });
+    await sleep(400);
+    check("aucun débordement de la barre du haut ni de la bande à 1024 / 1366 / 1920 (7 pictogrammes + « Plus +8 » sous 1200 px, 12 + « Plus +3 » au-delà)", sizes.every((s) => !s.bad.length && s.doc && s.act) && sizes[0].n === 7 && sizes[0].more === "Plus +8" && sizes[1].n === 12 && sizes[2].n === 12, JSON.stringify(sizes));
     if (SHOTS) await (await page.$("[data-testid=gallery]")).screenshot({ path: join(shotsDir, "80-galerie-types-selection.png") });
   }
 
@@ -1280,11 +1357,11 @@ try {
   }
 
   /* 2. Chaque type de graphique */
-  const types = await page.$$eval("[data-testid^=type-]", (els) => els.map((e) => e.dataset.type));
+  const types = await page.$$eval("[data-testid=gallery] .type-tile", (els) => els.map((e) => e.dataset.type));
   check("galerie : 15 types", types.length === 15, types.join(","));
   for (const t of types) {
     if (t === "film" || t === "map") continue;
-    await page.click(`[data-testid=type-${t}]`);
+    await clickType(t);
     await sleep(t === "bar" ? 700 : 500);
     await page.evaluate(() => window.r4d.seek(1));
     await sleep(150);
@@ -1295,7 +1372,7 @@ try {
   await domClick("[data-testid=sample-pipeline]");
   await sleep(800);
   for (const t of ["film", "map"]) {
-    await page.click(`[data-testid=type-${t}]`);
+    await clickType(t);
     await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] svg *").length > 20, { timeout: 10000 }).catch(() => {});
     await page.evaluate(() => window.r4d.seek(0.8));
     await sleep(400);
@@ -1333,7 +1410,7 @@ try {
       check("carte : source du fond dans le cartouche (IGN, NGI-Statbel, Natural Earth ; aucune licence restrictive)", mapSrc.some((t) => /IGN, NGI-Statbel, Natural Earth/.test(t)) && !/GISCO|EuroGeographics|Eurostat|non commercial|NUTS/i.test(mapSrc.join(" ") + mapText) && mapText.includes("Fond : IGN, NGI-Statbel, Natural Earth"), mapSrc.join(" · "));
       if (process.env.R4D_MAP_SHOT) await (await page.$(".r4d-cartouche"))?.screenshot({ path: process.env.R4D_MAP_SHOT });
       check("carte : cartouche + QR sans chevauchement (barre d'échelle km, carte)", !!mc?.qr && scaleBar && mc.overlaps.length === 0 && /#1\.E\./.test(mc.qr.url), mc ? `${Math.round(mc.w)}×${Math.round(mc.h)} · ${mc.overlaps.length ? "chevauche " + mc.overlaps.slice(0, 3).join(", ") : "aucun chevauchement"}` : "absent");
-      await page.click("[data-testid=type-film]");
+      await clickType("film");
       await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] svg *").length > 20, { timeout: 10000 }).catch(() => {});
       await page.evaluate(() => window.r4d.seek(0.8));
       await sleep(300);
@@ -1361,7 +1438,7 @@ try {
   /* 3. Axe logarithmique (via l'interface) */
   await domClick("[data-testid=sample-canaux]");
   await sleep(700);
-  await page.click("[data-testid=type-scatter]");
+  await clickType("scatter");
   await sleep(500);
   await domClick('[data-path="axes.y.scale"] [data-value="log"]');
   await sleep(500);
@@ -1374,7 +1451,7 @@ try {
   /* 4. Second axe Y (via l'interface) */
   await domClick("[data-testid=sample-ventes]");
   await sleep(700);
-  await page.click("[data-testid=type-line]");
+  await clickType("line");
   await sleep(500);
   await selectValue('select[data-path="encoding.y2"]', "Marge (%)");
   await sleep(900);
@@ -1497,7 +1574,7 @@ try {
   if (cfgFile) {
     const cfg = JSON.parse(readFileSync(cfgFile, "utf8"));
     cfgOk = cfg.kind === "reporting-4d-studio" && cfg.spec?.$schema === "reporting-4d-studio/spec-v1" && cfg.spec.encoding.y2 === "Marge (%)";
-    await page.click("[data-testid=type-donut]");
+    await clickType("donut");
     await sleep(300);
     const input = await page.$("[data-testid=config-input]");
     await input.uploadFile(cfgFile);
@@ -1666,7 +1743,7 @@ try {
 
   // Export PowerPoint : zip valide, couverture + sommaire + 1 diapositive par snapshot
   const bp = readdirSync(dl);
-  await domClick("[data-testid=story-pptx]");
+  await domClick("[data-testid=export-pptx]");
   const pptxFile = await waitDownload(".pptx", bp);
   let pptxOk = false;
   let pptxDetail = "aucun fichier";
@@ -1758,7 +1835,7 @@ try {
   const tiles = await page.evaluate(() =>
     Object.fromEntries(["pie", "donut", "radialBar", "film", "bar"].map((t) => {
       const b = document.querySelector(`[data-testid=type-${t}]`);
-      return [t, { aria: b.getAttribute("aria-disabled"), title: b.title, cls: b.classList.contains("disabled") }];
+      return [t, { aria: b.getAttribute("aria-disabled"), title: b.dataset.tip ?? "", cls: b.classList.contains("disabled") }];
     }))
   );
   await domClick("[data-testid=type-pie]");
@@ -1846,7 +1923,7 @@ try {
   );
   {
     const b = readdirSync(dl);
-    await domClick("[data-testid=story-pptx]");
+    await domClick("[data-testid=export-pptx]");
     const f = await waitDownload(".pptx", b);
     let ok = false;
     let detail = "aucun fichier";

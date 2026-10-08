@@ -829,7 +829,7 @@ export class SettingsPanel {
     const t = spec.type;
     const main: Kid[] = [];
     const more: Kid[] = [];
-    main.push(this.kw(h("p", { class: "acc-type" }, h("span", { class: "acc-type-k" }, "Type"), h("b", null, typeShort(t)), h("small", null, "· à changer dans la galerie")), "type de graphique"));
+    main.push(this.kw(h("p", { class: "acc-type" }, h("span", { class: "acc-type-k" }, "Type"), h("b", null, typeShort(t)), h("small", null, "· bande du haut")), "type de graphique"));
     if (isBarType(t) || isRadial(t))
       main.push(this.kw(this.line("Trier", this.segmented("style.sort", [["none", "Données", "Ordre des données"], ["desc", "Décr.", "Décroissant"], ["asc", "Croiss.", "Croissant"], ["alpha", "A→Z", "Alphabétique"]])), "tri ordre décroissant croissant alphabétique classement"));
     if (t === "groupedBar" || t === "stackedBar")

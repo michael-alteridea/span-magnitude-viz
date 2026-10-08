@@ -344,6 +344,9 @@ const actions = {
   explore() {
     explorer.open();
   },
+  scenarios() {
+    scenarioDialog.open();
+  },
   reshape() {
     reopenMapping();
   },
@@ -1335,11 +1338,8 @@ makeMenu(
   { testid: "file-menu", label: "Fichier" }
 );
 
-const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), h("span", { class: "btn-lbl" }, "Explorer mes données"));
-const scenarioTopBtn = h("button", { class: "btn btn-scenario", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => scenarioDialog.open() }, h("span", { html: svgIcon(ICONS.clapper, 16) }), h("span", { class: "btn-lbl" }, "Scénarios"));
 const reviewsCount = h("span", { class: "btn-count", "data-testid": "reviews-count" });
-const reviewsTopBtn = h("button", { class: "btn", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par snapshot, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), h("span", { class: "btn-lbl" }, "Revues"), reviewsCount);
-const snapTopBtn = h("button", { class: "btn", "data-testid": "snapshot-top", title: "Ajouter le graphique courant à l'histoire", onclick: () => void takeSnapshot() }, "📸", h("span", { class: "btn-lbl" }, " Snapshot"));
+const reviewsTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-reviews", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par snapshot, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), h("span", { class: "btn-lbl" }, "Mes revues"), reviewsCount);
 
 /* ---- mode norme : badge, légende de notation */
 const normeBadge = h("span", { class: "norme-badge", hidden: true, "data-testid": "norme-badge", title: `Mode norme actif — notation ${NORME_WORDING_F}` }, "Norme");
@@ -1401,15 +1401,13 @@ const header = h(
       html: tell4dIconMarkup("t4d-hdr", 30),
     }),
     h("h1", null, h("span", { class: "wm", html: wordmarkMarkup("dark", 14) }), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
-    h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea"),
     normeBadge,
     normeInfoBtn
   ),
   h(
     "div",
     { class: "toolbar" },
-    h("div", { class: "tool-group" }, exploreTopBtn, scenarioTopBtn, snapTopBtn, reviewsTopBtn),
-    h("div", { class: "tool-group" }, fileBtn, cfgInput, exportBtn)
+    h("div", { class: "tool-group" }, reviewsTopBtn, fileBtn, cfgInput, exportBtn)
   )
 );
 

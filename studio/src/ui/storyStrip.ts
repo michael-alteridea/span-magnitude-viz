@@ -33,7 +33,6 @@ export class StoryStrip {
   private list: HTMLElement;
   private count: HTMLElement;
   private titleInp: HTMLInputElement;
-  private pptxBtn: HTMLButtonElement;
   private filmBtn: HTMLButtonElement;
   private readBtn: HTMLButtonElement;
   private cadBtn: HTMLButtonElement;
@@ -52,7 +51,6 @@ export class StoryStrip {
     this.titleInp.addEventListener("input", () => this.store.setStory({ ...this.store.state.story, title: this.titleInp.value }));
     this.list = h("div", { class: "story-list", "data-testid": "story-list" });
     this.orderBtn = h("button", { class: "btn btn-small", "data-testid": "story-order", title: "Contexte → tension → révélation → recommandation", onclick: () => this.order() }, "Ordonner en récit");
-    this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
     this.filmBtn = h("button", { class: "btn btn-small", "data-testid": "story-film", title: "Rejouer l'histoire en plein écran (animations, commentaires) — ←/→, espace, Échap", onclick: () => this.actions.film?.() }, "▶ Film");
     this.readBtn = h("button", { class: "btn btn-small", "data-testid": "story-read", title: "Mode lecture plein écran : une diapositive par snapshot, au rythme du lecteur (toucher, balayage, ←/→), lien partageable par diapositive", onclick: () => this.actions.read?.() }, "Mode lecture");
     this.cadBtn = h("button", { class: "btn btn-small", "data-testid": "story-cadencer", title: "Envoyer l'histoire vers Cadencer : URL du manifeste publié (démos) ou manifeste à télécharger (images intégrées)", onclick: () => this.actions.cadencer?.() }, "Envoyer vers Cadencer");
@@ -96,7 +94,6 @@ export class StoryStrip {
         this.filmBtn,
         this.readBtn,
         this.morphLabel,
-        this.pptxBtn,
         this.reelBtn,
         this.cadBtn
       ),
@@ -125,7 +122,6 @@ export class StoryStrip {
     this.count.textContent = String(st.snapshots.length);
     if (document.activeElement !== this.titleInp) this.titleInp.value = st.title;
     this.orderBtn.disabled = st.snapshots.length < 2;
-    this.pptxBtn.disabled = !st.snapshots.length;
     this.filmBtn.disabled = !st.snapshots.length;
     this.reelBtn.title = st.snapshots.length
       ? "Mini-film de 15 à 30 s pour Instagram, TikTok ou LinkedIn (MP4) : une scène par snapshot, titres courts, chiffres qui comptent, carte de fin avec QR"

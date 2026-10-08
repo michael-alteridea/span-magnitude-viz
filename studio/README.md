@@ -68,7 +68,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 - **Histoire** : « 📸 Snapshot » ajoute le graphique (spec, SVG, vignette, textes) au bandeau ; glisser pour
   réordonner, renommer, supprimer, cliquer pour recharger ; « Ordonner en récit » (contexte → tension → révélation →
   recommandation). Persistée dans `localStorage` (`reporting-4d-studio:story:v1`) et dans le JSON enregistré.
-- **Exporter en PowerPoint** (pptxgenjs chargé à la demande) : couverture pétrole, sommaire, une diapositive par
+- **Exporter › PowerPoint de l'histoire** (pptxgenjs chargé à la demande) : couverture pétrole, sommaire, une diapositive par
   snapshot (rôle, titre d'action, sous-titre, graphique PNG 2×, commentaires, filet d'accent).
 
 ## Mode norme (étape 2)
@@ -262,7 +262,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 
 ## Revues partagées (étape partage)
 
-- **Espace « Revues »** (bouton **Revues** de la barre du haut, ou `#/revues`) : liste des revues (persona, date de réunion,
+- **Espace « Revues »** (bouton **Mes revues** de la barre du haut, ou `#/revues`) : liste des revues (persona, date de réunion,
   statut : brouillon, partagée, en réunion, terminée), recherche et filtres ; détail d'une revue : séquence ordonnée des
   snapshots (les vrais objets `Snapshot`, ids stables des scénarios), lecture avant la réunion (anneau, barres par snapshot,
   « Relancer » = message local, export CSV), participants avec un point par snapshot vu.
@@ -307,7 +307,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 - **PowerPoint** : le QR du cartouche de chaque graphique (bas droite) et le lien de l'image / du pied de page
   (« Mode lecture › ») ouvrent la diapositive en mode lecture ; le lien natif « Vérifier l'empreinte des données » reste
   dans le pied de page.
-- **Option « Transitions Morph »** (case à côté de « Exporter en PowerPoint », désactivée par défaut) : chaque barre devient
+- **Option « Transitions Morph »** (case du bandeau Histoire, utilisée par Exporter › PowerPoint de l'histoire, désactivée par défaut) : chaque barre devient
   une **forme native** nommée d'après ses clés de données (`!!barre:<période>#0`, `!!ref:commercial=…#0`…) posée sur l'image
   du graphique sans ses barres ; titre, sous-titre, filet, image, commentaires portent aussi un nom `!!…`. Séquence de
   **construction** : amorce (barres à zéro, sans commentaires) puis graphique complet, donc PowerPoint fait pousser les
@@ -354,8 +354,8 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
 - **Où** : prévisualisation du Studio, mode lecture, revues (réunion, compte rendu) et page participant. **Jamais** dans
   le film ni dans les exports : `composeSvg` retire `data-tip` et les attributs d'accessibilité (SVG, PNG, PowerPoint,
   Morph, manifestes publiés).
-- **iPad 1366 / 1180 / 1024 px** : aucun débordement horizontal (barre du haut compacte — libellés des boutons Récit en
-  infobulle sous 1180 px —, galerie des types sur plusieurs lignes, panneau de réglages entièrement visible). Vérifié par
+- **iPad 1366 / 1180 / 1024 px** : aucun débordement horizontal (barre du haut de 48 px, bande des types sur une seule
+  ligne avec « Plus +n », panneau de réglages entièrement visible). Vérifié par
   les tests de bout en bout. Carte « spéciale » (bibliothèque) : infobulle sur chaque région ; les points et le film 4D gardent l'infobulle de la bibliothèque. Aires empilées : une colonne invisible par catégorie (toutes les séries).
 
 ## Panneau de réglages en accordéon (étape H)
@@ -372,8 +372,7 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
   point à retenir → Récit, axe → Graphique › Axe X ou Y, légende → Légende, barre → tri / étiquettes / unité,
   cartouche ou QR → Export › QR, fond → Style › Fond. Les éléments explorables (zoom) gardent leur clic ; le double-clic
   sur un texte le modifie toujours directement. Logique pure dans `ui/panelMap.ts` (testée).
-- **Barre du haut** : Explorer mes données, Scénarios, Snapshot, Revues, menu **Fichier** et bouton **Exporter** (menu)
-  remplacent les 13 boutons et cases d'export et de configuration. Menus au clavier (↓ ↑, Échap).
+- **Barre du haut** : voir « Menu du haut (variante B) » ci-dessous. Menus au clavier (↓ ↑, Échap).
 
 ## Identifiants de snapshots stables
 
@@ -592,6 +591,26 @@ Visibles dans la section Données (pas sous « Plus d'options ») :
 
 Tests : `test/model.test.ts` (top / plus petits / Autres), e2e `--topn` (iPad 1024 px, toucher). Captures
 `docs/shots/112` et `113`.
+
+## Menu du haut : variante B « Deux niveaux calmes »
+
+- **Barre du haut (48 px)** : logo Datanime · Studio, puis **Mes revues (n)**, **Fichier ▾** et **Exporter ▾** (seul
+  bouton accent). Le slogan et le bouton « Snapshot » du haut disparaissent : 📸 Snapshot reste dans le bandeau
+  Histoire. Un seul accès PowerPoint : Exporter › PowerPoint de l'histoire.
+- **Bande des types (46 px, une seule ligne, colonne centrale)** : pictogrammes 19 px dans des cibles de 34 px (38 px au
+  toucher), filet de 1 px entre familles, aucun intitulé de famille. Seul le type sélectionné affiche son nom, avec le
+  filet pétrole au-dessus du pictogramme ; au survol, info-bulle pâle avec le nom complet.
+- **« Plus +n ▾ »** à droite : menu pictogramme + nom complet (Échap ou clic extérieur le ferme). Remplissage selon la
+  place, dans l'ordre des familles : 12 pictogrammes dès 1200 px (Plus = Aires empilées, Arcs radiaux, Film 4D),
+  7 en dessous (Plus +8). Le type sélectionné reste toujours visible (il prend la place du dernier s'il vient de
+  « Plus »). Logique pure `stripVisible` dans `ui/gallery.ts` (testée).
+- **Panneau Données** : « Explorer mes données » en tête du panneau ; « Scénarios » à droite du titre « Exemples ».
+- Réglages › Graphique : « Type Barres · bande du haut ».
+- Aucun débordement à 1024 / 1366 / 1920 px (barre, bande, menu), vérifié par l'e2e. Hauteur au-dessus du graphique
+  à 1366 px : 94 px (contre 222 px auparavant).
+
+Tests : `test/gallery.test.ts`, e2e (bande, Plus, Échap, débordements). Captures `docs/shots/114` (1366 px), `115`
+(1024 px), `116` (menu Plus ouvert), `117` (1920 px).
 
 ## Architecture (`studio/src`)
 

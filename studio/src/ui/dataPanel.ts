@@ -21,6 +21,8 @@ export interface DataActions {
   editCell(row: number, column: string, text: string): void;
   /** « Créer un Reel » sur un exemple de données publiques (histoire suggérée de 3 à 5 snapshots). */
   reelSample(id: string): void;
+  /** « Scénarios » de réunion (bouton à droite du titre « Exemples »). */
+  scenarios?(): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -145,6 +147,8 @@ export class DataPanel {
       h(
         "div",
         { class: "panel-body" },
+        // Variante B : « Explorer mes données » en tête du panneau (il quitte la barre du haut)
+        h("button", { type: "button", class: "btn btn-explore-panel", "data-testid": "explore-data", title: "Pistes de graphiques calculées sur vos données (tendance, concentration, écarts, pipeline…)", onclick: () => actions.explore() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données"),
         h(
           "div",
           { class: "block" },
@@ -154,13 +158,20 @@ export class DataPanel {
           h("button", { class: "btn btn-reshape", "data-testid": "reshape-open", title: "Choisir l'onglet, le tableau, les axes X / Y, regrouper des lignes — aperçu en direct", onclick: () => actions.reshape() }, h("span", { html: svgIcon(ICONS.sliders, 15) }), "Mise en forme des données…")
         ),
         h("div", { class: "block" }, h("h3", null, h("span", { html: svgIcon(ICONS.paste, 15) }), " Coller un tableau"), ta, pasteBtn),
-        h("div", { class: "block" }, h("h3", null, "Exemples"), samples),
-        ...(themes.length ? [publicBlock] : []),
         h(
           "div",
           { class: "block" },
-          h("button", { class: "btn btn-explore", "data-testid": "explore-data", title: "Pistes de graphiques calculées sur vos données (tendance, concentration, écarts, pipeline…)", onclick: () => actions.explore() }, h("span", { html: svgIcon(ICONS.explore, 18) }), "Explorer mes données")
+          h(
+            "div",
+            { class: "ex-head" },
+            h("h3", null, "Exemples"),
+            actions.scenarios
+              ? h("button", { type: "button", class: "btn btn-scenario btn-scenario-sm", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => actions.scenarios?.() }, h("span", { html: svgIcon(ICONS.clapper, 14) }), "Scénarios")
+              : null
+          ),
+          samples
         ),
+        ...(themes.length ? [publicBlock] : []),
         h(
           "div",
           { class: "block grow" },
