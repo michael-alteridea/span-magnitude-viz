@@ -3,6 +3,7 @@
  * participants ; fenêtre « Partager » (lien + QR de la revue et de chaque snapshot, accès, invitations).
  */
 import { h } from "../ui/dom";
+import { wordmarkMarkup } from "../brand";
 import type { Ctx } from "./ctx";
 import {
   STATUS_LABEL,
@@ -120,7 +121,7 @@ export function brandIcon(): string {
   return brandHtml;
 }
 function brandMarkup(): string {
-  return `${brandHtml}<div><b>Data<em>nime</em></b><small>Revues partagées</small></div>`;
+  return `${brandHtml}<div><b>${wordmarkMarkup("dark", 15)}</b><small>Revues partagées</small></div>`;
 }
 
 function detail(ctx: Ctx, r: Review): HTMLElement {

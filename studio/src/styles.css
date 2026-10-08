@@ -56,6 +56,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand .logo { display: flex; filter: drop-shadow(0 0 10px var(--glow)); }
 .brand h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; white-space: nowrap; }
 .brand h1 em { font-style: normal; color: var(--accent); }
+.brand h1 { display: flex; align-items: center; gap: 0; }
+.brand h1 .wm { display: inline-flex; }
+.brand h1 .wm svg { display: block; height: 14px; width: auto; }
+.brand h1 .dot { margin: 0 5px; }
 .brand h1 .dot { color: var(--faint); font-weight: 400; }
 .brand h1 .studio { font-weight: 400; color: var(--muted); }
 .brand .tagline { color: var(--faint); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -68,6 +68,7 @@ body.rv-open .app > :not(.rv-space):not(.cad-overlay) { display: none !important
 .rv-side { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; background: #050d11; border-right: 1px solid var(--line); }
 .rv-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px 14px; }
 .rv-brand svg { width: 34px; height: 34px; flex: none; }
+.rv-brand svg.wordmark { width: auto; height: 15px; display: block; margin: 2px 0 3px; }
 .rv-brand b { display: block; font-size: 17px; }
 .rv-brand b em { font-style: normal; color: var(--accent); }
 .rv-brand small { color: var(--faint); }
@@ -340,7 +341,8 @@ body.rv-open .app > :not(.rv-space):not(.cad-overlay) { display: none !important
 .rv-doc-head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #dfe8eb; }
 .rv-doc-brand svg { width: 34px; height: 34px; display: block; }
 .rv-doc-head > div { flex: 1; display: flex; flex-direction: column; }
-.rv-doc-head b { color: #0E6E8C; }
+.rv-doc-head b { color: #0E6E8C; display: inline-flex; align-items: center; gap: 6px; }
+.rv-doc-head b svg.wordmark { height: 13px; width: auto; display: inline-block; }
 .rv-doc-head small, .rv-doc-date { color: #5a6f78; }
 .rv-doc-meta { display: grid; grid-template-columns: 150px 1fr; gap: 4px 14px; margin: 0; font-size: 13.5px; }
 .rv-doc-meta dt { color: #5a6f78; }

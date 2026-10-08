@@ -7,6 +7,7 @@ import type { Ctx } from "./ctx";
 import { buildReport, frDate, frDateTime, frTime, person, reportSlideComments, type Review } from "./model";
 import { avatar, chartBox, dots, download, ic, ring } from "./view";
 import { brandIcon } from "./list";
+import { wordmarkMarkup } from "../brand";
 
 export function reportPage(ctx: Ctx, r: Review): HTMLElement {
   const rep = buildReport(r);
@@ -48,7 +49,7 @@ export function reportPage(ctx: Ctx, r: Review): HTMLElement {
   const doc = h(
     "article",
     { class: "rv-doc", "data-testid": "rv-report-doc" },
-    h("header", { class: "rv-doc-head" }, h("span", { class: "rv-doc-brand", html: brandIcon() }), h("div", null, h("b", null, "Datanime · compte rendu de revue"), h("small", null, `${r.org} · diffusion restreinte aux participants`)), h("small", { class: "rv-doc-date" }, `Généré le ${frDate(end ?? ctx.now())}`)),
+    h("header", { class: "rv-doc-head" }, h("span", { class: "rv-doc-brand", html: brandIcon() }), h("div", null, h("b", { html: `${wordmarkMarkup("light", 13)} · compte rendu de revue` }), h("small", null, `${r.org} · diffusion restreinte aux participants`)), h("small", { class: "rv-doc-date" }, `Généré le ${frDate(end ?? ctx.now())}`)),
     h("h1", null, r.title),
     h(
       "dl",

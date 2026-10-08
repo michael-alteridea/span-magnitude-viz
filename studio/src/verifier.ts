@@ -4,7 +4,7 @@
  * règles que le Studio (`provenance.ts`). Tout reste dans le navigateur : rien n'est envoyé.
  */
 import "./verifier.css";
-import { tell4dIconMarkup, PLATFORM_URL, PRODUCT_LABEL } from "./brand";
+import { tell4dIconMarkup, PLATFORM_URL, PRODUCT_LABEL, wordmarkMarkup } from "./brand";
 import { canonicalJson, cryptoAvailable, frDateYmd, normalizePastedText, parseVerifyFragment, sha256Hex, shortFingerprint, type VerifyInfo } from "./provenance";
 import { SAMPLES } from "./data/samples";
 
@@ -81,7 +81,7 @@ const root = document.getElementById("verifier")!;
 const header = el(
   "header",
   { class: "v-top" },
-  el("a", { class: "v-brand", href: "./", title: `${PRODUCT_LABEL} · Studio` }, el("span", { class: "v-logo", html: tell4dIconMarkup("t4d-v", 30) }), el("span", { class: "v-name" }, "Data", el("em", {}, "nime"))),
+  el("a", { class: "v-brand", href: "./", title: `${PRODUCT_LABEL} · Studio` }, el("span", { class: "v-logo", html: tell4dIconMarkup("t4d-v", 30) }), el("span", { class: "v-name", html: wordmarkMarkup("dark", 15) })),
   el("span", { class: "v-sep" }, "·"),
   el("h1", {}, "Vérifier l'empreinte des données")
 );

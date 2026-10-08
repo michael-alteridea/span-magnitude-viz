@@ -10,7 +10,7 @@
  */
 import type { ChartSpec } from "../spec";
 import { themeFor } from "../theme";
-import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST } from "../brand";
+import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST, WORDMARK_PNG, WORDMARK_RATIO } from "../brand";
 import { generatedOn } from "./fr";
 import { shortFingerprint, verifyInfoFor, verifyUrl, type Provenance } from "../provenance";
 import { ROLE_LABELS, type Snapshot, type StoryState } from "./snapshots";
@@ -44,6 +44,11 @@ const SLIDE_H = 7.5;
 
 const hex = (c: string) => c.replace("#", "").slice(0, 6).toUpperCase();
 
+/** Mot-symbole « Datanime » (image, texte alternatif « Datanime », lien vers la plateforme) ; `h` = hauteur des capitales en pouces. */
+function wordmark(slide: any, dark: boolean, x: number, y: number, h: number) {
+  slide.addImage({ data: WORDMARK_PNG[dark ? "dark" : "light"], x, y, w: h * WORDMARK_RATIO, h, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
+}
+
 /** Cartouche « label qualité » d'une diapositive (couverture, sommaire). */
 /** Typographie française : espace insécable avant « : ; ! ? » et entre un nombre et son unité (pas de retour à la ligne). */
 function frSpaces(t: string): string {
@@ -55,18 +60,8 @@ function cartouche(slide: any, opts: { dark: boolean; date: string; source?: str
   const y = SLIDE_H - 0.78;
   // Logo Datanime : PNG 64 px affiché à 0,26 po (≥ 2× à 96 ppp)
   slide.addImage({ data: ICON_PNG_2X, x: x + 0.02, y: y + 0.03, w: 0.26, h: 0.26, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
-  slide.addText(PRODUCT_LABEL, {
-    x: x + 0.36,
-    y: y + 0.02,
-    w: 3.6,
-    h: 0.3,
-    fontFace: FONT,
-    fontSize: 11,
-    bold: true,
-    color: opts.dark ? "FFFFFF" : "3F3F46",
-    hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST },
-    margin: 0,
-  });
+  // Mot-symbole « Datanime » (« a » orange) : PNG 96 px, hauteur des capitales 0,12 po
+  wordmark(slide, opts.dark, x + 0.36, y + 0.11, 0.12);
   slide.addText(`${opts.date}${opts.source ? ` · ${opts.source}` : ""} · ${PLATFORM_HOST}`, {
     x: x + 0.36,
     y: y + 0.3,
@@ -102,7 +97,7 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   const cover = pptx.addSlide();
   cover.background = { color: PETROL_DARK };
   cover.addImage({ data: ICON_PNG_2X, x: 0.8, y: 0.7, w: 0.6, h: 0.6, altText: PRODUCT_LABEL });
-  cover.addText(PRODUCT_LABEL, { x: 1.55, y: 0.78, w: 6, h: 0.44, fontFace: FONT, fontSize: 22, bold: true, color: "FFFFFF", valign: "middle", margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
+  wordmark(cover, true, 1.6, 0.88, 0.24);
   cover.addShape("rect", { x: 0.8, y: 2.35, w: 0.9, h: 0.09, fill: { color: PETROL_LIGHT }, line: { color: PETROL_LIGHT } });
   cover.addText(story.title || "Notre histoire en données", { x: 0.8, y: 2.6, w: 11.5, h: 1.5, fontFace: FONT, fontSize: 40, bold: true, color: "FFFFFF", valign: "top", margin: 0, fit: "shrink" });
   const names = [...new Set(snaps.map((s) => s.dataName).filter(Boolean))].slice(0, 3).join(" · ");
@@ -259,6 +254,6 @@ function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
   }
   // Pied : logo Datanime (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
   slide.addImage({ data: ICON_PNG_2X, x: SLIDE_W - 2.42, y: 7.07, w: 0.22, h: 0.22, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
-  slide.addText(PRODUCT_LABEL, { x: SLIDE_W - 2.14, y: 7.05, w: 0.85, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: muted, margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
+  wordmark(slide, dark, SLIDE_W - 2.14, 7.14, 0.1);
   slide.addText(`${c.page} / ${total}`, { x: SLIDE_W - 1.2, y: 7.05, w: 0.7, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0 });
 }

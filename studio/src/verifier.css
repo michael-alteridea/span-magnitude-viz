@@ -22,6 +22,7 @@ a { color: var(--accent); }
 .v-logo { display: flex; filter: drop-shadow(0 0 10px rgba(63, 167, 196, .35)); }
 .v-name { font-weight: 700; font-size: 19px; letter-spacing: -.2px; }
 .v-name em { font-style: normal; color: var(--accent); }
+.v-name { display: inline-flex; } .v-name svg { display: block; height: 15px; width: auto; }
 .v-sep { color: var(--faint); }
 .v-top h1 { margin: 0; font-size: 17px; font-weight: 400; color: var(--muted); }
 .v-main { display: flex; flex-direction: column; gap: 16px; padding-top: 22px; flex: 1; }

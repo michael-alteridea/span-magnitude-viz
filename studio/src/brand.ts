@@ -5,6 +5,9 @@
  */
 import iconSvgRaw from "./assets/brand/tell4d-h1-icon.svg?raw";
 import { TELL4D_ICON_PNG_64 } from "./assets/brand/icon-png";
+import { WORDMARK_COLORS, WORDMARK_PATHS, WORDMARK_PNG, WORDMARK_RATIO, WORDMARK_VIEWBOX } from "./assets/brand/wordmark";
+
+export { WORDMARK_PNG, WORDMARK_RATIO };
 
 export const PRODUCT_LABEL = "Datanime";
 export const PLATFORM_URL = "https://alteridea-dashboard.web.app/reporting/";
@@ -81,3 +84,36 @@ export function appendTell4dIcon(parent: Appendable, prefix: string): Appendable
   };
   return build(parent, tell4dIconTree(prefix), true);
 }
+
+/* ------------------------------------------------------------------ mot-symbole */
+
+export type WordmarkTheme = "light" | "dark";
+
+/**
+ * Mot-symbole « Datanime » (« Dat » neutre, « a » orange, « nime » pétrole) en SVG inline, `height` = hauteur des
+ * capitales en px. Accessible : role="img", aria-label et <title> « Datanime ».
+ */
+export function wordmarkMarkup(theme: WordmarkTheme, height: number, cls = "wordmark"): string {
+  const c = WORDMARK_COLORS[theme];
+  const w = Math.round(height * WORDMARK_RATIO * 10) / 10;
+  const paths = WORDMARK_PATHS.map((p) => `<path d="${p.d}" fill="${c[p.part]}"/>`).join("");
+  return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" viewBox="${WORDMARK_VIEWBOX.join(" ")}" width="${w}" height="${height}" role="img" aria-label="${PRODUCT_LABEL}"><title>${PRODUCT_LABEL}</title>${paths}</svg>`;
+}
+
+/** Ajoute le mot-symbole sous `parent` (sélection d3) : coin haut-gauche (x, y), hauteur des capitales `h`. */
+export function appendWordmark(parent: Appendable, theme: WordmarkTheme, x: number, y: number, h: number): Appendable {
+  const [vx, vy, , vh] = WORDMARK_VIEWBOX;
+  const k = h / vh;
+  const g = parent
+    .append("g")
+    .attr("class", "r4d-brand r4d-wordmark")
+    .attr("role", "img")
+    .attr("aria-label", PRODUCT_LABEL)
+    .attr("transform", `translate(${(x - vx * k).toFixed(2)} ${(y - vy * k).toFixed(2)}) scale(${k.toFixed(5)})`);
+  const c = WORDMARK_COLORS[theme];
+  for (const p of WORDMARK_PATHS) g.append("path").attr("d", p.d).attr("fill", c[p.part]);
+  return g;
+}
+
+/** Largeur du mot-symbole pour une hauteur de capitales `h`. */
+export const wordmarkWidth = (h: number): number => h * WORDMARK_RATIO;

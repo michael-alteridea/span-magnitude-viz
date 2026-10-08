@@ -23,3 +23,12 @@ conservés pour ne pas changer les imports). `studio/public/favicon.svg` (= l'ic
 Renommage du 8 oct. 2026 : Tell4D devient **Datanime**. Icône, PNG, favicon, apple-touch-icon, `icon-png.ts` et lockups
 sont produits par `build_datanime.py` (même icône, « DA » à la place de « 4D », même position, taille et graisse ;
 nom « Data » + « nime » vectorisé en Inter 700). Les fichiers techniques `tell4d-h1-icon*` gardent leur nom.
+
+## Mot-symbole (8 oct. 2026)
+
+« Dat » neutre + « a » orange plein + « nime » pétrole, sans ▶, à toutes les tailles (fichiers de marque p0) :
+`datanime-wordmark-light.svg` / `datanime-wordmark-dark.svg` (texte seul, chemins vectorisés), `wordmark.ts`
+(chemins, couleurs, PNG 96 px pour PowerPoint) ; lockups `datanime-lockup*.svg` = icône + mot-symbole.
+Utilisé dans l'en-tête du Studio, l'espace Revues, la page de vérification, le compte rendu, le cartouche
+(aperçu, exports, film, mode lecture, images publiées) et les PowerPoint. Nom accessible : « Datanime ».
+L'icône carrée et le favicon ne changent pas.

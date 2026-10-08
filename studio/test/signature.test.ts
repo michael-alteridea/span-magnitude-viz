@@ -143,12 +143,12 @@ describe("export PowerPoint", () => {
     const cover = await zip.file("ppt/slides/slide1.xml")!.async("string");
     expect(cover).toContain("Revue T3");
     expect(norm(cover)).toContain("Généré le 8 oct. 2026");
-    // identité Datanime : couverture, sommaire et pied de page (nom + logo PNG 2×), plus de « Reporting 4D »
+    // identité Datanime : couverture, sommaire et pied de page (logo PNG 2× + mot-symbole en image, texte alternatif « Datanime »)
     const agenda = await zip.file("ppt/slides/slide2.xml")!.async("string");
     for (const x of [cover, agenda, s3]) {
-      expect(x).toContain(">Datanime<");
+      expect(x).toMatch(/descr="Datanime"/);
+      expect(x.match(/<p:pic>/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
       expect(x).not.toContain("Reporting 4D");
-      expect(x).toMatch(/<p:pic>/);
     }
     const media = await Promise.all(Object.keys(zip.files).filter((f) => /^ppt\/media\/image.*\.png$/.test(f)).map((f) => zip.file(f)!.async("uint8array")));
     // le PNG 64 px de l'icône (2×) figure parmi les médias

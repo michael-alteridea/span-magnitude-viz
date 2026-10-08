@@ -17,7 +17,7 @@ import { toast } from "./ui/toast";
 import { h, svgIcon, ICONS } from "./ui/dom";
 import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
 import { themeFor, ensureFont } from "./theme";
-import { PLATFORM_URL, tell4dIconMarkup } from "./brand";
+import { PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup } from "./brand";
 import { ReviewSpace } from "./review/space";
 import { LocalReviewStorage } from "./review/storage";
 import { reportSlideComments } from "./review/model";
@@ -1132,7 +1132,7 @@ const header = h(
       class: "logo",
       html: tell4dIconMarkup("t4d-hdr", 30),
     }),
-    h("h1", null, "Data", h("em", null, "nime"), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
+    h("h1", null, h("span", { class: "wm", html: wordmarkMarkup("dark", 14) }), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
     h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea"),
     normeBadge,
     normeInfoBtn

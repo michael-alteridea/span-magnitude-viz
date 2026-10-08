@@ -8,7 +8,7 @@ import type { ChartSpec } from "../spec";
 import type { Theme } from "../theme";
 import type { G, PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
-import { LOGO_COLORS, PLATFORM_URL, PRODUCT_LABEL, appendTell4dIcon, type Appendable } from "../brand";
+import { LOGO_COLORS, PLATFORM_URL, PRODUCT_LABEL, appendTell4dIcon, appendWordmark, wordmarkWidth, type Appendable } from "../brand";
 import { generatedOn } from "../story/fr";
 import { provenanceLines, shortFingerprint, verifyInfoFor, verifyUrl, type Provenance } from "../provenance";
 import { qrMatrix, qrPath, type QrMatrix } from "../qr";
@@ -49,7 +49,7 @@ export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { dri
   return MAP_SOURCE_FRBE;
 }
 
-const K = { pad: 8, gap: 10, brandRow: 18, lineH: 13.5, fs: 9.5, fsBrand: 12.5, logo: 14, qrMin: 72, sourceMax: 125 };
+const K = { wordmarkH: 9.6, pad: 8, gap: 10, brandRow: 18, lineH: 13.5, fs: 9.5, fsBrand: 12.5, logo: 14, qrMin: 72, sourceMax: 125 };
 
 /** Mesure le cartouche (sans dessiner). */
 export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: Date, qrUrl: string | null = null): CartoucheLayout {
@@ -61,7 +61,7 @@ export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: D
   const fingerprint = p ? `Empreinte ${shortFingerprint(p.hash)}` : null;
   const fs = K.fs * s;
   const m = (t: string, w = 400) => measure(t, fs, font, w);
-  let textW = Math.max(K.logo * s + 5 * s + measure(PRODUCT_LABEL, K.fsBrand * s, font, 700), m(date), ...(data ? data.map((l) => m(l)) : []), fingerprint ? m(fingerprint) : 0);
+  let textW = Math.max(K.logo * s + 5 * s + wordmarkWidth(K.wordmarkH * s), m(date), ...(data ? data.map((l) => m(l)) : []), fingerprint ? m(fingerprint) : 0);
   if (source) textW = Math.max(textW, Math.min(m(source), K.sourceMax * s));
   const mapSource = mapSourceLines(spec);
   for (const l of mapSource) textW = Math.max(textW, m(l));
@@ -105,7 +105,10 @@ export function drawCartouche(root: G, theme: Theme, lay: CartoucheLayout, x0: n
     .attr("width", logo)
     .attr("height", logo)
     .attr("aria-hidden", "true");
-  a.append("text").attr("class", "r4d-brand").attr("x", tx + logo + 5 * s).attr("y", by).attr("dy", "0.35em").attr("font-size", K.fsBrand * s).attr("font-weight", 700).attr("fill", theme.muted).text(PRODUCT_LABEL);
+  // Mot-symbole « Datanime » (« a » orange) : chemins vectorisés, hauteur des capitales ≈ police 12,5
+  const wh = K.wordmarkH * s;
+  const wm = appendWordmark(a as unknown as Appendable, theme.dark ? "dark" : "light", tx + logo + 5 * s, by - wh / 2, wh) as unknown as G;
+  wm.insert("title", ":first-child").text(PRODUCT_LABEL);
   y += K.brandRow * s;
 
   const line = (cls: string, text: string, fill: string) => {
