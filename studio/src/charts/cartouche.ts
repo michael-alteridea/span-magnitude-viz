@@ -27,9 +27,22 @@ export interface CartoucheLayout {
   date: string;
   data: [string, string] | null;
   source: string | null;
+  /** Cartes : source et licence du fond de carte (une ou deux lignes). */
+  mapSource: string[];
   fingerprint: string | null;
   qr: { url: string; m: QrMatrix; size: number } | null;
   textW: number;
+}
+
+/**
+ * Source et licence du fond de carte (cartes uniquement), voir studio/docs/licence-cartes.md.
+ * Europe « Pays » : Natural Earth seul (domaine public) ; NUTS et fond FR · BE : Eurostat GISCO (© EuroGeographics,
+ * usage non commercial sans licence EuroGeographics) + Natural Earth en contexte.
+ */
+export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special">): string[] {
+  if (spec.type !== "map") return [];
+  if (spec.special.mapRegion === "europe" && spec.special.mapLevel === "country") return ["Fond : Natural Earth (domaine public)"];
+  return ["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"];
 }
 
 const K = { pad: 8, gap: 10, brandRow: 18, lineH: 13.5, fs: 9.5, fsBrand: 12.5, logo: 14, qrMin: 72, sourceMax: 125 };
@@ -46,7 +59,9 @@ export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: D
   const m = (t: string, w = 400) => measure(t, fs, font, w);
   let textW = Math.max(K.logo * s + 5 * s + measure(PRODUCT_LABEL, K.fsBrand * s, font, 700), m(date), ...(data ? data.map((l) => m(l)) : []), fingerprint ? m(fingerprint) : 0);
   if (source) textW = Math.max(textW, Math.min(m(source), K.sourceMax * s));
-  const nLines = 1 + (data ? 2 : 0) + (source ? 1 : 0) + (fingerprint ? 1 : 0);
+  const mapSource = mapSourceLines(spec);
+  for (const l of mapSource) textW = Math.max(textW, m(l));
+  const nLines = 1 + (data ? 2 : 0) + (source ? 1 : 0) + mapSource.length + (fingerprint ? 1 : 0);
   const textH = K.brandRow * s + nLines * K.lineH * s;
   let qr: CartoucheLayout["qr"] = null;
   if (p && spec.style.authQr) {
@@ -56,7 +71,7 @@ export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: D
   const innerH = Math.max(textH, qr?.size ?? 0);
   const w = K.pad * s * 2 + textW + (qr ? K.gap * s + qr.size : 0);
   const h = K.pad * s * 2 + innerH;
-  return { w, h, s, font, date, data, source, fingerprint, qr, textW };
+  return { w, h, s, font, date, data, source, mapSource, fingerprint, qr, textW };
 }
 
 /** Dessine le cartouche en (x0, y0) ; renvoie le rectangle occupé. */
@@ -68,7 +83,7 @@ export function drawCartouche(root: G, theme: Theme, lay: CartoucheLayout, x0: n
   const g = root.append("g").attr("class", "r4d-cartouche").attr("data-r4d", "cartouche");
   g.append("rect").attr("class", "r4d-cartouche-box").attr("x", x0).attr("y", y0).attr("width", w).attr("height", h).attr("rx", 5 * s).attr("fill", theme.bg).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
   const innerH = h - pad * 2;
-  const nLines = 1 + (lay.data ? 2 : 0) + (lay.source ? 1 : 0) + (lay.fingerprint ? 1 : 0);
+  const nLines = 1 + (lay.data ? 2 : 0) + (lay.source ? 1 : 0) + lay.mapSource.length + (lay.fingerprint ? 1 : 0);
   const textH = K.brandRow * s + nLines * lh;
   const tx = x0 + pad;
   let y = y0 + pad + (innerH - textH) / 2;
@@ -99,6 +114,7 @@ export function drawCartouche(root: G, theme: Theme, lay: CartoucheLayout, x0: n
     line("r4d-cartouche-data", lay.data[1], theme.faint);
   }
   if (lay.source) line("r4d-source", lay.source, theme.faint);
+  for (const l of lay.mapSource) line("r4d-map-source", l, theme.faint);
   if (lay.fingerprint) {
     const t = g.append("text").attr("class", "r4d-fingerprint").attr("x", tx).attr("y", y + lh / 2).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.faint);
     const [label, value] = [lay.fingerprint.slice(0, lay.fingerprint.indexOf(" ")), lay.fingerprint.slice(lay.fingerprint.indexOf(" ") + 1)];

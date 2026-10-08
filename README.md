@@ -8,10 +8,18 @@ Inspired by the *individual-mark temporal storytelling* grammar popularized by P
 
 ## Installation
 
+> **Pas encore publié sur npm** (`npm install span-magnitude-viz` renvoie 404). Installez depuis GitHub :
+
 ```bash
-npm install span-magnitude-viz
-# peer-friendly: d3 and zod are bundled as dependencies
+# dernière version de la branche main
+npm install github:michael-alteridea/span-magnitude-viz
+# ou une révision figée (recommandé en production)
+npm install github:michael-alteridea/span-magnitude-viz#3c97df5
+# d3 et zod sont des dépendances directes (installées avec le paquet)
 ```
+
+`dist/` n'est pas versionné : le script `prepare` compile la bibliothèque (tsup) au moment de l'installation
+depuis GitHub. Alternative : cloner le dépôt et installer par chemin local (`npm install ../span-magnitude-viz`).
 
 Démo locale :
 
@@ -205,7 +213,7 @@ Le mode `lane` (packing) est réservé à une version ultérieure.
 
 - Points : `meta.lat` + `meta.lon` partout ; codes postaux **FR/BE** seulement (lookup hors-ligne existant). En Europe, chaque point est rattaché à sa région par point-in-polygon (`d3.geoContains`), avec repli sur la couche pays (Royaume-Uni, Ukraine… hors NUTS 2024) puis sur la région la plus proche (< 60 km).
 - Projection Europe : `geoAzimuthalEqualArea` centrée 10°E 52°N. Changement à chaud : `viz.setMap({ region, level, fit })`.
-- Données : Natural Earth 1:50m (domaine public) + Eurostat GISCO NUTS 2024 1:10M — **© EuroGeographics pour les limites administratives** (mention affichée sous la carte ; usage **non commercial** sans licence EuroGeographics). Détails : `src/geo/europe/SOURCES.md`. Régénérer : `npm run build:geo`.
+- Données : Natural Earth 1:50m (domaine public) + Eurostat GISCO NUTS 2024 1:10M — **© EuroGeographics pour les limites administratives** (mention affichée sous la carte ; usage **non commercial** sans licence EuroGeographics). Détails : `src/geo/europe/SOURCES.md` ; synthèse et options pour un usage commercial : [`studio/docs/licence-cartes.md`](studio/docs/licence-cartes.md). Régénérer : `npm run build:geo`.
 - Cartons SVG statiques (Europe pays / NUTS 2, France régions / départements, Belgique régions / provinces) : `docs/maps/*.svg`, aperçus `docs/maps/previews/*.png` — `npm run build:maps`.
 
 ---

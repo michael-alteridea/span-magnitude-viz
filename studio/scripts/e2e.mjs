@@ -337,6 +337,9 @@ try {
       check("export SVG de la carte : barre d'échelle + signature", /data-km="\d+"/.test(mapText) && /\d km</.test(mapText.replace(/[\u00a0\u202f]/g, " ")) && mapText.includes("r4d-cartouche") && mapText.includes("r4d-qr"), mapSvg ? "ok" : "aucun fichier");
       const mc = await cartoucheInfo();
       const scaleBar = await page.evaluate(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"));
+      const mapSrc = await page.evaluate(() => [...document.querySelectorAll("[data-testid=preview] .r4d-map-source, .r4d-cartouche .r4d-map-source")].map((e) => e.textContent));
+      check("carte : source et licence du fond dans le cartouche (© EuroGeographics, usage non commercial)", mapSrc.some((t) => /EuroGeographics/.test(t)) && mapSrc.some((t) => /non commercial/.test(t)) && mapText.includes("Limites GISCO : usage non commercial"), mapSrc.join(" · "));
+      if (process.env.R4D_MAP_SHOT) await (await page.$(".r4d-cartouche"))?.screenshot({ path: process.env.R4D_MAP_SHOT });
       check("carte : cartouche + QR sans chevauchement (barre d'échelle km, carte)", !!mc?.qr && scaleBar && mc.overlaps.length === 0 && /#1\.E\./.test(mc.qr.url), mc ? `${Math.round(mc.w)}×${Math.round(mc.h)} · ${mc.overlaps.length ? "chevauche " + mc.overlaps.slice(0, 3).join(", ") : "aucun chevauchement"}` : "absent");
       await page.click("[data-testid=type-film]");
       await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] svg *").length > 20, { timeout: 10000 }).catch(() => {});
