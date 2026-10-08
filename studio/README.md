@@ -1,6 +1,6 @@
-# Tell4D (moteur Reporting 4D / span-magnitude-viz)
+# Datanime (moteur Reporting 4D / span-magnitude-viz)
 
-**Tell4D · Studio** — data storytelling 4D : explorer, raconter, exporter. Propulsé par Reporting 4D.
+**Datanime · Studio** — data storytelling 4D : explorer, raconter, exporter. Propulsé par Reporting 4D. Anciennement « Tell4D » (renommé le 8 oct. 2026).
 
 Générateur de graphiques SVG (D3 v7, sans canvas) pour Alteridea — futur hébergement : `reporting.alteridea.com`.
 Nom technique du dépôt : `span-magnitude-viz` ; le Studio réutilise sa bibliothèque (`src/`) pour l'import,
@@ -99,9 +99,9 @@ Captures : `16-norme-ecarts.png`, `17-norme-colonnes-scenarios.png`, `18-norme-p
 
 ## Label qualité
 
-Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite le **cartouche Tell4D**
+Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite le **cartouche Datanime**
 (voir ci-dessous) : icône « Bulle + barres » (SVG inline dans les SVG/PNG/WebM, PNG 2× dans le PowerPoint), nom du produit
-(`PRODUCT_LABEL` dans `brand.ts`, « Tell4D ») en lien `<a href>` vers `PLATFORM_URL`, date de génération (« Généré le 8 oct. 2026 »),
+(`PRODUCT_LABEL` dans `brand.ts`, « Datanime ») en lien `<a href>` vers `PLATFORM_URL`, date de génération (« Généré le 8 oct. 2026 »),
 date d'import des données, source, empreinte et QR. Il ne peut être masqué qu'avec `branding: "pro"` + `style.brandMark: false` ;
 l'interface ne propose pas de le masquer.
 
@@ -110,7 +110,7 @@ l'interface ne propose pas de le masquer.
 **Cartouche** (`charts/cartouche.ts`) : petit bloc rectangulaire (≈ 2:1) en bas à droite, discret, lisible sur fond sombre, clair
 ou personnalisé et en mode norme (gris ; pétrole seulement sur l'empreinte et le logo) :
 
-- logo Tell4D + « Tell4D » (lien vers la plateforme) ;
+- logo Datanime + « Datanime » (lien vers la plateforme) ;
 - « Généré le 8 oct. 2026 » ;
 - « Données importées le … » (fichier), « Données collées le … » (collage), « Données d'exemple au 8 oct. 2026 » (exemples) ;
 - « Source : … » (tronquée avec « … ») ;
@@ -138,12 +138,12 @@ Le domaine est la seule constante `VERIFY_BASE` de `provenance.ts` (passage à r
 La version hors ligne pointe aussi vers la page en ligne.
 
 **Page `verifier.html`** (seconde entrée Vite, même identité, en français, sans serveur) : lit le fragment et affiche
-« Selon ce QR, ce graphique a été généré par Tell4D le … à partir de données importées le … (n lignes, c colonnes), empreinte … » ;
+« Selon ce QR, ce graphique a été généré par Datanime le … à partir de données importées le … (n lignes, c colonnes), empreinte … » ;
 zone « Déposez le fichier d'origine pour vérifier » (ou texte collé) → empreinte recalculée avec les mêmes règles →
 « ✓ Les données correspondent » / « ✗ Les données ne correspondent pas à ce graphique ». Les exemples intégrés sont
 reconnus directement. Lien absent ou illisible : message clair, l'empreinte d'un fichier reste calculable. La page précise
 qu'il s'agit d'une **empreinte déclarée, pas d'une signature** : elle ne garantit ni que le graphique est fidèle aux données,
-ni qu'il provient de Tell4D ; elle ne dit rien de l'exactitude des données. Un registre en ligne viendra renforcer cette vérification.
+ni qu'il provient de Datanime ; elle ne dit rien de l'exactitude des données. Un registre en ligne viendra renforcer cette vérification.
 
 Tests : `test/cartouche.test.ts` (normalisation, lien, QR décodé par jsQR, cartouche, option, PowerPoint) ; e2e : QR décodé
 dans les PNG 1×, 2× et 1600 px, carte, mode norme, page de vérification (fichier ✓, fichier modifié ✗, texte collé, exemple,
@@ -278,7 +278,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 | `story/*` | Rôles des colonnes, statistiques, détecteurs, narration, textes français, snapshots, export PowerPoint |
 | `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage du cartouche |
 | `provenance.ts` | Empreinte des données (SHA-256), provenance, lien de vérification (construction / lecture), `VERIFY_BASE` |
-| `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Tell4D |
+| `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Datanime |
 | `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
 | `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire, fenêtre Scénarios |
@@ -296,7 +296,7 @@ Captures : `studio/docs/shots/`.
 
 ## Identité visuelle
 
-**Tell4D**, logo « Bulle + barres » (h1, choisi le 8 oct. 2026) : sources dans `src/assets/brand/` (© Alteridea,
+**Datanime**, logo « Bulle + barres » (h1, choisi le 8 oct. 2026) : sources dans `src/assets/brand/` (© Alteridea,
 voir son README), favicon SVG et apple-touch-icon 180 px dans `public/`. L'en-tête et le cartouche utilisent l'icône
 en SVG inline (`brand.ts`), le PowerPoint son PNG 2×. Les noms techniques (`span-magnitude-viz`, clés
 `reporting-4d-studio`, fichier `reporting-4d-studio.html`) restent inchangés.

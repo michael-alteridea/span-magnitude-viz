@@ -1,4 +1,4 @@
-# Licence des fonds de carte (Tell4D Studio)
+# Licence des fonds de carte (Datanime Studio)
 
 *Note du 8 oct. 2026 — état des lieux et options pour un usage commercial. Les données de carte ne sont **pas** modifiées par cette note.*
 
@@ -22,7 +22,7 @@ Le Studio n'a pas de couche « NUTS 0 » distincte : la maille « Pays » utilis
 - Détail technique du dépôt : `src/geo/europe/SOURCES.md`
 
 **Ce qui est affiché aujourd'hui** : la bibliothèque écrit « © EuroGeographics pour les limites administratives
-(Eurostat GISCO NUTS 2024) · Natural Earth » sous la carte Europe ; depuis le 8 oct. 2026, le **cartouche Tell4D**
+(Eurostat GISCO NUTS 2024) · Natural Earth » sous la carte Europe ; depuis le 8 oct. 2026, le **cartouche Datanime**
 de toute carte ajoute « Fond : © EuroGeographics, Natural Earth » et « Limites GISCO : usage non commercial »
 (ou « Fond : Natural Earth (domaine public) » pour la maille Europe « Pays »), voir `mapSourceLines()` dans
 `studio/src/charts/cartouche.ts`.

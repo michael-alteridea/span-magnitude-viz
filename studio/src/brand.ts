@@ -1,12 +1,12 @@
 /**
- * Identité Tell4D (logo « Bulle + barres », bleu pétrole) et signature « label qualité » :
+ * Identité Datanime (logo « Bulle + barres », bleu pétrole) et signature « label qualité » :
  * nom du produit, lien vers la plateforme, date de génération et source.
  * Le nom du produit n'existe qu'ici (les noms techniques — dépôt, paquet, clés — restent « reporting-4d »).
  */
 import iconSvgRaw from "./assets/brand/tell4d-h1-icon.svg?raw";
 import { TELL4D_ICON_PNG_64 } from "./assets/brand/icon-png";
 
-export const PRODUCT_LABEL = "Tell4D";
+export const PRODUCT_LABEL = "Datanime";
 export const PLATFORM_URL = "https://alteridea-dashboard.web.app/reporting/";
 /** Libellé court du lien affiché dans les exports (PowerPoint…). */
 export const PLATFORM_HOST = PLATFORM_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -49,16 +49,16 @@ export function parseSvg(src: string): SvgNode {
     if (!self) stack.push(node);
   }
   const svg = root.children[0];
-  if (!svg) throw new Error("icône Tell4D illisible");
+  if (!svg) throw new Error("icône Datanime illisible");
   return svg;
 }
 
-/** Arbre de l'icône Tell4D (élément <svg viewBox="0 0 512 512">), identifiants préfixés. */
+/** Arbre de l'icône Datanime (élément <svg viewBox="0 0 512 512">), identifiants préfixés. */
 export function tell4dIconTree(prefix: string): SvgNode {
   return parseSvg(prefixed(prefix));
 }
 
-/** Balisage de l'icône Tell4D à la taille voulue (en-tête de l'interface). */
+/** Balisage de l'icône Datanime à la taille voulue (en-tête de l'interface). */
 export function tell4dIconMarkup(prefix: string, size: number, extra = 'aria-hidden="true" focusable="false"'): string {
   return prefixed(prefix)
     .trim()
@@ -70,7 +70,7 @@ export interface Appendable {
   attr(name: string, value: string | number): Appendable;
 }
 
-/** Ajoute l'icône Tell4D (SVG imbriqué, net à toute échelle) sous `parent` (sélection d3). */
+/** Ajoute l'icône Datanime (SVG imbriqué, net à toute échelle) sous `parent` (sélection d3). */
 export function appendTell4dIcon(parent: Appendable, prefix: string): Appendable {
   const build = (sel: Appendable, node: SvgNode, isRoot: boolean): Appendable => {
     const el = sel.append(node.tag);

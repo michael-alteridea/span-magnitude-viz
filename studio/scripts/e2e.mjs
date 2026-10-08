@@ -199,8 +199,8 @@ try {
   await page.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
   await page.waitForSelector("[data-testid=chart-svg] .r4d-marks");
   const header = await page.$eval("header", (e) => e.textContent ?? "");
-  check("en-tête « Tell4D · Studio »", /Tell4D\s*·\s*Studio/.test(header) && !/Reporting 4D/.test(header));
-  // Identité Tell4D bleu pétrole : bouton principal, logo « Bulle + barres », palette par défaut, titre, favicon
+  check("en-tête « Datanime · Studio »", /Datanime\s*·\s*Studio/.test(header) && !/Reporting 4D/.test(header));
+  // Identité Datanime bleu pétrole : bouton principal, logo « Bulle + barres », palette par défaut, titre, favicon
   const brand = await page.evaluate(() => ({
     btn: getComputedStyle(document.querySelector("[data-testid=export-svg]")).backgroundColor,
     logo: document.querySelector(".brand .logo stop")?.getAttribute("stop-color"),
@@ -211,8 +211,8 @@ try {
     touch: document.querySelector("link[rel=apple-touch-icon]")?.getAttribute("href"),
   }));
   check(
-    "identité Tell4D (bouton, logo Bulle + barres, palette, titre, favicon)",
-    brand.btn === "rgb(63, 167, 196)" && brand.logo === "#0E6E8C" && brand.bars >= 12 && brand.palette === "petrole" && /^Tell4D · Studio/.test(brand.title) && /favicon\.svg$/.test(brand.icon ?? "") && /apple-touch-icon\.png$/.test(brand.touch ?? ""),
+    "identité Datanime (bouton, logo Bulle + barres, palette, titre, favicon)",
+    brand.btn === "rgb(63, 167, 196)" && brand.logo === "#0E6E8C" && brand.bars >= 12 && brand.palette === "petrole" && /^Datanime · Studio/.test(brand.title) && /favicon\.svg$/.test(brand.icon ?? "") && /apple-touch-icon\.png$/.test(brand.touch ?? ""),
     JSON.stringify(brand)
   );
   {
@@ -407,10 +407,10 @@ try {
     const flat = svgText.replace(/[\u00a0\u202f]/g, " ");
     const dateRe = /Généré le \d{1,2}(er)? (janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.? \d{4}/;
     check(
-      "export SVG : signature (icône Tell4D inline, « Tell4D », lien plateforme) + date de génération",
+      "export SVG : signature (icône Datanime inline, « Datanime », lien plateforme) + date de génération",
       flat.includes('class="r4d-cartouche"') &&
         flat.includes('href="https://alteridea-dashboard.web.app/reporting/"') &&
-        />Tell4D</.test(flat) &&
+        />Datanime</.test(flat) &&
         !/Reporting 4D/.test(flat.replace(/<metadata>.*?<\/metadata>/s, "")) &&
         dateRe.test(flat) &&
         /<svg(?=[^>]*\sclass="r4d-logo")(?=[^>]*\sviewBox="0 0 512 512")[^>]*>/.test(flat),
@@ -422,8 +422,8 @@ try {
     sampleUrl = ci?.qr?.url ?? "";
     const flat = svgText.replace(/[\u00a0\u202f]/g, " ");
     check(
-      "cartouche : bloc rectangulaire (logo, « Tell4D » en lien, généré le, données d'exemple, source, empreinte, QR), discret",
-      !!ci && ci.href === "https://alteridea-dashboard.web.app/reporting/" && ci.brand === "Tell4D" && /^Généré le \d/.test(ci.date) && /^Données d'exemple au \d{1,2} \S+ \d{4}$/.test(ci.data) && /^Empreinte [0-9a-f]{4}·[0-9a-f]{4}$/.test(ci.fp) && !!ci.qr && ci.ratio >= 1.5 && ci.ratio <= 2.8 && ci.relW < 0.22 && ci.overlaps.length === 0,
+      "cartouche : bloc rectangulaire (logo, « Datanime » en lien, généré le, données d'exemple, source, empreinte, QR), discret",
+      !!ci && ci.href === "https://alteridea-dashboard.web.app/reporting/" && ci.brand === "Datanime" && /^Généré le \d/.test(ci.date) && /^Données d'exemple au \d{1,2} \S+ \d{4}$/.test(ci.data) && /^Empreinte [0-9a-f]{4}·[0-9a-f]{4}$/.test(ci.fp) && !!ci.qr && ci.ratio >= 1.5 && ci.ratio <= 2.8 && ci.relW < 0.22 && ci.overlaps.length === 0,
       ci ? `${Math.round(ci.w)}×${Math.round(ci.h)} px (${ci.ratio.toFixed(2)}:1, ${(ci.relW * 100).toFixed(0)} % de la largeur) · ${ci.data} · ${ci.fp} · QR v${ci.qr?.version} ${ci.qr?.modules} modules${ci.overlaps.length ? " · chevauche " + ci.overlaps.slice(0, 4).join(", ") : ""}` : "absent"
     );
     check("export SVG : QR (lien « Vérifier l'empreinte ») + empreinte, vocabulaire sobre", flat.includes('class="r4d-qr"') && flat.includes("Vérifier l'empreinte") && /Empreinte [0-9a-f]{4}·[0-9a-f]{4}/.test(flat.replace(/<[^>]+>/g, "")) && !/certifi|authenticit|preuve/i.test(flat) && /"verify":"https:\/\/alteridea-dashboard\.web\.app\/reporting\/verifier\.html#1\./.test(flat));
@@ -439,7 +439,7 @@ try {
   }
   check("export PNG 2×", dims?.[0] === 2400 && dims?.[1] === 1350, dims ? dims.join("×") : "aucun fichier");
   if (pngFile) {
-    // L'icône Tell4D de la signature est bien dans le PNG : pixel du contour pétrole (bord gauche de l'icône,
+    // L'icône Datanime de la signature est bien dans le PNG : pixel du contour pétrole (bord gauche de l'icône,
     // hors bulle blanche : le contour occupe 7 % de la largeur), échelle 2×
     const logo = await page.evaluate(() => {
       const r = document.querySelector("[data-testid=chart-svg] .r4d-logo");
@@ -464,7 +464,7 @@ try {
         )
       : null;
     const near = px && px[0] < 70 && px[1] > 60 && px[1] < 150 && px[2] > 85 && px[2] < 180 && px[2] > px[0] + 50;
-    check("export PNG : signature présente (icône Tell4D pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
+    check("export PNG : signature présente (icône Datanime pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
     const frame = await page.evaluate(() => window.r4d.preview.svgAt(0.5));
     check("vidéo WebM : chaque image porte la signature et la date", frame.includes("r4d-cartouche") && /Généré le/.test(frame) && frame.includes("r4d-qr"));
     // QR décodable dans les PNG (2×, 1×, et un graphique de 1600 px de large), ≥ 1,5 px par module, marge claire
@@ -494,7 +494,7 @@ try {
     await domClick('[data-path="style.authQr"]');
     await sleep(500);
     const on = await cartoucheInfo();
-    check("option « QR d'empreinte des données » : masque le QR, garde le cartouche (offre gratuite)", !!off && !off.qr && off.brand === "Tell4D" && /^Empreinte/.test(off.fp) && !!on?.qr && (await page.evaluate(() => window.r4d.getSpec().style.authQr)) === true, off ? `sans QR : ${Math.round(off.w)}×${Math.round(off.h)} px` : "cartouche absent");
+    check("option « QR d'empreinte des données » : masque le QR, garde le cartouche (offre gratuite)", !!off && !off.qr && off.brand === "Datanime" && /^Empreinte/.test(off.fp) && !!on?.qr && (await page.evaluate(() => window.r4d.getSpec().style.authQr)) === true, off ? `sans QR : ${Math.round(off.w)}×${Math.round(off.h)} px` : "cartouche absent");
   }
 
   /* 6. Sauvegarde / chargement de configuration */
@@ -903,13 +903,13 @@ try {
     const pageText = (await vp.evaluate(() => document.body.textContent)).replace(/[\u00a0\u202f]/g, " ");
     const sum = (await vp.$eval("[data-testid=v-summary]", (e) => e.textContent)).replace(/[\u00a0\u202f]/g, " ");
     check(
-      "vérification : lecture du fragment, empreinte déclarée (pas une signature) (« généré par Tell4D le … à partir de données importées le … (2 lignes, 3 colonnes), empreinte … »)",
-      /Selon ce QR, ce graphique a été généré par Tell4D le \d{1,2}(er)? \S+ \d{4} à partir de données importées le \d{1,2}(er)? \S+ \d{4} \(2 lignes, 3 colonnes\), empreinte [0-9a-f]{4}·[0-9a-f]{4}\./.test(sum) &&
+      "vérification : lecture du fragment, empreinte déclarée (pas une signature) (« généré par Datanime le … à partir de données importées le … (2 lignes, 3 colonnes), empreinte … »)",
+      /Selon ce QR, ce graphique a été généré par Datanime le \d{1,2}(er)? \S+ \d{4} à partir de données importées le \d{1,2}(er)? \S+ \d{4} \(2 lignes, 3 colonnes\), empreinte [0-9a-f]{4}·[0-9a-f]{4}\./.test(sum) &&
         pageText.includes("Déposez le fichier d'origine pour vérifier") &&
         pageText.includes("La vérification compare l'empreinte du fichier ; elle ne dit rien de l'exactitude des données.") && pageText.includes("Un registre en ligne viendra renforcer cette vérification.") &&
         !/certifi|authenticit|preuve/i.test(pageText) &&
         /empreinte déclarée, pas d'une signature/.test(pageText) &&
-        (await vp.title()).includes("Tell4D"),
+        (await vp.title()).includes("Datanime"),
       sum.slice(0, 160)
     );
     await (await vp.$("[data-testid=v-file]")).uploadFile(xlsxFile);

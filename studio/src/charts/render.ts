@@ -377,7 +377,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   const sideComments = comments.length > 0 && W / H >= 1.3;
   const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
 
-  // ---- pied : cartouche Tell4D (logo, lien, dates, source, empreinte, QR d'empreinte des données)
+  // ---- pied : cartouche Datanime (logo, lien, dates, source, empreinte, QR d'empreinte des données)
   // Sous la colonne « À retenir » quand elle existe (le graphique garde toute sa hauteur), sinon sur toute la largeur.
   let footH = 0;
   let colFootH = 0;

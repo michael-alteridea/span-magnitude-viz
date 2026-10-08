@@ -1,5 +1,5 @@
 /**
- * Cartouche Tell4D et QR d'empreinte des données : empreintes (règles de normalisation), lien de vérification
+ * Cartouche Datanime et QR d'empreinte des données : empreintes (règles de normalisation), lien de vérification
  * (construction / lecture), QR décodable, cartouche présent dans le SVG (lien, dates, source, empreinte, QR),
  * option « QR d'empreinte des données » qui ne masque que le QR.
  */
@@ -158,14 +158,14 @@ describe("QR d'empreinte des données", () => {
   });
 });
 
-describe("cartouche Tell4D", () => {
-  it("bloc rectangulaire : logo + « Tell4D » en lien, généré le, données importées le, source tronquée, empreinte, QR", () => {
+describe("cartouche Datanime", () => {
+  it("bloc rectangulaire : logo + « Datanime » en lien, généré le, données importées le, source tronquée, empreinte, QR", () => {
     const { svg, res, html } = draw(BAR);
     const c = svg.querySelector(".r4d-cartouche")!;
     expect(c).toBeTruthy();
     expect(c.querySelector("a.r4d-cartouche-link")?.getAttribute("href")).toBe(PLATFORM_URL);
     expect(c.querySelector("a.r4d-cartouche-link .r4d-logo")).toBeTruthy();
-    expect(c.querySelector("a.r4d-cartouche-link .r4d-brand")?.textContent).toBe("Tell4D");
+    expect(c.querySelector("a.r4d-cartouche-link .r4d-brand")?.textContent).toBe("Datanime");
     expect(norm(c.querySelector(".r4d-cartouche-date")?.textContent ?? "")).toBe("Généré le 8 oct. 2026");
     expect([...c.querySelectorAll(".r4d-cartouche-data")].map((e) => norm(e.textContent ?? ""))).toEqual(["Données importées le", "8 oct. 2026"]);
     const src = norm(c.querySelector(".r4d-source")?.textContent ?? "");

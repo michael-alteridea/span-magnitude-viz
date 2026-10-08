@@ -21,7 +21,7 @@ const arg = (k, d) => {
 };
 const scenario = arg("--scenario", "dircom");
 const out = resolve(arg("--out", join(repo, "studio/docs/demo")));
-const pptxName = arg("--pptx", `Tell4D-demo-${scenario}.pptx`);
+const pptxName = arg("--pptx", `Datanime-demo-${scenario}.pptx`);
 mkdirSync(out, { recursive: true });
 
 async function loadPuppeteer() {

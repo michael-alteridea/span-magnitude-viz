@@ -33,7 +33,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string,
 const nf = (n: number) => n.toLocaleString("fr-FR");
 const plural = (n: number, one: string, many: string) => `${nf(n)} ${n > 1 ? many : one}`;
 
-/** Lignes d'un JSON (tableau, { data|rows|records: [...] }, ou configuration Tell4D avec données). */
+/** Lignes d'un JSON (tableau, { data|rows|records: [...] }, ou configuration Datanime avec données). */
 function jsonRows(v: unknown): unknown[] | null {
   if (Array.isArray(v)) return v;
   if (v && typeof v === "object") {
@@ -81,7 +81,7 @@ const root = document.getElementById("verifier")!;
 const header = el(
   "header",
   { class: "v-top" },
-  el("a", { class: "v-brand", href: "./", title: `${PRODUCT_LABEL} · Studio` }, el("span", { class: "v-logo", html: tell4dIconMarkup("t4d-v", 30) }), el("span", { class: "v-name" }, "Tell", el("em", {}, "4D"))),
+  el("a", { class: "v-brand", href: "./", title: `${PRODUCT_LABEL} · Studio` }, el("span", { class: "v-logo", html: tell4dIconMarkup("t4d-v", 30) }), el("span", { class: "v-name" }, "Data", el("em", {}, "nime"))),
   el("span", { class: "v-sep" }, "·"),
   el("h1", {}, "Vérifier l'empreinte des données")
 );
@@ -92,7 +92,7 @@ function summaryCard(): HTMLElement {
       "section",
       { class: "v-card v-summary v-summary-missing", "data-testid": "v-summary" },
       el("h2", {}, hadFragment ? "Lien de vérification incomplet ou illisible" : "Aucun graphique à vérifier"),
-      el("p", {}, hadFragment ? "Ce lien a peut-être été tronqué. Scannez de nouveau le QR du cartouche Tell4D, ou ouvrez le lien complet." : "Scannez le QR du cartouche d'un graphique Tell4D pour afficher sa provenance ici."),
+      el("p", {}, hadFragment ? "Ce lien a peut-être été tronqué. Scannez de nouveau le QR du cartouche Datanime, ou ouvrez le lien complet." : "Scannez le QR du cartouche d'un graphique Datanime pour afficher sa provenance ici."),
       el("p", { class: "v-muted" }, "Vous pouvez quand même calculer l'empreinte d'un fichier ci-dessous et la comparer à celle du cartouche (« Empreinte … »).")
     );
   }
@@ -110,7 +110,7 @@ function summaryCard(): HTMLElement {
     { class: "v-card v-summary", "data-testid": "v-summary" },
     el("p", { class: "v-kicker" }, "Empreinte déclarée par le QR"),
     el("p", { class: "v-lead" }, `Selon ce QR, ce graphique a été généré par ${PRODUCT_LABEL} le ${gen} ${origin}, empreinte ${shortFingerprint(info.h)}.`),
-    el("p", { class: "v-declared", "data-testid": "v-declared" }, "Il s'agit d'une empreinte déclarée, pas d'une signature : elle ne garantit ni que le graphique est fidèle aux données, ni qu'il provient de Tell4D. Elle permet seulement de vérifier qu'un fichier a la même empreinte que celle inscrite dans le QR."),
+    el("p", { class: "v-declared", "data-testid": "v-declared" }, "Il s'agit d'une empreinte déclarée, pas d'une signature : elle ne garantit ni que le graphique est fidèle aux données, ni qu'il provient de Datanime. Elle permet seulement de vérifier qu'un fichier a la même empreinte que celle inscrite dans le QR."),
     el("dl", { class: "v-facts" }, el("dt", {}, "Empreinte des données"), el("dd", { class: "v-mono", "data-testid": "v-hash" }, `${info.h.slice(0, 4)}·${info.h.slice(4, 8)} ${info.h.slice(8).replace(/(.{8})/g, "$1 ").trim()}`), el("dt", {}, "Calcul"), el("dd", {}, "SHA-256, 128 premiers bits"))
   );
 }

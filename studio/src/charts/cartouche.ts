@@ -1,6 +1,6 @@
 /**
- * Cartouche Tell4D (coin bas droit de chaque graphique) : petit bloc rectangulaire avec
- * logo + « Tell4D » (lien vers la plateforme), date de génération, date d'import des données,
+ * Cartouche Datanime (coin bas droit de chaque graphique) : petit bloc rectangulaire avec
+ * logo + « Datanime » (lien vers la plateforme), date de génération, date d'import des données,
  * source, empreinte courte et QR d'empreinte des données (lien vers la page de vérification).
  * 100 % SVG : identique dans l'aperçu, les exports SVG / PNG / WebM, les snapshots et les diapositives.
  */

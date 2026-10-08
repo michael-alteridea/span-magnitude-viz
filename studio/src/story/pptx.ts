@@ -1,6 +1,6 @@
 /**
  * Export PowerPoint de l'histoire (pptxgenjs, chargé à la demande) :
- * couverture bleu pétrole (logo Tell4D), sommaire, puis une diapositive par snapshot — rôle, titre d'action,
+ * couverture bleu pétrole (logo Datanime), sommaire, puis une diapositive par snapshot — rôle, titre d'action,
  * sous-titre IBCS, graphique PNG 3× (avec sa signature), commentaires, filet d'accent.
  * Module sans DOM : les images sont fournies par l'appelant (testable sous Node).
  */
@@ -42,7 +42,7 @@ function frSpaces(t: string): string {
 function cartouche(slide: any, opts: { dark: boolean; date: string; source?: string }) {
   const x = SLIDE_W - 4.1;
   const y = SLIDE_H - 0.78;
-  // Logo Tell4D : PNG 64 px affiché à 0,26 po (≥ 2× à 96 ppp)
+  // Logo Datanime : PNG 64 px affiché à 0,26 po (≥ 2× à 96 ppp)
   slide.addImage({ data: ICON_PNG_2X, x: x + 0.02, y: y + 0.03, w: 0.26, h: 0.26, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(PRODUCT_LABEL, {
     x: x + 0.36,
@@ -198,7 +198,7 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
     const url = verifyUrl(verifyInfoFor(prov, Number.isFinite(gen.getTime()) ? gen : new Date()));
     slide.addText(`Vérifier l'empreinte des données · ${shortFingerprint(prov.hash)}`, { x: 7.0, y: 7.05, w: 3.8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0, hyperlink: { url, tooltip: "Vérifier l'empreinte des données" } });
   }
-  // Pied : logo Tell4D (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
+  // Pied : logo Datanime (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
   slide.addImage({ data: ICON_PNG_2X, x: SLIDE_W - 2.42, y: 7.07, w: 0.22, h: 0.22, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(PRODUCT_LABEL, { x: SLIDE_W - 2.14, y: 7.05, w: 0.85, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: muted, margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(`${i + 3} / ${total}`, { x: SLIDE_W - 1.2, y: 7.05, w: 0.7, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0 });

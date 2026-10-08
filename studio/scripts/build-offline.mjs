@@ -4,7 +4,7 @@
  *   npm run build:studio:offline  →  studio-offline/reporting-4d-studio.html
  *
  * Fonctionne en file:// (double-clic). Favicon et apple-touch-icon (studio/public/) sont inlinés en data: URL.
- * Le nom du fichier reste technique (reporting-4d-studio.html) ; le produit s'affiche « Tell4D ». Les modules chargés à la demande (xlsx, film/carte)
+ * Le nom du fichier reste technique (reporting-4d-studio.html) ; le produit s'affiche « Datanime ». Les modules chargés à la demande (xlsx, film/carte)
  * sont intégrés au même fichier, d'où une taille plus importante que la version hébergée.
  */
 import { build } from "esbuild";
@@ -76,7 +76,7 @@ let html = readFileSync(join(studio, "index.html"), "utf8");
 html = html.replace(/\s*<script type="module" src="\.\/src\/main\.ts"><\/script>/, "");
 // Icônes du dossier public/ (href="/favicon.svg"…) → data: URL, le fichier devant rester autonome
 html = html.replace(/href="\/([\w.-]+\.(?:svg|png))"/g, (m, f) => `href="${dataUrl(join(studio, "public", f))}"`);
-html = html.replace("</head>", () => `  <meta name="generator" content="Tell4D Studio · version hors ligne · ${new Date().toISOString().slice(0, 10)}" />\n    <style>${safeCss}</style>\n  </head>`);
+html = html.replace("</head>", () => `  <meta name="generator" content="Datanime Studio · version hors ligne · ${new Date().toISOString().slice(0, 10)}" />\n    <style>${safeCss}</style>\n  </head>`);
 html = html.replace("</body>", () => `  <script>${safeJs}</script>\n  </body>`);
 
 mkdirSync(outDir, { recursive: true });

@@ -5,7 +5,7 @@
  * qui · quoi · quand, formats de nombres unifiés, clé d'échelle commune.
  *
  * Formulation : « inspiré d'IBCS® / de la notation ISO 24896 ». IBCS® est une marque déposée ;
- * Tell4D n'est pas affilié à l'IBCS Association ni à l'ISO.
+ * Datanime n'est pas affilié à l'IBCS Association ni à l'ISO.
  */
 import type { AxisSpec, ChartSpec, ChartType } from "./spec";
 import { isBarType, isRadial, isSpecial } from "./spec";

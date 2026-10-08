@@ -1,5 +1,5 @@
 /**
- * Tell4D · Studio (moteur Reporting 4D) — point d'entrée.
+ * Datanime · Studio (moteur Reporting 4D) — point d'entrée.
  * Trois zones : Données | Aperçu | Réglages. Tout le rendu est en SVG (D3).
  */
 import "./styles.css";
@@ -638,7 +638,7 @@ async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean):
 /* ------------------------------------------------------------------ exports */
 
 function baseName(): string {
-  return slug(store.state.spec.style.title || "graphique-tell4d");
+  return slug(store.state.spec.style.title || "graphique-datanime");
 }
 
 async function exportSvg(): Promise<void> {
@@ -817,7 +817,7 @@ const header = h(
       class: "logo",
       html: tell4dIconMarkup("t4d-hdr", 30),
     }),
-    h("h1", null, "Tell", h("em", null, "4D"), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
+    h("h1", null, "Data", h("em", null, "nime"), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
     h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea"),
     normeBadge,
     normeInfoBtn

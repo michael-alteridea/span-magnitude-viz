@@ -34,9 +34,9 @@ function draw(specInput: unknown, sampleId = "business-review", opts = {}) {
   return { svg, res, html: svg.outerHTML };
 }
 
-describe("identité Tell4D", () => {
+describe("identité Datanime", () => {
   it("nom du produit et icône « Bulle + barres »", () => {
-    expect(PRODUCT_LABEL).toBe("Tell4D");
+    expect(PRODUCT_LABEL).toBe("Datanime");
     expect(ICON_PNG_2X).toMatch(/^data:image\/png;base64,/);
     const file = readFileSync(fileURLToPath(new URL("../src/assets/brand/tell4d-h1-icon-64.png", import.meta.url)));
     expect(ICON_PNG_2X.slice("data:image/png;base64,".length)).toBe(file.toString("base64"));
@@ -62,7 +62,7 @@ describe("signature « label qualité »", () => {
       expect(html, type).toContain('class="r4d-cartouche"');
       const logo = svg.querySelector(".r4d-logo");
       expect(logo, type).toBeTruthy();
-      // icône Tell4D inline (SVG imbriqué « Bulle + barres »), pas une image ni un carré
+      // icône Datanime inline (SVG imbriqué « Bulle + barres »), pas une image ni un carré
       expect(logo!.tagName.toLowerCase()).toBe("svg");
       expect(logo!.getAttribute("viewBox")).toBe("0 0 512 512");
       expect(logo!.querySelectorAll("rect").length).toBeGreaterThanOrEqual(12);
@@ -143,10 +143,10 @@ describe("export PowerPoint", () => {
     const cover = await zip.file("ppt/slides/slide1.xml")!.async("string");
     expect(cover).toContain("Revue T3");
     expect(norm(cover)).toContain("Généré le 8 oct. 2026");
-    // identité Tell4D : couverture, sommaire et pied de page (nom + logo PNG 2×), plus de « Reporting 4D »
+    // identité Datanime : couverture, sommaire et pied de page (nom + logo PNG 2×), plus de « Reporting 4D »
     const agenda = await zip.file("ppt/slides/slide2.xml")!.async("string");
     for (const x of [cover, agenda, s3]) {
-      expect(x).toContain(">Tell4D<");
+      expect(x).toContain(">Datanime<");
       expect(x).not.toContain("Reporting 4D");
       expect(x).toMatch(/<p:pic>/);
     }
