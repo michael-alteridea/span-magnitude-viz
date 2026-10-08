@@ -3,6 +3,8 @@
  * puis dessine le cadre éditorial (titre, sous-titre, légende, source, signature)
  * et le graphique, le tout dans un unique <svg> autonome.
  */
+import { groupIcons } from "./pointIcons";
+import { drawIcon } from "./icons";
 import { select } from "d3";
 import type { ChartSpec } from "../spec";
 import { isBarType, isCartesian, isDrill, isRadial, isSpecial, isVariance, chartSize } from "../spec";
@@ -204,6 +206,8 @@ interface LegendItem {
   label: string;
   color: string;
   shape: "square" | "line" | "dot" | "dash" | "outline" | "hatch";
+  /** Nuage de points en icônes : pictogramme du groupe (légende des icônes). */
+  icon?: string | null;
 }
 
 function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neutral: string, vm?: VarianceModel | null, theme?: Theme): LegendItem[] {
@@ -238,7 +242,8 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
   }
   if (model.kind === "points") {
     if (model.series.length <= 1 && !spec.encoding.series) return [];
-    return model.series.slice(0, 24).map((s, i) => ({ label: s, color: colors[i % colors.length]!, shape: "dot" }));
+    const icons = groupIcons(spec, model.series);
+    return model.series.slice(0, 24).map((s, i) => ({ label: s, color: colors[i % colors.length]!, shape: "dot", icon: icons[i] ?? null }));
   }
   if (isRadial(t)) {
     if (spec.style.legend === "auto" || spec.style.legend === "none") return [];
@@ -264,6 +269,7 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
 
 function drawSwatch(g: G, it: LegendItem, x: number, y: number, s: number, theme: Theme) {
   const sz = 12 * s;
+  if (it.icon && drawIcon(g, it.icon, x + sz / 2, y, 16 * s, it.color, "r4d-legend-icon", true)) return;
   if (it.shape === "outline" || it.shape === "hatch") {
     g.append("rect").attr("x", x + 0.75 * s).attr("y", y - sz / 2 + 0.75 * s).attr("width", sz - 1.5 * s).attr("height", sz - 1.5 * s).attr("rx", 1.5 * s).attr("fill", "none").attr("stroke", it.color).attr("stroke-width", 1.5 * s);
     if (it.shape === "hatch") for (let k = 1; k <= 2; k++) g.append("line").attr("x1", x + (k * sz) / 3).attr("y1", y + sz / 2 - 1.5 * s).attr("x2", x + (k * sz) / 3 + sz / 4).attr("y2", y - sz / 2 + 1.5 * s).attr("stroke", it.color).attr("stroke-width", 1.4 * s);

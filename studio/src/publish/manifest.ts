@@ -285,7 +285,7 @@ function dataHashOf(spec: unknown): string | null {
  * par défaut, pour qu'une nouvelle version du Studio ne signale pas « contenu changé » sur des graphiques identiques
  * (étape I : extrémité des barres, icônes par catégorie, mise en avant).
  */
-function fingerprintSpec(spec: unknown): unknown {
+export function fingerprintSpec(spec: unknown): unknown {
   const enc0 = (spec as { encoding?: Record<string, unknown> } | null)?.encoding;
   if (enc0 && typeof enc0 === "object" && enc0.topOrder === "top") {
     // « Nombre d'éléments » (étape filtres) : classement par défaut absent de l'empreinte (empreintes publiées inchangées)
@@ -298,6 +298,10 @@ function fingerprintSpec(spec: unknown): unknown {
   const style = { ...st };
   if (style.barCap === "none") delete style.barCap;
   if (style.capIcons && typeof style.capIcons === "object" && !Object.keys(style.capIcons).length) delete style.capIcons;
+  // « Forme des points » (nuage) : valeurs par défaut absentes de l'empreinte (empreintes publiées inchangées)
+  if (style.pointShape === "circle") delete style.pointShape;
+  if (style.pointIcon === "") delete style.pointIcon;
+  if (style.pointIcons && typeof style.pointIcons === "object" && !Object.keys(style.pointIcons).length) delete style.pointIcons;
   const f = style.focus as { key?: unknown; title?: unknown; note?: unknown; average?: unknown } | undefined;
   if (f && f.key == null && !f.title && !f.note && f.average !== false) delete style.focus;
   return { ...(spec as object), style };

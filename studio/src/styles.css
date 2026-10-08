@@ -1010,3 +1010,5 @@ body.dw-open { overflow: hidden; }
 .pj-actions .icon-btn { width: 34px; height: 34px; }
 .pj-del:hover { color: #f87171 !important; }
 .pj-empty { margin: 20px 0; color: var(--muted); text-align: center; }
+
+.segmented.tiles-cap.tiles-pt { grid-template-columns: repeat(3, 1fr); }

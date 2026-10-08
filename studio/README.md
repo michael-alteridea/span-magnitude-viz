@@ -624,6 +624,16 @@ des autres ; le sous-titre garde le contexte. Un titre saisi l'emporte toujours.
 générique revient. Le titre de l'annotation, le snapshot, la copie « Dupliquer et mettre en avant » et le chiffre
 clé du Reel suivent l'élément. Logique pure `analyzeFocus` (`story/insights.ts`), tests `test/focusTitle.test.ts`.
 
+## Nuage de points : « Forme des points » (icônes)
+
+Réglages › ② Graphique › « Forme des points » : **Ronds** (par défaut, rendu inchangé), **Une icône** (la même icône pour tous les points, choisie dans la fenêtre illustrée « Icône ▾ ») ou **Par groupe** (une icône par groupe de « Couleur par » ; une ligne « Icône par groupe (colonne) » par groupe, même fenêtre de choix que les extrémités de barres, bibliothèque Phosphor).
+
+- Les icônes prennent la couleur du groupe ; « Taille des bulles » reste active (taille minimale lisible de 16 px).
+- Libellés, infobulles, mise en avant (icône choisie en couleur, autres en gris, bulle) et animation d'entrée / Reel fonctionnent comme avec les ronds.
+- Légende : chaque groupe affiche son icône.
+- Spec : `style.pointShape` (`circle` | `icon` | `iconByGroup`), `style.pointIcon`, `style.pointIcons` (groupe → icône). À leurs valeurs par défaut, ces champs n'entrent pas dans l'empreinte : les empreintes existantes ne changent pas.
+- Tests : `test/pointIcons.test.ts`, `node studio/scripts/e2e.mjs --points --shots` (captures 140 à 144).
+
 ## Projets (modèle « dataset d'abord », déploiement 1)
 
 Vocabulaire de l'interface : **séquence** (ex-« histoire ») et **scène** (ex-« snapshot »). Le code, le manifeste de

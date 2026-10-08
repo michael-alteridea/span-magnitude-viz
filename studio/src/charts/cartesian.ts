@@ -35,6 +35,7 @@ import { ellipsize, measure, wrap } from "./text";
 import { barDeco, focusTexts, pictoUnit } from "./barDeco";
 import { drawCallout, easeInOut, focusGrey, focusProgress, makeCallout, mixHex, placeCallout, pointKey, resolveFocus, type Rect } from "./focus";
 import { categoryIcon, drawIcon } from "./icons";
+import { groupIcons, pointIconSize } from "./pointIcons";
 import { VARIANCE_NEG, VARIANCE_POS } from "../theme";
 import { isGood } from "../norme";
 
@@ -816,6 +817,9 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
   const dimK = 1 - 0.75 * ft;
   const boxes: Rect[] = [];
   let fp: { cx: number; cy: number; r: number; color: string; f: number } | null = null;
+  // « Forme des points » : ronds, une icône, ou une icône par groupe (« Couleur par »)
+  const icons = groupIcons(spec, model.series);
+  const grey = focusGrey(theme);
   order.forEach((idx, j) => {
     const p = pts[idx]!;
     if (Y.log && p.y <= 0) return;
@@ -823,25 +827,39 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
     if (f <= 0) return;
     const si = Math.max(0, model.series.indexOf(p.series));
     const color = colors[si % colors.length]!;
-    const r = (R && p.size != null ? R(Math.max(0, p.size)) : baseR) * Math.min(1, 0.3 + 0.7 * f);
+    const r0 = (R && p.size != null ? R(Math.max(0, p.size)) : baseR) * Math.min(1, 0.3 + 0.7 * f);
+    const icon = icons[si] ?? null;
+    const r = icon ? pointIconSize(r0, s) / 2 : r0;
     const cx = xpos(p);
     const cy = Y.scale(p.y) as number;
     const isF = fk === idx;
     const dim = fk != null && !isF ? dimK : 1;
     if (fk != null) boxes.push({ x: cx - r - 2 * s, y: cy - r - 2 * s, w: 2 * r + 4 * s, h: 2 * r + 4 * s });
     if (isF) fp = { cx, cy, r, color, f };
-    gm.append("circle")
-      .attr("class", isF ? "r4d-focus-point" : null)
-      .attr("data-focus-key", pointKey(p))
-      .attr("cx", cx)
-      .attr("cy", cy)
-      .attr("r", r)
-      .attr("fill", color)
-      .attr("fill-opacity", 0.78 * f * dim)
-      .attr("stroke", theme.dark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.35)")
-      .attr("stroke-opacity", f * dim)
-      .attr("stroke-width", 0.8 * s)
-      .call((c) => tip(c, { t: p.label || p.series, sub: p.label && model.series.length > 1 ? p.series : undefined, v: fmtY(p.y), rows: tipRows(spec.encoding.x ? { k: spec.encoding.x, v: typeof p.x === "number" ? (model.xKind === "time" ? new Date(p.x).toLocaleDateString("fr-FR") : p.x.toLocaleString("fr-FR")) : p.x } : null, spec.encoding.y[0] ? { k: spec.encoding.y[0], v: fmtY(p.y) } : null, p.size != null && spec.encoding.size ? { k: spec.encoding.size, v: p.size.toLocaleString("fr-FR") } : null) }));
+    const tipData: TipData = { t: p.label || p.series, sub: p.label && model.series.length > 1 ? p.series : undefined, v: fmtY(p.y), rows: tipRows(spec.encoding.x ? { k: spec.encoding.x, v: typeof p.x === "number" ? (model.xKind === "time" ? new Date(p.x).toLocaleDateString("fr-FR") : p.x.toLocaleString("fr-FR")) : p.x } : null, spec.encoding.y[0] ? { k: spec.encoding.y[0], v: fmtY(p.y) } : null, p.size != null && spec.encoding.size ? { k: spec.encoding.size, v: p.size.toLocaleString("fr-FR") } : null) };
+    if (icon) {
+      // icône : couleur du groupe ; mise en avant : les autres passent au gris
+      const col = fk != null && !isF ? mixHex(color, grey, ft) : color;
+      const ig = drawIcon(gm, icon, cx, cy, 2 * r, col, isF ? "r4d-point-icon r4d-focus-point" : "r4d-point-icon", true);
+      if (ig) {
+        ig.attr("data-focus-key", pointKey(p)).attr("opacity", f * (fk != null && !isF ? 1 - 0.3 * ft : 1));
+        ig.insert("rect", ":first-child").attr("width", 256).attr("height", 256).attr("fill", "transparent");
+        ig.select("path").attr("stroke", theme.bg).attr("stroke-width", (1.2 * s * 256) / (2 * r)).attr("paint-order", "stroke");
+        ig.call((c) => tip(c as never, tipData));
+      }
+    } else
+      gm.append("circle")
+        .attr("class", isF ? "r4d-focus-point" : null)
+        .attr("data-focus-key", pointKey(p))
+        .attr("cx", cx)
+        .attr("cy", cy)
+        .attr("r", r)
+        .attr("fill", color)
+        .attr("fill-opacity", 0.78 * f * dim)
+        .attr("stroke", theme.dark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.35)")
+        .attr("stroke-opacity", f * dim)
+        .attr("stroke-width", 0.8 * s)
+        .call((c) => tip(c, tipData));
     if (showLabels && p.label && !(isF && ft > 0)) {
       gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f * dim).text(p.label);
       if (fk != null) boxes.push({ x: cx + r + 4 * s, y: cy - 8 * s, w: measure(p.label, 11.5 * s, font), h: 16 * s });

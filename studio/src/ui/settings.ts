@@ -33,6 +33,7 @@ import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
 import { iconFor, iconSvg } from "../charts/icons";
 import { iconPickLabel, openIconPicker } from "./iconPicker";
+import { defaultPointIcon, effectivePointShape, groupIcons } from "../charts/pointIcons";
 import { focusInfo, type FocusInfo } from "./focusUi";
 import { FOCUS_LABELS } from "../charts/focus";
 import { count, nounOf } from "../story/fr";
@@ -147,6 +148,7 @@ export class SettingsPanel {
       spec.special.mapRegion,
       spec.style.barCap,
       spec.style.barCap === "icon" || spec.style.barCap === "picto" ? spec.style.capIcons : null,
+      spec.type === "scatter" ? [spec.style.pointShape, spec.style.pointIcon, spec.style.pointIcons] : null,
       !!spec.style.focus.key,
       spec.type === "drill" ? [spec.drill.view, spec.drill.by, spec.drill.path.length] : null,
       ds?.columns.map((c) => c.type),
@@ -845,6 +847,7 @@ export class SettingsPanel {
       main.push(this.kw(this.line("Orientation", this.segmented("style.horizontal", [["false", "Verticales"], ["true", "Horizontales"]], { parse: (v) => v === "true" })), "barres horizontales verticales"));
     if (isCartesian(t) && t !== "scatter") main.push(this.check("style.valueLabels", "Étiquettes de valeur", undefined, "valeurs libellés chiffres sur les barres"));
     if ((t === "bar" || t === "barH") && !spec.norme.enabled) main.push(this.capTiles(spec));
+    if (t === "scatter") main.push(...this.pointShapeFields(spec));
     if (t === "line" || t === "area" || t === "stackedArea" || (isCartesian(t) && spec.encoding.y2)) main.push(this.kw(this.line("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])), "ligne lissage"));
     if (isCartesian(t) || isRadial(t)) {
       main.push(this.kw(this.line("Unité et décimales", this.select("axes.y.unit", UNITS.map((u) => [u, UNIT_LABELS[u]] as Opt)), this.stepper("axes.y.decimals")), "unité euros € k€ M€ pourcentage % décimales virgule format nombre"));
@@ -1077,6 +1080,77 @@ export class SettingsPanel {
     const seen = new Set<string>();
     for (const r of effectiveDataset(spec, ds).rows) {
       const v = r[x];
+      if (v == null || v === "") continue;
+      seen.add(String(v));
+      if (seen.size >= max) break;
+    }
+    return [...seen];
+  }
+
+  /** Nuage de points : « Forme des points » (Ronds / Une icône / Une icône par groupe) et choix des icônes. */
+  private pointShapeFields(spec: ChartSpec): HTMLElement[] {
+    const cur = spec.style.pointShape;
+    const grp = spec.encoding.series;
+    const circle = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="currentColor"/></svg>`;
+    const opts: [string, string, string, boolean, string][] = [
+      ["circle", circle, "Ronds", true, "Points ronds (par défaut)"],
+      ["icon", iconSvg("star", 18), "Une icône", true, "La même icône pour tous les points, à la couleur de leur groupe"],
+      ["iconByGroup", iconSvg("users-three", 18), "Par groupe", !!grp, grp ? `Une icône par valeur de « ${grp} » (Couleur par), avec légende des icônes` : "Choisissez d'abord une colonne « Couleur par (série) » dans ① Données"],
+    ];
+    const tiles = h(
+      "div",
+      { class: "segmented tiles-cap tiles-pt", role: "radiogroup", "aria-label": "Forme des points", "data-path": "style.pointShape", "data-testid": "point-shape" },
+      ...opts.map(([v, ic, l, ok, title]) =>
+        h("button", { type: "button", role: "radio", class: v === cur ? "active" : "", "aria-checked": v === cur ? "true" : "false", "data-value": v, title, disabled: !ok && v !== cur, onclick: () => this.store.set("style.pointShape", v) }, h("span", { class: "cap-ic", html: ic }), l)
+      )
+    );
+    const warn = cur === "iconByGroup" && !grp ? h("small", { class: "hint warn" }, "Par groupe : choisissez une colonne « Couleur par (série) » dans ① Données (une seule icône en attendant).") : null;
+    const out: HTMLElement[] = [this.kw(h("div", { class: "field", "data-target": "pointShape" }, h("span", { class: "field-label" }, "Forme des points"), tiles, warn), "forme des points icône icones nuage bulles ronds pictogramme groupe")];
+    const shape = effectivePointShape(spec);
+    const pickBtn = (label: string, current: string | undefined, auto: string | null, onPick: (v: string) => void, testid: string) => {
+      const { icon, label: l, isAuto } = iconPickLabel(current, auto);
+      const btn = h(
+        "button",
+        { type: "button", class: `icon-pick-btn${isAuto ? " is-auto" : ""}`, "data-icon-for": label, "data-testid": testid, "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": `Icône pour « ${label} » : ${l}${isAuto ? " (automatique)" : ""}`, title: isAuto ? `${l} (automatique)` : l },
+        h("span", { class: "ip-ic", html: icon ? iconSvg(icon, 18) : "" }),
+        h("span", { class: "ip-l" }, icon ? l : "Rond"),
+        h("span", { class: "ip-chev", "aria-hidden": "true" }, "▾")
+      );
+      btn.addEventListener("click", () => openIconPicker(btn, { category: label, current, auto, onPick }));
+      return h("div", { class: "field field-inline icon-row" }, h("span", { class: "field-label", title: label }, label), btn);
+    };
+    if (shape === "icon") {
+      const auto = defaultPointIcon(spec);
+      out.push(
+        this.kw(
+          pickBtn("Tous les points", spec.style.pointIcon || undefined, auto, (v) => (v === "" ? this.store.set("style.pointShape", "circle") : this.store.set("style.pointIcon", v === "@auto" ? "" : v)), "point-icon-select"),
+          "icône des points"
+        )
+      );
+    } else if (shape === "iconByGroup" && grp) {
+      const groups = this.seriesValues(spec, 12);
+      const autos = groupIcons({ ...spec, style: { ...spec.style, pointIcons: {} } }, groups);
+      const rows = groups.map((g, i) =>
+        pickBtn(g, spec.style.pointIcons[g], autos[i] ?? null, (v) => {
+          const next = { ...this.store.state.spec.style.pointIcons };
+          if (v === "@auto") delete next[g];
+          else next[g] = v;
+          this.store.set("style.pointIcons", next);
+        }, "point-icons-select")
+      );
+      out.push(this.kw(this.group("icones-points", `Icône par groupe (${grp})`, ...rows, h("p", { class: "muted small" }, "En gris : icône automatique (d'après le nom, sinon une icône distincte). « Aucune » garde un rond pour ce groupe. Légende des icônes sur le graphique. ", h("a", { href: "licences/phosphor-icons-MIT.txt", target: "_blank", rel: "noopener", "data-licence": "phosphor" }, "Icônes Phosphor (licence MIT)"), ".")), "icône par groupe série couleur"));
+    }
+    return out;
+  }
+
+  /** Valeurs de « Couleur par » (ordre d'apparition, comme les séries du graphique). */
+  private seriesValues(spec: ChartSpec, max = 24): string[] {
+    const ds = this.store.state.ds;
+    const c = spec.encoding.series;
+    if (!ds || !c) return [];
+    const seen = new Set<string>();
+    for (const r of effectiveDataset(spec, ds).rows) {
+      const v = r[c];
       if (v == null || v === "") continue;
       seen.add(String(v));
       if (seen.size >= max) break;

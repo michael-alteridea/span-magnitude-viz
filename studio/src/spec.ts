@@ -239,6 +239,14 @@ export const styleSchema = z.object({
   barCap: z.enum(["none", "icon", "picto", "goal"]).default("none"),
   /** Icône choisie par catégorie (nom Phosphor ; "" = aucune). Catégorie absente : icône automatique d'après son nom. */
   capIcons: z.record(z.string(), z.string().max(40)).default({}),
+  /**
+   * Nuage de points : forme des points. « circle » = ronds (défaut) ; « icon » = une même icône pour tous les points
+   * (`pointIcon`, "" = automatique d'après la mesure) ; « iconByGroup » = une icône par valeur de « Couleur par »
+   * (`pointIcons`, valeur absente = automatique d'après son nom, sinon icône distincte).
+   */
+  pointShape: z.enum(["circle", "icon", "iconByGroup"]).default("circle"),
+  pointIcon: z.string().max(40).default(""),
+  pointIcons: z.record(z.string(), z.string().max(40)).default({}),
   /** Barre mise en avant (« mode focus ») : les autres en gris, annotation reliée à la barre, moyenne des autres. */
   focus: z
     .object({

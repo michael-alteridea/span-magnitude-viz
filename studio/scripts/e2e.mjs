@@ -1022,6 +1022,125 @@ async function e2eFocus() {
   await fctx.close();
 }
 
+/** Nuage de points : « Forme des points » (Ronds / Une icône / Par groupe), choix illustré, légende des icônes (iPad). */
+async function e2ePoints() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name, sel) => { if (!SHOTS) return; await pg.mouse.move(1, 1).catch(() => {}); await sleep(450); if (sel) await (await pg.$(sel)).screenshot({ path: join(shotsDir, name) }); else await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  // agences Norvia (données fictives) : clients, CA, effectif, secteur
+  const rows = [
+    ["Norvia Lyon", "Industrie", 42, 1850, 24], ["Norvia Lille", "Industrie", 31, 1320, 18], ["Norvia Gand", "Industrie", 25, 990, 12], ["Norvia Liège", "Industrie", 18, 760, 9],
+    ["Norvia Paris Santé", "Santé", 55, 2410, 31], ["Norvia Bruxelles Santé", "Santé", 38, 1620, 20], ["Norvia Nantes Santé", "Santé", 22, 870, 11],
+    ["Norvia Marseille", "Commerce", 64, 1180, 15], ["Norvia Anvers", "Commerce", 47, 940, 10], ["Norvia Namur", "Commerce", 29, 520, 6], ["Norvia Toulouse", "Commerce", 51, 1010, 13],
+    ["Norvia Rouen", "Transport", 16, 1450, 19], ["Norvia Charleroi", "Transport", 12, 980, 14], ["Norvia Bordeaux", "Transport", 20, 1760, 22],
+  ];
+  const tsv = ["Agence\tSecteur\tClients\tCA (k€)\tEffectif", ...rows.map((r) => r.join("\t"))].join("\n");
+  await pg.evaluate((t) => window.r4d.importText(t), tsv);
+  await sleep(900);
+  await pg.evaluate(async () => {
+    window.r4d.setSpec({ type: "scatter", encoding: { ...window.r4d.getSpec().encoding, x: "Clients", y: ["CA (k€)"], series: "Secteur", size: "Effectif", label: "Agence" }, mode: { ...window.r4d.getSpec().mode, kind: "static" } });
+    window.r4d.set("style.title", "Agences Norvia : chiffre d'affaires et clients par secteur");
+    await window.r4d.settle();
+    window.r4d.panel().open("graphique");
+  });
+  await sleep(700);
+  const marks = () => pg.evaluate(() => {
+    const svg = document.querySelector("[data-testid=chart-svg]");
+    const ics = [...svg.querySelectorAll(".r4d-marks .r4d-point-icon")];
+    const w = ics.map((g) => g.getBoundingClientRect().width);
+    return {
+      circles: svg.querySelectorAll(".r4d-marks circle").length,
+      icons: ics.length,
+      names: [...new Set(ics.map((g) => g.getAttribute("data-icon")))],
+      tips: ics.filter((g) => g.hasAttribute("data-tip")).length,
+      keys: ics.filter((g) => g.hasAttribute("data-focus-key")).length,
+      legend: [...svg.querySelectorAll(".r4d-legend-icon")].map((g) => g.getAttribute("data-icon")),
+      labels: svg.querySelectorAll(".r4d-marks text").length,
+      wmin: Math.min(...w), wmax: Math.max(...w),
+      fills: ics.map((g) => g.querySelector("path").getAttribute("fill")),
+    };
+  });
+  const m0 = await marks();
+  const tiles = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=point-shape] button")].map((b) => `${b.dataset.value}:${b.textContent}:${b.disabled ? "off" : "on"}:${b.classList.contains("active") ? "actif" : ""}`));
+  check("nuage : Réglages › ② Graphique › « Forme des points » (Ronds / Une icône / Par groupe), ronds par défaut inchangés", tiles.join("|") === "circle:Ronds:on:actif|icon:Une icône:on:|iconByGroup:Par groupe:on:" && m0.circles === 14 && m0.icons === 0, JSON.stringify({ tiles, m0 }));
+  await pg.tap("[data-testid=point-shape] [data-value=icon]");
+  await sleep(700);
+  const m1 = await marks();
+  check("« Une icône » : 14 points en icône, la même pour tous, couleur du groupe, légende avec l'icône", m1.icons === 14 && m1.names.length === 1 && m1.circles === 0 && m1.legend.length === 4 && new Set(m1.fills).size === 4, JSON.stringify({ ...m1, fills: undefined }));
+  await pg.tap("[data-testid=point-shape] [data-value=iconByGroup]");
+  await sleep(700);
+  const m2 = await marks();
+  const rowsUi = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=point-icons-select]")].map((b) => b.getAttribute("data-icon-for")));
+  check("« Par groupe » : une icône par secteur (« Couleur par »), une ligne de choix par groupe, légende des 4 icônes", m2.icons === 14 && m2.names.length === 4 && JSON.stringify(m2.legend.slice().sort()) === JSON.stringify(m2.names.slice().sort()) && rowsUi.join("|") === "Industrie|Santé|Commerce|Transport", JSON.stringify({ names: m2.names, legend: m2.legend, rowsUi }));
+  check("taille des bulles conservée (icônes proportionnelles à l'effectif, minimum lisible), infobulles et libellés", m2.wmax / m2.wmin > 1.6 && m2.wmin >= 15 && m2.tips === 14 && m2.keys === 14 && m2.labels >= 10, JSON.stringify({ wmin: m2.wmin, wmax: m2.wmax, tips: m2.tips, labels: m2.labels }));
+  // choix illustré (même fenêtre que les extrémités de barres)
+  await pg.tap("[data-testid=point-icons-select][data-icon-for=Commerce]");
+  await pg.waitForSelector("[data-testid=icon-pick-pop]:not([hidden])", { timeout: 3000 });
+  const pop = await pg.evaluate(() => ({ items: document.querySelectorAll("[data-testid=icon-pick-pop] .ip-it").length, svgs: document.querySelectorAll("[data-testid=icon-pick-pop] .ip-it svg").length, head: document.querySelector("[data-testid=icon-pick-pop] .ip-cat")?.textContent }));
+  await shot("140-points-choix-icone-ipad-1366.png");
+  await pg.tap("[data-testid=icon-pick-pop] .ip-it[data-icon=shopping-cart]");
+  await sleep(700);
+  const m3 = await marks();
+  const picked = await pg.evaluate(() => window.r4d.getSpec().style.pointIcons);
+  check("choix illustré (icônes dessinées à côté de leur nom) : « Commerce » → Panier, graphique et légende suivent", pop.items > 40 && pop.svgs >= pop.items - 3 && /Commerce/.test(pop.head ?? "") && picked.Commerce === "shopping-cart" && m3.names.includes("shopping-cart") && m3.legend.includes("shopping-cart"), JSON.stringify({ pop, picked, names: m3.names }));
+  await shot("141-points-icones-par-groupe-ipad-1366.png");
+  await pg.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await sleep(500);
+  await shot("143-points-icones-par-groupe-graphique.png", ".stage");
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await sleep(400);
+  // mise en avant : l'icône choisie en couleur, les autres en gris
+  await pg.evaluate(async () => { window.r4d.set("style.focus.key", "Norvia Paris Santé"); await window.r4d.settle(); window.r4d.seek(1); });
+  await sleep(1500);
+  const fo = await pg.evaluate(() => {
+    const f = document.querySelector("[data-testid=chart-svg] .r4d-point-icon.r4d-focus-point path")?.getAttribute("fill");
+    const others = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-point-icon:not(.r4d-focus-point) path")].map((p) => p.getAttribute("fill"));
+    return { f, greys: others.filter((c) => c === "#4a4a52" || c === "#c4c4c8").length, n: others.length, callout: !!document.querySelector("[data-testid=chart-svg] .r4d-focus-label") };
+  });
+  check("mise en avant : icône choisie en couleur, les 13 autres en gris, libellé et bulle", !!fo.f && fo.f !== "#4a4a52" && fo.greys === 13 && fo.n === 13 && fo.callout, JSON.stringify(fo));
+  await shot("144-points-icones-mise-en-avant-ipad-1366.png");
+  // animation d'entrée : les icônes apparaissent progressivement
+  await pg.evaluate(async () => { window.r4d.set("style.focus.key", null); window.r4d.set("mode.kind", "dynamic"); await window.r4d.settle(); window.r4d.seek(0.15); });
+  await sleep(500);
+  const an = await pg.evaluate(() => { const ics = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-point-icon")]; return { n: ics.length, partial: ics.filter((g) => Number(g.getAttribute("opacity")) < 1).length }; });
+  await pg.evaluate(() => window.r4d.seek(1));
+  await sleep(400);
+  const an1 = await marks();
+  check("animation d'entrée : icônes progressives puis toutes présentes", an.n < 14 || an.partial > 0 ? an1.icons === 14 : false, JSON.stringify({ an, end: an1.icons }));
+  // iPad 1024
+  await pg.evaluate(() => window.r4d.set("mode.kind", "static"));
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await sleep(700);
+  const ov = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, rows: document.querySelectorAll("[data-testid=point-icons-select]").length, h: document.querySelector("[data-testid=point-icons-select]").getBoundingClientRect().height }));
+  check("iPad 1024 : pas de défilement horizontal, lignes de choix tactiles", ov.sw <= ov.vw && ov.rows === 4 && ov.h >= 30, JSON.stringify(ov));
+  await shot("142-points-icones-ipad-1024.png");
+  // retour aux ronds : rendu d'origine
+  await pg.tap("[data-testid=point-shape] [data-value=circle]");
+  await sleep(600);
+  const m4 = await marks();
+  check("retour à « Ronds » : 14 ronds, aucune icône ni légende d'icônes", m4.circles === 14 && m4.icons === 0 && m4.legend.length === 0, JSON.stringify({ c: m4.circles, i: m4.icons }));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("forme des points : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  check("forme des points : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
+if (process.argv.includes("--points")) {
+  try { await e2ePoints(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 /** Projets (dataset d'abord, déploiement 1) : bande « Séquence », Enregistrer, Mes projets, Réinitialiser, scènes modifiées (iPad). */
 async function e2eProjets() {
   const ctx = await browser.createBrowserContext();
@@ -3714,6 +3833,9 @@ try {
 
   /* 25. Projets (Séquence, Enregistrer, Mes projets, Réinitialiser, scènes modifiées), iPad : voir e2eProjets() */
   await e2eProjets();
+
+  /* 26. Nuage de points : « Forme des points » (icônes), iPad : voir e2ePoints() */
+  await e2ePoints();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

@@ -140,6 +140,7 @@ export function chartTarget(el: Element | null, t: ChartType, norme: boolean): P
   if (c(".r4d-callout, .r4d-callout-link")) return { section: "recit", paths: ["style.focus.title", "style.focus.key"], group: "focus" };
   if (c(".r4d-avg")) return { section: "recit", paths: ["style.focus.average", "style.focus.key"], group: "focus" };
   if (c(".r4d-bar-deco, .r4d-cap, .r4d-picto-key")) return { section: "graphique", paths: ["style.barCap"] };
+  if (c(".r4d-point-icon, .r4d-legend-icon")) return { section: "graphique", paths: ["style.pointShape"] };
   if (c(".r4d-legend")) return { section: "graphique", paths: ["style.legend"] };
   if (c(".r4d-axis-y2")) return { section: "graphique", paths: ["axes.y2.title"], group: "axe-y2" };
   if (c(".r4d-axis-y")) return { section: "graphique", paths: ["axes.y.show"], group: "axe-y" };
