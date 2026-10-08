@@ -4,7 +4,7 @@
  *   npm run build:studio:offline  →  studio-offline/reporting-4d-studio.html
  *
  * Fonctionne en file:// (double-clic). Favicon et apple-touch-icon (studio/public/) sont inlinés en data: URL.
- * Le nom du fichier reste technique (reporting-4d-studio.html) ; le produit s'affiche « Datanime ». Les modules chargés à la demande (xlsx, film/carte)
+ * Le nom du fichier reste technique (reporting-4d-studio.html) ; le produit s'affiche « Datanime ». Les modules chargés à la demande (xlsx, film/carte, Reel : mp4-muxer et police Poppins)
  * sont intégrés au même fichier, d'où une taille plus importante que la version hébergée.
  */
 import { build } from "esbuild";

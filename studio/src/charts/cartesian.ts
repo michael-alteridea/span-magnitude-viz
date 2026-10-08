@@ -209,7 +209,9 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   if (focusK != null) {
     const label = model.labels[focusK] ?? "";
     const vals = model.values[0] ?? [];
-    const tx = focusTexts(label, vals[focusK] ?? 0, vals, focusK, fmtDeco, spec.style.focus);
+    // moyennes, min / max, dernières valeurs et taux (« 65,4 % ») ne s'additionnent pas : pas de « part du total »
+    const additive = (spec.encoding.aggregate === "sum" || spec.encoding.aggregate === "count") && !/%\s*$/.test(fmtDeco(1));
+    const tx = focusTexts(label, vals[focusK] ?? 0, vals, focusK, fmtDeco, spec.style.focus, additive);
     const icon = deco.icons[focusK] ?? categoryIcon(label, spec.style.capIcons);
     const iconW = icon ? 34 * s : 0;
     const maxW = horizontal ? lenEst * 0.44 : Math.min(rect.w * 0.52, 480 * s);
@@ -228,8 +230,9 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       }
       return wrap(t, hi, fs, font, wt, maxL);
     };
-    const title = balanced(tx.title, callFs, 700, 2);
-    const note = tx.note ? balanced(tx.note, noteFs, 400, 3) : [];
+    // cadre étroit (Reel vertical, téléphone) : une ligne de plus plutôt qu'un titre tronqué
+    const title = balanced(tx.title, callFs, 700, inner < 160 * s ? 3 : 2);
+    const note = tx.note ? balanced(tx.note, noteFs, 400, inner < 160 * s ? 4 : 3) : [];
     const w = Math.max(...title.map((l) => measure(l, callFs, font, 700)), ...note.map((l) => measure(l, noteFs, font)), 60 * s) + 2 * callPad + iconW;
     const h = 2 * callPad + title.length * callFs * 1.2 + (note.length ? 5 * s + note.length * noteFs * 1.35 : 0);
     callout = { title, note, w, h, icon, avg: tx.avg };
@@ -237,8 +240,21 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   let reserve = 0;
   if (deco.cap === "icon" || goal) reserve = horizontal ? capEst * 2 + 64 * s : capEst + 18 * s;
   if (deco.cap === "picto") reserve = horizontal ? 110 * s : 28 * s;
-  if (callout) reserve = Math.max(reserve, (horizontal ? callout.w : callout.h) + (horizontal ? 40 : 30) * s + (horizontal ? 0 : reserve));
-  if (reserve > 0 && spec.axes.y.max == null && ext[1] > 0 && !ctx.sharedMax) ext = [ext[0], ext[1] / Math.max(0.4, 1 - reserve / lenEst)];
+  // barres horizontales : l'étiquette de valeur de la plus grande barre doit aussi tenir avant l'annotation
+  const labelRoom = horizontal && callout && spec.style.valueLabels ? measure(fmtDeco(ext[1]), 13.5 * s, font, 700) + 12 * s : 0;
+  if (callout && !horizontal) reserve = Math.max(reserve, callout.h + 30 * s + reserve);
+  const growable = spec.axes.y.max == null && ext[1] > 0 && !ctx.sharedMax;
+  const ext0 = ext[1];
+  if (reserve > 0 && growable) ext = [ext[0], ext0 / Math.max(0.4, 1 - reserve / lenEst)];
+  if (callout && horizontal && growable) {
+    // barres horizontales : l'annotation se place à droite, à hauteur des barres les plus courtes (au plus près de la
+    // barre mise en avant) ; l'axe n'est prolongé que de ce qu'il faut pour que ces barres et leurs étiquettes passent avant elle
+    const free = lenEst - callout.w - labelRoom - (deco.cap === "icon" || goal ? capEst * 2 + 16 * s : 0) - 16 * s;
+    const win = calloutWindow(model.values[0] ?? [], focusK ?? 0, Math.ceil(callout.h / Math.max(1, (rect.h * 0.86) / Math.max(1, nK))));
+    const need = free > lenEst * 0.2 ? (win.max * lenEst) / free : Infinity;
+    const fallback = ext0 / Math.max(0.4, 1 - (callout.w + labelRoom + 40 * s) / lenEst);
+    ext = [ext[0], Math.max(ext[1], Math.min(fallback, Math.max(ext0, need)))];
+  }
   const includeZero = bars || t === "area" || t === "stackedArea";
   const hasY2 = !!model.y2 && spec.encoding.y2 != null;
   const y2ext = prep.domains.y2 ?? y2Extent(model) ?? [0, 1];
@@ -781,6 +797,22 @@ interface DecoArgs {
   callPad: number;
 }
 
+/**
+ * Fenêtre de `rows` barres consécutives où poser l'annotation (barres horizontales) : la plus petite valeur maximale,
+ * puis la plus proche de la barre mise en avant.
+ */
+export function calloutWindow(values: number[], focusK: number, rows: number): { start: number; max: number } {
+  const v = values.map((x) => (Number.isFinite(x) ? Math.max(0, x) : 0));
+  const r = Math.max(1, Math.min(v.length, rows));
+  let best = { start: 0, max: Infinity, d: Infinity };
+  for (let w = 0; w + r <= v.length; w++) {
+    const m = Math.max(...v.slice(w, w + r));
+    const d = Math.abs(w + r / 2 - (focusK + 0.5));
+    if (m < best.max * 0.97 || (m <= best.max * 1.03 && d < best.d)) best = { start: w, max: Math.min(m, best.max), d };
+  }
+  return { start: best.start, max: Number.isFinite(best.max) ? best.max : 0 };
+}
+
 /** Pictogrammes, pastilles d'icône, repères d'objectif (sous les étiquettes), puis annotation et moyenne (au-dessus). */
 function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
   const { ctx, deco, placed, horizontal: hz, capR, v, base, pw, ph, fmt, model } = a;
@@ -914,11 +946,25 @@ function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
     }
   } else {
     bx = pw - co.w;
-    by = Math.max(0, Math.min(ph - co.h, end.y - co.h / 2));
-    from = { x: bx, y: by + co.h / 2 };
-    // le lien vise la fin de l'étiquette de valeur (jamais par-dessus le chiffre)
     const lw = spec.style.valueLabels ? measure(fmt(fp.raw), 13.5 * s, font, 700) + 10 * s : 0;
-    to = { x: end.x + 8 * s + lw, y: end.y };
+    // hauteur : à côté de la barre mise en avant si la place le permet, sinon à hauteur des barres plus courtes
+    const hasCap = deco.cap === "icon" || deco.cap === "goal";
+    const reach = (q: (typeof placed)[number]) => Math.max(q.pa, q.pb) + (hasCap ? 2 * capR(q.thick) + 10 * s : 0) + (spec.style.valueLabels ? measure(fmt(q.raw), 13.5 * s, font, 700) + 10 * s : 0);
+    const fits = (y: number) => placed.every((q) => q.c0 + q.thick < y - 2 * s || q.c0 > y + co.h + 2 * s || reach(q) <= bx - 12 * s);
+    const cands = [end.y - co.h / 2, ...placed.flatMap((q) => [q.c0, q.c0 + q.thick - co.h])].map((y) => Math.max(0, Math.min(ph - co.h, y)));
+    const ok = cands.filter(fits).sort((p, q) => Math.abs(p + co.h / 2 - end.y) - Math.abs(q + co.h / 2 - end.y));
+    by = ok.length ? ok[0] : Math.max(0, Math.min(ph - co.h, end.y - co.h / 2));
+    const tipX = end.x + 8 * s + lw;
+    if (by > fp.c0 + fp.thick + 2 * s || by + co.h < fp.c0 - 2 * s) {
+      // annotation au-dessous (ou au-dessus) de la barre : le lien part du bord du cadre vers l'étiquette de valeur
+      const below = by > fp.c0;
+      to = { x: Math.min(tipX - lw / 2, pw - 6 * s), y: below ? fp.c0 + fp.thick + 4 * s : fp.c0 - 4 * s };
+      from = { x: Math.max(bx + 16 * s, Math.min(bx + co.w - 16 * s, to.x)), y: below ? by : by + co.h };
+    } else {
+      from = { x: bx, y: by + co.h / 2 };
+      // le lien vise la fin de l'étiquette de valeur (jamais par-dessus le chiffre)
+      to = { x: tipX, y: end.y };
+    }
   }
   if (Math.hypot(to.x - from.x, to.y - from.y) > 8 * s) {
     const mid = hz ? { x: (from.x + to.x) / 2, y: from.y } : { x: to.x, y: from.y };

@@ -8,7 +8,7 @@ import { Store } from "./state";
 import { chartSize, isSpecial, parseSpec, studioFileSchema, type ChartSpec, type ChartType } from "./spec";
 import { buildDataset, serializableRaw, type Dataset } from "./data/table";
 import { readFile, parseText, type ImportResult } from "./data/files";
-import { SAMPLES, sampleById } from "./data/samples";
+import { SAMPLES, sampleById, sampleLicence } from "./data/samples";
 import { autoEncode } from "./data/suggest";
 import { Preview } from "./ui/preview";
 import { SettingsPanel } from "./ui/settings";
@@ -47,6 +47,8 @@ import { DEMO_FINANCE_ID, DEMO_ORG, DEMO_PIPELINE_ID, demoFinanceReview, demoPip
 import { demoNotesFor } from "./publish/demoNotes";
 import { DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES, IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
 import { CadencerDialog, type CadencerTarget } from "./ui/cadencerDialog";
+import { ReelDialog } from "./ui/reelDialog";
+import { REEL_EXAMPLE_TITLE, reelExampleSnapshots } from "./reel/example";
 import { drillStepAdded, type NativeSlide } from "./story/morph";
 import { ScenarioDialog } from "./ui/scenarioDialog";
 import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
@@ -770,6 +772,30 @@ async function storyPublishedId(snaps: Snapshot[]): Promise<{ id: string | null;
   return { id: same ? d : null, demo: d };
 }
 
+/** « Créer un Reel » : histoire courante, revue, ou exemple public (Eurostat) quand l'histoire est vide. */
+async function openReel(storyId: string = LOCAL_STORY_ID): Promise<void> {
+  let title: string;
+  let snaps: Snapshot[];
+  if (storyId === "exemple" || (storyId === LOCAL_STORY_ID && !store.state.story.snapshots.length)) {
+    title = REEL_EXAMPLE_TITLE;
+    snaps = reelExampleSnapshots();
+  } else if (storyId === LOCAL_STORY_ID) {
+    title = store.state.story.title.trim() || "Histoire";
+    snaps = store.state.story.snapshots;
+  } else {
+    await reviewSpace.ensureDemo();
+    const r = reviewStorage.get(storyId);
+    title = r?.title ?? storyId;
+    snaps = r?.snapshots ?? [];
+  }
+  if (!snaps.length) {
+    toast("Aucun snapshot à raconter : prenez des snapshots pour l'histoire.", "info");
+    return;
+  }
+  const lic = [...new Set(snaps.map((s) => sampleLicence(s.sampleId)).filter(Boolean))];
+  await reelDialog.open({ title, items: snaps.map((snap) => ({ snap, ds: datasetFor(snap) })), licence: lic.length === 1 ? lic[0]! : "" });
+}
+
 async function openCadencer(storyId: string): Promise<void> {
   let t: CadencerTarget;
   if (storyId === LOCAL_STORY_ID) {
@@ -1208,7 +1234,8 @@ const settings = new SettingsPanel(store, {
   snapshots: () => store.state.story.snapshots.length,
 });
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID) });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID), reel: () => void openReel(LOCAL_STORY_ID) });
+const reelDialog = new ReelDialog();
 const cadencer = new CadencerDialog({ download: (id) => downloadManifest(id), copy: (text, label) => void copyText(text, label) });
 const film = new StoryFilm((s) => datasetFor(s));
 
@@ -1339,6 +1366,7 @@ const reviewSpace: ReviewSpace = new ReviewSpace(
     film: (snaps, k) => film.open(snaps, k),
     read: (id, snapId) => startReading(id, snapId),
     cadencer: (id) => void openCadencer(id),
+    reel: (id) => void openReel(id),
     currentStory: () => store.state.story,
     baseUrl: () => location.href.split("#")[0]!.split("?")[0]!,
     openInStudio: (s) => (reviewSpace.close(), openSnapshot(s)),
@@ -1350,7 +1378,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -1401,6 +1429,8 @@ void reviewSpace.ensureDemo().then(() => {
   updateReviewsCount();
   if (location.hash.startsWith("#/") && !parseReadRoute(location.hash)) void reviewSpace.handleHash(location.hash);
 });
+// lien direct vers l'exemple de Reel (?reel=exemple) : un visiteur crée un Reel en 1 clic
+if (params.get("reel") === "exemple") void openReel("exemple");
 
 /** API de débogage / tests (console : r4d.getSpec()). */
 const api = {
@@ -1462,6 +1492,9 @@ const api = {
   },
   cadencer: (storyId: string = LOCAL_STORY_ID) => openCadencer(storyId),
   cadencerDialog: () => cadencer,
+  /** « Créer un Reel » (histoire courante, id de revue, ou « exemple »). */
+  reel: (storyId: string = LOCAL_STORY_ID) => openReel(storyId),
+  reelDialog: () => reelDialog,
   pngDataUrl: async (scale = 1) => {
     const { width, height } = chartSize(store.state.spec);
     return blobToDataUrl(await svgToPngBlob(await preview.currentSvg(), width, height, scale));

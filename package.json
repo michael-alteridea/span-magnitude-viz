@@ -51,6 +51,7 @@
     "@formulajs/formulajs": "^4.6.1",
     "d3": "^7.9.0",
     "jszip": "^3.10.2",
+    "mp4-muxer": "^5.2.2",
     "qrcode-generator": "^2.0.4",
     "topojson-client": "^3.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",

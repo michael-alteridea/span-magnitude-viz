@@ -54,6 +54,7 @@ export const ICONS = {
   back: `<path d="M10 6 L4 12 L10 18 M4 12 H20"/>`,
   next: `<path d="M5 4.5 L15 12 L5 19.5 Z" fill="currentColor" stroke="none"/><rect x="16.5" y="5" width="3" height="14" rx="1" fill="currentColor" stroke="none"/>`,
   prev: `<path d="M19 4.5 L9 12 L19 19.5 Z" fill="currentColor" stroke="none"/><rect x="4.5" y="5" width="3" height="14" rx="1" fill="currentColor" stroke="none"/>`,
+  reel: `<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.6 9.2 L14.6 12 L10.6 14.8 Z" fill="currentColor"/>`,
   clapper: `<rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M3 9 L5 4 L21 4 L19 9"/><path d="M8 4 L6.5 9 M13 4 L11.5 9 M18 4 L16.5 9"/><path d="M10 12.5 L14.5 14.75 L10 17 Z" fill="currentColor" stroke="none"/>`,
   play: `<path d="M7 4.5 L19 12 L7 19.5 Z" fill="currentColor" stroke="none"/>`,
   pause: `<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>`,

@@ -5,6 +5,7 @@
 import type { ChartSpecInput } from "../spec";
 import { demoFinanceRows } from "./demoFinance";
 import { demoPipelineRows } from "./demoPipeline";
+import { EUROSTAT_REN } from "./eurostatRenouvelables";
 
 export const SAMPLE_TODAY = "2026-10-08";
 
@@ -15,7 +16,25 @@ export interface Sample {
   rows: () => Record<string, unknown>[];
   /** Spec suggéré au chargement. */
   spec: ChartSpecInput;
+  /** Licence des données (cartouche du Reel) ; défaut : données fictives de démonstration. */
+  licence?: string;
 }
+
+/** Part des renouvelables (Eurostat nrg_ind_ren) : une ligne par pays et par année. */
+export function renouvelablesRows(): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = [];
+  EUROSTAT_REN.codes.forEach((code, i) => {
+    const prov = EUROSTAT_REN.provisional[i] as readonly number[];
+    EUROSTAT_REN.years.forEach((y, k) => {
+      const v = EUROSTAT_REN.values[i]![k];
+      if (v === null || v === undefined) return;
+      out.push({ Pays: EUROSTAT_REN.names[i], Code: code, Année: String(y), "Part des renouvelables (%)": v, Statut: prov.includes(y) ? "provisoire" : "définitif" });
+    });
+  });
+  return out;
+}
+
+export const RENOUVELABLES_SOURCE = EUROSTAT_REN.source;
 
 function rng(seed: number) {
   let a = seed >>> 0;
@@ -501,7 +520,32 @@ export const SAMPLES: Sample[] = [
       style: { source: "Source : contrôle de gestion Norvia (données fictives) · budget 2026 du 8 oct. 2026", background: "light" },
     },
   },
+  {
+    id: "renouvelables",
+    name: "Énergies renouvelables dans l'UE (Eurostat)",
+    description: "Données publiques : part des renouvelables dans la consommation finale brute d'énergie · UE-27 et 27 pays · 2004 → 2025 (2025 provisoire) · Eurostat, CC BY 4.0 · exemple de Reel",
+    rows: renouvelablesRows,
+    licence: `${EUROSTAT_REN.licence} (Eurostat)`,
+    spec: {
+      type: "barH",
+      encoding: { x: "Pays", y: ["Part des renouvelables (%)"], series: null, aggregate: "sum", topN: 10, others: false },
+      axes: { y: { unit: "pct", decimals: 1, title: "" }, x: { grid: false } },
+      transform: { filters: [{ field: "Année", op: "gte", value: Date.UTC(2025, 0, 1), label: "2025" }, { field: "Pays", op: "notIn", values: ["UE-27"], label: "pays" }] },
+      style: {
+        title: "La Suède en tête : 65,4 % d'énergie renouvelable en 2025",
+        subtitle: "Part des renouvelables dans la consommation finale brute d'énergie, 10 premiers pays de l'UE, 2025 (provisoire)",
+        source: EUROSTAT_REN.source,
+        sort: "desc",
+        valueLabels: true,
+      },
+    },
+  },
 ];
+
+export function sampleLicence(id: string | null | undefined): string {
+  const sm = sampleById(id);
+  return sm ? sm.licence ?? "Données fictives (démonstration)" : "";
+}
 
 export function sampleById(id: string | null | undefined): Sample | undefined {
   return SAMPLES.find((s) => s.id === id);

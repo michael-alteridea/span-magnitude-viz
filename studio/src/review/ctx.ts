@@ -16,6 +16,8 @@ export interface ReviewDeps {
   read?(reviewId: string, snapId: string | null): void;
   /** « Envoyer vers Cadencer » : manifeste de revue publié (URL) ou téléchargé (histoire locale). */
   cadencer?(reviewId: string): void;
+  /** « Créer un Reel » : mini-film pour les réseaux sociaux à partir des snapshots de la revue. */
+  reel?(reviewId: string): void;
   /** Histoire courante du Studio (« Nouvelle revue »). */
   currentStory(): StoryState;
   /** Adresse du Studio (base des liens et QR). */

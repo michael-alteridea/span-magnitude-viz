@@ -20,6 +20,8 @@ export interface StoryActions {
   read?(): void;
   /** « Envoyer vers Cadencer » (manifeste de revue). */
   cadencer?(): void;
+  /** « Créer un Reel » (mini-film réseaux sociaux ; exemple public si l'histoire est vide). */
+  reel?(): void;
 }
 
 const MORPH_PREF = "datanime:pptx-morph";
@@ -33,6 +35,7 @@ export class StoryStrip {
   private filmBtn: HTMLButtonElement;
   private readBtn: HTMLButtonElement;
   private cadBtn: HTMLButtonElement;
+  private reelBtn: HTMLButtonElement;
   private morphBox: HTMLInputElement;
   private morphLabel: HTMLElement;
   private orderBtn: HTMLButtonElement;
@@ -51,6 +54,7 @@ export class StoryStrip {
     this.filmBtn = h("button", { class: "btn btn-small", "data-testid": "story-film", title: "Rejouer l'histoire en plein écran (animations, commentaires) — ←/→, espace, Échap", onclick: () => this.actions.film?.() }, "▶ Film");
     this.readBtn = h("button", { class: "btn btn-small", "data-testid": "story-read", title: "Mode lecture plein écran : une diapositive par snapshot, au rythme du lecteur (toucher, balayage, ←/→), lien partageable par diapositive", onclick: () => this.actions.read?.() }, "Mode lecture");
     this.cadBtn = h("button", { class: "btn btn-small", "data-testid": "story-cadencer", title: "Envoyer l'histoire vers Cadencer : URL du manifeste publié (démos) ou manifeste à télécharger (images intégrées)", onclick: () => this.actions.cadencer?.() }, "Envoyer vers Cadencer");
+    this.reelBtn = h("button", { class: "btn btn-small story-reel", "data-testid": "story-reel", title: "Mini-film de 15 à 30 s pour Instagram, TikTok ou LinkedIn (MP4) : une scène par snapshot, titres courts, chiffres qui comptent, carte de fin avec QR", onclick: () => this.actions.reel?.() }, h("span", { html: svgIcon(ICONS.reel, 14) }), "Créer un Reel");
     this.morphBox = h("input", { type: "checkbox", "data-testid": "story-morph" }) as HTMLInputElement;
     try {
       this.morphBox.checked = localStorage.getItem(MORPH_PREF) === "1";
@@ -91,6 +95,7 @@ export class StoryStrip {
         this.readBtn,
         this.morphLabel,
         this.pptxBtn,
+        this.reelBtn,
         this.cadBtn
       ),
       this.list
@@ -120,6 +125,9 @@ export class StoryStrip {
     this.orderBtn.disabled = st.snapshots.length < 2;
     this.pptxBtn.disabled = !st.snapshots.length;
     this.filmBtn.disabled = !st.snapshots.length;
+    this.reelBtn.title = st.snapshots.length
+      ? "Mini-film de 15 à 30 s pour Instagram, TikTok ou LinkedIn (MP4) : une scène par snapshot, titres courts, chiffres qui comptent, carte de fin avec QR"
+      : "Histoire vide : essayez le Reel d'exemple sur données publiques (énergies renouvelables, Eurostat, CC BY 4.0)";
     this.readBtn.disabled = !st.snapshots.length;
     this.cadBtn.disabled = !st.snapshots.length;
     this.sameScale.checked = !!st.sameScale;
@@ -129,7 +137,7 @@ export class StoryStrip {
     if (key === this.key) return;
     this.key = key;
     if (!st.snapshots.length) {
-      this.list.replaceChildren(h("p", { class: "story-empty" }, "Aucun snapshot : cliquez « 📸 Snapshot » pour ajouter le graphique courant, puis ordonnez votre récit."));
+      this.list.replaceChildren(h("p", { class: "story-empty" }, "Aucun snapshot : cliquez « 📸 Snapshot » pour ajouter le graphique courant, puis ordonnez votre récit. « Créer un Reel » propose un exemple sur données publiques (Eurostat)."));
       return;
     }
     this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i, scales.get(s.id), !!st.sameScale)));

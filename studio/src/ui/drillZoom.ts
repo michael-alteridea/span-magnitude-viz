@@ -262,3 +262,25 @@ export function markForStep(svg: SVGSVGElement, step: { kind: string; start?: nu
   if (step.kind === "period") return svg.querySelector(`[data-drill-key="${step.start}"] .r4d-drill-mark`) ?? svg.querySelector(`[data-drill-kind="period"][data-drill-key="${step.start}"]`);
   return [...svg.querySelectorAll(`[data-drill-kind="cat"]`)].find((el) => el.getAttribute("data-drill-value") === step.value) ?? null;
 }
+
+/**
+ * Descente, phase 1, en une image (Reel : rendu déterministe) : la marque grandit jusqu'à remplir `plot`
+ * à la progression t ∈ [0, 1], le reste s'efface. Renvoie la couleur de la marque.
+ */
+export function paintDive(svg: SVGSVGElement, target: Element, plot: PlotRect, t: number): string {
+  const fill = markFill(markShape(target));
+  const c = cloneMark(svg, target);
+  if (!c) return fill;
+  const e = easeInOut(Math.max(0, Math.min(1, t)));
+  c.clone.setAttribute("transform", fitTransform(c.box, plot, c.rect, e));
+  fade(svg, 1 - 0.92 * e);
+  svg.setAttribute("data-zoom", "in");
+  return fill;
+}
+
+/** Remontée, phase 1, en une image (Reel) : l'enfant se replie dans un voile de la couleur du parent. */
+export function paintFold(svg: SVGSVGElement, plot: PlotRect, fill: string, t: number): void {
+  const e = easeInOut(Math.max(0, Math.min(1, t)));
+  paintVeil(svg, plot, fill, 0.92 * e, "fold");
+  fade(svg, 1 - 0.92 * e);
+}

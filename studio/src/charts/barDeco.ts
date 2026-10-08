@@ -67,12 +67,14 @@ export function focusTexts(
   values: number[],
   k: number,
   fmt: (v: number) => string,
-  user: { title: string; note: string }
+  user: { title: string; note: string },
+  /** false : valeurs non additives (moyennes, taux en %) → pas de « part du total ». */
+  additive = true
 ): { title: string; note: string; avg: number | null } {
   const others = values.filter((v, i) => i !== k && Number.isFinite(v));
   const avg = others.length ? others.reduce((a, b) => a + b, 0) / others.length : null;
   const total = values.filter(Number.isFinite).reduce((a, b) => a + b, 0);
-  const pct = total > 0 && value >= 0 ? Math.round((value / total) * 100) : null;
+  const pct = additive && total > 0 && value >= 0 ? Math.round((value / total) * 100) : null;
   const title = user.title.trim() || `${label} : ${fmt(value)}${pct != null ? ` (${pct} % du total)` : ""}`;
   let note = user.note.trim();
   if (!note && avg != null && avg !== 0) {

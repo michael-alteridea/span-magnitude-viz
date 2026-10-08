@@ -23,6 +23,7 @@ import barlow400 from "./fonts/barlow-400.woff2?url";
 import barlow700 from "./fonts/barlow-700.woff2?url";
 import playfair400 from "./fonts/playfair-400.woff2?url";
 import playfair700 from "./fonts/playfair-700.woff2?url";
+import poppins800 from "./fonts/poppins-800.woff2?url";
 
 /**
  * Identité Datanime : bleu pétrole (choisi le 08/10/2026).
@@ -267,4 +268,24 @@ export async function embeddedFontCss(key: FontKey): Promise<string> {
     })
   );
   return parts.join("\n");
+}
+
+/* ---- police d'affichage du mode Reel : Poppins ExtraBold (SIL OFL 1.1, fonts/LICENSE-poppins.txt) */
+const DISPLAY_FAMILY = "R4D Poppins";
+let displayLoaded: Promise<void> | null = null;
+
+/** Charge Poppins 800 dans le document (aperçu du Reel, mesures des titres). */
+export function ensureDisplayFont(): Promise<void> {
+  if (!displayLoaded)
+    displayLoaded = (async () => {
+      const face = new FontFace(DISPLAY_FAMILY, `url(${poppins800})`, { weight: "800", style: "normal" });
+      await face.load();
+      document.fonts.add(face);
+    })();
+  return displayLoaded;
+}
+
+/** CSS @font-face autonome (base64) de Poppins 800 pour les images du Reel. */
+export async function displayFontCss(): Promise<string> {
+  return `@font-face{font-family:'${DISPLAY_FAMILY}';font-weight:800;font-style:normal;src:url(${await toDataUri(poppins800)}) format('woff2');}`;
 }

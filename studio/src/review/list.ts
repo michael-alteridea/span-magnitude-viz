@@ -2,7 +2,7 @@
  * Revues : liste (présentateur) et détail d'une revue — séquence de snapshots, lecture avant la réunion,
  * participants ; fenêtre « Partager » (lien + QR de la revue et de chaque snapshot, accès, invitations).
  */
-import { h } from "../ui/dom";
+import { h, svgIcon, ICONS } from "../ui/dom";
 import { wordmarkMarkup } from "../brand";
 import type { Ctx } from "./ctx";
 import {
@@ -206,6 +206,7 @@ function detail(ctx: Ctx, r: Review): HTMLElement {
         h("button", { class: "btn", type: "button", "data-testid": "rv-meeting", onclick: () => ctx.go({ page: "meeting", id: r.id }) }, ic("screen", 15), r.status === "terminee" ? "Reprendre la réunion" : "Lancer la réunion"),
         h("button", { class: "btn", type: "button", "data-testid": "rv-report", onclick: () => ctx.go({ page: "report", id: r.id }) }, ic("doc", 15), "Compte rendu"),
         ctx.deps.read ? h("button", { class: "btn", type: "button", "data-testid": "rv-read", title: "Lecture plein écran, une diapositive par snapshot (lien profond par diapositive)", onclick: () => ctx.deps.read?.(r.id, null) }, ic("book", 15), "Mode lecture") : null,
+        ctx.deps.reel ? h("button", { class: "btn", type: "button", "data-testid": "rv-reel", title: "Mini-film 15 à 30 s pour Instagram, TikTok ou LinkedIn (MP4), à partir des snapshots de la revue", onclick: () => ctx.deps.reel?.(r.id) }, h("span", { class: "rv-ic", html: svgIcon(ICONS.reel, 15) }), "Créer un Reel") : null,
         ctx.deps.cadencer ? h("button", { class: "btn", type: "button", "data-testid": "rv-cadencer", title: "Ordre du jour Cadencer : URL du manifeste de revue (snapshots, images, liens de lecture)", onclick: () => ctx.deps.cadencer?.(r.id) }, ic("send", 15), "Envoyer vers Cadencer") : null,
         h("button", { class: "btn", type: "button", "data-testid": "rv-participant", onclick: () => ctx.go({ page: "participant", id: r.id, snapId: null }) }, ic("eye", 15), "Page participant"),
         r.demo ? null : h("button", { class: "btn btn-ghost", type: "button", "data-testid": "rv-delete", onclick: () => { if (confirm(`Supprimer la revue « ${r.title} » de cet appareil ?`)) { ctx.deps.storage.remove(r.id); ctx.go({ page: "list", id: null }); } } }, "Supprimer")

@@ -85,7 +85,8 @@ describe("paste / delimiters", () => {
 
 describe("samples are anchored on 8 Oct 2026", () => {
   it("never go past 31/12/2026 and use real data up to today", () => {
-    for (const s of SAMPLES) {
+    // les données publiques réelles (Eurostat, 2004-2025) gardent leur historique
+    for (const s of SAMPLES.filter((s) => !s.licence)) {
       const ds = buildDataset(s.name, s.rows());
       for (const c of ds.columns.filter((c) => c.type === "date")) {
         const vals = ds.rows.map((r) => r[c.name]).filter((v): v is number => typeof v === "number");

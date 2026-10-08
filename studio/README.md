@@ -415,6 +415,48 @@ publiée avec le Studio dans `licences/phosphor-icons-MIT.txt`. Le jeu (77 icôn
 `node studio/scripts/gen-phosphor.mjs [dossier @phosphor-icons/core]`. Exemples fictifs (Norvia) : « Budget informatique
 par poste », « Dossiers en retard par gestionnaire », « Objectifs commerciaux T3 2026 ».
 
+## Reel : mini-film pour les réseaux sociaux (étape K)
+
+**Créer un Reel** (bandeau Histoire, ou bouton « Reel » d'une revue) transforme 3 à 5 snapshots en une vidéo courte
+pour Instagram, TikTok ou LinkedIn, entièrement dans le navigateur (aucun serveur). Au-delà de 5 snapshots, un
+avertissement invite à cocher ceux à garder (les 5 premiers sont cochés). Histoire vide : le Reel d'exemple s'ouvre
+en 1 clic (aussi par `?reel=exemple`).
+
+- **Formats** : 9:16 (1080 × 1920, Reels / TikTok / Stories), 1:1 (1080 × 1080), 16:9 (1920 × 1080). Marges de sécurité
+  propres à chaque format (en 9:16, 220 px en haut et 400 px en bas restent libres pour l'interface des applications).
+- **Durée** : 15 à 30 s au total, carte de fin comprise (3 s). La durée de chaque scène est calculée d'après la longueur
+  du titre, la présence d'un chiffre clé et le nombre de marques (3,5 à 7 s), puis ajustée pour rester dans les bornes ;
+  chaque durée reste modifiable (2,5 à 8 s), « Durées auto » revient au calcul.
+- **Scène** : titre court modifiable (Poppins ExtraBold, retour à la ligne équilibré, jamais un chiffre séparé de son
+  unité), chiffre clé qui compte (extrait du titre ou du commentaire : « 26,2 % », « ×7,8 », « 4 sur 6 » ; les années
+  sont ignorées), graphique redessiné pour l'image (cadré sur son contenu, textes agrandis) avec les animations 4D
+  existantes (barres qui poussent, carte qui se remplit, **zoom dans la marque** entre un parent et son détail), petit
+  cartouche en bas à droite : logo, date de génération, source, licence des données et QR.
+- **Carte de fin** : logo, « Vos données. Racontées. », lien `PLATFORM_URL` et QR (obligatoires en offre gratuite).
+- **Licence des données** : préremplie depuis la source du jeu de données (exemples fictifs : « Données fictives
+  (démonstration) ») ; vide → l'export est bloqué et le champ est signalé (raccourcis « CC BY 4.0 », « Données internes »…).
+- **Aperçu** dans la fenêtre (lecture, pause, curseur), image par image : chaque image est une fonction du temps, l'aperçu
+  et l'export sont identiques.
+- **Export** : MP4 H.264 (WebCodecs `VideoEncoder` + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer), licence MIT,
+  `licences/mp4-muxer-MIT.txt`), 30 images/s, image clé toutes les 2 s, plus rapide que le temps réel. Navigateur sans
+  WebCodecs H.264 : repli par `MediaRecorder` en temps réel (WebM VP9/VP8, ou MP4 sur Safari), images sautées si le rendu
+  prend du retard. Barre de progression, bouton « Annuler l'export ». Fichier `datanime-reel-<titre>-<format>.mp4`.
+- **iPad / Safari** : WebCodecs `VideoEncoder` (H.264) est disponible à partir d'iPadOS / Safari 16.4 → MP4 direct.
+  Plus ancien : repli `MediaRecorder` (MP4) en temps réel, l'onglet doit rester au premier plan. Les images ne sont jamais
+  conservées en mémoire (encodées au fil de l'eau) ; seul le fichier final (≈ 4 à 8 Mo pour 25 s) est gardé jusqu'au
+  téléchargement. Sur iPad, Safari range la vidéo dans Fichiers › Téléchargements (à partager ensuite depuis Photos ou Fichiers).
+- **Exemple intégré** : « Énergies renouvelables dans l'UE », données publiques Eurostat (`nrg_ind_ren`, part des
+  renouvelables dans la consommation finale brute d'énergie, 2004-2025), **licence CC BY 4.0** (réutilisation commerciale
+  autorisée, source citée) ; 4 scènes : moyenne de l'UE, les 10 premiers, les 5 derniers, la Belgique depuis 2004.
+  Jeu régénéré par `node studio/scripts/gen-eurostat-renouvelables.mjs`.
+- **Police des titres** : Poppins ExtraBold, licence SIL Open Font License 1.1 (`licences/poppins-OFL.txt`), intégrée
+  au fichier vidéo (aucun appel réseau).
+
+Modules : `src/reel/plan.ts` (formats, durées, chiffre clé, mise en page), `compose.ts` (image SVG en fonction du
+temps), `charts.ts` (graphique redessiné pour l'image, zoom dans la marque), `encode.ts` (MP4 / WebM), `scenes.ts`,
+`example.ts`, `src/ui/reelDialog.ts`. Tests : `test/reel.test.ts`, e2e (création, aperçu, formats, licence vide,
+annulation, export MP4 vérifié par ffprobe : 1080 × 1920, durée attendue).
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |

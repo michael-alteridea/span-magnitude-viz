@@ -193,6 +193,130 @@ async function decodeQr(pngB64, qr, scale) {
   );
 }
 
+/* 20. Reel (phase K) : mini-film réseaux sociaux — exemple public Eurostat, aperçu, formats, licence, export MP4.
+   Contexte de navigation neuf (histoire vide). Seul : node studio/scripts/e2e.mjs --reel [--shots] */
+async function e2eReel() {
+  const rctx = await browser.createBrowserContext();
+  const rp = await rctx.newPage();
+  const rpErr = [];
+  rp.on("pageerror", (e) => rpErr.push(String(e)));
+  rp.on("console", (m) => m.type() === "error" && rpErr.push(m.text()));
+  await rp.setViewport({ width: 1600, height: 960 });
+  await rp.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await rp.waitForSelector("[data-testid=chart-svg] .r4d-marks");
+  // histoire vide : « Créer un Reel » propose l'exemple public en 1 clic
+  const btn = await rp.evaluate(() => { const b = document.querySelector("[data-testid=story-reel]"); return { here: !!b, disabled: b?.disabled, title: b?.title }; });
+  await rp.click("[data-testid=story-reel]");
+  await rp.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  await sleep(400);
+  const st = await rp.evaluate(() => {
+    const d = window.r4d.reelDialog();
+    const p = d.currentPlan;
+    return { open: d.isOpen, n: p.scenes.length, total: p.scenes.reduce((a, s) => a + s.duration, 0) + p.endDuration, numbers: p.scenes.map((s) => s.number), source: p.source, licence: p.licence, playing: d.isPlaying, t: d.time, vb: document.querySelector("[data-testid=reel-frame]").getAttribute("viewBox") };
+  });
+  check("Reel : bouton « Créer un Reel » (histoire vide → exemple Eurostat), 4 scènes, 15 à 30 s, chiffres calculés, source et licence CC BY 4.0", btn.here && !btn.disabled && /Eurostat/.test(btn.title) && st.open && st.n === 4 && st.total >= 15 && st.total <= 30 && st.numbers.join("|") === "26,2\u00a0%|65,4\u00a0%|14,9\u00a0%|×7,8" && /Eurostat/.test(st.source) && /CC BY 4\.0/.test(st.licence) && st.vb === "0 0 1080 1920", JSON.stringify({ btn, st }));
+  await sleep(700);
+  const played = await rp.evaluate(() => window.r4d.reelDialog().time);
+  check("Reel : l'aperçu se lit (le temps avance)", played > st.t + 0.3, `${st.t} → ${played}`);
+  // une image par instant : titre court, chiffre qui compte, graphique, cartouche avec QR
+  const frameAt = (t) => rp.evaluate(async (t) => { const d = window.r4d.reelDialog(); d.setPlaying(false); d.seek(t); await new Promise((r) => requestAnimationFrame(r)); const f = document.querySelector("[data-testid=reel-frame]"); return { num: f.querySelector(".reel-number")?.textContent ?? null, title: [...f.querySelectorAll(".reel-title")].map((x) => x.textContent).join(" "), bars: f.querySelectorAll(".reel-chart .r4d-marks *").length, cart: !!f.querySelector(".reel-cartouche [data-qr]"), lic: [...f.querySelectorAll(".reel-cart-line")].map((x) => x.textContent).join(" | "), end: !!f.querySelector("[data-end]"), tag: [...f.querySelectorAll(".reel-tagline")].map((x) => x.textContent).join(" ") }; }, t);
+  const f0 = await frameAt(0.6);
+  const f1 = await frameAt(3.2);
+  const fe = await frameAt(st.total - 0.2);
+  check("Reel : scène 1 — chiffre qui compte (0,6 s < valeur, 3,2 s = 26,2 %), barres qui poussent, cartouche (date, source, licence, QR)", f0.num !== f1.num && f1.num === "26,2\u00a0%" && f1.bars > 0 && f1.cart && /Généré le/.test(f1.lic) && /Licence des données : CC BY 4\.0/.test(f1.lic), JSON.stringify({ f0, f1 }));
+  check("Reel : carte de fin — « Vos données. Racontées. », lien et QR", fe.end && /Vos données\./.test(fe.tag) && /Racontées\./.test(fe.tag), JSON.stringify(fe));
+  if (SHOTS) {
+    await frameAt(3.4);
+    await rp.screenshot({ path: join(shotsDir, "84-reel-fenetre.png") });
+    await (await rp.$("[data-testid=reel-stage]")).screenshot({ path: join(shotsDir, "85-reel-scene-9x16.png") });
+  }
+  // formats
+  for (const [fk, vb] of [["1x1", "0 0 1080 1080"], ["16x9", "0 0 1920 1080"]]) {
+    await rp.click(`[data-testid=reel-format-${fk}]`);
+    await sleep(300);
+    const g = await frameAt(8.5);
+    const v = await rp.evaluate(() => document.querySelector("[data-testid=reel-frame]").getAttribute("viewBox"));
+    check(`Reel : format ${fk} (${vb.split(" ").slice(2).join(" × ")})`, v === vb && !!g.num && g.cart, JSON.stringify({ v, g }));
+    if (SHOTS) await (await rp.$("[data-testid=reel-stage]")).screenshot({ path: join(shotsDir, `86-reel-${fk}.png`) });
+  }
+  await rp.click("[data-testid=reel-format-9x16]");
+  await sleep(300);
+  // licence vide : export bloqué, champ signalé
+  await rp.evaluate(() => { const i = document.querySelector("[data-testid=reel-licence]"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  const blocked = await rp.evaluate(async () => { const r = await window.r4d.reelDialog().export({ download: false }); return { r: r === null, probs: document.querySelector("[data-testid=reel-problems]").textContent, need: document.querySelector("[data-testid=reel-licence]").classList.contains("need") }; });
+  check("Reel : licence vide → export bloqué, l'utilisateur est invité à la renseigner", blocked.r && /licence des données/.test(blocked.probs) && blocked.need, JSON.stringify(blocked));
+  await rp.click("[data-testid=reel-licence-chip]");
+  // titre éditable
+  await rp.evaluate(() => { const i = document.querySelector("[data-testid=reel-title]"); i.value = "L'UE à 26,2 % d'énergies vertes"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  const edited = await frameAt(3.2);
+  check("Reel : titre de scène éditable (aperçu mis à jour)", /énergies vertes/.test(edited.title), edited.title);
+  await rp.evaluate(() => { const i = document.querySelector("[data-testid=reel-licence]"); i.value = "CC BY 4.0 (Eurostat)"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  // annulation
+  const cancelled = await rp.evaluate(async () => { const d = window.r4d.reelDialog(); const p = d.export({ download: false }); await new Promise((r) => setTimeout(r, 600)); const prog = !document.querySelector("[data-testid=reel-progress]").hidden; document.querySelector("[data-testid=reel-cancel]").click(); const r = await p; return { r, prog, txt: document.querySelector("[data-testid=reel-result]").textContent }; });
+  check("Reel : export annulable (barre de progression, « Annuler l'export »)", cancelled.r === null && cancelled.prog && /annulé/.test(cancelled.txt), JSON.stringify(cancelled));
+  // export complet
+  const t0 = Date.now();
+  const out = await rp.evaluate(async () => {
+    const d = window.r4d.reelDialog();
+    const r = await d.export({ download: false });
+    if (!r) return null;
+    const buf = new Uint8Array(await r.blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    const p = d.currentPlan;
+    return { b64: btoa(bin), ext: r.ext, method: r.method, codec: r.codec, frames: r.frames, size: r.blob.size, durationS: r.durationS, expected: Math.round((p.scenes.reduce((a, s) => a + s.duration, 0) + p.endDuration) * 30), label: document.querySelector("[data-testid=reel-result-text]")?.textContent };
+  });
+  const file = out ? join(tmpdir(), `datanime-reel-e2e.${out.ext}`) : null;
+  if (out) writeFileSync(file, Buffer.from(out.b64, "base64"));
+  let probe = null;
+  try {
+    const { execFileSync } = await import("node:child_process");
+    if (file) probe = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name,width,height,nb_frames,r_frame_rate:format=duration", "-of", "json", file], { encoding: "utf8" }));
+  } catch {
+    probe = null;
+  }
+  const vs = probe?.streams?.[0];
+  const dur = probe ? Number(probe.format.duration) : null;
+  check(
+    `Reel : export ${out?.ext?.toUpperCase()} valide (${out?.method}, ${out?.codec}) — 1080 × 1920, 30 i/s, durée attendue, ${out ? (out.size / 1e6).toFixed(1) : "?"} Mo en ${((Date.now() - t0) / 1000).toFixed(0)} s`,
+    !!out && out.frames === out.expected && out.size > 300_000 && out.size < 40_000_000 && (!probe || (vs.width === 1080 && vs.height === 1920 && Math.abs(dur - out.expected / 30) < 0.15 && (out.ext !== "mp4" || vs.codec_name === "h264"))),
+    JSON.stringify({ ...out, b64: undefined, probe, file })
+  );
+  if (file) console.log(`   vidéo d'exemple : ${file}`);
+  check("Reel : zéro erreur console", rpErr.length === 0, rpErr.slice(0, 3).join(" | "));
+  await rp.evaluate(() => window.r4d.reelDialog().close());
+  // revues : « Créer un Reel » sur une revue (5 snapshots au plus, avertissement au-delà)
+  await rp.evaluate(() => window.r4d.reel("norvia-budget-2026"));
+  await rp.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  await sleep(300);
+  const rv = await rp.evaluate(() => { const p = window.r4d.reelDialog().currentPlan; return { n: p.scenes.length, warn: document.querySelector("[data-testid=reel-warn-count]")?.textContent ?? "", picks: document.querySelectorAll("[data-testid=reel-pick]").length, checked: document.querySelectorAll("[data-testid=reel-pick]:checked").length, links: p.scenes.map((s) => `${s.linkIn ?? "-"}/${s.linkOut ?? "-"}`) }; });
+  check("Reel depuis une revue (7 snapshots) : avertissement, 5 cochés au plus, transitions « zoom dans la marque » entre parent et enfant", rv.n === 5 && rv.picks === 7 && rv.checked === 5 && /5 au plus/.test(rv.warn) && rv.links.some((l) => l.startsWith("in")), JSON.stringify(rv));
+  const dive = await rp.evaluate(async () => { const d = window.r4d.reelDialog(); const p = d.currentPlan; const i = p.scenes.findIndex((s) => s.linkOut === "in"); let t = 0; for (let k = 0; k <= i; k++) t += p.scenes[k].duration; d.seek(t - 0.15); await new Promise((r) => requestAnimationFrame(r)); return { zoom: !!document.querySelector("[data-testid=reel-frame] .r4d-zoom-mark"), t }; });
+  check("Reel : zoom dans la marque (descente) rendu image par image", dive.zoom, JSON.stringify(dive));
+  if (SHOTS) {
+    await rp.evaluate(() => window.r4d.reelDialog().close());
+    await rp.evaluate(() => window.r4d.reel("exemple"));
+    await rp.waitForSelector("[data-testid=reel-frame]");
+    await frameAt(26);
+    await (await rp.$("[data-testid=reel-stage]")).screenshot({ path: join(shotsDir, "87-reel-carte-de-fin.png") });
+  }
+  await rp.close();
+}
+
+if (process.argv.includes("--reel")) {
+  try {
+    await e2eReel();
+  } catch (e) {
+    failures++;
+    results.push("✗ exception : " + (e?.stack ?? e));
+  }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 let xlsxFile = null;
 let xlsxUrl = "";
 let sampleUrl = "";
@@ -2373,6 +2497,9 @@ try {
     check("page participant : infobulle au survol", !!pt.text && /opportunit/.test(pt.text), JSON.stringify(pt));
     await rctx.close();
   }
+
+  /* 20. Reel (phase K) : voir e2eReel() */
+  await e2eReel();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
