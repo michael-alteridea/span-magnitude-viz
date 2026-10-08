@@ -29,8 +29,8 @@
 
 | Idée | Priorité | Statut | Source | Note |
 |---|---|---|---|---|
-| **Séquence enregistrable** (déploiement 1) : la séquence (ex-« Histoire ») s'enregistre, avec « Réinitialiser ▾ » et « Mes projets » | P1 | en cours | `studio/README.md` § « Projets (modèle « dataset d'abord », déploiement 1) » (copie de travail, non commitée) ; `mockups/dataset-flow/NOTES.md` l. 94-98 ; audit n° 63 | Code non commité : `studio/src/project/`, `ui/projectsDialog.ts`, `ui/confirm.ts`, `test/project.test.ts`. Empreintes et liens profonds inchangés |
-| **Datasets dérivés + panneau unique « Datasets »** (déploiement 2) : vues filtrées et nommées d'une source ; fusion des menus Données | P1 | prévu (après le déploiement 1) | `NOTES.md` l. 19-38 (modèle), l. 96 et 99 ; audit n° 63 | Ordre : 1 modèle/stockage → 2 Datasets → 3 Séquence → 4 Mes projets. La Séquence passe d'abord |
+| **Séquence enregistrable** (déploiement 1) : la séquence (ex-« Histoire ») s'enregistre, avec « Réinitialiser ▾ » et « Mes projets » | P1 | livré (09/10, déploiement 1) | `studio/README.md` § « Projets (modèle « dataset d'abord », déploiement 1) » ; `mockups/dataset-flow/NOTES.md` l. 94-98 ; audit n° 63 | Code non commité : `studio/src/project/`, `ui/projectsDialog.ts`, `ui/confirm.ts`, `test/project.test.ts`. Empreintes et liens profonds inchangés |
+| **Datasets dérivés + panneau unique « Datasets »** (déploiement 2) : vues filtrées et nommées d'une source ; fusion des menus Données | P1 | livré (09/10, déploiement 2 : smv 5b47b5a, dash dfab7fb) | `NOTES.md` l. 19-38 (modèle), l. 96 et 99 ; audit n° 63 | Ordre : 1 modèle/stockage → 2 Datasets → 3 Séquence → 4 Mes projets. La Séquence passe d'abord |
 | **Pont Cadencer, côté Cadencer** : relecture, fusion et staging de la PR n° 5 « Revue Datanime : un point par snapshot » | P1 | bloqué (staging) | `michael-alteridea/cadencer` PR #5 ; audit n° 73 | PR ouverte, non fusionnée. Staging en attente de l'accès gcloud de Michaël. Ajouter `datanime.io` à `DATANIME_HOSTS` (une ligne) quand le domaine existera |
 
 ## P2 : prochaine vague
@@ -38,7 +38,7 @@
 | Idée | Priorité | Statut | Source | Note |
 |---|---|---|---|---|
 | **Sélection par touchers successifs** : chaque toucher au même endroit descend d'un niveau (page › graphique › barres › une barre › son libellé), cadre pointillé, panneau de droite contextuel | P2 | prévu | `NOTES.md` l. 59-71 et l. 100 (phase 6) ; maquettes `mockups/dataset-flow/` (série A) ; audit n° 64 | Après les déploiements 1 et 2 |
-| **« Forme des points » du nuage** : ronds / une icône / une icône par groupe | P2 | promis (9/10) | audit n° 88 (promesse du 09/10, 00:07) | Après la Séquence |
+| **« Forme des points » du nuage** : ronds / une icône / une icône par groupe | P2 | livré (09/10 : smv e71baaa, dash f2ed653) | audit n° 88 (promesse du 09/10, 00:07) | Après la Séquence |
 | **Versions d'un dataset** : remplacer les données d'un dataset utilisé par N scènes | P2 | prévu | `NOTES.md` l. 99 (phase 5) | Suit les Datasets dérivés |
 | **Export GIF** | P2 | à faire | `studio/README.md` l. 50 et l. 689 (`exportGif()`, même boucle d'images que le WebM) ; audit n° 66 | Entrée de menu grisée « Prévu en V2 » |
 | **Course de barres** à côté du GIF | P2/P3 | à trancher | audit n° 85 | Idée oubliée depuis le 08/10, retrouvée par l'audit |
