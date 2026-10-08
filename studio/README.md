@@ -310,6 +310,24 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 - **Contrôle** : `node studio/scripts/check-pptx.mjs Fichier.pptx` (transitions, repli, noms « !! » uniques, QR décodé de
   chaque graphique) ; démos : `node studio/scripts/demo-scenario.mjs --scenario dircom --morph Datanime-demo-pipeline-morph.pptx`.
 
+## Pont Cadencer : manifeste de revue (étape Cadencer)
+
+Cadencer anime la réunion (salle en direct, QR `/join/<code>`, accusés de lecture, tâches, PV) ; Datanime fournit les
+snapshots. V1 **en tirage, sans secret partagé** : Datanime publie un JSON statique public par revue, Cadencer l'importe
+par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat complet : [`docs/contrat-cadencer.md`](docs/contrat-cadencer.md).**
+
+- **Publication** : `npm run build:studio` enchaîne `vite build` et `studio/scripts/publish-manifests.mjs` (Chrome headless,
+  même rendu que `demo-scenario.mjs`, déterministe) → `studio-dist/publie/index.json`, `publie/<revue>/manifeste.json`,
+  une image `<snapshot>.png` (1600 × 900, image complète avec cartouche et QR vers le mode lecture) et `<snapshot>.svg`
+  par snapshot, pour les 4 histoires autonomes : `demo-dircom`, `demo-daf`, `norvia-pipeline-oct-2026`, `norvia-budget-2026`.
+  Le script valide chaque manifeste (Zod), la taille des PNG et le QR décodé. `DATANIME_SKIP_PUBLIE=1` : étape ignorée.
+- **Adresses** : toutes dérivées de `PLATFORM_URL` (`brand.ts`) — ex.
+  `https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/manifeste.json`.
+- **Studio** : bouton **Envoyer vers Cadencer** (bandeau Histoire, fiche d'une revue). Revue ou démo publiée : URL du
+  manifeste (Copier) et marche à suivre « Dans Cadencer : ordre du jour › Ajouter › Revue Datanime › coller l'URL ».
+  Histoire ou revue locale : **Télécharger le manifeste** (même JSON, PNG intégrés en `data:`) ; la publication en ligne
+  des histoires personnelles arrive avec l'enregistrement en ligne.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -343,6 +361,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
 | `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire et mode lecture, fenêtre Scénarios |
 | `story/reading.ts`, `story/morph.ts`, `story/morphRender.ts` | Liens `#/lire/…` et démos autonomes ; Morph : noms « !! », injection XML (repli fondu), barres natives extraites du SVG |
+| `publish/manifest.ts`, `ui/cadencerDialog.ts` | Pont Cadencer : schéma Zod du manifeste de revue et de l'index, adresses `publie/…`, empreintes ; fenêtre « Envoyer vers Cadencer » |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts, fenêtre « Mise en forme des données » (`ui/mapping.ts`) |
 
 ## Extensions prévues (V2, non construites)

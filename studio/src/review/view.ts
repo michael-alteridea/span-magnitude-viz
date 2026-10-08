@@ -36,6 +36,7 @@ export const RV_ICONS = {
   replay: `<path d="M4 12 A8 8 0 1 0 7 5.8"/><path d="M4 4 V9 H9"/>`,
   arrowUp: `<path d="M12 19 V5 M6 11 L12 5 L18 11"/>`,
   mail: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7 L12 13 L21 7"/>`,
+  send: `<path d="M21 3 L10 14"/><path d="M21 3 L14.5 21 L10 14 L3 9.5 Z"/>`,
   download: `<path d="M12 4 V16 M7 11 L12 16 L17 11"/><path d="M4 20 H20"/>`,
 };
 

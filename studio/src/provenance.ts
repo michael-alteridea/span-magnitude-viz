@@ -12,10 +12,12 @@
  *   <VERIFY_URL>#1.<type>.<32 hex de l'empreinte>.<import AAAAMMJJ>.<génération AAAAMMJJ>.<lignes>.<colonnes>
  * Forme longue acceptée aussi : #h=<32 hex>&i=AAAAMMJJ&g=AAAAMMJJ&n=<lignes>&c=<colonnes>[&k=F|P|E|C]
  */
-/** Domaine de la plateforme (domaine personnalisé reporting.alteridea.com en attente : changer cette ligne). */
-export const VERIFY_BASE = "https://alteridea-dashboard.web.app";
+import { PLATFORM_URL } from "./brand";
+
+/** Domaine de la plateforme : dérivé de l'adresse unique du Studio (`PLATFORM_URL`, futur datanime.io). */
+export const VERIFY_BASE = new URL(PLATFORM_URL).origin;
 /** Page de vérification (publiée avec le Studio, dans le même dossier). */
-export const VERIFY_URL = `${VERIFY_BASE}/reporting/verifier.html`;
+export const VERIFY_URL = `${PLATFORM_URL}verifier.html`;
 
 export type ProvenanceKind = "file" | "paste" | "sample" | "config";
 

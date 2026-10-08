@@ -7,11 +7,12 @@
  * à l'ouverture depuis les données de démonstration embarquées (les mêmes lignes que les CSV publiés) :
  * mêmes identifiants de snapshots, lien valable sur n'importe quel appareil (QR des diapositives PowerPoint).
  */
+import { PLATFORM_URL } from "../brand";
 import { SCENARIO_DAF, SCENARIO_DIRCOM, type Scenario } from "./scenarios";
 import type { Snapshot } from "./snapshots";
 
 /** Adresse publique du Studio (QR des diapositives : ouvrable depuis un téléphone). */
-export const READING_PUBLIC_BASE = "https://alteridea-dashboard.web.app/reporting/";
+export const READING_PUBLIC_BASE = PLATFORM_URL;
 
 /** Histoire « courante » du Studio (même appareil). */
 export const LOCAL_STORY_ID = "histoire";

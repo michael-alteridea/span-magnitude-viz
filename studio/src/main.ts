@@ -15,9 +15,9 @@ import { DataPanel } from "./ui/dataPanel";
 import { Gallery } from "./ui/gallery";
 import { toast } from "./ui/toast";
 import { h, svgIcon, ICONS } from "./ui/dom";
-import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl } from "./export";
+import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
 import { themeFor, ensureFont } from "./theme";
-import { tell4dIconMarkup } from "./brand";
+import { PLATFORM_URL, tell4dIconMarkup } from "./brand";
 import { ReviewSpace } from "./review/space";
 import { LocalReviewStorage } from "./review/storage";
 import { reportSlideComments } from "./review/model";
@@ -40,7 +40,9 @@ import { detectDelimiter, parseDelimitedMatrix } from "span-magnitude-viz/fileIm
 import { DrillBar } from "./ui/drillBar";
 import { StoryFilm } from "./ui/storyFilm";
 import { LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryDef, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, type ReadRoute } from "./story/reading";
-import { demoReadingStory } from "./review/demo";
+import { DEMO_FINANCE_ID, DEMO_ORG, DEMO_PIPELINE_ID, demoFinanceReview, demoPipelineReview, demoReadingStory } from "./review/demo";
+import { IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
+import { CadencerDialog, type CadencerTarget } from "./ui/cadencerDialog";
 import { drillStepAdded, type NativeSlide } from "./story/morph";
 import { ScenarioDialog } from "./ui/scenarioDialog";
 import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
@@ -452,11 +454,11 @@ function scaleNoteFor(spec: ChartSpec, info: ScaleInfo | undefined, same: boolea
 }
 
 /** Rendu à neuf (SVG nu, polices embarquées) avec échelle commune / indicateur. */
-async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | null, scaleNote: string | null, qrUrl: string | null = null, now?: Date): Promise<string> {
+async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | null, scaleNote: string | null, qrUrl: string | null = null, now?: Date, bare = true): Promise<string> {
   const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
   const cache = prepareCache(spec, ds, null, -1);
-  const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare: true, sharedMax, scaleNote, qrUrl, now });
-  return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null, embedFonts: true });
+  const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare, sharedMax, scaleNote, qrUrl, now });
+  return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null, embedFonts: true, ...(now ? { created: now } : {}) });
 }
 
 /** Spec de diapositive : titre, sous-titre et commentaires du snapshot. */
@@ -583,6 +585,159 @@ async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: Sto
   for (const s of snaps) if (!native.has(s.id)) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale, links.get(s.id) ?? null));
   const { buildPptx } = await import("./story/pptx");
   return buildPptx(story, { images, outputType, links, native, morph: !!o.morph });
+}
+
+/* ---- Pont Cadencer : « manifeste de revue » (publié à la construction, ou téléchargé pour une histoire locale) */
+
+interface PublicationSource {
+  id: string;
+  readId: string;
+  titre: string;
+  persona: string;
+  entreprise: string;
+  date_reunion: string | null;
+  genere_le: string;
+  snapshots: Snapshot[];
+  notes: Record<string, string>;
+}
+
+/** Date de génération la plus récente des snapshots (manifeste publié : déterministe). */
+function latestGenerated(snaps: Snapshot[], fallback: string): string {
+  const ts = snaps.map((s) => isoOrNull(s.generatedAt) ?? isoOrNull(s.createdAt)).filter((x): x is string => !!x);
+  ts.sort((a, b) => Date.parse(a) - Date.parse(b));
+  return ts[ts.length - 1] ?? fallback;
+}
+
+/**
+ * Contenu d'un manifeste : démo intégrée (recalculée), revue Norvia (version de démonstration d'origine quand
+ * elle est publiée), revue locale ou histoire courante du Studio.
+ */
+async function publicationSource(storyId: string, publie: boolean): Promise<PublicationSource | null> {
+  const now = isoLocal(new Date());
+  const d = demoStoryDef(storyId);
+  if (d) {
+    const st = await demoReadingStory(storyId);
+    if (!st) return null;
+    return { id: storyId, readId: storyId, titre: st.title, persona: d.scenario.label.replace(/^Scénario\s+/u, ""), entreprise: DEMO_ORG, date_reunion: null, genere_le: publie ? d.generatedAt : now, snapshots: st.snapshots, notes: {} };
+  }
+  if (storyId === LOCAL_STORY_ID) {
+    const st = store.state.story;
+    if (!st.snapshots.length) return null;
+    return { id: await localStoryManifestId(st.snapshots.map((s) => s.id)), readId: LOCAL_STORY_ID, titre: st.title.trim() || "Histoire", persona: "", entreprise: "", date_reunion: null, genere_le: now, snapshots: st.snapshots, notes: {} };
+  }
+  await reviewSpace.ensureDemo();
+  let r = reviewStorage.get(storyId);
+  if (publie && storyId === DEMO_PIPELINE_ID) r = await demoPipelineReview();
+  else if (publie && storyId === DEMO_FINANCE_ID) r = await demoFinanceReview();
+  if (!r || !r.snapshots.length) return null;
+  return {
+    id: r.id,
+    readId: r.id,
+    titre: r.title,
+    persona: r.persona.audience || r.persona.label,
+    entreprise: r.org.split(" · ")[0]?.trim() ?? "",
+    date_reunion: isoOrNull(r.meetingAt),
+    genere_le: publie ? latestGenerated(r.snapshots, isoOrNull(r.createdAt) ?? now) : now,
+    snapshots: r.snapshots,
+    notes: r.notes,
+  };
+}
+
+/** Image publiée d'un snapshot : PNG 1600 × 900 complet (titre, commentaires, cartouche avec QR vers le lien de lecture) et SVG autonome. */
+async function publicationImage(s: Snapshot, scales: Map<string, ScaleInfo>, qrUrl: string): Promise<{ png: string; svg: string | null }> {
+  const parsed = snapshotSpec(s);
+  const ds = parsed ? datasetFor(s) : null;
+  let svg: string | null = null;
+  if (parsed && ds) {
+    try {
+      // image complète (titre d'action, sous-titre, graphique, « À retenir », cartouche) : lisible seule à l'écran
+      svg = await renderScaled(slideSpec(s, parsed), ds, null, scaleNoteFor(parsed, scales.get(s.id), false), qrUrl, snapNow(s), false);
+    } catch (e) {
+      console.warn("Manifeste : rendu impossible", e);
+    }
+  }
+  if (!svg && s.svg) svg = await embedFontsInto(s.svg, (s.spec as ChartSpec).style.font);
+  const src = svg ?? s.thumb;
+  if (!src) throw new Error(`snapshot sans rendu : ${s.title}`);
+  const bg = parsed ? themeFor(parsed).bg : "#ffffff";
+  return { png: await blobToDataUrl(await pngFit(src, s.width, s.height, IMAGE_W, IMAGE_H, bg)), svg: svg ? stableSvgIds(svg) : null };
+}
+
+export interface Publication {
+  manifest: Manifest;
+  images: { id: string; png: string; svg: string | null }[];
+}
+
+/**
+ * Manifeste d'une histoire. « publie » : adresses absolues (constante PLATFORM_URL) pour `studio-dist/publie/` ;
+ * « integre » : images PNG intégrées (data:), liens de lecture de cet appareil.
+ */
+async function publication(storyId: string, mode: "publie" | "integre"): Promise<Publication | null> {
+  const publie = mode === "publie";
+  const src = await publicationSource(storyId, publie);
+  if (!src) return null;
+  const readBase = publie ? PLATFORM_URL : linkBase();
+  const scales = scalesOf(src.snapshots);
+  const images: Publication["images"] = [];
+  for (const s of src.snapshots) images.push({ id: s.id, ...(await publicationImage(s, scales, readUrl(readBase, src.readId, s.id))) });
+  const manifest = await buildManifest(
+    { ...src, snapshots: src.snapshots.map((s, i) => ({ snap: s, note: src.notes[s.id] ?? null, png: images[i]!.png, svg: publie && !!images[i]!.svg })) },
+    { images: mode, base: PLATFORM_URL, readBase }
+  );
+  return { manifest, images };
+}
+
+async function downloadManifest(storyId: string): Promise<void> {
+  try {
+    const p = await publication(storyId, "integre");
+    if (!p) return void toast("Rien à envoyer : l'histoire est vide", "info");
+    download(new Blob([JSON.stringify(p.manifest, null, 2)], { type: "application/json" }), manifestDownloadName(p.manifest.id));
+    toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots, images intégrées)`, "ok", 4000);
+  } catch (e) {
+    toast("Manifeste impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
+  }
+}
+
+/** Démo publiée correspondant exactement à l'histoire courante (mêmes snapshots, même ordre), sinon null. */
+async function storyPublishedId(snaps: Snapshot[]): Promise<{ id: string | null; demo: string | null }> {
+  const d = demoStoryOf(snaps);
+  if (!d) return { id: null, demo: null };
+  const demo = await demoReadingStory(d);
+  const same = !!demo && demo.snapshots.length === snaps.length && demo.snapshots.every((s, i) => s.id === snaps[i]!.id);
+  return { id: same ? d : null, demo: d };
+}
+
+async function openCadencer(storyId: string): Promise<void> {
+  let t: CadencerTarget;
+  if (storyId === LOCAL_STORY_ID) {
+    const st = store.state.story;
+    const pub = await storyPublishedId(st.snapshots);
+    t = {
+      storyId: pub.id ?? LOCAL_STORY_ID,
+      title: st.title.trim() || "Histoire",
+      count: st.snapshots.length,
+      manifestUrl: pub.id ? manifestUrl(pub.id) : null,
+      readUrl: pub.id ? readUrl(READING_PUBLIC_BASE, pub.id) : readUrl(linkBase(), LOCAL_STORY_ID),
+      note: pub.id
+        ? "Histoire identique à la démonstration publiée : Cadencer importe la version en ligne."
+        : pub.demo
+          ? `Ces snapshots viennent de la démonstration publiée, dont le manifeste complet est disponible : ${manifestUrl(pub.demo)}`
+          : null,
+    };
+  } else {
+    await reviewSpace.ensureDemo();
+    const r = reviewStorage.get(storyId);
+    const published = isPublished(storyId);
+    t = {
+      storyId,
+      title: r?.title ?? storyId,
+      count: r?.snapshots.length ?? 0,
+      manifestUrl: published ? manifestUrl(storyId) : null,
+      readUrl: published ? readUrl(READING_PUBLIC_BASE, storyId) : readUrl(linkBase(), storyId),
+      note: published ? "Version publiée : la revue de démonstration d'origine (les modifications faites sur cet appareil ne sont pas publiées)." : null,
+    };
+  }
+  cadencer.open(t);
 }
 
 async function exportPptx(btn: HTMLButtonElement): Promise<void> {
@@ -946,13 +1101,14 @@ const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store);
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null) });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID) });
+const cadencer = new CadencerDialog({ download: (id) => downloadManifest(id), copy: (text, label) => void copyText(text, label) });
 const film = new StoryFilm((s) => datasetFor(s));
 
-async function copyText(url: string): Promise<void> {
+async function copyText(url: string, done = "Lien de la diapositive copié"): Promise<void> {
   try {
     await navigator.clipboard.writeText(url);
-    toast("Lien de la diapositive copié", "ok");
+    toast(done, "ok");
   } catch {
     toast(`Lien : ${url}`, "info", 9000);
   }
@@ -1070,6 +1226,7 @@ const reviewSpace: ReviewSpace = new ReviewSpace(
     pptx: async (title, snaps): Promise<Blob> => (await buildStoryPptx("blob", { title, snapshots: snaps, sameScale: false }, { storyId: reviewSpace.currentId() ?? LOCAL_STORY_ID })) as Blob,
     film: (snaps, k) => film.open(snaps, k),
     read: (id, snapId) => startReading(id, snapId),
+    cadencer: (id) => void openCadencer(id),
     currentStory: () => store.state.story,
     baseUrl: () => location.href.split("#")[0]!.split("?")[0]!,
     openInStudio: (s) => (reviewSpace.close(), openSnapshot(s)),
@@ -1081,7 +1238,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -1172,6 +1329,16 @@ const api = {
   },
   storyScales: () => Object.fromEntries(storyScales()),
   setSameScale: (on: boolean) => store.setStory({ ...store.state.story, sameScale: on }),
+  /** Manifeste de revue (Pont Cadencer) : « publie » pour la construction, « integre » pour le téléchargement. */
+  publication: (storyId: string, mode: "publie" | "integre" = "publie") => publication(storyId, mode),
+  publishedStories: () => [...PUBLISHED_STORIES],
+  publicationIndex: (manifests: Manifest[], genere_le: string) => buildIndex(manifests, genere_le),
+  validateManifest: (m: unknown) => {
+    const r = manifestSchema.safeParse(m);
+    return r.success ? null : r.error.issues.map((i) => `${i.path.join(".")} : ${i.message}`);
+  },
+  cadencer: (storyId: string = LOCAL_STORY_ID) => openCadencer(storyId),
+  cadencerDialog: () => cadencer,
   pngDataUrl: async (scale = 1) => {
     const { width, height } = chartSize(store.state.spec);
     return blobToDataUrl(await svgToPngBlob(await preview.currentSvg(), width, height, scale));

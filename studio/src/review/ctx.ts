@@ -14,6 +14,8 @@ export interface ReviewDeps {
   film(snaps: Snapshot[], start: number): void;
   /** Mode lecture plein écran (#/lire/<revue>/<snapshot>). */
   read?(reviewId: string, snapId: string | null): void;
+  /** « Envoyer vers Cadencer » : manifeste de revue publié (URL) ou téléchargé (histoire locale). */
+  cadencer?(reviewId: string): void;
   /** Histoire courante du Studio (« Nouvelle revue »). */
   currentStory(): StoryState;
   /** Adresse du Studio (base des liens et QR). */

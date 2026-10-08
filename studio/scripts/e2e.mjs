@@ -1750,6 +1750,103 @@ try {
     check("PowerPoint classique : sans transition ni « !! », image et pied de page liés au mode lecture", !cx.includes("p159") && !cx.includes('name="!!') && cr.includes(`#/lire/demo-dircom/${dc.ids[0]}`) && Object.keys(cz.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x)).length === 9, cr.match(/#\/lire\/[^"]+/)?.[0] ?? "");
   }
 
+  /* 18. Pont Cadencer : manifestes publiés (index, 4 manifestes, PNG 1600 × 900), fenêtre « Envoyer vers Cadencer » */
+  {
+    const req = createRequire(import.meta.url);
+    const { PNG } = req("pngjs");
+    const PUB = "https://alteridea-dashboard.web.app/reporting/publie/";
+    const shotOn = async (pg, name) => {
+      if (!SHOTS) return;
+      await sleep(250);
+      await pg.screenshot({ path: join(shotsDir, name) });
+    };
+    const idx = await page.evaluate(async (b) => {
+      const r = await fetch(`${b}publie/index.json`);
+      return { type: r.headers.get("content-type"), json: await r.json() };
+    }, BASE);
+    const ids = (idx.json.revues ?? []).map((r) => r.id);
+    check("index.json : 4 revues publiées (démos + revues Norvia), adresses absolues issues de la base unique", /application\/json/.test(idx.type) && idx.json.format === "datanime-index" && ids.join() === "demo-dircom,demo-daf,norvia-pipeline-oct-2026,norvia-budget-2026" && idx.json.revues.every((r) => r.manifeste === `${PUB}${r.id}/manifeste.json`), JSON.stringify(ids));
+    const bad = [];
+    let nImg = 0;
+    for (const id of ids) {
+      const m = await page.evaluate(async (b, x) => (await fetch(`${b}publie/${x}/manifeste.json`)).json(), BASE, id);
+      const issues = await page.evaluate((mm) => window.r4d.validateManifest(mm), m);
+      if (issues) bad.push(`${id}: ${issues.join(";")}`);
+      if (m.snapshots.length !== 7 || m.lien_lecture !== `https://alteridea-dashboard.web.app/reporting/#/lire/${id}`) bad.push(`${id}: ${m.snapshots.length} snapshots, ${m.lien_lecture}`);
+      for (const s of m.snapshots) {
+        const f = join(dist, "publie", s.image_png.slice(PUB.length));
+        if (!existsSync(f)) { bad.push(`absent ${f}`); continue; }
+        const png = PNG.sync.read(readFileSync(f));
+        if (png.width !== 1600 || png.height !== 900) bad.push(`${f}: ${png.width}×${png.height}`);
+        if (!s.image_svg || !existsSync(join(dist, "publie", s.image_svg.slice(PUB.length)))) bad.push(`svg ${s.id}`);
+        nImg++;
+      }
+    }
+    check(`4 manifestes valides (schéma Zod), ${nImg} PNG 1600 × 900 + SVG présents`, !bad.length && nImg === 28, bad.slice(0, 3).join(" | "));
+    // Histoire = démo « Directeur commercial » complète → URL du manifeste publié
+    await page.evaluate(() => window.r4d.store.setUi({ openSections: { ...window.r4d.store.state.ui.openSections, histoire: true } }));
+    await domClick("[data-testid=story-cadencer]");
+    await page.waitForSelector("[data-testid=cadencer-dialog]:not([hidden]) [data-testid=cad-url]", { timeout: 5000 }).catch(() => {});
+    const d1 = await page.evaluate(() => ({ url: document.querySelector("[data-testid=cad-url]")?.textContent, instr: document.querySelector("[data-testid=cad-instr]")?.textContent, json: document.querySelector("[data-testid=cad-open-json]")?.getAttribute("href") }));
+    check("Histoire (démo complète) › Envoyer vers Cadencer : URL du manifeste publié + marche à suivre", d1.url === `${PUB}demo-dircom/manifeste.json` && d1.json === d1.url && d1.instr === "Dans Cadencer : ordre du jour › Ajouter › Revue Datanime › coller l'URL", JSON.stringify(d1));
+    await shotOn(page, "55-cadencer-histoire.png");
+    await domClick("[data-testid=cad-close]");
+    // Revue Norvia → même fenêtre, manifeste de la revue
+    await page.evaluate(() => (location.hash = "#/revues/norvia-pipeline-oct-2026"));
+    await sleep(800);
+    await domClick("[data-testid=rv-cadencer]");
+    await page.waitForSelector("[data-testid=cadencer-dialog]:not([hidden]) [data-testid=cad-url]", { timeout: 5000 }).catch(() => {});
+    const d2 = await page.evaluate(() => ({ url: document.querySelector("[data-testid=cad-url]")?.textContent, note: document.querySelector("[data-testid=cad-note]")?.textContent ?? "", top: document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest("[data-testid=cadencer-dialog]") != null }));
+    check("Revues › Envoyer vers Cadencer : manifeste de la revue Norvia, au-dessus de l'espace Revues", d2.url === `${PUB}norvia-pipeline-oct-2026/manifeste.json` && /démonstration d'origine/.test(d2.note) && d2.top, JSON.stringify(d2));
+    await shotOn(page, "56-cadencer-revue.png");
+    await page.keyboard.press("Escape");
+    await sleep(200);
+    const closed = await page.evaluate(() => document.querySelector("[data-testid=cadencer-dialog]").hidden);
+    await domClick("[data-testid=rv-back-studio]");
+    await sleep(500);
+    // Histoire locale (2 snapshots seulement) → « Télécharger le manifeste » (images intégrées)
+    const saved = await page.evaluate(() => JSON.stringify(window.r4d.story()));
+    await page.evaluate(() => { const st = window.r4d.story(); window.r4d.store.setStory({ ...st, title: "Pipeline : deux constats", snapshots: st.snapshots.slice(0, 2) }); });
+    await sleep(300);
+    await domClick("[data-testid=story-cadencer]");
+    await page.waitForSelector("[data-testid=cadencer-dialog]:not([hidden]) [data-testid=cad-download]", { timeout: 5000 }).catch(() => {});
+    const d3 = await page.evaluate(() => ({ url: !!document.querySelector("[data-testid=cadencer-dialog] [data-testid=cad-url]"), local: document.querySelector("[data-testid=cad-local-note]")?.textContent ?? "", note: document.querySelector("[data-testid=cad-note]")?.textContent ?? "" }));
+    check("histoire locale : pas d'URL, « Télécharger le manifeste », publication en ligne à venir, renvoi vers la démo publiée", !d3.url && /enregistrement en ligne/.test(d3.local) && d3.note.includes(`${PUB}demo-dircom/manifeste.json`), JSON.stringify(d3));
+    await shotOn(page, "57-cadencer-local.png");
+    const before = readdirSync(dl);
+    await domClick("[data-testid=cad-download]");
+    const jf = await waitDownload(".json", before);
+    let d4 = { file: !!jf };
+    if (jf) {
+      await sleep(300);
+      const m = JSON.parse(readFileSync(jf, "utf8"));
+      const issues = await page.evaluate((mm) => window.r4d.validateManifest(mm), m);
+      const png = PNG.sync.read(Buffer.from(m.snapshots[0].image_png.split(",")[1], "base64"));
+      d4 = { name: jf.split("/").pop(), issues, id: m.id, n: m.snapshots.length, w: png.width, h: png.height, svg: "image_svg" in m.snapshots[0], lien: m.snapshots[1].lien_lecture };
+    }
+    check("manifeste téléchargé : schéma valide, 2 snapshots, PNG intégrés 1600 × 900, sans SVG, lien de lecture local", d4.issues === null && /^histoire-[0-9a-f]{10}$/.test(d4.id) && d4.n === 2 && d4.w === 1600 && d4.h === 900 && !d4.svg && /#\/lire\/histoire\/dircom-02-mois-88z5ap$/.test(d4.lien) && /^datanime-manifeste-histoire-/.test(d4.name), JSON.stringify(d4));
+    await domClick("[data-testid=cad-close]");
+    await page.evaluate((j) => window.r4d.store.setStory(JSON.parse(j)), saved);
+    check("fenêtre Cadencer : Échap ferme", closed);
+    // iPhone : fenêtre en feuille basse, sans débordement horizontal
+    const ctx = await browser.createBrowserContext();
+    const ph = await ctx.newPage();
+    await ph.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: SHOTS ? 2 : 1 });
+    await ph.goto(`${origin}${BASE}#/revues/norvia-budget-2026`, { waitUntil: "networkidle0" });
+    await ph.waitForSelector("[data-testid=rv-cadencer]", { timeout: 15000 }).catch(() => {});
+    await ph.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await ph.evaluate(() => document.querySelector("[data-testid=rv-cadencer]")?.click());
+    await ph.waitForSelector("[data-testid=cadencer-dialog]:not([hidden]) [data-testid=cad-url]", { timeout: 8000 }).catch(() => {});
+    const d5 = await ph.evaluate(() => {
+      const dlg = document.querySelector(".cad-dialog")?.getBoundingClientRect();
+      const btn = document.querySelector("[data-testid=cad-copy]")?.getBoundingClientRect();
+      return { url: document.querySelector("[data-testid=cad-url]")?.textContent, sw: document.documentElement.scrollWidth, vw: innerWidth, right: dlg ? Math.round(dlg.right) : -1, btnH: btn ? Math.round(btn.height) : 0 };
+    });
+    check("iPhone : fenêtre Cadencer lisible (URL entière, bouton Copier ≥ 44 px, pas de débordement)", d5.url === `${PUB}norvia-budget-2026/manifeste.json` && d5.sw <= d5.vw && d5.right <= d5.vw && d5.btnH >= 44, JSON.stringify(d5));
+    await shotOn(ph, "58-cadencer-iphone.png");
+    await ctx.close();
+  }
+
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
     await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });

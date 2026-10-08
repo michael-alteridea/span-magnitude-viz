@@ -8,7 +8,7 @@
 .rv-space[hidden] { display: none; }
 body.rv-open { overflow: hidden; }
 /* le Studio (barre d'outils large) ne doit pas élargir la page sur iPad / iPhone */
-body.rv-open .app > :not(.rv-space) { display: none !important; }
+body.rv-open .app > :not(.rv-space):not(.cad-overlay) { display: none !important; }
 .rv-space h1, .rv-space h2, .rv-space h3, .rv-space h4, .rv-space p { margin: 0; }
 .rv-space small { font-size: 12px; }
 .rv-space .muted { color: var(--muted); }
@@ -389,3 +389,30 @@ body.rv-open .app > :not(.rv-space) { display: none !important; }
   .rv-doc-snap { page-break-inside: avoid; }
   .rv-doc-snap-body .rv-chart { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* « Envoyer vers Cadencer » (manifeste de revue) */
+.cad-overlay[hidden] { display: none !important; }
+.cad-overlay {
+  --bg: #071116; --panel: #0d1d24; --panel-2: #12262f; --panel-3: #183340; --line: #1d3946; --line-2: #28495a;
+  --text: #e7f1f4; --muted: #93acb6; --faint: #6b8792;
+  z-index: 75; color: var(--text); font-size: 14px; line-height: 1.45;
+}
+.cad-dialog { width: min(680px, 100%); }
+.cad-body { padding: 16px 18px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.cad-body h4 { font-size: 11px; letter-spacing: .09em; color: var(--faint); margin: 4px 0 0; }
+.cad-body p { margin: 0; }
+.cad-linkbox code { white-space: normal; word-break: break-all; text-overflow: clip; }
+.cad-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cad-steps li { display: flex; align-items: center; gap: 10px; }
+.cad-steps .rv-num { position: static; flex: none; }
+.cad-instr { padding: 9px 12px; border-radius: 8px; background: rgba(14,110,140,.16); border: 1px solid rgba(63,167,196,.35); color: #d9eef5; font-size: 13.5px; }
+.cad-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.cad-note { margin: 0; }
+@media (max-width: 600px) {
+  .cad-overlay { padding: 8px; align-items: flex-end; }
+  .cad-dialog { max-height: 92vh; }
+  .cad-linkbox { flex-wrap: wrap; }
+  .cad-linkbox .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .cad-dialog .rv-dialog-foot .btn { min-height: 44px; }
+}
+.cad-dialog a.btn, .cad-dialog a.btn:visited { text-decoration: none; color: inherit; }

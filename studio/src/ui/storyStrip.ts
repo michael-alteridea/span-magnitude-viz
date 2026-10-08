@@ -18,6 +18,8 @@ export interface StoryActions {
   film?(): void;
   /** Mode lecture plein écran (lien profond par diapositive). */
   read?(): void;
+  /** « Envoyer vers Cadencer » (manifeste de revue). */
+  cadencer?(): void;
 }
 
 const MORPH_PREF = "datanime:pptx-morph";
@@ -30,6 +32,7 @@ export class StoryStrip {
   private pptxBtn: HTMLButtonElement;
   private filmBtn: HTMLButtonElement;
   private readBtn: HTMLButtonElement;
+  private cadBtn: HTMLButtonElement;
   private morphBox: HTMLInputElement;
   private morphLabel: HTMLElement;
   private orderBtn: HTMLButtonElement;
@@ -47,6 +50,7 @@ export class StoryStrip {
     this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
     this.filmBtn = h("button", { class: "btn btn-small", "data-testid": "story-film", title: "Rejouer l'histoire en plein écran (animations, commentaires) — ←/→, espace, Échap", onclick: () => this.actions.film?.() }, "▶ Film");
     this.readBtn = h("button", { class: "btn btn-small", "data-testid": "story-read", title: "Mode lecture plein écran : une diapositive par snapshot, au rythme du lecteur (toucher, balayage, ←/→), lien partageable par diapositive", onclick: () => this.actions.read?.() }, "Mode lecture");
+    this.cadBtn = h("button", { class: "btn btn-small", "data-testid": "story-cadencer", title: "Envoyer l'histoire vers Cadencer : URL du manifeste publié (démos) ou manifeste à télécharger (images intégrées)", onclick: () => this.actions.cadencer?.() }, "Envoyer vers Cadencer");
     this.morphBox = h("input", { type: "checkbox", "data-testid": "story-morph" }) as HTMLInputElement;
     try {
       this.morphBox.checked = localStorage.getItem(MORPH_PREF) === "1";
@@ -86,7 +90,8 @@ export class StoryStrip {
         this.filmBtn,
         this.readBtn,
         this.morphLabel,
-        this.pptxBtn
+        this.pptxBtn,
+        this.cadBtn
       ),
       this.list
     );
@@ -116,6 +121,7 @@ export class StoryStrip {
     this.pptxBtn.disabled = !st.snapshots.length;
     this.filmBtn.disabled = !st.snapshots.length;
     this.readBtn.disabled = !st.snapshots.length;
+    this.cadBtn.disabled = !st.snapshots.length;
     this.sameScale.checked = !!st.sameScale;
     const scales = this.actions.scales?.() ?? new Map<string, ScaleInfo>();
     this.sameScaleLabel.classList.toggle("dim", scales.size === 0);

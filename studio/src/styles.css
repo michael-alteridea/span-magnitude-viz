@@ -281,7 +281,7 @@ textarea.paste:focus { outline: none; border-color: var(--accent); }
 .explorer-open { align-self: flex-start; height: 28px; }
 
 .story-strip { flex: none; border-top: 1px solid var(--line); background: #0b0b0d; }
-.story-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; }
+.story-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 6px 12px; }
 .story-bar .spacer { flex: 1; }
 .story-toggle { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; }
 .story-toggle:hover { color: #fff; background: var(--panel-2); }

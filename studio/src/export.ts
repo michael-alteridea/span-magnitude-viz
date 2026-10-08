@@ -87,6 +87,8 @@ export interface ComposeInput {
   specialHost?: HTMLElement | null;
   /** Polices en base64 (défaut : oui). Non pour les snapshots stockés (ré-embarquées à l'export). */
   embedFonts?: boolean;
+  /** Date de génération inscrite dans les métadonnées (défaut : maintenant ; snapshot : sa date de génération). */
+  created?: Date;
 }
 
 const FONT_MARKER = "/*r4d-fonts*/";
@@ -129,7 +131,7 @@ export async function composeSvg(input: ComposeInput): Promise<string> {
   defs.appendChild(style);
   clone.insertBefore(defs, clone.firstChild);
   const meta = document.createElementNS(SVG_NS, "metadata");
-  const created = new Date();
+  const created = input.created ?? new Date();
   const prov = spec.provenance;
   meta.textContent = JSON.stringify({
     generator: `${PRODUCT_LABEL} Studio (alteridea)`,
@@ -210,6 +212,41 @@ export async function svgToPngBlob(svgText: string, width: number, height: numbe
   canvas.height = Math.round(height * scale);
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Échec de la rasterisation PNG"))), "image/png"));
+}
+
+/**
+ * Image PNG au format fixe W × H (images publiées 1600 × 900) : rendu W/H ajusté, centré sur le fond
+ * si les proportions diffèrent (graphiques non 16:9).
+ */
+/** Identifiants internes stables (motifs de hachures numérotés dans l'ordre) : SVG publié reproductible. */
+export function stableSvgIds(svg: string): string {
+  const map = new Map<string, string>();
+  return svg.replace(/r4d-hatch-\d+-[a-z0-9]*/g, (id) => {
+    if (!map.has(id)) map.set(id, `r4d-hatch-p${map.size + 1}`);
+    return map.get(id)!;
+  });
+}
+
+export async function pngFit(src: string, width: number, height: number, W: number, H: number, bg = "#ffffff"): Promise<Blob> {
+  let img: HTMLImageElement;
+  if (src.startsWith("data:")) {
+    img = new Image();
+    img.src = src;
+    await img.decode();
+  } else img = await svgToImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  const k = Math.min(W / width, H / height);
+  const dw = Math.round(width * k);
+  const dh = Math.round(height * k);
+  if (dw < W || dh < H) {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(img, Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Échec de la rasterisation PNG"))), "image/png"));
 }
 
