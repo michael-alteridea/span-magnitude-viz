@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../..");
@@ -129,6 +130,71 @@ async function selectValue(sel, value) {
 }
 if (SHOTS) mkdirSync(shotsDir, { recursive: true });
 
+const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
+/** « 3f9a·c21e » d'une URL de vérification (fragment compact). */
+const xp_hash_prefix = (url) => {
+  const h = (url.split("#")[1] ?? "").split(".")[2]?.toLowerCase() ?? "";
+  return `${h.slice(0, 4)}·${h.slice(4, 8)}`;
+};
+/** Même normalisation que provenance.ts (texte collé). */
+const normPaste = (t) => t.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").replace(/[ \u00a0]+$/gm, "").replace(/\s+$/, "");
+const JSQR = join(repo, "node_modules/jsqr/dist/jsQR.js");
+/** Cartouche de l'aperçu : présence, QR, rectangle, chevauchements avec les autres éléments du graphique. */
+const cartoucheInfo = () =>
+  page.evaluate(() => {
+    const svg = document.querySelector("[data-testid=chart-svg]");
+    const c = svg.querySelector(".r4d-cartouche");
+    if (!c) return null;
+    const box = c.querySelector(".r4d-cartouche-box").getBoundingClientRect();
+    const qr = c.querySelector(".r4d-qr");
+    const hit = (r) => r.width > 0 && r.height > 0 && !(r.right <= box.left || r.left >= box.right || r.bottom <= box.top || r.top >= box.bottom);
+    const others = [...svg.querySelectorAll(".r4d-axis-x text, .r4d-axis-y text, .r4d-axis-y2 text, .r4d-legend *, .r4d-marks *, .r4d-comment text, .r4d-title, .r4d-subtitle, .r4d-value"), ...document.querySelectorAll("[data-testid=special-host] .smv-map-scale, [data-testid=special-host] .smv-map-scale *")];
+    const overlaps = others.filter((e) => hit(e.getBoundingClientRect())).map((e) => `${e.tagName}.${e.getAttribute("class") ?? e.parentNode?.getAttribute?.("class") ?? ""}`);
+    const text = (sel) => [...c.querySelectorAll(sel)].map((e) => e.textContent.replace(/[\u00a0\u202f]/g, " "));
+    return {
+      w: box.width, h: box.height, ratio: box.width / box.height,
+      relW: box.width / svg.getBoundingClientRect().width,
+      href: c.querySelector("a.r4d-cartouche-link")?.getAttribute("href"),
+      brand: c.querySelector(".r4d-brand")?.textContent,
+      date: text(".r4d-cartouche-date")[0] ?? "",
+      data: text(".r4d-cartouche-data").join(" "),
+      source: text(".r4d-source")[0] ?? "",
+      fp: text(".r4d-fingerprint")[0] ?? "",
+      qr: qr ? { url: qr.getAttribute("data-url"), version: +qr.getAttribute("data-version"), modules: +qr.getAttribute("data-modules"), x: +qr.getAttribute("x"), y: +qr.getAttribute("y"), size: +qr.getAttribute("width"), vb: qr.getAttribute("viewBox") } : null,
+      overlaps,
+    };
+  });
+/** Décode le QR d'un PNG (data URL / base64) avec jsQR, sur la zone du QR (+ marge) à l'échelle donnée. */
+async function decodeQr(pngB64, qr, scale) {
+  await page.addScriptTag({ path: JSQR });
+  return page.evaluate(
+    async (b64, q, k) => {
+      const img = new Image();
+      img.src = b64.startsWith("data:") ? b64 : "data:image/png;base64," + b64;
+      await img.decode();
+      const m = 12 * k;
+      const sx = Math.max(0, Math.floor(q.x * k - m));
+      const sy = Math.max(0, Math.floor(q.y * k - m));
+      const sw = Math.min(img.width - sx, Math.ceil(q.size * k + 2 * m));
+      const sh = Math.min(img.height - sy, Math.ceil(q.size * k + 2 * m));
+      const c = document.createElement("canvas");
+      c.width = sw;
+      c.height = sh;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const r = window.jsQR(ctx.getImageData(0, 0, sw, sh).data, sw, sh);
+      return { data: r?.data ?? null, width: img.width };
+    },
+    pngB64,
+    qr,
+    scale
+  );
+}
+
+let xlsxFile = null;
+let xlsxUrl = "";
+let sampleUrl = "";
+let pasteUrlG = "";
 try {
   await page.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
   await page.waitForSelector("[data-testid=chart-svg] .r4d-marks");
@@ -187,6 +253,11 @@ try {
   check("collage TSV : décimales FR", Math.abs(first?.["Ventes (€)"] - 120000) < 1 && first?.Mois === Date.UTC(2026, 0, 1), JSON.stringify(first));
   const rowsN = await page.evaluate(() => window.r4d.store.state.ds?.rows.length);
   check("collage TSV : nombre de lignes", rowsN === 36, String(rowsN));
+  const pasteProv = await page.evaluate(() => window.r4d.provenance());
+  const pasteHash = sha256(Buffer.from(normPaste(lines.join("\r\n") + "\r\n"), "utf8"));
+  check("collage : empreinte SHA-256 du texte normalisé (CRLF → LF), horodatage, dimensions", pasteProv?.kind === "paste" && pasteProv.hash === pasteHash && pasteProv.hash === sha256(Buffer.from(tsv, "utf8")) && pasteProv.rows === 36 && pasteProv.cols === 5 && Math.abs(Date.parse(pasteProv.importedAt) - Date.now()) < 120000, `${pasteProv?.kind} ${pasteProv?.hash?.slice(0, 12)}… ${pasteProv?.rows}×${pasteProv?.cols}`);
+  pasteUrlG = (await cartoucheInfo())?.qr?.url ?? "";
+  check("collage : QR de type « texte collé » (P)", /verifier\.html#1\.P\.[0-9A-F]{32}\.\d{8}\.\d{8}\.36\.5$/.test(pasteUrlG), pasteUrlG);
 
   /* 1 bis. Import XLSX (fichier généré avec SheetJS, dates Excel en jours entiers) */
   {
@@ -205,6 +276,13 @@ try {
     await page.waitForFunction(() => window.r4d.store.state.ds?.name?.includes("import-test"), { timeout: 8000 }).catch(() => {});
     const x = await page.evaluate(() => ({ cols: window.r4d.store.state.ds?.columns.map((c) => `${c.name}:${c.type}`), r: window.r4d.store.state.ds?.rows[1] }));
     check("import XLSX", JSON.stringify(x.cols) === JSON.stringify(["Date:date", "Agence:category", "Montant (€):number"]) && x.r?.Date === Date.UTC(2026, 9, 8), `${(x.cols ?? []).join(", ")} · ${new Date(x.r?.Date).toISOString()}`);
+    await page.waitForFunction(() => window.r4d.provenance()?.kind === "file", { timeout: 5000 }).catch(() => {});
+    await sleep(200);
+    const xp = await page.evaluate(() => window.r4d.provenance());
+    check("fichier : empreinte SHA-256 des octets bruts, nom, dimensions (persistée dans le spec)", xp?.kind === "file" && xp.hash === sha256(readFileSync(xf)) && xp.fileName === "import-test.xlsx" && xp.rows === 2 && xp.cols === 3 && (await page.evaluate(() => window.r4d.getSpec().provenance?.hash)) === xp.hash, `${xp?.hash?.slice(0, 12)}… ${xp?.fileName}`);
+    xlsxFile = xf;
+    xlsxUrl = (await cartoucheInfo())?.qr?.url ?? "";
+    check("cartouche : QR vers verifier.html avec l'empreinte du fichier", xlsxUrl.startsWith("https://alteridea-dashboard.web.app/reporting/verifier.html#1.F." + xp?.hash?.slice(0, 32).toUpperCase() + "."), xlsxUrl);
     await page.evaluate((t) => window.r4d.importText(t), tsv);
     await sleep(500);
   }
@@ -256,7 +334,10 @@ try {
       await domClick("[data-testid=export-svg]");
       const mapSvg = await waitDownload(".svg", bm);
       const mapText = mapSvg ? readFileSync(mapSvg, "utf8") : "";
-      check("export SVG de la carte : barre d'échelle + signature", /data-km="\d+"/.test(mapText) && /\d km</.test(mapText.replace(/[\u00a0\u202f]/g, " ")) && mapText.includes("r4d-cartouche"), mapSvg ? "ok" : "aucun fichier");
+      check("export SVG de la carte : barre d'échelle + signature", /data-km="\d+"/.test(mapText) && /\d km</.test(mapText.replace(/[\u00a0\u202f]/g, " ")) && mapText.includes("r4d-cartouche") && mapText.includes("r4d-qr"), mapSvg ? "ok" : "aucun fichier");
+      const mc = await cartoucheInfo();
+      const scaleBar = await page.evaluate(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"));
+      check("carte : cartouche + QR sans chevauchement (barre d'échelle km, carte)", !!mc?.qr && scaleBar && mc.overlaps.length === 0 && /#1\.E\./.test(mc.qr.url), mc ? `${Math.round(mc.w)}×${Math.round(mc.h)} · ${mc.overlaps.length ? "chevauche " + mc.overlaps.slice(0, 3).join(", ") : "aucun chevauchement"}` : "absent");
       await page.click("[data-testid=type-film]");
       await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] svg *").length > 20, { timeout: 10000 }).catch(() => {});
       await page.evaluate(() => window.r4d.seek(0.8));
@@ -316,7 +397,7 @@ try {
   const svgText = svgFile ? readFileSync(svgFile, "utf8") : "";
   check(
     "export SVG autonome",
-    /@font-face/.test(svgText) && /data:font\/woff2;base64,/.test(svgText) && /<svg[^>]+viewBox="0 0 1200 675"/.test(svgText) && !/(src|href)="(?!data:|#|https:\/\/alteridea-dashboard\.web\.app\/reporting\/")[^"]+"/.test(svgText),
+    /@font-face/.test(svgText) && /data:font\/woff2;base64,/.test(svgText) && /<svg[^>]+viewBox="0 0 1200 675"/.test(svgText) && !/(src|href)="(?!data:|#|https:\/\/alteridea-dashboard\.web\.app\/reporting\/"|https:\/\/alteridea-dashboard\.web\.app\/reporting\/verifier\.html#1\.[FPEC]\.[0-9A-F]{32}\.\d{8}\.\d{8}\.\d+\.\d+")[^"]+"/.test(svgText),
     svgFile ? `${(svgText.length / 1024).toFixed(0)} Ko` : "aucun fichier"
   );
   {
@@ -332,6 +413,17 @@ try {
         /<svg(?=[^>]*\sclass="r4d-logo")(?=[^>]*\sviewBox="0 0 512 512")[^>]*>/.test(flat),
       (flat.match(dateRe) ?? ["date absente"])[0]
     );
+  }
+  {
+    const ci = await cartoucheInfo();
+    sampleUrl = ci?.qr?.url ?? "";
+    const flat = svgText.replace(/[\u00a0\u202f]/g, " ");
+    check(
+      "cartouche : bloc rectangulaire (logo, « Tell4D » en lien, généré le, données d'exemple, source, empreinte, QR), discret",
+      !!ci && ci.href === "https://alteridea-dashboard.web.app/reporting/" && ci.brand === "Tell4D" && /^Généré le \d/.test(ci.date) && /^Données d'exemple au \d{1,2} \S+ \d{4}$/.test(ci.data) && /^Empreinte [0-9a-f]{4}·[0-9a-f]{4}$/.test(ci.fp) && !!ci.qr && ci.ratio >= 1.5 && ci.ratio <= 2.8 && ci.relW < 0.22 && ci.overlaps.length === 0,
+      ci ? `${Math.round(ci.w)}×${Math.round(ci.h)} px (${ci.ratio.toFixed(2)}:1, ${(ci.relW * 100).toFixed(0)} % de la largeur) · ${ci.data} · ${ci.fp} · QR v${ci.qr?.version} ${ci.qr?.modules} modules${ci.overlaps.length ? " · chevauche " + ci.overlaps.slice(0, 4).join(", ") : ""}` : "absent"
+    );
+    check("export SVG : QR (lien « Vérifier l'empreinte ») + empreinte, vocabulaire sobre", flat.includes('class="r4d-qr"') && flat.includes("Vérifier l'empreinte") && /Empreinte [0-9a-f]{4}·[0-9a-f]{4}/.test(flat.replace(/<[^>]+>/g, "")) && !/certifi|authenticit|preuve/i.test(flat) && /"verify":"https:\/\/alteridea-dashboard\.web\.app\/reporting\/verifier\.html#1\./.test(flat));
   }
   await selectValue("[data-testid=png-scale]", "2");
   const b2 = readdirSync(dl);
@@ -371,7 +463,35 @@ try {
     const near = px && px[0] < 70 && px[1] > 60 && px[1] < 150 && px[2] > 85 && px[2] < 180 && px[2] > px[0] + 50;
     check("export PNG : signature présente (icône Tell4D pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
     const frame = await page.evaluate(() => window.r4d.preview.svgAt(0.5));
-    check("vidéo WebM : chaque image porte la signature et la date", frame.includes("r4d-cartouche") && /Généré le/.test(frame));
+    check("vidéo WebM : chaque image porte la signature et la date", frame.includes("r4d-cartouche") && /Généré le/.test(frame) && frame.includes("r4d-qr"));
+    // QR décodable dans les PNG (2×, 1×, et un graphique de 1600 px de large), ≥ 1,5 px par module, marge claire
+    const ci = await cartoucheInfo();
+    const q = ci?.qr;
+    const dec = [];
+    if (q) {
+      const quiet = -Number(q.vb.split(" ")[0]);
+      dec.push({ label: "PNG 2×", k: 2, ...(await decodeQr(readFileSync(pngFile).toString("base64"), q, 2)), ppm: (q.size * 2) / (q.modules + 2 * quiet), quiet });
+      dec.push({ label: "PNG 1×", k: 1, ...(await decodeQr(await page.evaluate(() => window.r4d.pngDataUrl(1)), q, 1)), ppm: q.size / (q.modules + 2 * quiet), quiet });
+      await page.evaluate(() => window.r4d.set("style.size", { preset: "custom", width: 1600, height: 900 }));
+      await sleep(700);
+      const q16 = (await cartoucheInfo())?.qr;
+      if (q16) dec.push({ label: "PNG 1600 px", k: 1, ...(await decodeQr(await page.evaluate(() => window.r4d.pngDataUrl(1)), q16, 1)), ppm: q16.size / (q16.modules + 2 * quiet), quiet });
+      await page.evaluate(() => window.r4d.set("style.size", { preset: "16:9", width: 1200, height: 675 }));
+      await sleep(500);
+    }
+    check(
+      "QR décodé (jsQR) dans les PNG : URL de vérification, ≥ 21 modules, ≥ 1,5 px/module, marge claire",
+      dec.length === 3 && dec.every((d) => d.data === q.url && d.ppm >= 1.5 && d.quiet >= 2) && q.modules >= 21 && q.version <= 6,
+      dec.map((d) => `${d.label} (${d.width} px) ${d.data === q?.url ? "✓" : "✗"} ${d.ppm.toFixed(2)} px/module`).join(" · ") + ` · v${q?.version} (${q?.modules} modules)`
+    );
+    // Option « QR d'empreinte des données » (Réglages › Style) : masque le QR seulement
+    await domClick('[data-path="style.authQr"]');
+    await sleep(500);
+    const off = await cartoucheInfo();
+    await domClick('[data-path="style.authQr"]');
+    await sleep(500);
+    const on = await cartoucheInfo();
+    check("option « QR d'empreinte des données » : masque le QR, garde le cartouche (offre gratuite)", !!off && !off.qr && off.brand === "Tell4D" && /^Empreinte/.test(off.fp) && !!on?.qr && (await page.evaluate(() => window.r4d.getSpec().style.authQr)) === true, off ? `sans QR : ${Math.round(off.w)}×${Math.round(off.h)} px` : "cartouche absent");
   }
 
   /* 6. Sauvegarde / chargement de configuration */
@@ -529,7 +649,7 @@ try {
   check("glisser-déposer : réordonner les snapshots", JSON.stringify(reordered) === JSON.stringify(expected), reordered.join(" → "));
   await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
   await sleep(900);
-  const afterReload = await page.evaluate(() => ({ ids: window.r4d.story().snapshots.map((s) => s.id), cards: document.querySelectorAll("[data-testid=story-card] img").length, svg: window.r4d.story().snapshots.every((s) => s.svg && s.svg.includes("r4d-cartouche")) }));
+  const afterReload = await page.evaluate(() => ({ ids: window.r4d.story().snapshots.map((s) => s.id), cards: document.querySelectorAll("[data-testid=story-card] img").length, svg: window.r4d.story().snapshots.every((s) => s.svg && s.svg.includes("r4d-cartouche") && s.svg.includes("r4d-qr")) }));
   check("histoire persistée (rechargement) avec vignettes et signature", JSON.stringify(afterReload.ids) === JSON.stringify(expected) && afterReload.cards === 3 && afterReload.svg, `${afterReload.ids.length} snapshots · ${afterReload.cards} vignettes`);
   await domClick("[data-testid=story-order]");
   await sleep(400);
@@ -562,7 +682,8 @@ try {
     const slides = Object.keys(zip.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f));
     const media = Object.keys(zip.files).filter((f) => /^ppt\/media\//.test(f));
     const rels = (await Promise.all(Object.keys(zip.files).filter((f) => /slides\/_rels\/.+\.rels$/.test(f)).map((f) => zip.file(f).async("string")))).join("");
-    pptxOk = slides.length === 5 && media.length >= 3 && rels.includes("https://alteridea-dashboard.web.app/reporting/") && !!zip.file("[Content_Types].xml");
+    const slideXml = (await Promise.all(slides.map((x) => zip.file(x).async("string")))).join("");
+    pptxOk = slides.length === 5 && media.length >= 3 && rels.includes("https://alteridea-dashboard.web.app/reporting/") && /verifier\.html#1\.E\.[0-9A-F]{32}\./.test(rels) && slideXml.replace(/&apos;/g, "'").includes("Vérifier l'empreinte des données") && !/certifi|authenticit|preuve/i.test(slideXml) && !!zip.file("[Content_Types].xml");
     pptxDetail = `${slides.length} diapositives · ${media.length} images · ${(readFileSync(pptxFile).length / 1024).toFixed(0)} Ko`;
     if (SHOTS) {
       const { execFileSync } = await import("node:child_process");
@@ -602,7 +723,7 @@ try {
         varBars: svg.querySelectorAll(".r4d-variance-bar").length,
         varFills: [...svg.querySelectorAll(".r4d-variance-bar")].map((e) => e.getAttribute("fill")),
         sub: [...svg.querySelectorAll(".r4d-subtitle")].map((t) => t.textContent).join(" ").replace(/[\u00a0\u202f]/g, " "),
-        cartouche: !!svg.querySelector(".r4d-cartouche .r4d-logo") && /Généré le/.test(svg.querySelector(".r4d-cartouche")?.textContent ?? ""),
+        cartouche: !!svg.querySelector(".r4d-cartouche .r4d-logo") && !!svg.querySelector(".r4d-cartouche .r4d-qr") && /Généré le/.test(svg.querySelector(".r4d-cartouche")?.textContent ?? ""),
         hatch: !!hatch,
         fcHatched: hid ? [...svg.querySelectorAll('[data-scenario="FC"]')].filter((e) => e.getAttribute("fill") === `url(#${hid})`).length : 0,
         scn: Object.fromEntries(["AC", "PY", "PL", "FC"].map((c) => [c, svg.querySelectorAll(`rect[data-scenario="${c}"]`).length])),
@@ -764,6 +885,104 @@ try {
   const nOff = await page.evaluate(() => ({ on: window.r4d.getSpec().norme.enabled, badge: document.querySelector("[data-testid=norme-badge]").hidden, pie: document.querySelector("[data-testid=type-pie]").getAttribute("aria-disabled") }));
   check("mode norme désactivable (badge masqué, camembert de nouveau permis)", !nOff.on && nOff.badge && nOff.pie === null, JSON.stringify(nOff));
 
+  /* 11. Page de vérification (verifier.html) : fragment du QR, fichier d'origine ✓, fichier modifié ✗ */
+  {
+    const vp = await browser.newPage();
+    vp.on("console", (m) => m.type() === "error" && errors.push("verifier: " + m.text()));
+    vp.on("pageerror", (e) => errors.push("verifier pageerror: " + e.message));
+    vp.on("requestfailed", (r) => errors.push(`verifier : requête échouée ${r.url()}`));
+    await vp.setViewport({ width: 900, height: 1080, deviceScaleFactor: SHOTS ? 2 : 1 });
+    const state = () => vp.evaluate(() => ({ state: document.querySelector("[data-testid=v-result]")?.dataset.state ?? null, text: (document.querySelector("[data-testid=v-result]")?.textContent ?? "").replace(/[\u00a0\u202f]/g, " ") }));
+    const waitResult = () => vp.waitForFunction(() => ["ok", "ko", "neutral", "error"].includes(document.querySelector("[data-testid=v-result]")?.dataset.state) && !/Calcul/.test(document.querySelector("[data-testid=v-result]")?.textContent ?? ""), { timeout: 8000 }).catch(() => {});
+    const frag = xlsxUrl.split("#")[1] ?? "";
+    await vp.goto("about:blank");
+    await vp.goto(`${origin}${BASE}verifier.html#${frag}`, { waitUntil: "networkidle0" });
+    const pageText = (await vp.evaluate(() => document.body.textContent)).replace(/[\u00a0\u202f]/g, " ");
+    const sum = (await vp.$eval("[data-testid=v-summary]", (e) => e.textContent)).replace(/[\u00a0\u202f]/g, " ");
+    check(
+      "vérification : lecture du fragment, empreinte déclarée (pas une signature) (« généré par Tell4D le … à partir de données importées le … (2 lignes, 3 colonnes), empreinte … »)",
+      /Selon ce QR, ce graphique a été généré par Tell4D le \d{1,2}(er)? \S+ \d{4} à partir de données importées le \d{1,2}(er)? \S+ \d{4} \(2 lignes, 3 colonnes\), empreinte [0-9a-f]{4}·[0-9a-f]{4}\./.test(sum) &&
+        pageText.includes("Déposez le fichier d'origine pour vérifier") &&
+        pageText.includes("La vérification compare l'empreinte du fichier ; elle ne dit rien de l'exactitude des données.") && pageText.includes("Un registre en ligne viendra renforcer cette vérification.") &&
+        !/certifi|authenticit|preuve/i.test(pageText) &&
+        /empreinte déclarée, pas d'une signature/.test(pageText) &&
+        (await vp.title()).includes("Tell4D"),
+      sum.slice(0, 160)
+    );
+    await (await vp.$("[data-testid=v-file]")).uploadFile(xlsxFile);
+    await waitResult();
+    const ok = await state();
+    check("vérification : fichier d'origine → « ✓ Les données correspondent »", ok.state === "ok" && ok.text.startsWith("✓ Les données correspondent"), ok.text.slice(0, 120));
+    if (SHOTS) await vp.screenshot({ path: join(shotsDir, "20-verifier-ok.png"), fullPage: true });
+    // fichier modifié : un seul montant change
+    const XLSX = createRequire(join(repo, "package.json"))("xlsx");
+    const ws2 = XLSX.utils.aoa_to_sheet([
+      ["Date", "Agence", "Montant (€)"],
+      [new Date(2026, 8, 30), "Lyon", 1525.5],
+      [new Date(2026, 9, 8), "Bruxelles", 980],
+    ]);
+    const wb2 = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb2, ws2, "Octobre");
+    const altered = join(dl, "import-test-modifie.xlsx");
+    XLSX.writeFile(wb2, altered);
+    await (await vp.$("[data-testid=v-file]")).uploadFile(altered);
+    await waitResult();
+    const ko = await state();
+    check("vérification : fichier modifié → « ✗ Les données ne correspondent pas à ce graphique »", ko.state === "ko" && ko.text.startsWith("✗ Les données ne correspondent pas à ce graphique"), ko.text.slice(0, 120));
+    if (SHOTS) await vp.screenshot({ path: join(shotsDir, "21-verifier-ko.png"), fullPage: true });
+    // texte collé (même texte, fins de ligne Windows) ✓ ; une cellule modifiée ✗
+    await vp.goto("about:blank");
+    await vp.goto(`${origin}${BASE}verifier.html#${pasteUrlG.split("#")[1] ?? ""}`, { waitUntil: "networkidle0" });
+    const pasteVerify = async (text) => {
+      await vp.evaluate(() => {
+        document.querySelector("[data-testid=v-paste]").closest("details").open = true;
+        document.querySelector("[data-testid=v-result]").dataset.state = "";
+      });
+      await vp.evaluate((t) => window.t4dVerifier.verifyText(t), text);
+      await waitResult();
+      return state();
+    };
+    const p1 = await pasteVerify(lines.join("\r\n") + "\r\n");
+    const p2 = await pasteVerify(lines.join("\n").replace("Bruxelles", "Bruges"));
+    check("vérification : texte collé ✓ (CRLF normalisé), texte modifié ✗", p1.state === "ok" && p2.state === "ko", `${p1.text.slice(0, 40)} · ${p2.text.slice(0, 40)}`);
+    // exemple intégré : vérifié directement ; liens incomplets : message clair
+    await vp.goto("about:blank");
+    await vp.goto(`${origin}${BASE}verifier.html#${sampleUrl.split("#")[1] ?? ""}`, { waitUntil: "networkidle0" });
+    await waitResult();
+    const smp = await state();
+    await vp.goto("about:blank");
+    await vp.goto(`${origin}${BASE}verifier.html#1.F.ABC.20261008`, { waitUntil: "networkidle0" });
+    const bad = await vp.$eval("[data-testid=v-summary]", (e) => e.textContent);
+    await vp.goto("about:blank");
+    await vp.goto(`${origin}${BASE}verifier.html`, { waitUntil: "networkidle0" });
+    const none = await vp.$eval("[data-testid=v-summary]", (e) => e.textContent);
+    await (await vp.$("[data-testid=v-file]")).uploadFile(xlsxFile);
+    await waitResult();
+    const neutral = await state();
+    check(
+      "vérification : exemple intégré reconnu ; lien illisible / absent géré (empreinte calculée quand même)",
+      smp.state === "ok" && /Exemple intégré au Studio/.test(smp.text) && /incomplet ou illisible/.test(bad) && /Aucun graphique à vérifier/.test(none) && neutral.state === "neutral" && neutral.text.includes(xp_hash_prefix(xlsxUrl)),
+      `${smp.text.slice(0, 70)} · ${neutral.text.slice(0, 40)}`
+    );
+    await vp.close();
+  }
+
+  /* 12. Version hors ligne (file://) : cartouche + QR, lien vers la vérification en ligne */
+  {
+    const off = join(repo, "studio-offline/reporting-4d-studio.html");
+    if (existsSync(off)) {
+      const op = await browser.newPage();
+      const offErrors = [];
+      op.on("console", (m) => m.type() === "error" && offErrors.push(m.text()));
+      op.on("pageerror", (e) => offErrors.push(e.message));
+      await op.goto(pathToFileURL(off).href + "?reset=1", { waitUntil: "load" });
+      await op.waitForSelector("[data-testid=chart-svg] .r4d-qr", { timeout: 15000 }).catch(() => {});
+      const url = await op.evaluate(() => document.querySelector("[data-testid=chart-svg] .r4d-qr")?.getAttribute("data-url") ?? "");
+      check("version hors ligne (file://) : empreinte calculée, QR vers la vérification en ligne", /^https:\/\/alteridea-dashboard\.web\.app\/reporting\/verifier\.html#1\.E\./.test(url) && offErrors.length === 0, url || offErrors.slice(0, 2).join(" | "));
+      await op.close();
+    } else results.push("(version hors ligne absente : npm run build:studio:offline)");
+  }
+
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
     await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
@@ -776,6 +995,19 @@ try {
     // 1. Interface complète, barres
     await prep(() => window.r4d.loadSample("ventes"));
     await page.screenshot({ path: join(shotsDir, "01-interface-barres.png") });
+    // 19. Gros plan du cartouche (bloc + QR) sur un graphique
+    {
+      await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 3 });
+      await sleep(400);
+      const r = await page.evaluate(() => {
+        const b = document.querySelector("[data-testid=chart-svg] .r4d-cartouche-box").getBoundingClientRect();
+        const st = document.querySelector(".stage").getBoundingClientRect();
+        return { x: Math.max(st.left, b.left - 300), y: Math.max(st.top, b.top - 150), right: st.right, bottom: st.bottom };
+      });
+      await page.screenshot({ path: join(shotsDir, "19-cartouche.png"), clip: { x: r.x, y: r.y, width: r.right - r.x, height: r.bottom - r.y } });
+      await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 1.5 });
+      await sleep(300);
+    }
     // 2. Barres empilées
     await prep(() => {
       window.r4d.pickType("stackedBar");

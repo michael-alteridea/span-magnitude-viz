@@ -425,7 +425,8 @@ export class SettingsPanel {
     if (t === "groupedBar" || t === "stackedBar") st.push(this.check("style.horizontal", "Barres horizontales"));
     if (t === "stackedBar" || t === "stackedArea") st.push(this.check("style.normalize", "Empilement 100 %"));
     st.push(this.check("style.accentBar", "Filet d'accent devant le titre"));
-    st.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Signature « label qualité » toujours présente : logo ${PRODUCT_LABEL}, lien vers la plateforme, date de génération et source.`));
+    st.push(this.check("style.authQr", "QR d'empreinte des données", "Lien « Vérifier l'empreinte » vers la page de vérification"));
+    st.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Cartouche ${PRODUCT_LABEL} toujours présent : logo, lien vers la plateforme, date de génération, date d'import des données, source et empreinte. L'option ci-dessus masque seulement le QR.`));
     out.push(this.section("style", "Style", ...st));
 
     /* ---- Format */

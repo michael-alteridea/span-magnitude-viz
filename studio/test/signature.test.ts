@@ -68,7 +68,8 @@ describe("signature « label qualité »", () => {
       expect(logo!.querySelectorAll("rect").length).toBeGreaterThanOrEqual(12);
       expect(svg.querySelector(".r4d-brand")?.textContent).toBe(PRODUCT_LABEL);
       expect(svg.querySelector("a.r4d-cartouche-link")?.getAttribute("href")).toBe(PLATFORM_URL);
-      expect(norm(svg.querySelector(".r4d-cartouche-date")?.textContent ?? "")).toMatch(/^Généré le 8 oct\. 2026 · Source : CRM$/);
+      expect(norm(svg.querySelector(".r4d-cartouche-date")?.textContent ?? "")).toBe("Généré le 8 oct. 2026");
+      expect(norm(svg.querySelector(".r4d-cartouche .r4d-source")?.textContent ?? "")).toBe("Source : CRM");
       expect(res.cartouche && res.cartouche.x + res.cartouche.w).toBeGreaterThan(1100);
       expect(res.cartouche!.y + res.cartouche!.h).toBeGreaterThan(620);
     }

@@ -11,7 +11,7 @@ les couleurs, la carte FR·BE·Europe et le « film » span/magnitude.
 ```bash
 npm install
 npm run dev:studio            # http://localhost:5174 (Vite)
-npm run build:studio          # site statique → studio-dist/ (base relative, servable depuis n'importe quel chemin)
+npm run build:studio          # site statique → studio-dist/ (index.html + verifier.html, base relative)
 npm run preview:studio        # sert studio-dist/
 npm run build:studio:offline  # un seul fichier HTML → studio-offline/reporting-4d-studio.html (marche en file://)
 npm test                      # tests unitaires (vitest)
@@ -94,10 +94,55 @@ Captures : `16-norme-ecarts.png`, `17-norme-colonnes-scenarios.png`, `18-norme-p
 
 ## Label qualité
 
-Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite une signature
-discrète : icône Tell4D « Bulle + barres » (SVG inline dans les SVG/PNG/WebM, PNG 2× dans le PowerPoint), nom du produit (`PRODUCT_LABEL` dans `brand.ts`, « Tell4D »),
-lien `<a href>` vers `PLATFORM_URL`, date de génération (« Généré le 8 oct. 2026 ») et source. Elle ne peut être
-masquée qu'avec `branding: "pro"` + `style.brandMark: false` ; l'interface ne propose pas de la masquer.
+Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite le **cartouche Tell4D**
+(voir ci-dessous) : icône « Bulle + barres » (SVG inline dans les SVG/PNG/WebM, PNG 2× dans le PowerPoint), nom du produit
+(`PRODUCT_LABEL` dans `brand.ts`, « Tell4D ») en lien `<a href>` vers `PLATFORM_URL`, date de génération (« Généré le 8 oct. 2026 »),
+date d'import des données, source, empreinte et QR. Il ne peut être masqué qu'avec `branding: "pro"` + `style.brandMark: false` ;
+l'interface ne propose pas de le masquer.
+
+## Cartouche et vérification (étape cartouche)
+
+**Cartouche** (`charts/cartouche.ts`) : petit bloc rectangulaire (≈ 2:1) en bas à droite, discret, lisible sur fond sombre, clair
+ou personnalisé et en mode norme (gris ; pétrole seulement sur l'empreinte et le logo) :
+
+- logo Tell4D + « Tell4D » (lien vers la plateforme) ;
+- « Généré le 8 oct. 2026 » ;
+- « Données importées le … » (fichier), « Données collées le … » (collage), « Données d'exemple au 8 oct. 2026 » (exemples) ;
+- « Source : … » (tronquée avec « … ») ;
+- « Empreinte 3f9a·c21e » (8 premiers caractères de l'empreinte SHA-256) ;
+- **QR d'empreinte des données** (SVG pur, modules foncés sur plaque blanche, marge claire de 3 modules, version 6-M,
+  ≥ 1,5 px par module dès le PNG 1×), lien « Vérifier l'empreinte ».
+
+Placement : sous la colonne « À retenir » quand elle existe (le graphique garde toute sa hauteur), sinon dans une bande
+réservée sur toute la largeur ; jamais sur les axes, la légende ni la barre d'échelle des cartes. Offre gratuite : cartouche
+obligatoire. **Réglages › Style › « QR d'empreinte des données »** (`style.authQr`, activé par défaut) masque seulement le QR.
+Le PowerPoint reprend le cartouche dans l'image de chaque diapositive et ajoute un lien natif « Vérifier l'empreinte des données ».
+
+**Empreinte** (`provenance.ts`, WebCrypto `crypto.subtle.digest`) calculée à l'import et enregistrée dans `spec.provenance`
+(empreinte, horodatage ISO, nom du fichier, lignes, colonnes) — donc dans la session, les snapshots, la configuration JSON et
+les métadonnées du SVG exporté :
+
+- fichier déposé / choisi : SHA-256 des **octets bruts** ;
+- texte collé : SHA-256 du texte UTF-8 normalisé (BOM retiré, fins de ligne LF, espaces de fin de ligne et blancs finaux retirés) ;
+- exemples intégrés (et configuration ouverte sans fichier d'origine) : SHA-256 du JSON canonique des lignes (clés triées).
+
+**Lien du QR** (fragment `#…` : rien n'est envoyé au serveur), forme compacte en mode alphanumérique :
+`https://alteridea-dashboard.web.app/reporting/verifier.html#1.F.<32 hex>.<import AAAAMMJJ>.<génération AAAAMMJJ>.<lignes>.<colonnes>`
+(type F fichier, P collage, E exemple, C configuration ; forme longue `#h=…&i=…&g=…&n=…&c=…` acceptée).
+Le domaine est la seule constante `VERIFY_BASE` de `provenance.ts` (passage à reporting.alteridea.com : une ligne).
+La version hors ligne pointe aussi vers la page en ligne.
+
+**Page `verifier.html`** (seconde entrée Vite, même identité, en français, sans serveur) : lit le fragment et affiche
+« Selon ce QR, ce graphique a été généré par Tell4D le … à partir de données importées le … (n lignes, c colonnes), empreinte … » ;
+zone « Déposez le fichier d'origine pour vérifier » (ou texte collé) → empreinte recalculée avec les mêmes règles →
+« ✓ Les données correspondent » / « ✗ Les données ne correspondent pas à ce graphique ». Les exemples intégrés sont
+reconnus directement. Lien absent ou illisible : message clair, l'empreinte d'un fichier reste calculable. La page précise
+qu'il s'agit d'une **empreinte déclarée, pas d'une signature** : elle ne garantit ni que le graphique est fidèle aux données,
+ni qu'il provient de Tell4D ; elle ne dit rien de l'exactitude des données. Un registre en ligne viendra renforcer cette vérification.
+
+Tests : `test/cartouche.test.ts` (normalisation, lien, QR décodé par jsQR, cartouche, option, PowerPoint) ; e2e : QR décodé
+dans les PNG 1×, 2× et 1600 px, carte, mode norme, page de vérification (fichier ✓, fichier modifié ✗, texte collé, exemple,
+lien illisible), version hors ligne. Captures : `19-cartouche.png`, `20-verifier-ok.png`, `21-verifier-ko.png`.
 
 ## Architecture (`studio/src`)
 
@@ -113,11 +158,14 @@ masquée qu'avec `branding: "pro"` + `style.brandMark: false` ; l'interface ne p
 | `format.ts` | Locale française d3 (espace insécable, virgule, U+2212), unités, dates |
 | `norme.ts` | Mode norme (inspiré d’IBCS® / ISO 24896) : scénarios, écarts, orientation, sous-titre, formats, échelles communes |
 | `theme.ts` | Thèmes, palettes, polices (`FontFace`, @font-face embarquées pour l'export) ; identité bleu pétrole (`PETROLE_COLORS`), couleurs d'écart réservées `VARIANCE_NEG` / `VARIANCE_POS` |
-| `charts/*` | Rendu SVG pur : cartésien, radial, écarts IBCS (`variance.ts`), spéciaux (film / carte via la lib), mise en page, signature |
+| `charts/*` | Rendu SVG pur : cartésien, radial, écarts IBCS (`variance.ts`), spéciaux (film / carte via la lib), mise en page, cartouche |
 | `data/transform.ts` | Colonnes calculées et filtres du spec (`spec.transform`), mémoïsés |
 | `data/variance.ts` | Modèle d'écarts réel / référence (sommes appariées) |
 | `story/*` | Rôles des colonnes, statistiques, détecteurs, narration, textes français, snapshots, export PowerPoint |
-| `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage de la signature |
+| `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage du cartouche |
+| `provenance.ts` | Empreinte des données (SHA-256), provenance, lien de vérification (construction / lecture), `VERIFY_BASE` |
+| `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Tell4D |
+| `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts |
 
@@ -134,7 +182,7 @@ Captures : `studio/docs/shots/`.
 ## Identité visuelle
 
 **Tell4D**, logo « Bulle + barres » (h1, choisi le 8 oct. 2026) : sources dans `src/assets/brand/` (© Alteridea,
-voir son README), favicon SVG et apple-touch-icon 180 px dans `public/`. L'en-tête et la signature utilisent l'icône
+voir son README), favicon SVG et apple-touch-icon 180 px dans `public/`. L'en-tête et le cartouche utilisent l'icône
 en SVG inline (`brand.ts`), le PowerPoint son PNG 2×. Les noms techniques (`span-magnitude-viz`, clés
 `reporting-4d-studio`, fichier `reporting-4d-studio.html`) restent inchangés.
 

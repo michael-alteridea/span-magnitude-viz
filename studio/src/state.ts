@@ -5,6 +5,7 @@ import { chartSpecSchema, defaultSpec, parseSpec, type ChartSpec } from "./spec"
 import { buildDataset, serializableRaw, type ColumnType, type Dataset } from "./data/table";
 import { sampleById } from "./data/samples";
 import { emptyStory, loadStory, saveStory, type StoryState } from "./story/snapshots";
+import type { Provenance } from "./provenance";
 
 export type ChangeKind = "spec" | "data" | "ui" | "story";
 
@@ -34,6 +35,10 @@ export interface AppState {
   ui: UiState;
   /** Histoire : snapshots ordonnés (persistés à part). */
   story: StoryState;
+  /** Provenance des données courantes (empreinte, import) ; recopiée dans `spec.provenance`. */
+  provenance: Provenance | null;
+  /** Compteur de chargements de données (une empreinte calculée en différé ne s'applique qu'à son jeu). */
+  dataSeq: number;
 }
 
 const KEY = "reporting-4d-studio:session:v1";
@@ -80,6 +85,8 @@ export class Store {
       sheet: null,
       ui: { leftCollapsed: false, rightCollapsed: false, openSections: { encodage: true, style: true, recit: true }, pngScale: 2, includeData: true },
       story: emptyStory(),
+      provenance: null,
+      dataSeq: 0,
     };
   }
 
@@ -117,9 +124,21 @@ export class Store {
   setSpec(next: unknown): string[] {
     const r = parseSpec(next);
     if (!r.ok) return r.issues;
+    // La provenance suit les données réellement chargées (jamais celle d'un spec ouvert ou d'un snapshot)
+    r.spec.provenance = this.state.provenance;
     this.state.spec = r.spec;
     this.emit("spec");
     return [];
+  }
+
+  /** Provenance des données courantes ; `seq` : ignorée si d'autres données ont été chargées entre-temps. */
+  setProvenance(p: Provenance | null, seq?: number): void {
+    if (seq !== undefined && seq !== this.state.dataSeq) return;
+    this.state.provenance = p;
+    if (this.state.spec.provenance !== p) {
+      this.state.spec = { ...this.state.spec, provenance: p };
+      this.emit("spec");
+    }
   }
 
   /**
@@ -176,9 +195,11 @@ export class Store {
     return o;
   }
 
-  setDataset(ds: Dataset | null, meta: { sampleId?: string | null; note?: string | null; sheets?: string[] | null; sheet?: string | null } = {}) {
+  setDataset(ds: Dataset | null, meta: { sampleId?: string | null; note?: string | null; sheets?: string[] | null; sheet?: string | null; provenance?: Provenance | null } = {}) {
     this.state.ds = ds;
     this.state.dsVersion++;
+    this.state.dataSeq++;
+    this.setProvenance(meta.provenance ?? null);
     this.state.sampleId = meta.sampleId ?? null;
     this.state.importNote = meta.note ?? null;
     this.state.sheets = meta.sheets ?? null;
@@ -246,7 +267,7 @@ export class Store {
       if (sample) {
         this.setDataset(buildDataset(sample.name, sample.rows(), s.typeOverrides ?? {}), { sampleId: sample.id });
       } else if (s.data?.raw?.length) {
-        this.setDataset(buildDataset(s.data.name, s.data.raw, s.data.typeOverrides ?? {}), { note: s.importNote ?? "Session restaurée" });
+        this.setDataset(buildDataset(s.data.name, s.data.raw, s.data.typeOverrides ?? {}), { note: s.importNote ?? "Session restaurée", provenance: spec.data.provenance ?? null });
       } else return false;
       return true;
     } catch {

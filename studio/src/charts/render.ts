@@ -28,11 +28,8 @@ import { effectiveDataset } from "../data/transform";
 import { buildVarianceModel, type VarianceModel } from "../data/variance";
 import { drawVariance, refLabelOf, refStyleFor } from "./variance";
 import { normeAdvice, normeInk, scaleKey, scenarioOf, scenarioStyle, SCENARIO_NAMES } from "../norme";
-import { PLATFORM_URL, PRODUCT_LABEL, appendTell4dIcon, showSignature, type Appendable } from "../brand";
-
-/** Identifiants uniques des dégradés de l'icône (plusieurs graphiques par page). */
-let iconSeq = 0;
-import { generatedOn } from "../story/fr";
+import { PRODUCT_LABEL, showSignature } from "../brand";
+import { drawCartouche, layoutCartouche } from "./cartouche";
 
 export type { Frame, Prepared, PlotRect };
 
@@ -311,64 +308,6 @@ export interface RenderOptions {
 }
 
 /**
- * Signature « label qualité », coin bas droit : logo + produit (lien vers la plateforme),
- * date de génération et source. Renvoie le rectangle occupé.
- */
-function drawCartouche(root: G, spec: ChartSpec, theme: Theme, s: number, font: string, W: number, H: number, pad: number, maxW: number, now: Date): PlotRect {
-  const g = root.append("g").attr("class", "r4d-cartouche").attr("data-r4d", "cartouche");
-  const fs1 = 12 * s;
-  const fs2 = 11 * s;
-  const lh = 15 * s;
-  const px = 9 * s;
-  const py = 6 * s;
-  const logo = 14 * s;
-  const date = generatedOn(now);
-  const source = spec.style.source.trim();
-  const w1 = logo + 6 * s + measure(PRODUCT_LABEL, fs1, font, 700);
-  const sep = " · ";
-  const inner = maxW - px * 2;
-  let lines2: string[] = [];
-  const one = source ? `${date}${sep}${source.startsWith("Source") ? source : `Source : ${source}`}` : date;
-  if (measure(one, fs2, font) <= inner) lines2 = [one];
-  else {
-    lines2 = [date];
-    if (source) lines2.push(...wrap(source.startsWith("Source") ? source : `Source : ${source}`, inner, fs2, font, 400, 2));
-  }
-  const w = Math.min(maxW, Math.max(w1, ...lines2.map((l) => measure(l, fs2, font))) + px * 2);
-  const h = py * 2 + lh * (1 + lines2.length) - 2 * s;
-  const x0 = W - pad - w;
-  const y0 = H - pad * 0.55 - h;
-  g.append("rect").attr("class", "r4d-cartouche-box").attr("x", x0).attr("y", y0).attr("width", w).attr("height", h).attr("rx", 5 * s).attr("fill", theme.bg).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
-  const right = W - pad - px;
-  const a = g.append("a").attr("class", "r4d-cartouche-link").attr("href", PLATFORM_URL).attr("target", "_blank").attr("rel", "noopener");
-  a.append("title").text(`${PRODUCT_LABEL} — ${PLATFORM_URL}`);
-  const ly = y0 + py + lh / 2;
-  const tx = right - measure(PRODUCT_LABEL, fs1, font, 700);
-  // Icône Tell4D en SVG imbriqué (nette à toute échelle, exports SVG/PNG/WebM compris)
-  appendTell4dIcon(a as unknown as Appendable, `t4d-i${++iconSeq}`)
-    .attr("class", "r4d-logo")
-    .attr("x", tx - 6 * s - logo)
-    .attr("y", ly - logo / 2)
-    .attr("width", logo)
-    .attr("height", logo)
-    .attr("aria-hidden", "true");
-  a.append("text").attr("class", "r4d-brand").attr("x", right).attr("y", ly).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", fs1).attr("font-weight", 700).attr("fill", theme.muted).text(PRODUCT_LABEL);
-  lines2.forEach((l, i) => {
-    const isDate = i === 0;
-    g.append("text")
-      .attr("class", isDate ? "r4d-cartouche-date" : "r4d-source")
-      .attr("x", right)
-      .attr("y", ly + lh * (i + 1))
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "end")
-      .attr("font-size", fs2)
-      .attr("fill", theme.faint)
-      .text(ellipsize(l, inner, fs2, font));
-  });
-  return { x: x0, y: y0, w, h };
-}
-
-/**
  * Dessine le graphique complet dans `svgEl` (vidé au préalable).
  * Pour les types spéciaux (film, carte), seul le cadre est dessiné : la zone `plot`
  * est remplie par la bibliothèque span-magnitude.
@@ -421,13 +360,25 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     y += lines.length * ss * 1.3 + 4 * s;
   }
 
-  // ---- pied : signature « label qualité » (logo, lien, date, source)
+  // ---- commentaires « À retenir » : colonne à droite en paysage, bandeau en bas sinon
+  const comments = texts && spec.story.showComments ? spec.story.comments.map((c) => c.trim()).filter(Boolean).slice(0, 3) : [];
+  const sideComments = comments.length > 0 && W / H >= 1.3;
+  const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
+
+  // ---- pied : cartouche Tell4D (logo, lien, dates, source, empreinte, QR d'empreinte des données)
+  // Sous la colonne « À retenir » quand elle existe (le graphique garde toute sa hauteur), sinon sur toute la largeur.
   let footH = 0;
+  let colFootH = 0;
   let cartouche: PlotRect | null = null;
   if (chrome) {
     if (showSignature(spec)) {
-      cartouche = drawCartouche(root, spec, theme, s, font, W, H, pad, Math.min(innerW * 0.62, 520 * s), opts.now ?? new Date());
-      footH = H - cartouche.y - pad + 8 * s;
+      const lay = layoutCartouche(spec, s, font, opts.now ?? new Date());
+      const x0 = W - pad - lay.w;
+      const y0 = H - pad * 0.55 - lay.h;
+      cartouche = drawCartouche(root, theme, lay, x0, y0);
+      const reserve = H - y0 - pad + 10 * s;
+      if (sideComments && !opts.scaleNote && lay.w <= colW + 8 * s) colFootH = reserve;
+      else footH = reserve;
     } else if (spec.style.source) {
       const fsz = 12 * s;
       const lines = wrap(spec.style.source, innerW, fsz, font, 400, 2);
@@ -437,22 +388,20 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     }
   }
 
-  // ---- commentaires « À retenir » (colonne à droite en paysage, bandeau en bas sinon)
-  const comments = texts && spec.story.showComments ? spec.story.comments.map((c) => c.trim()).filter(Boolean).slice(0, 3) : [];
   let contentW = innerW;
   const gCom = root.append("g").attr("class", "r4d-comments");
   if (comments.length) {
     const head = "À RETENIR";
     const hs = 12 * s;
-    if (W / H >= 1.3) {
-      const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
+    if (sideComments) {
       const x0 = W - pad - colW;
       const fs = 15 * s;
+      const colBottom = H - pad - footH - colFootH;
       let cy = y + 16 * s;
-      gCom.append("line").attr("x1", x0 - 16 * s).attr("x2", x0 - 16 * s).attr("y1", y + 6 * s).attr("y2", H - pad - footH).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+      gCom.append("line").attr("x1", x0 - 16 * s).attr("x2", x0 - 16 * s).attr("y1", y + 6 * s).attr("y2", colFootH ? colBottom - 4 * s : H - pad - footH).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
       gCom.append("text").attr("class", "r4d-comments-head").attr("x", x0).attr("y", cy).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
       cy += 22 * s;
-      const maxH = H - pad - footH - cy;
+      const maxH = colBottom - cy;
       const maxLines = Math.max(2, Math.floor(maxH / comments.length / (fs * 1.35)) - 1);
       comments.forEach((c, i) => {
         const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);

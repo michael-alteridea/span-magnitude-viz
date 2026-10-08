@@ -8,6 +8,7 @@ import type { ChartSpec } from "../spec";
 import { themeFor } from "../theme";
 import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST } from "../brand";
 import { generatedOn } from "./fr";
+import { shortFingerprint, verifyInfoFor, verifyUrl, type Provenance } from "../provenance";
 import { ROLE_LABELS, type Snapshot, type StoryState } from "./snapshots";
 
 export interface SlideImage {
@@ -184,7 +185,14 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
     );
   }
   slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 } });
-  slide.addText(storyTitle, { x: 0.5, y: 7.05, w: 8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, margin: 0 });
+  const prov = (spec as Partial<ChartSpec>)?.provenance as Provenance | null | undefined;
+  slide.addText(storyTitle, { x: 0.5, y: 7.05, w: prov ? 6.4 : 8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, margin: 0 });
+  if (prov && /^[0-9a-f]{64}$/.test(prov.hash ?? "")) {
+    // Lien natif « Vérifier l'empreinte » (le QR figure aussi dans le cartouche de l'image)
+    const gen = new Date(s.generatedAt || s.createdAt || Date.now());
+    const url = verifyUrl(verifyInfoFor(prov, Number.isFinite(gen.getTime()) ? gen : new Date()));
+    slide.addText(`Vérifier l'empreinte des données · ${shortFingerprint(prov.hash)}`, { x: 7.0, y: 7.05, w: 3.8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0, hyperlink: { url, tooltip: "Vérifier l'empreinte des données" } });
+  }
   // Pied : logo Tell4D (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
   slide.addImage({ data: ICON_PNG_2X, x: SLIDE_W - 2.42, y: 7.07, w: 0.22, h: 0.22, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(PRODUCT_LABEL, { x: SLIDE_W - 2.14, y: 7.05, w: 0.85, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: muted, margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });

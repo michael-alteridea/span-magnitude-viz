@@ -223,6 +223,8 @@ export const styleSchema = z.object({
    * Ne peut être masquée qu'avec `branding: "pro"` ; aucune option d'interface pour l'instant.
    */
   brandMark: z.boolean().default(true),
+  /** QR d'empreinte des données dans le cartouche (masque seulement le QR, jamais le cartouche). */
+  authQr: z.boolean().default(true),
   /** Réservé V2 : identifiant de charte de marque. */
   charterId: z.string().nullable().default(null),
 });
@@ -298,6 +300,23 @@ export const normeSchema = z.object({
 });
 export type NormeSpec = z.infer<typeof normeSchema>;
 
+/**
+ * Provenance du jeu de données (empreinte SHA-256, horodatage d'import, dimensions) : alimente le
+ * cartouche (« Données importées le … », empreinte) et le QR de vérification. Fixée par le Studio à
+ * l'import — voir `provenance.ts` pour les règles d'empreinte.
+ */
+export const provenanceSchema = z.object({
+  hash: z.string().regex(/^[0-9a-f]{64}$/, "Empreinte SHA-256 attendue (64 caractères hexadécimaux)"),
+  kind: z.enum(["file", "paste", "sample", "config"]),
+  importedAt: z.string().max(40),
+  fileName: z.string().max(260).default(""),
+  rows: z.number().int().min(0),
+  cols: z.number().int().min(0),
+  asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+  sheet: z.string().max(200).nullable().default(null),
+});
+export type ProvenanceSpec = z.infer<typeof provenanceSchema>;
+
 export const NARRATIVE_ROLES = ["context", "tension", "revelation", "recommendation"] as const;
 export type NarrativeRole = (typeof NARRATIVE_ROLES)[number];
 
@@ -349,6 +368,8 @@ export const chartSpecSchema = z.object({
   story: storySchema.default({}),
   /** Offre : seule l'offre « pro » peut masquer la signature (avec `style.brandMark: false`). */
   branding: z.enum(["free", "pro"]).default("free"),
+  /** Provenance des données affichées (null : aucune donnée, ou empreinte en cours de calcul). */
+  provenance: provenanceSchema.nullable().default(null),
 });
 
 export type ChartSpec = z.infer<typeof chartSpecSchema>;

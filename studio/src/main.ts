@@ -30,6 +30,7 @@ import { composeSvg } from "./export";
 import { prepareCache, renderChart, valueMaxOf } from "./charts/render";
 import { NORME_WORDING_F, SCENARIO_CODES, SCENARIO_HELP, SCENARIO_NAMES, normeAdvice, scaleGroups, scaleKey, type ScaleInfo } from "./norme";
 import { valueFormatter } from "./format";
+import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
 
 const store = new Store();
 const preview = new Preview(store);
@@ -85,7 +86,50 @@ function freshStory(spec: { story?: unknown } & Record<string, unknown>) {
 
 function keepStyle(spec: ChartSpec) {
   const s = spec.style;
-  return { background: s.background, backgroundCustom: s.backgroundCustom, palette: s.palette, paletteCustom: s.paletteCustom, font: s.font, size: s.size, accentBar: s.accentBar, brandMark: s.brandMark };
+  return { background: s.background, backgroundCustom: s.backgroundCustom, palette: s.palette, paletteCustom: s.paletteCustom, font: s.font, size: s.size, accentBar: s.accentBar, brandMark: s.brandMark, authQr: s.authQr };
+}
+
+/* ------------------------------------------------------------------ provenance (empreinte des données) */
+
+let cryptoWarned = false;
+/** Empreinte SHA-256 (WebCrypto) ; null si indisponible (page servie hors contexte sécurisé). */
+async function safeHash(fn: () => Promise<string>): Promise<string | null> {
+  if (!cryptoAvailable()) {
+    if (!cryptoWarned) console.warn("Empreinte des données indisponible : WebCrypto exige https, localhost ou file://.");
+    cryptoWarned = true;
+    return null;
+  }
+  try {
+    return await fn();
+  } catch (e) {
+    console.warn("Empreinte des données impossible", e);
+    return null;
+  }
+}
+
+const sampleHashes = new Map<string, Promise<string | null>>();
+/** Exemples intégrés : empreinte du JSON canonique des lignes, données datées au 8 oct. 2026. */
+function sampleProvenance(id: string): Promise<Provenance | null> {
+  const sample = sampleById(id);
+  if (!sample) return Promise.resolve(null);
+  if (!sampleHashes.has(id)) sampleHashes.set(id, safeHash(() => hashRows(sample.rows())));
+  const now = new Date();
+  return sampleHashes.get(id)!.then((hash) => {
+    const ds = store.state.ds;
+    return hash && ds ? makeProvenance({ hash, kind: "sample", fileName: sample.name, rows: ds.rows.length, cols: ds.columns.length, asOf: SAMPLE_TODAY, now }) : null;
+  });
+}
+
+/** Applique une provenance calculée en différé au jeu de données courant (si inchangé entre-temps). */
+function attachProvenance(p: Promise<Provenance | null>): void {
+  const seq = store.state.dataSeq;
+  void p.then((pr) => pr && store.setProvenance(pr, seq));
+}
+
+interface ImportOrigin {
+  hash: string | null;
+  kind: ProvenanceKind;
+  fileName: string;
 }
 
 function loadSample(id: string): void {
@@ -100,10 +144,11 @@ function loadSample(id: string): void {
   const r = parseSpec(freshStory({ ...base, norme, style: { ...keepStyle(store.state.spec), ...(base.style ?? {}) } }));
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { sampleId: sample.id, note: sample.description });
+  attachProvenance(sampleProvenance(sample.id));
   toast(`Exemple chargé : ${sample.name}`, "ok", 2200);
 }
 
-async function applyImport(res: ImportResult): Promise<void> {
+async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<void> {
   const ds = buildDataset(res.name, res.rows);
   if (!ds.columns.length || !ds.rows.length) throw new Error("Aucune ligne exploitable.");
   let spec = store.state.spec;
@@ -120,32 +165,38 @@ async function applyImport(res: ImportResult): Promise<void> {
   const axes = { x: { grid: false }, y: { unit: guessUnit(encoding.y[0]) }, y2: { grid: false } };
   const r = parseSpec({ ...spec, type, encoding: { ...encoding, scenarios: {} }, axes, transform: {}, story: {}, norme: { ...spec.norme, entity: "", measure: "" }, style: { ...spec.style, title, subtitle: "", source: "" }, mode: { ...spec.mode, fourD: { ...spec.mode.fourD, enabled: false } } });
   if (r.ok) store.setSpec(r.spec);
-  store.setDataset(ds, { note: res.note ?? null, sheets: res.sheets ?? null, sheet: res.sheet ?? null });
+  const provenance = origin?.hash ? makeProvenance({ hash: origin.hash, kind: origin.kind, fileName: origin.fileName, rows: ds.rows.length, cols: ds.columns.length, sheet: res.sheet ?? null }) : null;
+  store.setDataset(ds, { note: res.note ?? null, sheets: res.sheets ?? null, sheet: res.sheet ?? null, provenance });
   const types = ds.columns.map((c) => c.type);
   toast(`${ds.rows.length} lignes importées · ${types.filter((t) => t === "number").length} mesure(s), ${types.filter((t) => t === "date").length} date(s)`, "ok");
+}
+
+/** Texte collé : empreinte du texte normalisé (fins de ligne LF, blancs de fin retirés). */
+async function importPasted(text: string): Promise<void> {
+  const res = parseText(text, "Collage");
+  const hash = await safeHash(() => hashPastedText(text));
+  await applyImport(res, { hash, kind: "paste", fileName: "" });
+}
+
+/** Fichier déposé / choisi : empreinte des octets bruts du fichier. */
+async function importFromFile(file: File, sheet?: string): Promise<void> {
+  const [res, hash] = await Promise.all([readFile(file, sheet), safeHash(async () => hashFileBytes(await file.arrayBuffer()))]);
+  await applyImport(res, { hash, kind: "file", fileName: file.name });
 }
 
 const actions = {
   loadSample,
   importText(text: string) {
-    try {
-      void applyImport(parseText(text, "Collage")).catch((e) => toast(String(e instanceof Error ? e.message : e), "error"));
-    } catch (e) {
-      toast(e instanceof Error ? e.message : String(e), "error");
-    }
+    void importPasted(text).catch((e) => toast(String(e instanceof Error ? e.message : e), "error"));
   },
   importFile(file: File) {
     store.lastFile = file;
-    readFile(file)
-      .then(applyImport)
-      .catch((e) => toast("Import impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000));
+    importFromFile(file).catch((e) => toast("Import impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000));
   },
   changeSheet(name: string) {
     const f = store.lastFile;
     if (!f) return;
-    readFile(f, name)
-      .then(applyImport)
-      .catch((e) => toast(e instanceof Error ? e.message : String(e), "error"));
+    importFromFile(f, name).catch((e) => toast(e instanceof Error ? e.message : String(e), "error"));
   },
   explore() {
     explorer.open();
@@ -213,6 +264,7 @@ function openSnapshot(s: Snapshot): void {
   const sample = s.sampleId ? sampleById(s.sampleId) : undefined;
   if (sample && store.state.sampleId !== sample.id) {
     store.setDataset(buildDataset(sample.name, sample.rows()), { sampleId: sample.id, note: sample.description });
+    attachProvenance(sampleProvenance(sample.id));
   } else if (!sample && store.state.ds?.name !== s.dataName) {
     toast(`Ce snapshot a été pris sur « ${s.dataName} » : rechargez ces données pour le retrouver à l'identique.`, "info", 5000);
   }
@@ -426,16 +478,29 @@ async function loadConfig(file: File): Promise<void> {
     if (!r.ok) throw new Error(r.issues.slice(0, 4).join(" ; "));
     let ds: Dataset | null = store.state.ds;
     let sampleId: string | null = store.state.sampleId;
+    // Provenance : celle du fichier d'origine enregistrée dans la configuration, sinon empreinte des lignes jointes
+    const savedProv = r.spec.provenance;
+    let rowsForHash: unknown[] | null = null;
     if (f.data?.rows?.length) {
       ds = buildDataset(f.data.name, f.data.rows, f.data.typeOverrides ?? {});
       sampleId = null;
+      if (!savedProv || savedProv.kind === "sample") rowsForHash = f.data.rows;
     } else if (f.sampleId && sampleById(f.sampleId)) {
       const s = sampleById(f.sampleId)!;
       ds = buildDataset(s.name, s.rows());
       sampleId = s.id;
     }
     store.setSpec(r.spec);
-    if (ds !== store.state.ds) store.setDataset(ds, { sampleId, note: "Chargé depuis " + file.name });
+    if (ds !== store.state.ds) {
+      store.setDataset(ds, { sampleId, note: "Chargé depuis " + file.name, provenance: sampleId || rowsForHash ? null : savedProv });
+      if (sampleId) attachProvenance(sampleProvenance(sampleId));
+      else if (rowsForHash && ds) {
+        const rows = rowsForHash;
+        const n = ds.rows.length;
+        const c = ds.columns.length;
+        attachProvenance(safeHash(() => hashRows(rows)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: file.name, rows: n, cols: c }) : null)));
+      }
+    }
     if (f.story && Array.isArray(f.story.snapshots) && f.story.snapshots.length) store.setStory(parseStory(f.story));
     toast("Configuration chargée", "ok");
   } catch (e) {
@@ -606,6 +671,7 @@ if (params.has("reset")) store.clearSession();
 store.restoreStory();
 void ensureFont(store.state.spec.style.font).finally(() => {
   if (!store.restore()) loadSample(params.get("sample") ?? SAMPLES[0]!.id);
+  else if (store.state.sampleId) attachProvenance(sampleProvenance(store.state.sampleId));
   applyUi();
   storyStrip.update();
 });
@@ -619,7 +685,8 @@ const api = {
   set: (path: string, v: unknown) => store.set(path, v),
   pickType: (t: ChartType) => pickType(t),
   loadSample,
-  importText: (t: string) => applyImport(parseText(t, "Collage")),
+  importText: (t: string) => importPasted(t),
+  provenance: () => store.state.provenance,
   currentSvg: () => preview.currentSvg(),
   seek: (p: number) => preview.seek(p),
   explore: () => explorer.open(),

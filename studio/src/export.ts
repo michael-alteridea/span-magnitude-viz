@@ -10,6 +10,7 @@ import type { ChartSpec, StudioFile } from "./spec";
 import { embeddedFontCss, fontStack } from "./theme";
 import type { PlotRect } from "./charts/context";
 import { PLATFORM_URL, PRODUCT_LABEL } from "./brand";
+import { verifyInfoFor, verifyUrl } from "./provenance";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -128,7 +129,15 @@ export async function composeSvg(input: ComposeInput): Promise<string> {
   defs.appendChild(style);
   clone.insertBefore(defs, clone.firstChild);
   const meta = document.createElementNS(SVG_NS, "metadata");
-  meta.textContent = JSON.stringify({ generator: `${PRODUCT_LABEL} Studio (alteridea)`, url: PLATFORM_URL, type: spec.type, created: new Date().toISOString() });
+  const created = new Date();
+  const prov = spec.provenance;
+  meta.textContent = JSON.stringify({
+    generator: `${PRODUCT_LABEL} Studio (alteridea)`,
+    url: PLATFORM_URL,
+    type: spec.type,
+    created: created.toISOString(),
+    ...(prov ? { data: { sha256: prov.hash, importedAt: prov.importedAt, rows: prov.rows, cols: prov.cols, kind: prov.kind }, verify: verifyUrl(verifyInfoFor(prov, created)) } : {}),
+  });
   clone.insertBefore(meta, clone.firstChild);
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
 }

@@ -22,5 +22,9 @@ export default defineConfig({
     target: "es2020",
     chunkSizeWarningLimit: 1500,
     assetsInlineLimit: 0,
+    // Deux pages : le Studio et la page de vérification (QR d'empreinte des données)
+    rollupOptions: {
+      input: { main: resolve(root, "index.html"), verifier: resolve(root, "verifier.html") },
+    },
   },
 });
