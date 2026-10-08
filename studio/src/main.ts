@@ -67,6 +67,12 @@ import { openProjectRepo, storageUsage, type ProjectRepo } from "./project/repo"
 import { CURRENT_PROJECT_KEY, parseProjectFile, projectFileName, toProjectFile, type Project, type ProjectSource } from "./project/project";
 import { ProjectsDialog } from "./ui/projectsDialog";
 import { confirmDialog } from "./ui/confirm";
+import { DatasetEditor, type DatasetDraft } from "./ui/datasetEditor";
+import { datasetChangeDialog } from "./ui/datasetDialog";
+import { createDataset, describeRecipe, findDataset, nextDatasetId, sameRecipe, sceneRef, scenesLabel, scenesUsing, toRef, uniqueDatasetName, updateDataset, chipGroups, chipText } from "./data/datasets";
+import { applyRecipe } from "./data/transform";
+import { REVIEWS_KEY } from "./review/storage";
+import type { DatasetRef } from "./spec";
 
 const store = new Store();
 const preview = new Preview(store);
@@ -393,6 +399,9 @@ const actions = {
   scenarios() {
     scenarioDialog.open();
   },
+  editDataset(id: string | null) {
+    openDatasetEditor(id);
+  },
   openData() {
     dataWindow.open();
   },
@@ -407,6 +416,8 @@ function openInsight(ins: Insight): void {
   const errs = store.setSpec(
     freshStory({
       ...ins.spec,
+      // les pistes sont calculées sur le dataset du graphique : le graphique ouvert le garde
+      dataset: cur.dataset,
       norme: cur.norme,
       style: { ...ins.spec.style, ...keepStyle(cur), title: ins.analysis.title, subtitle: "", source: cur.style.source },
     } as unknown as Record<string, unknown>)
@@ -1493,6 +1504,145 @@ const dataWindow = new DataWindow({
   reopenRecent: (e) => reopenRecent(e),
 });
 dataWindowReady = true;
+
+/* ---- Datasets dérivés (déploiement 2) : étape « Filtrer » de la fenêtre Données, catalogue, scènes */
+
+const datasetEditor = new DatasetEditor(store, {
+  save: (d, asNew) => saveDatasetDraft(d, asNew),
+  useWithoutSaving: (d) => {
+    // Filtre de vue du graphique courant (sur la source entière), sans créer de dataset
+    const spec = store.state.spec;
+    store.setSpec({ ...spec, dataset: null, transform: { ...spec.transform, filters: d.filters.slice(0, 10) } });
+    dataWindow.close();
+    toast(d.filters.length ? "Filtres appliqués à ce graphique seulement (Réglages › ① Graphique › Filtre de vue)" : "Le graphique utilise toute la source", "ok", 3200);
+  },
+  close: () => dataWindow.close(),
+});
+dataWindow.attachEditor(datasetEditor.root, () => !!store.state.ds, (id) => openDatasetEditor(id));
+
+function openDatasetEditor(id: string | null): void {
+  if (!store.state.ds) {
+    dataWindow.open();
+    return;
+  }
+  datasetEditor.start(id);
+  dataWindow.showFilter();
+}
+
+/** Scènes déjà partagées dans une revue (identifiants), pour le dialogue « N scènes utilisent ce dataset ». */
+function sharedSceneIds(): Set<string> {
+  const out = new Set<string>();
+  try {
+    const raw = localStorage.getItem(REVIEWS_KEY);
+    const reviews = raw ? ((JSON.parse(raw) as { reviews?: { demo?: boolean; snapshots?: { id?: string }[] }[] }).reviews ?? []) : [];
+    for (const r of reviews) if (!r.demo) for (const sn of r.snapshots ?? []) if (sn.id) out.add(sn.id);
+  } catch {
+    /* stockage indisponible */
+  }
+  return out;
+}
+
+/** Ce qui change entre deux recettes (« + Distribution », « Année : 2025 → 2026 »). */
+function recipeDelta(before: DatasetRef["filters"], after: DatasetRef["filters"]): string {
+  const b = new Map(chipGroups(before).map((g) => [g.field, g]));
+  const parts: string[] = [];
+  for (const g of chipGroups(after)) {
+    const o = b.get(g.field);
+    if (!o) parts.push(`${g.field} : ${chipText(g)}`);
+    else if (JSON.stringify(o.filters) !== JSON.stringify(g.filters)) {
+      const added = g.filters[0]?.op === "in" && o.filters[0]?.op === "in" ? g.filters[0].values.filter((v) => !o.filters[0]!.values.includes(v)) : [];
+      parts.push(added.length && added.length <= 3 && g.filters[0]!.values.length > o.filters[0]!.values.length ? `mêmes filtres + ${added.join(", ")}` : `${g.field} : ${chipText(g)}`);
+    }
+  }
+  for (const f of b.keys()) if (!chipGroups(after).some((g) => g.field === f)) parts.push(`sans filtre ${f}`);
+  return parts.join(" · ");
+}
+
+/**
+ * « Mettre à jour les scènes » : chaque scène est rechargée avec la nouvelle recette, son récit recalculé (les textes
+ * saisis à la main sont gardés : drapeaux story.edited) puis reprise à la même place, sous le même identifiant.
+ */
+async function updateScenesDataset(ids: string[], ref: DatasetRef): Promise<void> {
+  const current = structuredClone(store.state.spec);
+  for (const id of ids) {
+    const s = store.state.story.snapshots.find((x) => x.id === id);
+    if (!s) continue;
+    const r = parseSpec({ ...(s.spec as object), dataset: ref });
+    if (!r.ok) continue;
+    store.setSpec(r.spec);
+    await settle();
+    await takeSnapshot({ id: s.id, name: s.name, role: s.role, scenario: s.scenario ?? null, step: s.step ?? null, quiet: true });
+  }
+  store.setSpec(current.dataset?.id === ref.id ? { ...current, dataset: ref } : current);
+  await settle();
+}
+
+async function saveDatasetDraft(d: DatasetDraft, asNew: boolean): Promise<void> {
+  const src = store.state.ds;
+  if (!src) return;
+  const list = store.state.datasets;
+  const cur = d.editId && !asNew ? findDataset(list, src.name, d.editId) : undefined;
+  if (!cur) {
+    const name = uniqueDatasetName(list, src.name, d.name);
+    const nd = createDataset(list, src.name, { name, filters: d.filters, columns: d.columns });
+    store.setDatasets([...list, nd]);
+    store.set("dataset", toRef(nd));
+    dataWindow.close();
+    toast(`Dataset ${nd.id} « ${nd.name} » enregistré : le graphique l'utilise (${applyRecipe(src, nd).rows.length.toLocaleString("fr-FR")} lignes).`, "ok", 3600);
+    return;
+  }
+  const name = uniqueDatasetName(list, src.name, d.name, cur.id);
+  const next = updateDataset(cur, { name, filters: d.filters, columns: d.columns });
+  const replace = (x: typeof next) => store.state.datasets.map((y) => (y.id === x.id && y.source === x.source ? x : y));
+  const snaps = store.state.story.snapshots;
+  const users = scenesUsing(snaps, cur.id).filter((s) => sceneRef(s)!.version === cur.version || !sameRecipe(sceneRef(s)!, next));
+  const recipeChanged = !sameRecipe(cur, next);
+  const followChart = (ref: DatasetRef) => {
+    if (store.state.spec.dataset?.id === ref.id) store.set("dataset", ref);
+  };
+  if (!recipeChanged || !users.length) {
+    store.setDatasets(replace(next));
+    followChart(toRef(next));
+    dataWindow.close();
+    toast(recipeChanged ? `Dataset ${next.id} mis à jour (v${next.version})` : `Dataset ${next.id} renommé « ${next.name} »`, "ok", 2600);
+    return;
+  }
+  const rowsBefore = applyRecipe(src, cur).rows.length;
+  const rowsAfter = applyRecipe(src, next).rows.length;
+  const since = new Date(cur.updatedAt);
+  const choice = await datasetChangeDialog({
+    id: cur.id,
+    name: cur.name,
+    version: cur.version,
+    before: cur.filters,
+    after: next.filters,
+    rowsBefore,
+    rowsAfter,
+    scenes: users.map((snap) => ({ snap, index: snaps.indexOf(snap) })),
+    shared: sharedSceneIds(),
+    nextId: nextDatasetId(list, src.name),
+    delta: recipeDelta(cur.filters, next.filters),
+    since: Number.isFinite(since.getTime()) ? `${since.toLocaleDateString("fr-FR")} ${since.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "",
+  });
+  if (!choice) return;
+  dataWindow.close();
+  if (choice === "new") {
+    const nd = createDataset(list, src.name, { name: uniqueDatasetName(list, src.name, d.name === cur.name ? `${d.name} (variante)` : d.name), filters: next.filters, columns: next.columns });
+    store.setDatasets([...list, nd]);
+    store.set("dataset", toRef(nd));
+    toast(`Nouveau dataset ${nd.id} « ${nd.name} » : ${cur.id} et ses scènes ne changent pas.`, "ok", 3600);
+    return;
+  }
+  store.setDatasets(replace(next));
+  if (choice === "freeze") {
+    followChart(toRef(next));
+    toast(`${scenesLabel(users.length)} ${users.length > 1 ? "restent figées" : "reste figée"} sur ${cur.id} v${cur.version} ; le dataset passe en v${next.version}.`, "ok", 3800);
+    return;
+  }
+  toast(`Mise à jour de ${scenesLabel(users.length)}…`, "info", 1500);
+  await updateScenesDataset(users.map((u) => u.id), toRef(next));
+  toast(`${scenesLabel(users.length)} ${users.length > 1 ? "mises à jour" : "mise à jour"} avec ${next.id} v${next.version} (${describeRecipe(next) || "sans filtre"}).`, "ok", 3800);
+}
 const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store, {
@@ -1502,6 +1652,7 @@ const settings = new SettingsPanel(store, {
   exportPptx: (b) => void exportPptx(b),
   snapshots: () => store.state.story.snapshots.length,
   pickFocus: () => startFocusPick(),
+  editDataset: (id) => openDatasetEditor(id),
 });
 const explorer = new Explorer(store, storyContext, openInsight);
 const storyStrip: StoryStrip = new StoryStrip(store, {
@@ -1937,6 +2088,10 @@ const api = {
   /** Projets (sur cet appareil). */
   projects: () => projects,
   projectRepo: () => projectRepo,
+  /** Datasets dérivés (déploiement 2) : catalogue, étape Filtrer de la fenêtre Données. */
+  datasets: () => store.state.datasets,
+  datasetEditor: () => datasetEditor,
+  editDataset: (id: string | null) => openDatasetEditor(id),
   projectsDialog: () => projectsDialog,
   duplicateFocus: (i: number) => duplicateAndFocus(store.state.story.snapshots[i]!),
   focusPicking: () => focusPicking,

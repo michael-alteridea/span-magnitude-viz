@@ -115,7 +115,7 @@ export function fourDActive(spec: ChartSpec, ds: Dataset | null): boolean {
 
 /** Calcule (et met en cache) le modèle complet, le modèle temporel et les domaines figés. */
 export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepCache | null, dsVersion: number): PrepCache {
-  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.style.horizontal, spec.mode, spec.axes.x.scale, spec.transform, spec.variance, spec.norme.enabled, spec.norme.autoSwitch, spec.type === "drill" ? spec.drill : null]);
+  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.style.horizontal, spec.mode, spec.axes.x.scale, spec.transform, spec.dataset ?? null, spec.variance, spec.norme.enabled, spec.norme.autoSwitch, spec.type === "drill" ? spec.drill : null]);
   if (prev && prev.key === key) return prev;
   const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
   const { error, warnings } = validate(spec, ds);

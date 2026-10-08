@@ -7,6 +7,7 @@
  *   node studio/scripts/e2e.mjs --topn [--shots]                # seulement « Nombre d'éléments » + « Filtrer »
  *   node studio/scripts/e2e.mjs --donnees [--shots]             # seulement la fenêtre « Données » (iPad)
  *   node studio/scripts/e2e.mjs --public [--shots]              # seulement « Données publiques » + « Modifier le graphique » du Reel
+ *   node studio/scripts/e2e.mjs --datasets [--shots]            # seulement les datasets dérivés (étape Filtrer, versions)
  *
  * Variables : CHROME_PATH (défaut /usr/bin/google-chrome), PUPPETEER_DIR (dossier où
  * puppeteer-core est installé si ce n'est pas une dépendance du projet).
@@ -1132,6 +1133,336 @@ async function e2ePoints() {
   await ctx.close();
 }
 
+/** Datasets dérivés (dataset d'abord, déploiement 2) : étape Filtrer, panneau Datasets, ① Graphique, scènes, dialogue de version (iPad). */
+async function e2eDatasets() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name, sel) => { if (!SHOTS) return; await pg.mouse.move(1, 1).catch(() => {}); await sleep(450); if (sel) await (await pg.$(sel)).screenshot({ path: join(shotsDir, name) }); else await pg.screenshot({ path: join(shotsDir, name) }); };
+  const ipad = (w, h) => pg.setViewport({ width: w, height: h, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await ipad(1366, 1024);
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds && window.r4d.projects().ready, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  // Source fictive Norvia : ventes export 2024–2026 (5 pays × 3 années × 4 trimestres × 4 secteurs = 240 lignes)
+  const pays = ["France", "Belgique", "Pays-Bas", "Luxembourg", "Allemagne"];
+  const secteurs = ["Industrie", "Santé", "Distribution", "Services"];
+  const lines = ["Pays\tAnnée\tTrimestre\tSecteur\tChiffre d'affaires (€)\tCommandes"];
+  let k = 0;
+  for (const p of pays) for (const a of [2024, 2025, 2026]) for (const t of ["T1", "T2", "T3", "T4"]) for (const s of secteurs) {
+    k++;
+    const base = { France: 1200000, Belgique: 560000, "Pays-Bas": 690000, Luxembourg: 150000, Allemagne: 980000 }[p] * { Industrie: 1, Santé: 0.62, Distribution: 0.45, Services: 0.3 }[s];
+    lines.push([p, a, t, s, Math.round(base * (1 + (a - 2024) * 0.06) * (0.92 + ((k * 37) % 17) / 100)), 90 + ((k * 13) % 160)].join("\t"));
+  }
+  await pg.evaluate((t) => window.r4d.importText(t), lines.join("\n"));
+  await sleep(900);
+  await pg.evaluate(async () => {
+    window.r4d.setSpec({ type: "bar", encoding: { ...window.r4d.getSpec().encoding, x: "Pays", y: ["Chiffre d'affaires (€)"], series: null, aggregate: "sum" }, mode: { ...window.r4d.getSpec().mode, kind: "static" } });
+    window.r4d.set("style.sort", "desc");
+    window.r4d.set("axes.y.unit", "meur");
+    await window.r4d.settle();
+    window.r4d.panel().open("graphique");
+  });
+  await sleep(600);
+  const hash0 = await pg.evaluate(() => window.r4d.provenance()?.hash ?? null);
+  // Panneau gauche « Datasets » et carte ① Graphique
+  const ui0 = await pg.evaluate(() => ({
+    head: document.querySelector("[data-testid=data-panel] .panel-head h2")?.textContent,
+    src: document.querySelector("[data-testid=ds-current] .ds-info strong")?.textContent,
+    tree: [...document.querySelectorAll("[data-testid=ds-tree-item]")].map((e) => `${e.dataset.id}:${e.classList.contains("active")}`),
+    btns: [...document.querySelectorAll("[data-testid=ds-current] .ds-src-btns button")].map((b) => b.textContent.trim()),
+    secs: [...document.querySelectorAll("[data-testid=settings-panel] .acc-hd")].map((b) => b.querySelector(".acc-num").textContent + " " + b.querySelector(".acc-t b").textContent),
+    donnees: !!document.querySelector("[data-testid=acc-donnees]"),
+    first: document.querySelector("[data-section=graphique] .acc-bd > .field .field-label")?.textContent,
+    select: document.querySelector("[data-testid=dataset-select]")?.value,
+    opts: [...document.querySelectorAll("[data-testid=dataset-select] option")].map((o) => o.textContent),
+    view: document.querySelector("[data-testid=filter-block] .field-label")?.textContent,
+    help: document.querySelector("[data-testid=view-filter-help]")?.textContent,
+    topn: !!document.querySelector("[data-section=graphique] [data-testid=topn]"),
+  }));
+  check("panneau « Datasets » : source en tête (Remplacer, Aperçu), « Source entière » active, aucun dataset dérivé", ui0.head === "Datasets" && /Collage|Norvia/.test(ui0.src ?? "") && ui0.btns.join("|") === "Remplacer|Aperçu" && ui0.tree.join("|") === ":true", JSON.stringify(ui0));
+  check("Réglages : carte Données supprimée, ① Graphique commence par Dataset ▾, puis Filtre de vue et Nombre d'éléments ; cartes renumérotées", !ui0.donnees && ui0.secs.join("|") === "1 Graphique|2 Récit|3 Style|4 Export" && ui0.first === "Dataset" && ui0.select === "" && /Source entière · 240 lignes/.test(ui0.opts[0]) && ui0.view === "Filtre de vue" && /ce graphique seulement.*Filtre permanent : sur le dataset/.test(ui0.help ?? "") && ui0.topn, JSON.stringify({ secs: ui0.secs, first: ui0.first, opts: ui0.opts, view: ui0.view }));
+
+  // « + Nouveau dataset depuis la source » → fenêtre Données, étape ② Filtrer
+  await pg.tap("[data-testid=ds-new]");
+  await pg.waitForSelector("[data-testid=dataset-editor]:not([hidden])", { timeout: 4000 });
+  const ed0 = await pg.evaluate(() => ({
+    steps: [...document.querySelectorAll(".dw-step")].map((b) => `${b.textContent.trim()}:${b.classList.contains("active") ? "actif" : b.classList.contains("done") ? "fait" : ""}`),
+    count: document.querySelector("[data-testid=dse-count]")?.textContent,
+    sub: document.querySelector("[data-testid=dse-count-sub]")?.textContent,
+    cols: document.querySelectorAll("[data-testid=dse-columns] input:checked").length,
+    tabsHidden: document.querySelector(".dw-body").hidden,
+    name: document.querySelector("[data-testid=dse-name]").value,
+  }));
+  check("« + Nouveau dataset » : fenêtre Données à l'étape ② Filtrer (① Source faite), 240 lignes sur 240, 6 colonnes gardées", /Source:fait/.test(ed0.steps[0]) && /Filtrer:actif/.test(ed0.steps[1]) && ed0.count === "240 lignes" && /sur 240 · 100 %/.test(ed0.sub ?? "") && ed0.cols === 6 && ed0.tabsHidden, JSON.stringify(ed0));
+  // pastille 1 : Pays sans Allemagne
+  const pick = async (field) => { await pg.tap("[data-testid=dse-add]"); await sleep(200); await pg.tap(`.dse-pop-col[data-col="${field}"]`); await sleep(250); };
+  await pick("Pays");
+  await pg.tap(`.dse-val input[data-value="Allemagne"]`);
+  await sleep(250);
+  // pastille 2 : Année 2025 → 2026
+  await pick("Année");
+  await pg.select("[data-testid=dse-from]", "2025");
+  await sleep(200);
+  await pg.select("[data-testid=dse-to]", "2026");
+  await sleep(250);
+  // pastille 3 : Secteur Industrie, Santé (Aucun puis deux cases)
+  await pick("Secteur");
+  await pg.tap("[data-testid=dse-none]");
+  await sleep(150);
+  await pg.tap(`.dse-val input[data-value="Industrie"]`);
+  await pg.tap(`.dse-val input[data-value="Santé"]`);
+  await sleep(300);
+  const ed1 = await pg.evaluate(() => ({
+    chips: [...document.querySelectorAll("[data-testid=dse-chip]")].map((c) => c.textContent.replace(/×$/, "").trim()),
+    count: document.querySelector("[data-testid=dse-count]")?.textContent,
+    sub: document.querySelector("[data-testid=dse-count-sub]")?.textContent,
+    bar: document.querySelector(".dse-bar-fill").style.width,
+    rows: document.querySelectorAll("[data-testid=dse-table] tbody tr").length,
+    name: document.querySelector("[data-testid=dse-name]").value,
+    popHead: document.querySelector("[data-testid=dse-pop]:not([hidden]) .dse-pop-h")?.textContent,
+    vals: [...document.querySelectorAll("[data-testid=dse-pop] .dse-val")].map((l) => `${l.querySelector("span").textContent}:${l.querySelector("input").checked}:${l.querySelector("small").textContent}`),
+  }));
+  check("pastilles empilées : « Pays 4 sur 5 (sans Allemagne) 192 › Année 2025 → 2026 128 › Secteur Industrie, Santé 64 », compte en direct", ed1.chips.join(" › ") === "Pays4 sur 5 (sans Allemagne)192 › Année2025 → 2026128 › SecteurIndustrie, Santé64" && ed1.count === "64 lignes" && /sur 240 · 27 %/.test(ed1.sub ?? "") && parseFloat(ed1.bar) > 26 && parseFloat(ed1.bar) < 27.5 && ed1.rows === 60, JSON.stringify(ed1));
+  check("fenêtre de valeurs : « Secteur · parmi 128 lignes », cases avec comptes, Tout / Aucun / Inverser ; nom proposé d'après les filtres", /Secteur · parmi 128 lignes/.test(ed1.popHead ?? "") && ed1.vals.length === 4 && ed1.vals.includes("Industrie:true:32") && ed1.vals.includes("Distribution:false:32") && ed1.name === "Pays 4 sur 5 (sans Allemagne) · 2025 → 2026 · Industrie & Santé", JSON.stringify({ head: ed1.popHead, vals: ed1.vals, name: ed1.name }));
+  await shot("150-dataset-filtrer-ipad-1366.png");
+  // colonnes gardées : retirer « Commandes » ; nom saisi
+  await pg.keyboard.press("Escape");
+  await sleep(150);
+  const popClosed = await pg.evaluate(() => document.querySelector("[data-testid=dse-pop]").hidden && window.r4d.dataWindow().isOpen);
+  check("Échap ferme la fenêtre de valeurs sans fermer l'étape Filtrer", popClosed);
+  await pg.tap(`[data-testid=dse-columns] input[data-col="Commandes"]`);
+  await sleep(200);
+  await pg.$eval("[data-testid=dse-name]", (el) => { el.value = ""; el.focus(); });
+  await pg.type("[data-testid=dse-name]", "Benelux + France · Industrie & Santé");
+  await pg.tap("[data-testid=dse-save]");
+  await sleep(900);
+  const s1 = await pg.evaluate(() => {
+    const d = window.r4d.datasets();
+    const spec = window.r4d.getSpec();
+    return {
+      win: window.r4d.dataWindow().isOpen,
+      cat: d.map((x) => `${x.id}:${x.name}:v${x.version}:${x.columns.length}`),
+      ref: spec.dataset ? `${spec.dataset.id}:v${spec.dataset.version}` : null,
+      tree: [...document.querySelectorAll("[data-testid=ds-tree-item]")].map((e) => `${e.dataset.id}:${e.classList.contains("active")}:${e.querySelector("small")?.textContent}`),
+      chips: [...document.querySelectorAll("[data-testid=ds-tree-item][data-id=D1] .ds-chip")].map((c) => c.textContent),
+      cols: [...document.querySelectorAll("[data-testid=ds-cols] .ds-col-n")].map((c) => c.textContent),
+      colsHead: document.querySelector(".ds-columns h3")?.textContent,
+      select: document.querySelector("[data-testid=dataset-select]")?.value,
+      bars: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks rect").length,
+      subtitle: document.querySelector("[data-testid=chart-svg] .r4d-subtitle")?.textContent ?? "",
+      sum: document.querySelector("[data-summary=graphique] .acc-sum-t")?.textContent,
+    };
+  });
+  check("« Enregistrer comme dataset » : D1 créé (5 colonnes), le graphique l'utilise, D1 surligné dans l'arbre avec ses pastilles et ses colonnes", !s1.win && s1.cat.join() === "D1:Benelux + France · Industrie & Santé:v1:5" && s1.ref === "D1:v1" && s1.tree.join("|").includes("D1:true:D1 · 64 lignes") && s1.chips.length === 3 && s1.cols.length === 5 && !s1.cols.includes("Commandes") && /Colonnes de D1/.test(s1.colsHead ?? "") && s1.select === "D1" && s1.bars === 4 && /Benelux \+ France · Industrie & Santé/.test(s1.subtitle) && /2025 – 2026/.test(s1.subtitle) && /^D1 · Barres/.test(s1.sum ?? ""), JSON.stringify(s1));
+  const hash1 = await pg.evaluate(() => window.r4d.provenance()?.hash ?? null);
+  const qr1 = await pg.evaluate(() => window.r4d.getSpec().provenance?.hash ?? null);
+  check("QR et empreinte des données : toujours ceux de la source (vérifiables avec le fichier d'origine)", !!hash0 && hash1 === hash0 && qr1 === hash0, JSON.stringify({ hash0, hash1, qr1 }));
+
+  // trois scènes sur D1 (barres, barres par secteur, camembert)
+  await pg.evaluate(async () => {
+    await window.r4d.snapshot();
+    window.r4d.setSpec({ type: "groupedBar", encoding: { ...window.r4d.getSpec().encoding, x: "Pays", series: "Secteur" } });
+    await window.r4d.settle();
+    await window.r4d.snapshot();
+    window.r4d.setSpec({ type: "donut", encoding: { ...window.r4d.getSpec().encoding, x: "Secteur", series: null } });
+    await window.r4d.settle();
+    await window.r4d.snapshot();
+    // 4e scène sur la source entière
+    window.r4d.set("dataset", null);
+    window.r4d.setSpec({ type: "bar", encoding: { ...window.r4d.getSpec().encoding, x: "Pays", series: null } });
+    await window.r4d.settle();
+    await window.r4d.snapshot();
+    // retour sur D1
+    window.r4d.set("dataset", JSON.parse(JSON.stringify(window.r4d.store.state.story.snapshots[0].spec.dataset)));
+    await window.r4d.settle();
+  });
+  await sleep(800);
+  const sc = await pg.evaluate(() => ({
+    chips: [...document.querySelectorAll("[data-testid=story-card-dataset]")].map((c) => `${c.dataset.dataset}:${c.textContent}`),
+    tree: document.querySelector("[data-testid=ds-tree-item][data-id=D1] small")?.textContent,
+  }));
+  check("scènes : pastille du dataset (point de couleur, D1, nom) ; « Source entière » pour la 4e ; « 3 scènes » dans l'arbre", sc.chips.length === 4 && sc.chips.slice(0, 3).every((c) => c.startsWith("D1:D1Benelux")) && sc.chips[3] === ":Source entière" && /3 scènes/.test(sc.tree ?? ""), JSON.stringify(sc));
+  await shot("151-datasets-panneau-ipad-1366.png");
+
+  // « Explorer ce dataset » : pistes calculées sur D1 (64 lignes)
+  await pg.tap("[data-testid=explore-data]");
+  await sleep(1200);
+  const ex = await pg.evaluate(() => document.querySelector("[data-testid=explorer] .explorer-sub, .explorer-sub")?.textContent ?? document.querySelector(".explorer")?.textContent?.slice(0, 200));
+  check("« Explorer ce dataset » : pistes calculées sur les 64 lignes de D1", /64 lignes de « Benelux \+ France · Industrie & Santé »/.test(ex ?? ""), ex);
+  await pg.evaluate(() => window.r4d.closeExplorer());
+  await sleep(300);
+
+  // Modifier D1 utilisé par 3 scènes : + Distribution → dialogue
+  const snaps0 = await pg.evaluate(() => window.r4d.story().snapshots.map((s) => ({ id: s.id, title: s.title, thumb: s.thumb?.length ?? 0, v: s.spec.dataset?.version ?? null })));
+  const editAndSave = async () => {
+    await pg.tap("[data-testid=ds-tree-item][data-id=D1] [data-testid=ds-tree-edit]");
+    await pg.waitForSelector("[data-testid=dataset-editor]:not([hidden])", { timeout: 4000 });
+    await sleep(300);
+    await pg.tap(`[data-testid=dse-chip][data-field="Secteur"] .dse-chip-open`);
+    await sleep(250);
+    return pg.evaluate(() => ({ chips: [...document.querySelectorAll("[data-testid=dse-chip]")].length, name: document.querySelector("[data-testid=dse-name]").value, save: document.querySelector("[data-testid=dse-save]").textContent, hint: document.querySelector(".dse-name-hint").textContent }));
+  };
+  const e1 = await editAndSave();
+  await pg.tap(`.dse-val input[data-value="Distribution"]`);
+  await sleep(300);
+  await pg.tap("[data-testid=dse-save]");
+  await pg.waitForSelector("[data-testid=dataset-dialog]", { timeout: 4000 });
+  const dlg = await pg.evaluate(() => ({
+    title: document.querySelector("#dsd-title")?.textContent,
+    diff: document.querySelector(".dsd-diff")?.textContent,
+    warn: document.querySelector("[data-testid=dsd-warn]")?.textContent,
+    scenes: document.querySelectorAll(".dsd-scene").length,
+    opts: [...document.querySelectorAll(".dsd-opt b")].map((b) => b.textContent),
+    ok: document.querySelector("[data-testid=dsd-ok]")?.textContent,
+  }));
+  check("Modifier D1 (ses pastilles et son nom repris) : dialogue « 3 scènes utilisent ce dataset », 64 → 96 lignes (+32), 3 choix", e1.chips === 3 && e1.name === "Benelux + France · Industrie & Santé" && /Enregistrer D1/.test(e1.save) && /D1 v1/.test(e1.hint) && /Modifier le dataset D1 « Benelux \+ France · Industrie & Santé »/.test(dlg.title ?? "") && /64 → 96 lignes/.test(dlg.diff ?? "") && /\+32/.test(dlg.diff ?? "") && /3 scènes utilisent ce dataset/.test(dlg.warn ?? "") && dlg.scenes === 3 && dlg.opts.length === 3 && /Mettre à jour les 3 scènes/.test(dlg.opts[0]) && /Garder les scènes figées/.test(dlg.opts[1]) && /nouveau dataset \(D2\)/.test(dlg.opts[2]) && dlg.ok === "Mettre à jour 3 scènes", JSON.stringify({ e1, dlg }));
+  await shot("152-dataset-modifie-scenes-ipad-1366.png");
+  // choix 1 : mettre à jour les 3 scènes
+  await pg.tap("[data-testid=dsd-ok]");
+  await pg.waitForFunction(() => window.r4d.story().snapshots.filter((s) => s.spec.dataset?.version === 2).length === 3, { timeout: 20000 });
+  await sleep(600);
+  const up = await pg.evaluate(() => ({ snaps: window.r4d.story().snapshots.map((s) => ({ id: s.id, title: s.title, thumb: s.thumb?.length ?? 0, v: s.spec.dataset?.version ?? null })), cat: window.r4d.datasets().map((d) => `${d.id}:v${d.version}`), ref: window.r4d.getSpec().dataset?.version }));
+  check("« Mettre à jour les 3 scènes » : mêmes identifiants, D1 v2 dans les 3 scènes, rendus refaits, la 4e (source) inchangée ; le graphique suit", up.snaps.map((s) => s.id).join() === snaps0.map((s) => s.id).join() && up.snaps.slice(0, 3).every((s) => s.v === 2) && up.snaps[3].v === null && up.snaps[3].thumb === snaps0[3].thumb && up.snaps.slice(0, 3).some((s, i) => s.thumb !== snaps0[i].thumb) && up.cat.join() === "D1:v2" && up.ref === 2, JSON.stringify({ up, snaps0 }));
+  // choix 2 : garder figé (retirer Distribution)
+  await editAndSave();
+  await pg.tap(`.dse-val input[data-value="Distribution"]`);
+  await sleep(250);
+  await pg.tap("[data-testid=dse-save]");
+  await pg.waitForSelector("[data-testid=dataset-dialog]", { timeout: 4000 });
+  await pg.tap("[data-testid=dsd-freeze]");
+  await sleep(150);
+  const okFreeze = await pg.evaluate(() => document.querySelector("[data-testid=dsd-ok]").textContent);
+  const thumbsBefore = await pg.evaluate(() => window.r4d.story().snapshots.map((s) => s.thumb?.length ?? 0));
+  await pg.tap("[data-testid=dsd-ok]");
+  await sleep(900);
+  const fr = await pg.evaluate(() => ({
+    v: window.r4d.story().snapshots.map((s) => s.spec.dataset?.version ?? null),
+    thumbs: window.r4d.story().snapshots.map((s) => s.thumb?.length ?? 0),
+    cat: window.r4d.datasets().map((d) => `${d.id}:v${d.version}`),
+    chips: [...document.querySelectorAll("[data-testid=story-card-dataset]")].map((c) => c.textContent),
+    ref: window.r4d.getSpec().dataset?.version,
+  }));
+  check("« Garder les scènes figées » : les 3 scènes restent sur D1 v2 (rendus identiques), le dataset passe en v3, pastille « v2 · figée »", okFreeze === "Garder figées" && fr.v.join() === "2,2,2," && JSON.stringify(fr.thumbs) === JSON.stringify(thumbsBefore) && fr.cat.join() === "D1:v3" && fr.chips.slice(0, 3).every((c) => /v2 · figée/.test(c)) && fr.ref === 3, JSON.stringify({ okFreeze, fr }));
+  // une scène figée rechargée garde sa version (Dataset ▾ : « v2 · figée »)
+  await pg.evaluate(async () => { window.r4d.openSnapshot(window.r4d.story().snapshots[0]); await window.r4d.settle(); });
+  await sleep(500);
+  const frz = await pg.evaluate(() => ({ sel: document.querySelector("[data-testid=dataset-select]")?.selectedOptions[0]?.textContent, hint: document.querySelector("[data-testid=dataset-hint]")?.textContent }));
+  check("scène figée rechargée : Dataset ▾ « D1 v2 · figée (actuelle : v3) », 96 lignes", /D1 v2 · figée \(actuelle : v3\)/.test(frz.sel ?? "") && /96 lignes/.test(frz.hint ?? ""), JSON.stringify(frz));
+  await pg.evaluate(async () => { const d = window.r4d.datasets()[0]; window.r4d.set("dataset", { id: d.id, version: d.version, name: d.name, filters: d.filters, columns: d.columns }); await window.r4d.settle(); });
+  // choix 3 : enregistrer comme nouveau dataset (D2)
+  await editAndSave();
+  await pg.tap(`.dse-val input[data-value="Services"]`);
+  await sleep(250);
+  await pg.tap("[data-testid=dse-save]");
+  await pg.waitForSelector("[data-testid=dataset-dialog]", { timeout: 4000 });
+  const dlg2 = await pg.evaluate(() => document.querySelector(".dsd-opt[data-value=new] small")?.textContent);
+  await pg.tap("[data-testid=dsd-new]");
+  await sleep(150);
+  await pg.tap("[data-testid=dsd-ok]");
+  await sleep(900);
+  const nw = await pg.evaluate(() => ({ cat: window.r4d.datasets().map((d) => `${d.id}:v${d.version}:${d.name}`), ref: window.r4d.getSpec().dataset?.id, v: window.r4d.story().snapshots.map((s) => s.spec.dataset?.version ?? null), tree: [...document.querySelectorAll("[data-testid=ds-tree-item]")].map((e) => `${e.dataset.id}:${e.classList.contains("active")}`) }));
+  check("« Enregistrer plutôt comme nouveau dataset » : D2 créé (D1 inchangé, scènes inchangées), le graphique passe sur D2", /D1 ne change pas ; D2 = mêmes filtres \+ Services/.test(dlg2 ?? "") && nw.cat.length === 2 && nw.cat[0] === "D1:v3:Benelux + France · Industrie & Santé" && /^D2:v1:/.test(nw.cat[1]) && nw.ref === "D2" && nw.v.join() === "2,2,2," && nw.tree.join("|") === ":false|D1:false|D2:true", JSON.stringify({ dlg2, nw }));
+
+  // Filtre de vue (ce graphique seulement) : le dataset ne change pas
+  await pg.evaluate(() => window.r4d.panel().open("graphique"));
+  await pg.select("[data-testid=filter-col]", "Pays");
+  await sleep(300);
+  await pg.tap(`[data-testid=filter-values] input[data-value="France"]`);
+  await sleep(500);
+  const vf = await pg.evaluate(() => ({ view: window.r4d.getSpec().transform.filters.map((f) => f.label), ds: window.r4d.getSpec().dataset?.filters.length, cat: window.r4d.datasets()[1].filters.length, bars: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks rect").length }));
+  check("Filtre de vue (① Graphique) : ce graphique seulement, le dataset D2 garde ses filtres permanents", vf.view.join() === "Pays : France" && vf.ds === 4 && vf.cat === 4 && vf.bars === 1, JSON.stringify(vf));
+  await pg.evaluate(() => window.r4d.set("transform.filters", []));
+  await sleep(300);
+  // « Utiliser sans enregistrer » : filtre de vue, pas de nouveau dataset
+  await pg.evaluate(() => window.r4d.editDataset(null));
+  await sleep(300);
+  await pick("Pays");
+  await pg.tap(`.dse-val input[data-value="Allemagne"]`);
+  await sleep(200);
+  await pg.tap("[data-testid=dse-use]");
+  await sleep(500);
+  const uw = await pg.evaluate(() => ({ cat: window.r4d.datasets().length, ref: window.r4d.getSpec().dataset, view: window.r4d.getSpec().transform.filters.map((f) => f.label) }));
+  check("« Utiliser sans enregistrer » : filtres appliqués comme filtre de vue sur la source, aucun dataset créé", uw.cat === 2 && uw.ref === null && uw.view.join() === "Pays : 4 sur 5 (sans Allemagne)", JSON.stringify(uw));
+  await pg.evaluate(async () => { window.r4d.set("transform.filters", []); const d = window.r4d.datasets()[0]; window.r4d.set("dataset", { id: d.id, version: d.version, name: d.name, filters: d.filters, columns: d.columns }); await window.r4d.settle(); });
+  await sleep(500);
+  await shot("153-datasets-graphique-ipad-1366.png");
+
+  // Projet : enregistrer, recharger la page, rouvrir → datasets et scènes conservés
+  await pg.evaluate(() => window.r4d.projects().save({ name: "Ventes export Norvia — datasets" }));
+  await sleep(600);
+  const saved = await pg.evaluate(async () => { const P = window.r4d.projects(); const p = await window.r4d.projectRepo().get(P.saved.id); return { n: p.datasets?.length, ids: p.datasets?.map((d) => d.id), dirty: P.dirty }; });
+  await pg.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds && window.r4d.projects().ready, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await sleep(900);
+  const rl = await pg.evaluate(() => ({ cat: window.r4d.datasets().map((d) => `${d.id}:v${d.version}`), ref: window.r4d.getSpec().dataset?.id, v: window.r4d.story().snapshots.map((s) => s.spec.dataset?.version ?? null), dirty: window.r4d.projects().dirty, tree: document.querySelectorAll("[data-testid=ds-tree-item]").length }));
+  check("projet enregistré avec ses datasets ; après rechargement : D1 v3 + D2, scènes figées sur v2, rien de « modifié »", saved.n === 2 && saved.ids.join() === "D1,D2" && !saved.dirty && rl.cat.join() === "D1:v3,D2:v1" && rl.ref === "D1" && rl.v.join() === "2,2,2," && !rl.dirty && rl.tree === 3, JSON.stringify({ saved, rl }));
+  // .datanime : exporté puis réimporté avec ses datasets ; ancien projet sans datasets = source entière
+  const imp = await pg.evaluate(async () => {
+    const P = window.r4d.projects();
+    const p = await window.r4d.projectRepo().get(P.saved.id);
+    const old = structuredClone(p);
+    delete old.datasets;
+    old.id = "prj-ancien";
+    old.name = "Projet du déploiement 1";
+    old.spec = { ...old.spec, dataset: null };
+    old.sequence.snapshots = old.sequence.snapshots.map((s) => ({ ...s, spec: { ...s.spec, dataset: undefined } }));
+    const q = await P.importProject(old);
+    await P.open(q);
+    await window.r4d.settle();
+    return { cat: window.r4d.datasets().length, ref: window.r4d.getSpec().dataset, dirty: P.dirty, chips: [...document.querySelectorAll("[data-testid=story-card-dataset]")].map((c) => c.dataset.dataset) };
+  });
+  check("migration : un projet sans datasets (déploiement 1) s'ouvre sur la source entière, sans dataset, non modifié", imp.cat === 0 && imp.ref === null && !imp.dirty && imp.chips.every((c) => c === ""), JSON.stringify(imp));
+  await pg.evaluate(async () => { const P = window.r4d.projects(); const list = await window.r4d.projectRepo().list(); const m = list.find((x) => x.name === "Ventes export Norvia — datasets"); await P.open(await window.r4d.projectRepo().get(m.id)); await window.r4d.settle(); });
+  await sleep(800);
+  // iPad 1024 : panneau Datasets, étape Filtrer, dialogue
+  await ipad(1024, 768);
+  await sleep(800);
+  const o1 = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth }));
+  await shot("154-datasets-panneau-ipad-1024.png");
+  await pg.evaluate(() => window.r4d.editDataset("D1"));
+  await sleep(500);
+  await pg.tap(`[data-testid=dse-chip][data-field="Pays"] .dse-chip-open`);
+  await sleep(300);
+  const o2 = await pg.evaluate(() => {
+    const ed = document.querySelector("[data-testid=dataset-editor]");
+    const btns = [...ed.querySelectorAll(".dse-btns .btn")].filter((b) => !b.hidden).map((b) => b.getBoundingClientRect());
+    return { sw: document.documentElement.scrollWidth, vw: innerWidth, edW: ed.scrollWidth - ed.clientWidth, btnH: Math.min(...btns.map((r) => r.height)), inView: btns.every((r) => r.bottom <= innerHeight && r.right <= innerWidth), pop: !document.querySelector("[data-testid=dse-pop]").hidden };
+  });
+  check("iPad 1024 : panneau Datasets et étape Filtrer sans défilement horizontal, boutons ≥ 40 px visibles", o1.sw <= o1.vw && o2.sw <= o2.vw && o2.edW <= 1 && o2.btnH >= 40 && o2.inView && o2.pop, JSON.stringify({ o1, o2 }));
+  await shot("155-dataset-filtrer-ipad-1024.png");
+  await pg.tap(`.dse-val input[data-value="Allemagne"]`);
+  await sleep(250);
+  await pg.tap("[data-testid=dse-save]");
+  await pg.waitForSelector("[data-testid=dataset-dialog]", { timeout: 4000 });
+  await sleep(300);
+  const o3 = await pg.evaluate(() => { const b = document.querySelector(".dsd-box").getBoundingClientRect(); return { top: b.top, bottom: b.bottom, vh: innerHeight, sw: document.documentElement.scrollWidth, vw: innerWidth }; });
+  check("iPad 1024 : dialogue de version entièrement visible", o3.top >= 0 && o3.bottom <= o3.vh + 1 && o3.sw <= o3.vw, JSON.stringify(o3));
+  await shot("156-dataset-modifie-scenes-ipad-1024.png");
+  await pg.tap("[data-testid=dsd-cancel]");
+  await sleep(300);
+  const cancel = await pg.evaluate(() => ({ cat: window.r4d.datasets().map((d) => `${d.id}:v${d.version}`), win: window.r4d.dataWindow().isOpen }));
+  check("Annuler le dialogue : rien ne change (D1 v3), l'étape Filtrer reste ouverte", cancel.cat.join() === "D1:v3,D2:v1" && cancel.win, JSON.stringify(cancel));
+  await pg.keyboard.press("Escape");
+  await sleep(300);
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("datasets : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  check("datasets : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
+if (process.argv.includes("--datasets")) {
+  try { await e2eDatasets(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--points")) {
   try { await e2ePoints(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -1317,7 +1648,7 @@ async function e2eProjets() {
   await sleep(300);
   await shot("136-sequence-ipad-1024.png");
   const ov2 = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, strip: document.querySelector("[data-testid=story-strip]").getBoundingClientRect().height }));
-  check("bande « Séquence » (iPad 1024) : deux rangées de boutons, pas de défilement horizontal", ov2.sw <= ov2.vw && ov2.strip < 330, JSON.stringify(ov2));
+  check("bande « Séquence » (iPad 1024) : deux rangées de boutons, pas de défilement horizontal", ov2.sw <= ov2.vw && ov2.strip < 350 /* + pastille de dataset (déploiement 2) */, JSON.stringify(ov2));
   // Tout réinitialiser (Projets ▾) : projet vide, projets conservés
   await ipad(1366, 1024);
   await pg.tap("[data-testid=file-menu]");
@@ -1593,7 +1924,7 @@ try {
     await domClick("[data-testid=acc-recit]");
     await sleep(200);
     const acc2 = await page.evaluate(() => [...document.querySelectorAll("[data-testid=settings-panel] .acc-s.open")].map((e) => e.dataset.section));
-    check("accordéon : Données → Graphique → Récit → Style → Export, une seule section ouverte, un résumé par section, aucun doublon", acc.ids.join() === "donnees,graphique,recit,style,export" && acc.open.length === 1 && acc2.join() === "recit" && acc.sums.length === 5 && acc.sums.every((t) => t.length > 3) && acc.dup.length === 0 && acc.dl, `${acc.open} → ${acc2} · ${acc.sums.join(" | ")}${acc.dup.length ? " · doublons " + acc.dup.join(",") : ""}`);
+    check("accordéon : Graphique (dataset en tête) → Récit → Style → Export, une seule section ouverte, un résumé par section, aucun doublon", acc.ids.join() === "graphique,recit,style,export" && acc.open.length === 1 && acc2.join() === "recit" && acc.sums.length === 4 && acc.sums.every((t) => t.length > 3) && acc.dup.length === 0 && acc.dl, `${acc.open} → ${acc2} · ${acc.sums.join(" | ")}${acc.dup.length ? " · doublons " + acc.dup.join(",") : ""}`);
     await page.type("[data-testid=settings-search]", "deci");
     await sleep(250);
     const sr = await page.evaluate(() => ({
@@ -1638,12 +1969,12 @@ try {
       buttons: [...document.querySelectorAll(".topbar button")].filter((b) => b.offsetParent !== null).map((b) => b.textContent.replace(/\s+/g, " ").trim()),
       snap: !!document.querySelector("[data-testid=snapshot-top]"), pptx: !!document.querySelector("[data-testid=story-pptx]"), storySnap: !!document.querySelector("[data-testid=snapshot]"),
       tagline: !!document.querySelector(".brand .tagline"),
-      explore: (() => { const e = document.querySelector("[data-testid=data-panel] .panel-body > [data-testid=explore-data]"); return !!e && e === e.parentElement.firstElementChild; })(),
+      explore: !!document.querySelector("[data-testid=data-panel] [data-testid=explore-data]"),
       scen: !!document.querySelector("[data-testid=data-window] [data-testid=dw-panel-exemples] [data-testid=scenario-open]"),
       exportPptx: !!document.querySelector("[data-testid=export-pptx]"),
       hint: document.querySelector(".acc-type small")?.textContent ?? "",
     }));
-    check("barre du haut : logo, Ouvrir des données, Mes revues, Projets, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios dans l'onglet Exemples de la fenêtre Données ; un seul PowerPoint (Exporter)", top.buttons.length === 4 && /^Ouvrir des données/.test(top.buttons[0]) && /^Mes revues/.test(top.buttons[1]) && /Projets/.test(top.buttons[2]) && /Exporter/.test(top.buttons[3]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
+    check("barre du haut : logo, Ouvrir des données, Mes revues, Projets, Exporter (sans Snapshot ni slogan) ; « Explorer ce dataset » dans le panneau Datasets ; Scénarios dans l'onglet Exemples de la fenêtre Données ; un seul PowerPoint (Exporter)", top.buttons.length === 4 && /^Ouvrir des données/.test(top.buttons[0]) && /^Mes revues/.test(top.buttons[1]) && /Projets/.test(top.buttons[2]) && /Exporter/.test(top.buttons[3]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
     // « Plus » : un type rangé dedans est choisi par le menu, puis reste visible dans la bande
     await page.click("[data-testid=type-more]");
     await sleep(200);
@@ -3836,6 +4167,8 @@ try {
 
   /* 26. Nuage de points : « Forme des points » (icônes), iPad : voir e2ePoints() */
   await e2ePoints();
+  /* 27. Datasets dérivés (étape Filtrer, panneau Datasets, versions), iPad : voir e2eDatasets() */
+  await e2eDatasets();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

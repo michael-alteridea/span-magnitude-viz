@@ -4,6 +4,7 @@
  * Réinitialiser ▾. Chaque scène indique si elle a changé depuis l'enregistrement (« modifiée », ↺).
  * Vocabulaire : « scène » dans l'interface ; « snapshot » dans le code, le manifeste et le contrat Cadencer.
  */
+import { datasetColor, isFrozenRef, sceneRef } from "../data/datasets";
 import type { Store } from "../state";
 import { NARRATIVE_ROLES, type NarrativeRole } from "../spec";
 import { assignNarrativeOrder, moveSnapshot, ROLE_LABELS, type Snapshot } from "../story/snapshots";
@@ -173,7 +174,8 @@ export class StoryStrip {
     this.revertIt.disabled = !status.savedAt || !status.dirty;
     const scales = this.actions.scales?.() ?? new Map<string, ScaleInfo>();
     this.sameScaleLabel.classList.toggle("dim", scales.size === 0);
-    const key = JSON.stringify([open, !!st.sameScale, !!status.savedAt, st.snapshots.map((s) => [s.id, s.name, s.role, !!s.thumb, s.thumb?.length ?? 0, scales.get(s.id)?.differs ?? null, status.scenes.get(s.id) ?? null])]);
+    const cat = this.store.state.datasets.map((d) => [d.id, d.name, d.version, d.color, d.source]);
+    const key = JSON.stringify([open, !!st.sameScale, !!status.savedAt, cat, this.store.state.ds?.name, st.snapshots.map((s) => [s.id, s.name, s.role, !!s.thumb, s.thumb?.length ?? 0, scales.get(s.id)?.differs ?? null, status.scenes.get(s.id) ?? null, sceneRef(s)])]);
     if (key === this.key) return;
     this.key = key;
     if (!st.snapshots.length) {
@@ -186,6 +188,24 @@ export class StoryStrip {
   private patch(id: string, p: Partial<Snapshot>): void {
     const st = this.store.state.story;
     this.store.setStory({ ...st, snapshots: st.snapshots.map((s) => (s.id === id ? { ...s, ...p } : s)) });
+  }
+
+  /** Pastille du dataset de la scène : point de couleur, D1, nom ; « v1 · figée » si une version plus récente existe. */
+  private datasetChip(s: Snapshot): HTMLElement {
+    const ref = sceneRef(s);
+    const st = this.store.state;
+    if (!ref) return h("div", { class: "story-ds is-src", "data-testid": "story-card-dataset", "data-dataset": "", title: "Source entière" }, h("span", { class: "ds-dot ds-dot-src", "aria-hidden": "true" }), h("span", { class: "story-ds-n" }, "Source entière"));
+    const d = st.datasets.find((x) => x.id === ref.id && (!st.ds || x.source === st.ds.name)) ?? st.datasets.find((x) => x.id === ref.id);
+    const frozen = isFrozenRef(ref, d);
+    const name = d?.name ?? ref.name;
+    return h(
+      "div",
+      { class: `story-ds${frozen ? " frozen" : ""}`, "data-testid": "story-card-dataset", "data-dataset": ref.id, "data-version": String(ref.version), title: `${ref.id} « ${name} »${frozen ? ` — figée sur la version ${ref.version} (actuelle : v${d!.version})` : ""}` },
+      h("span", { class: "ds-dot", style: `background:${d?.color ?? datasetColor(ref.id)}`, "aria-hidden": "true" }),
+      h("b", null, ref.id),
+      frozen ? h("span", { class: "story-ds-v" }, `v${ref.version} · figée`) : null,
+      h("span", { class: "story-ds-n" }, name)
+    );
   }
 
   private card(s: Snapshot, i: number, scale: ScaleInfo | undefined, same: boolean, state: SceneState | null, saved: boolean): HTMLElement {
@@ -219,6 +239,7 @@ export class StoryStrip {
       badge,
       thumb,
       scale ? this.scaleBadge(scale, same) : null,
+      this.datasetChip(s),
       h("div", { class: "story-card-foot" }, role, dup, reset, del),
       name
     );

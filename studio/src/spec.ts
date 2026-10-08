@@ -310,6 +310,21 @@ export const transformSchema = z.object({
 });
 export type TransformSpec = z.infer<typeof transformSchema>;
 
+/**
+ * Dataset dérivé (modèle « dataset d'abord ») : recette appliquée à la source, recopiée dans le spec du graphique
+ * (id, version, filtres permanents, colonnes gardées). La scène garde ainsi la version qu'elle utilise
+ * (« garder figé »). Absent (null) = la source entière ; null n'entre pas dans l'empreinte.
+ */
+export const datasetRefSchema = z.object({
+  id: z.string().min(1).max(12),
+  version: z.number().int().min(1).default(1),
+  name: z.string().max(120).default(""),
+  filters: z.array(filterSchema).max(20).default([]),
+  /** Colonnes gardées ; vide = toutes. */
+  columns: z.array(z.string()).max(300).default([]),
+});
+export type DatasetRef = z.infer<typeof datasetRefSchema>;
+
 /** Graphique d'écarts (IBCS) : mesure 1 = réel, mesure 2 = référence (budget, N-1, prévision). */
 export const varianceSchema = z.object({
   /** higher = un écart positif est favorable (ventes) ; lower = défavorable (coûts). */
@@ -460,6 +475,8 @@ export const chartSpecSchema = z.object({
   style: styleSchema.default({}),
   special: specialSchema.default({}),
   transform: transformSchema.default({}),
+  /** Dataset dérivé utilisé par ce graphique (null = source entière). */
+  dataset: datasetRefSchema.nullable().default(null),
   variance: varianceSchema.default({}),
   norme: normeSchema.default({}),
   story: storySchema.default({}),

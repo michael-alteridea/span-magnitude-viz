@@ -1,6 +1,7 @@
 /**
  * Panneau de réglages (droite), en accordéon (étape H) :
- * ① Données → ② Graphique → ③ Récit → ④ Style → ⑤ Export, une seule section ouverte à la fois,
+ * ① Graphique (dataset, axes, mesure, filtre de vue, nombre d'éléments, puis forme) → ② Récit → ③ Style → ④ Export,
+ * une seule section ouverte à la fois,
  * un résumé d'une ligne par section, l'essentiel en haut et « Plus d'options » replié,
  * une recherche de réglages, plus aucun doublon (un réglage = un seul contrôle, cf. `data-path` unique).
  * Toucher un élément du graphique ouvre la bonne section et met le réglage en avant (`reveal`).
@@ -27,7 +28,8 @@ import { COLUMN_TYPE_LABELS } from "../data/table";
 import { FONTS, PALETTE_LABELS, paletteColors, themeFor } from "../theme";
 import { h, svgIcon, ICONS } from "./dom";
 import { guessUnit } from "../format";
-import { effectiveDataset, describeTransform } from "../data/transform";
+import { effectiveDataset, datasetBase, describeTransform } from "../data/transform";
+import { datasetsOf, findDataset, isFrozenRef, rowsLabel, toRef } from "../data/datasets";
 import { KIND_LABELS, type InsightKind } from "../story/insights";
 import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
@@ -38,7 +40,7 @@ import { focusInfo, type FocusInfo } from "./focusUi";
 import { FOCUS_LABELS } from "../charts/focus";
 import { count, nounOf } from "../story/fr";
 import type { FilterSpec } from "../spec";
-import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
+import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, sectionAlias, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
 
@@ -54,6 +56,8 @@ export interface PanelActions {
   snapshots: () => number;
   /** Mise en avant : le prochain toucher sur une marque du graphique la choisit. */
   pickFocus?: () => void;
+  /** Fenêtre Données, étape « Filtrer » : modifier un dataset (id) ou en créer un depuis la source (null). */
+  editDataset?: (id: string | null) => void;
 }
 
 interface Sec {
@@ -110,7 +114,7 @@ export class SettingsPanel {
   /** Section ouverte (ou null : toutes repliées). */
   get openSection(): SectionId | null {
     const s = this.store.state.ui.panelSection;
-    return s === "" ? null : isSectionId(s) ? s : DEFAULT_SECTION;
+    return s === "" ? null : sectionAlias(s) ?? DEFAULT_SECTION;
   }
 
   private seqOptions: HTMLElement | null = null;
@@ -140,6 +144,8 @@ export class SettingsPanel {
       spec.axes.x.scale,
       spec.axes.y.scale,
       spec.transform,
+      spec.dataset,
+      this.store.state.datasets.map((d) => [d.id, d.name, d.version, d.source]),
       spec.story.showComments,
       spec.style.horizontal,
       spec.variance,
@@ -172,7 +178,8 @@ export class SettingsPanel {
   /* ------------------------------------------------------------ accordéon */
 
   /** Ouvre une section (les autres se replient) ; `null` replie tout. */
-  open(id: SectionId | null, scroll = true): void {
+  open(idIn: SectionId | "donnees" | null, scroll = true): void {
+    const id = idIn == null ? null : sectionAlias(idIn);
     this.store.state.ui.panelSection = id ?? "";
     this.store.save();
     this.applyOpen();
@@ -370,14 +377,11 @@ export class SettingsPanel {
   private syncSummaries(): void {
     const { spec, ds } = this.store.state;
     const sums = sectionSummaries(spec, !!ds);
-    const done = dataComplete(spec, !!ds);
     for (const [id, s] of this.secs) {
       const txt = s.sum.querySelector<HTMLElement>(".acc-sum-t") ?? s.sum;
       if (txt.textContent !== sums[id]) txt.textContent = sums[id];
       s.sum.title = sums[id];
-      const isDone = id === "donnees" && done;
-      s.root.classList.toggle("done", isDone);
-      s.num.innerHTML = isDone ? svgIcon(ICONS.check, 15) : String(SECTION_IDS.indexOf(id) + 1);
+      s.num.textContent = String(SECTION_IDS.indexOf(id) + 1);
     }
     const sw = this.secs.get("style")?.sum.querySelector(".acc-sum-sw");
     if (sw) sw.replaceChildren(...this.swatchList(spec, 3));
@@ -556,11 +560,53 @@ export class SettingsPanel {
   /* -------------------------------------------------------------- sections */
 
   private build(spec: ChartSpec, cols: Column[]): HTMLElement[] {
-    return [this.buildDonnees(spec, cols), this.buildGraphique(spec, cols), this.buildRecit(spec), this.buildStyle(spec), this.buildExport(spec, cols)];
+    return [this.buildGraphique(spec, cols), this.buildRecit(spec), this.buildStyle(spec), this.buildExport(spec, cols)];
   }
 
-  /* ① Données : quoi montrer */
-  private buildDonnees(spec: ChartSpec, cols: Column[]): HTMLElement {
+  /** Données du dataset du graphique (recette appliquée à la source, avant le filtre de vue). */
+  private baseDs() {
+    return datasetBase(this.store.state.spec, this.store.state.ds);
+  }
+
+  /**
+   * « Dataset ▾ » en tête de ① Graphique : la source entière ou un dataset dérivé de la source (D1, D2…).
+   * Une scène figée sur une version antérieure garde sa version (option « v1 · figée »).
+   */
+  private datasetRow(spec: ChartSpec): HTMLElement | null {
+    const st = this.store.state;
+    const src = st.ds;
+    if (!src) return null;
+    const list = datasetsOf(st.datasets, src.name);
+    const ref = spec.dataset;
+    const cur = ref ? findDataset(st.datasets, src.name, ref.id) : undefined;
+    const frozen = isFrozenRef(ref, cur);
+    const sel = h(
+      "select",
+      { "aria-label": "Dataset du graphique", "data-testid": "dataset-select", "data-target": "dataset" },
+      h("option", { value: "" }, `Source entière · ${rowsLabel(src.rows.length)}`),
+      ...list.map((d) => h("option", { value: d.id, selected: !frozen && ref?.id === d.id }, `${d.id} · ${d.name}`)),
+      ...(frozen && ref ? [h("option", { value: `@${ref.id}`, selected: true }, `${ref.id} v${ref.version} · figée (actuelle : v${cur!.version})`)] : [])
+    ) as HTMLSelectElement;
+    if (ref && !cur && !frozen) sel.append(h("option", { value: `@${ref.id}`, selected: true }, `${ref.id} · ${ref.name}`));
+    sel.addEventListener("change", () => {
+      const v = sel.value;
+      if (v.startsWith("@")) return;
+      const d = list.find((x) => x.id === v);
+      this.store.set("dataset", d ? toRef(d) : null);
+    });
+    const dot = h("span", { class: "ds-dot", style: `background:${cur?.color ?? "transparent"}`, "aria-hidden": "true" });
+    const edit = this.actions?.editDataset
+      ? h("button", { type: "button", class: "btn btn-mini ds-edit", "data-testid": "dataset-edit", title: ref ? `Modifier le dataset ${ref.id} (filtres permanents, colonnes)` : "Nouveau dataset depuis la source : filtres permanents, colonnes gardées", onclick: () => this.actions?.editDataset?.(cur ? cur.id : null) }, ref && cur ? "Modifier" : "+ Nouveau")
+      : null;
+    const n = this.baseDs()?.rows.length ?? 0;
+    return this.kw(
+      h("div", { class: "field ds-field" }, h("span", { class: "field-label" }, "Dataset"), h("div", { class: "ds-pick" }, dot, sel, edit), h("small", { class: "hint", "data-testid": "dataset-hint" }, ref ? `${rowsLabel(n)} · ${frozen ? `version ${ref.version} (scène figée)` : "filtre permanent du dataset"}` : "Toutes les lignes de la source")),
+      "dataset source données jeu filtre permanent d1 d2"
+    );
+  }
+
+  /* ① Graphique, partie données (ancienne carte « Données ») : dataset, axes, mesure, filtre de vue, nombre d'éléments */
+  private dataFields(spec: ChartSpec, cols: Column[]): { main: Kid[]; more: Kid[] } {
     const t = spec.type;
     const num = (c: Column) => c.type === "number";
     const main: Kid[] = [];
@@ -635,8 +681,10 @@ export class SettingsPanel {
       }
     }
     if (cols.length && t !== "drill") main.push(this.filterBlock(spec));
+    if (cols.length && t !== "drill") main.push(this.kw(h("p", { class: "hint ds-help", "data-testid": "view-filter-help" }, "Filtre de vue : ce graphique seulement. Filtre permanent : sur le dataset, à gauche."), "filtre de vue permanent dataset"));
     if (cols.length && !isSpecial(t) && spec.norme.enabled && spec.encoding.y.length) more.push(this.scenarioRows(spec));
-    return this.sectionEl("donnees", main, more);
+    const ds = this.datasetRow(spec);
+    return { main: [ds, ...main], more };
   }
 
   /**
@@ -699,13 +747,13 @@ export class SettingsPanel {
 
   /** Colonnes filtrables : catégories / texte (≤ 500 valeurs), dates, années numériques. */
   private filterColumns(): Column[] {
-    const ds = this.store.state.ds;
+    const ds = this.baseDs();
     if (!ds) return [];
     return ds.columns.filter((c) => ((c.type === "category" || c.type === "text") && c.cardinality <= 500) || c.type === "date" || (c.type === "number" && this.yearLike(c.name)));
   }
 
   private yearLike(col: string): boolean {
-    const ds = this.store.state.ds;
+    const ds = this.baseDs();
     if (!ds || !/ann[ée]e|year|exercice|mill[ée]sime/i.test(col)) return false;
     return ds.rows.every((r) => r[col] == null || (Number.isInteger(r[col]) && (r[col] as number) >= 1800 && (r[col] as number) <= 2200));
   }
@@ -715,7 +763,7 @@ export class SettingsPanel {
    * une année ou une période. Écrit dans `transform.filters` (mêmes pastilles que l'Explorer).
    */
   private filterBlock(spec: ChartSpec): HTMLElement {
-    const ds = this.store.state.ds!;
+    const ds = this.baseDs()!;
     const cols = this.filterColumns();
     const ui = this.filterUi;
     if (ui.field && !cols.some((c) => c.name === ui.field)) ui.field = null;
@@ -832,14 +880,15 @@ export class SettingsPanel {
       kids.push(modeSeg, search, list);
       if (picked.size) kids.push(h("button", { type: "button", class: "btn btn-mini filter-clear", "data-testid": "filter-clear", onclick: () => write(ui.mode, new Set()) }, `Retirer ce filtre (${picked.size} ${picked.size > 1 ? "valeurs" : "valeur"})`));
     }
-    return this.kw(h("div", { class: "field filter-block", "data-testid": "filter-block" }, h("span", { class: "field-label" }, "Filtrer"), ...kids), kw);
+    return this.kw(h("div", { class: "field filter-block", "data-testid": "filter-block" }, h("span", { class: "field-label" }, "Filtre de vue"), ...kids), `${kw} vue`);
   }
 
   /* ② Graphique : forme, tri, unités ; axes et légende dans « Plus d'options » */
   private buildGraphique(spec: ChartSpec, cols: Column[]): HTMLElement {
     const t = spec.type;
-    const main: Kid[] = [];
-    const more: Kid[] = [];
+    const data = this.dataFields(spec, cols);
+    const main: Kid[] = [...data.main, h("hr", { class: "acc-sep" })];
+    const more: Kid[] = [...data.more];
     main.push(this.kw(h("p", { class: "acc-type" }, h("span", { class: "acc-type-k" }, "Type"), h("b", null, typeShort(t)), h("small", null, "· bande du haut")), "type de graphique"));
     if (isBarType(t) || isRadial(t))
       main.push(this.kw(this.line("Trier", this.segmented("style.sort", [["none", "Données", "Ordre des données"], ["desc", "Décr.", "Décroissant"], ["asc", "Croiss.", "Croissant"], ["alpha", "A→Z", "Alphabétique"]])), "tri ordre décroissant croissant alphabétique classement"));

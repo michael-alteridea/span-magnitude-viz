@@ -4,7 +4,7 @@
  * ce qui garde les caches de rendu stables.
  */
 import { dayMonthYear } from "../story/fr";
-import type { CalcSpec, ChartSpec, FilterSpec, TransformSpec } from "../spec";
+import type { CalcSpec, ChartSpec, DatasetRef, FilterSpec, TransformSpec } from "../spec";
 import type { Cell, Column, ColumnType, Dataset, Row } from "./table";
 
 const DAY = 86400000;
@@ -206,9 +206,53 @@ export function applyTransform(ds: Dataset, t: TransformSpec): Dataset {
 }
 
 const memo = new WeakMap<Dataset, Map<string, Dataset>>();
+const baseMemo = new WeakMap<Dataset, Map<string, Dataset>>();
 
-/** Dataset effectif d'un spec (mémorisé par dataset + transform). */
-export function effectiveDataset<T extends Dataset | null>(spec: Pick<ChartSpec, "transform">, ds: T): T {
+/** Recette d'un dataset dérivé (filtres permanents + colonnes gardées), sans version ni nom. */
+export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string };
+
+/**
+ * Applique la recette d'un dataset dérivé à la source : filtres permanents puis colonnes gardées.
+ * Les filtres sur une colonne absente sont ignorés (source remplacée) ; le nom devient celui du dataset.
+ */
+export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
+  const filters = r.filters.filter((f) => src.columns.some((c) => c.name === f.field));
+  const keepCols = r.columns.length ? src.columns.filter((c) => r.columns.includes(c.name)) : src.columns;
+  const idx: number[] = [];
+  src.rows.forEach((row, i) => {
+    if (filters.every((f) => passesFilter(f, row[f.field]))) idx.push(i);
+  });
+  const names = keepCols.map((c) => c.name);
+  const pick = <T,>(o: Record<string, T>): Record<string, T> => {
+    if (keepCols.length === src.columns.length) return o;
+    const out: Record<string, T> = {};
+    for (const n of names) if (n in o) out[n] = o[n]!;
+    return out;
+  };
+  const rows = idx.map((i) => pick(src.rows[i]!) as Row);
+  const columns = keepCols.map((c) => ({ ...c, cardinality: new Set(rows.map((x) => x[c.name]).filter((v) => v != null && v !== "").map(String)).size }));
+  return { name: r.name?.trim() || src.name, columns, rows, raw: idx.map((i) => pick(src.raw[i] as Record<string, unknown>)), typeOverrides: src.typeOverrides };
+}
+
+/** Données du dataset dérivé d'un spec (la source si aucun), mémorisées par source + recette. */
+export function datasetBase<T extends Dataset | null>(spec: { dataset?: DatasetRef | null }, ds: T): T {
+  const ref = spec.dataset;
+  if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name)) return ds;
+  const key = JSON.stringify([ref.name, ref.filters, ref.columns]);
+  let m = baseMemo.get(ds);
+  if (!m) baseMemo.set(ds, (m = new Map()));
+  let out = m.get(key);
+  if (!out) {
+    out = applyRecipe(ds, ref);
+    if (m.size > 40) m.clear();
+    m.set(key, out);
+  }
+  return out as T;
+}
+
+/** Dataset effectif d'un spec : dataset dérivé (recette), puis filtre de vue et calculs du graphique (mémorisé). */
+export function effectiveDataset<T extends Dataset | null>(spec: Pick<ChartSpec, "transform"> & { dataset?: DatasetRef | null }, rawDs: T): T {
+  const ds = datasetBase(spec, rawDs);
   if (!ds || isEmptyTransform(spec.transform)) return ds;
   const key = JSON.stringify(spec.transform);
   let m = memo.get(ds);

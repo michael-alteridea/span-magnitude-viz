@@ -268,7 +268,7 @@ export class Preview {
       this.overlay.style.display = "none";
       return;
     }
-    const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.transform, spec.special, spec.mode.kind, spec.mode.fourD.durationMs, spec.style.palette, spec.style.background, spec.style.backgroundCustom, Math.round(plot.w), Math.round(plot.h)]);
+    const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.transform, spec.dataset ?? null, spec.special, spec.mode.kind, spec.mode.fourD.durationMs, spec.style.palette, spec.style.background, spec.style.backgroundCustom, Math.round(plot.w), Math.round(plot.h)]);
     Object.assign(this.specialHost.style, { display: "block", left: `${plot.x}px`, top: `${plot.y}px`, width: `${plot.w}px`, height: `${plot.h}px` });
     if (key === this.specialKey) return;
     this.specialKey = key;

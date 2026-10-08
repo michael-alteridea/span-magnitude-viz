@@ -63,6 +63,8 @@ export function subtitleFor(spec: ChartSpec, eff: Dataset, ctx: Ctx, a: Analysis
   const parts: string[] = [];
   if (spec.type === "drill" && a?.scope) return clip(a.scope, 300);
   if (ctx.entity) parts.push(ctx.entity);
+  // Dataset dérivé : son nom dit le périmètre (filtres permanents) en clair
+  if (spec.dataset?.name && spec.dataset.name !== ctx.entity) parts.push(spec.dataset.name);
   const y = spec.encoding.y;
   const unit = UNIT_TXT[spec.axes.y.unit];
   if (spec.type === "variance" && y.length >= 2) {
@@ -155,7 +157,7 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
 
 /** Clé de recalcul du récit (ne dépend pas des textes affichés). */
 export function narrativeKey(spec: ChartSpec, dsVersion: number, sc: StoryContext): string {
-  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.style.barCap, spec.style.focus?.key ?? null, spec.type === "drill" ? spec.drill : null]);
+  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.dataset ?? null, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.style.barCap, spec.style.focus?.key ?? null, spec.type === "drill" ? spec.drill : null]);
 }
 
 /**

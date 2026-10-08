@@ -18,8 +18,8 @@ function svgEl(markup: string, sel: string): Element {
 }
 
 describe("panneau en accordéon : sections", () => {
-  it("cinq sections dans l'ordre Données → Graphique → Récit → Style → Export, Graphique ouverte par défaut", () => {
-    expect(SECTION_IDS.map((id) => SECTION_TITLES[id])).toEqual(["Données", "Graphique", "Récit", "Style", "Export"]);
+  it("quatre sections dans l'ordre Graphique → Récit → Style → Export (Données fondue dans Graphique), Graphique ouverte par défaut", () => {
+    expect(SECTION_IDS.map((id) => SECTION_TITLES[id])).toEqual(["Graphique", "Récit", "Style", "Export"]);
     expect(DEFAULT_SECTION).toBe("graphique");
   });
 

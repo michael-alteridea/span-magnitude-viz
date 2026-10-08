@@ -574,15 +574,15 @@ gardant titre, chiffre clé, légende et durée retouchés, le rythme, l'ordre e
 inchangé et rend à l'éditeur son état d'avant. Boutons de 44 px au toucher (iPad). e2e `--public` ; captures
 `docs/shots/109` à `111`.
 
-## Nombre d'éléments et Filtrer (Réglages › Données)
+## Nombre d'éléments et Filtre de vue (Réglages › ① Graphique)
 
-Visibles dans la section Données (pas sous « Plus d'options ») :
+Visibles en haut de ① Graphique (ex-section Données, fusionnée au déploiement 2) (pas sous « Plus d'options ») :
 
 - **Nombre d'éléments** (barres, horizontales, groupées, empilées, secteurs, anneau, arcs, écarts ; catégories non
   temporelles) : *Tous / Top 5 / Top 10 / Top 20 / Perso* (1 à 100), **Classement** *Les plus grands* (valeur
   absolue) ou *Les plus petits* (`encoding.topOrder: "bottom"`), case **Regrouper le reste en « Autres »** (sommes et
   comptages), indication « 10 sur 27 pays affichés ».
-- **Filtrer** : une colonne → *Garder* ou *Exclure* des valeurs (liste à cocher avec recherche, nombre de lignes par
+- **Filtre de vue** (ex-« Filtrer », ce graphique seulement) : une colonne → *Garder* ou *Exclure* des valeurs (liste à cocher avec recherche, nombre de lignes par
   valeur) ; colonne de dates ou d'années → une année ou une période (*De … À …*). Écrit dans `transform.filters`, mêmes
   pastilles que l'Explorer (une période = une pastille ; × la retire).
 - Recherche de réglages : « top », « classement », « nombre de barres », « filtre », « autres ».
@@ -597,7 +597,7 @@ Tests : `test/model.test.ts` (top / plus petits / Autres), e2e `--topn` (iPad 10
 
 ## Fenêtre « Données » (une seule porte d'entrée)
 
-- **Où** : barre du haut › **Ouvrir des données**, ou panneau Données › **Changer de données**. Lien direct :
+- **Où** : barre du haut › **Ouvrir des données**, ou panneau Datasets › Source › **Remplacer**. Lien direct :
   `?donnees=publiques` (onglet Données publiques), `?donnees=ouvrir` (Récents s'il y en a, sinon Importer un fichier) ;
   aussi `fichier`, `coller`, `recents`, `exemples`. `?reel=exemple` reste valable.
 - **Onglets** (fenêtre pleine page, onglets à gauche ; en haut sur iPad, cibles de 44 px) :
@@ -626,7 +626,7 @@ clé du Reel suivent l'élément. Logique pure `analyzeFocus` (`story/insights.t
 
 ## Nuage de points : « Forme des points » (icônes)
 
-Réglages › ② Graphique › « Forme des points » : **Ronds** (par défaut, rendu inchangé), **Une icône** (la même icône pour tous les points, choisie dans la fenêtre illustrée « Icône ▾ ») ou **Par groupe** (une icône par groupe de « Couleur par » ; une ligne « Icône par groupe (colonne) » par groupe, même fenêtre de choix que les extrémités de barres, bibliothèque Phosphor).
+Réglages › ① Graphique › « Forme des points » : **Ronds** (par défaut, rendu inchangé), **Une icône** (la même icône pour tous les points, choisie dans la fenêtre illustrée « Icône ▾ ») ou **Par groupe** (une icône par groupe de « Couleur par » ; une ligne « Icône par groupe (colonne) » par groupe, même fenêtre de choix que les extrémités de barres, bibliothèque Phosphor).
 
 - Les icônes prennent la couleur du groupe ; « Taille des bulles » reste active (taille minimale lisible de 16 px).
 - Libellés, infobulles, mise en avant (icône choisie en couleur, autres en gris, bulle) et animation d'entrée / Reel fonctionnent comme avec les ronds.
@@ -669,6 +669,35 @@ revue et le contrat Cadencer 1.1 (gelé) gardent « snapshot » : mêmes identif
   `src/project/controller.ts` (projet ouvert), `src/ui/projectsDialog.ts`, `src/ui/confirm.ts`.
   Tests : `test/project.test.ts` ; e2e `node studio/scripts/e2e.mjs --projets [--shots]` (iPad 1024 et 1366,
   captures `docs/shots/130…136`).
+
+## Datasets dérivés (déploiement 2)
+
+Une source par projet (jamais modifiée) ; des **datasets dérivés** D1, D2… = la source + des filtres permanents + un
+choix de colonnes, nommés et réutilisés par les graphiques et les scènes.
+
+- **Créer** : panneau gauche **Datasets** › **+ Nouveau dataset depuis la source** → fenêtre Données, étape
+  **② Filtrer** : pastilles empilées (« Pays 4 sur 5 (sans Allemagne) » › « Année 2025 → 2026 » › « Secteur Industrie,
+  Santé », chacune avec son nombre de lignes, × la retire, **+ Filtre** en ajoute une), fenêtre de valeurs (Tout / Aucun /
+  Inverser, période *De … À …*), compteur en direct « 64 lignes sur 240 · 27 % », colonnes gardées à gauche, nom proposé
+  d'après les filtres, puis **Enregistrer comme dataset** (ou *Utiliser sans enregistrer* = filtre de vue).
+- **Panneau Datasets** : carte Source (*Remplacer*, *Aperçu*), arbre « Datasets dérivés » (Source entière, D1, D2… avec
+  pastilles, lignes, scènes ; ✎ *Modifier*), « Colonnes de D1 », *Explorer ce dataset*, aperçu de la source.
+- **Réglages › ① Graphique** (la carte Données disparaît ; cartes renumérotées ① Graphique, ② Récit, ③ Style,
+  ④ Export) : en haut **Dataset ▾** + *Modifier*, colonnes, calcul, **Nombre d'éléments** et **Filtre de vue** (ce
+  graphique seulement ; le filtre permanent est sur le dataset). Le résumé de carte commence par « D1 · ».
+- **Modifier un dataset utilisé** : dialogue « N scènes utilisent ce dataset » (avant → après, lignes, vignettes des
+  scènes, avertissement si une scène est partagée dans Cadencer) : **Mettre à jour les N scènes** (chiffres, titres
+  calculés et commentaires recalculés ; textes saisis gardés), **Garder les scènes figées** sur la version actuelle
+  (le dataset passe en v+1 ; scènes et empreintes inchangées) ou **Enregistrer plutôt comme nouveau dataset**.
+- **Séquence** : chaque carte de scène porte sa pastille « D1 », « D1 v2 · figée » ou « Source entière ».
+- **Vérifiabilité** : QR et empreinte des données restent ceux du **fichier source** ; le nom du dataset apparaît dans
+  le sous-titre. Contrat Cadencer 1.1 inchangé : `dataset` absent (null) n'entre pas dans l'empreinte, les empreintes
+  publiées ne changent pas.
+- **Spec / projets** : `spec.dataset` = `{ id, version, name, filters, columns }` (recette recopiée : une scène figée
+  reste reproductible). Les projets et fichiers `.datanime` enregistrent leurs datasets ; les anciens s'ouvrent sans
+  changement (aucun dataset, « Source entière »).
+- Tests : `test/datasets.test.ts`, `node studio/scripts/e2e.mjs --datasets --shots` (iPad 1366 et 1024, toucher ;
+  captures 150 à 156).
 
 ## Menu du haut : variante B « Deux niveaux calmes »
 

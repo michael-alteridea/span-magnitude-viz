@@ -75,13 +75,13 @@ export class ProjectController {
 
   working(): WorkingState {
     const st = this.d.store.state;
-    return { source: this.workingSource(), spec: st.spec, sequence: { title: st.story.title, snapshots: st.story.snapshots, sameScale: !!st.story.sameScale, film: { morph: this.d.morph() } } };
+    return { source: this.workingSource(), spec: st.spec, sequence: { title: st.story.title, snapshots: st.story.snapshots, sameScale: !!st.story.sameScale, film: { morph: this.d.morph() } }, datasets: st.datasets };
   }
 
   /** Signature courante (mémorisée tant que spec / données / séquence n'ont pas changé d'objet). */
   sig(): string {
     const st = this.d.store.state;
-    const key = [st.spec, st.dsVersion, st.ds, st.provenance, st.story, this.d.morph()];
+    const key = [st.spec, st.dsVersion, st.ds, st.provenance, st.story, this.d.morph(), st.datasets];
     if (this.sigCache && this.sigCache.key.every((k, i) => k === key[i])) return this.sigCache.sig;
     const sig = projectSig(this.working());
     this.sigCache = { key, sig };
@@ -109,7 +109,8 @@ export class ProjectController {
       const p = id ? await this.d.repo.get(id) : null;
       if (p) {
         this.saved = p;
-        this.baseline = p.sig ?? projectSig({ source: p.source, spec: p.spec, sequence: p.sequence });
+        // signature recalculée depuis l'enregistrement (règles de comparaison à jour, champs récents par défaut ignorés)
+        this.baseline = projectSig({ source: p.source, spec: p.spec, sequence: p.sequence, datasets: p.datasets ?? [] });
       } else {
         writePointer(null);
         const story = this.d.store.state.story;
@@ -152,6 +153,7 @@ export class ProjectController {
       source,
       spec: structuredClone(st.spec),
       sequence: { title: st.story.title, snapshots: snaps, sameScale: !!st.story.sameScale, film: { morph: this.d.morph() } },
+      datasets: structuredClone(st.datasets),
       thumb,
       sig: this.sig(),
     };
@@ -189,6 +191,8 @@ export class ProjectController {
   }
 
   private async load(p: Project): Promise<void> {
+    // Projets du déploiement 1 : pas de datasets (la source entière sert de dataset par défaut)
+    this.d.store.setDatasets(structuredClone(p.datasets ?? []));
     await this.d.applySource(p.source, p.spec);
     this.d.setMorph(!!p.sequence.film?.morph);
     this.d.store.setStory(sequenceToStory(p.sequence));
@@ -212,6 +216,7 @@ export class ProjectController {
   resetAll(): void {
     this.detach();
     this.d.store.clearSession();
+    this.d.store.setDatasets([]);
     this.d.store.setStory({ title: "Notre histoire en données", snapshots: [], sameScale: false });
     this.d.loadDefault();
     this.d.onChange();

@@ -1,6 +1,8 @@
 /**
  * Fenêtre « Données » (pleine page, adaptée à l'iPad) : une seule porte d'entrée pour choisir ses données.
  * Onglets : Importer un fichier · Coller un tableau · Récents · Exemples · Données publiques.
+ * Étapes (modèle « dataset d'abord ») : ① Source ✓ › ② Filtrer › ③ Enregistrer le dataset — l'étape Filtrer
+ * (voir datasetEditor.ts) s'ouvre aussi depuis le panneau Datasets (« + Nouveau dataset », « Modifier »).
  * S'ouvre depuis la barre du haut (« Ouvrir des données »), le panneau Données (« Changer de données »)
  * et par lien direct (?donnees=publiques, ?donnees=ouvrir…). Rien n'est envoyé : tout reste dans le navigateur.
  */
@@ -50,6 +52,13 @@ const kv = (): KV | null => {
 
 export class DataWindow {
   readonly root: HTMLElement;
+  private body!: HTMLElement;
+  private editorHost: HTMLElement = h("div", { class: "dw-editor-host" });
+  private stepBtns: HTMLButtonElement[] = [];
+  private step: "source" | "filtrer" = "source";
+  private hasSource: () => boolean = () => false;
+  private onFilter: ((editId: string | null) => void) | null = null;
+  private headP!: HTMLElement;
   private tab: DataTab = "fichier";
   private tabBtns = new Map<DataTab, HTMLButtonElement>();
   private panels = new Map<DataTab, HTMLElement>();
@@ -231,6 +240,27 @@ export class DataWindow {
       this.panels.set(t, p);
     }
 
+    // Étapes : ① Source › ② Filtrer › ③ Enregistrer le dataset
+    const stepBtn = (n: string, label: string, testid: string, on: () => void) => {
+      const b = h("button", { type: "button", class: "dw-step", "data-testid": testid, onclick: on }, h("span", { class: "dw-step-n" }, n), h("span", { class: "dw-step-t" }, label)) as HTMLButtonElement;
+      this.stepBtns.push(b);
+      return b;
+    };
+    const steps = h(
+      "nav",
+      { class: "dw-steps", "aria-label": "Étapes" },
+      stepBtn("1", "Source", "dw-step-source", () => this.showSource()),
+      h("span", { class: "dw-step-line", "aria-hidden": "true" }),
+      stepBtn("2", "Filtrer", "dw-step-filtrer", () => this.hasSource() && this.onFilter?.(null)),
+      h("span", { class: "dw-step-line", "aria-hidden": "true" }),
+      stepBtn("3", "Enregistrer le dataset", "dw-step-save", () => {
+        if (!this.hasSource()) return;
+        if (this.step !== "filtrer") this.onFilter?.(null);
+        requestAnimationFrame(() => this.editorHost.querySelector<HTMLInputElement>("[data-testid=dse-name]")?.focus());
+      })
+    );
+    this.headP = h("p", null, "Choisissez une source : votre fichier, un tableau collé, vos données récentes, un exemple ou des données publiques.");
+    this.body = h("div", { class: "dw-body" }, tablist, h("div", { class: "dw-panels" }, ...this.panels.values()));
     const sheet = h(
       "div",
       { class: "dw-sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "dw-title" },
@@ -238,10 +268,12 @@ export class DataWindow {
         "header",
         { class: "dw-head" },
         h("span", { class: "dw-head-ic", html: svgIcon(ICONS.table, 20) }),
-        h("div", { class: "dw-head-txt" }, h("h2", { id: "dw-title" }, "Données"), h("p", null, "Choisissez une source : votre fichier, un tableau collé, vos données récentes, un exemple ou des données publiques.")),
+        h("div", { class: "dw-head-txt" }, h("h2", { id: "dw-title" }, "Données"), this.headP),
+        steps,
         h("button", { type: "button", class: "icon-btn dw-close", "aria-label": "Fermer", title: "Fermer (Échap)", "data-testid": "data-window-close", html: svgIcon(ICONS.close, 20), onclick: () => this.close() })
       ),
-      h("div", { class: "dw-body" }, tablist, h("div", { class: "dw-panels" }, ...this.panels.values()))
+      this.body,
+      this.editorHost
     );
     this.root = h("div", { class: "dw-overlay", hidden: true, "data-testid": "data-window", onclick: (e: Event) => e.target === this.root && this.close() }, sheet);
     this.root.addEventListener("keydown", (e) => {
@@ -251,6 +283,58 @@ export class DataWindow {
       }
     });
     this.renderRecents();
+  }
+
+  /** Étape « Filtrer » : éditeur de dataset (fourni par main) et accès à la source courante. */
+  attachEditor(el: HTMLElement, hasSource: () => boolean, onFilter: (editId: string | null) => void): void {
+    this.editorHost.replaceChildren(el);
+    this.hasSource = hasSource;
+    this.onFilter = onFilter;
+    this.paintSteps();
+  }
+
+  get currentStep(): "source" | "filtrer" {
+    return this.step;
+  }
+
+  private paintSteps(): void {
+    const src = this.hasSource();
+    const [b1, b2, b3] = this.stepBtns;
+    const f = this.step === "filtrer";
+    b1?.classList.toggle("done", src);
+    b1?.classList.toggle("active", !f);
+    b1!.querySelector(".dw-step-n")!.innerHTML = src ? svgIcon(ICONS.check, 13) : "1";
+    b2?.classList.toggle("active", f);
+    if (b2) b2.disabled = !src;
+    if (b3) b3.disabled = !src;
+    b3?.classList.toggle("next", f);
+    this.root.classList.toggle("dw-filtering", f);
+  }
+
+  /** Affiche l'étape ① Source (onglets). */
+  showSource(tab?: DataTab): void {
+    this.step = "source";
+    this.body.hidden = false;
+    const ed = this.editorHost.firstElementChild as HTMLElement | null;
+    if (ed) ed.hidden = true;
+    this.headP.hidden = false;
+    this.paintSteps();
+    if (tab) this.show(tab);
+  }
+
+  /** Affiche l'étape ② Filtrer (l'éditeur est déjà démarré par main). */
+  showFilter(): void {
+    if (!this.isOpen) {
+      this.lastFocus = document.activeElement as HTMLElement | null;
+      this.root.hidden = false;
+      document.body.classList.add("dw-open");
+    }
+    this.step = "filtrer";
+    this.body.hidden = true;
+    const ed = this.editorHost.firstElementChild as HTMLElement | null;
+    if (ed) ed.hidden = false;
+    this.headP.hidden = true;
+    this.paintSteps();
   }
 
   get isOpen(): boolean {
@@ -272,6 +356,7 @@ export class DataWindow {
     this.renderRecents();
     this.root.hidden = false;
     document.body.classList.add("dw-open");
+    this.showSource();
     this.show(tab ?? (this.recents.length ? "recents" : "fichier"));
     requestAnimationFrame(() => this.tabBtns.get(this.tab)?.focus({ preventScroll: true }));
   }
@@ -300,6 +385,7 @@ export class DataWindow {
   /** Exemple actif (surligné). */
   update(sampleId: string | null): void {
     this.sampleBtns.forEach((b) => b.classList.toggle("active", b.dataset.sample === sampleId));
+    if (this.stepBtns.length) this.paintSteps();
   }
 
   /** Mémorise un jeu ouvert ou importé (en tête de « Récents »). */

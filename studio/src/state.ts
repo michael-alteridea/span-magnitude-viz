@@ -6,6 +6,7 @@ import { buildDataset, serializableRaw, type ColumnType, type Dataset } from "./
 import { sampleById } from "./data/samples";
 import { emptyStory, loadStory, saveStory, type StoryState } from "./story/snapshots";
 import type { Provenance } from "./provenance";
+import { adoptRef, parseDatasets, refFits, type DatasetRecipe } from "./data/datasets";
 
 export type ChangeKind = "spec" | "data" | "ui" | "story";
 
@@ -41,6 +42,8 @@ export interface AppState {
   provenance: Provenance | null;
   /** Compteur de chargements de données (une empreinte calculée en différé ne s'applique qu'à son jeu). */
   dataSeq: number;
+  /** Datasets dérivés du projet (recettes sur la source ; voir data/datasets.ts). */
+  datasets: DatasetRecipe[];
 }
 
 const KEY = "reporting-4d-studio:session:v1";
@@ -89,6 +92,7 @@ export class Store {
       story: emptyStory(),
       provenance: null,
       dataSeq: 0,
+      datasets: [],
     };
   }
 
@@ -129,6 +133,7 @@ export class Store {
     // La provenance suit les données réellement chargées (jamais celle d'un spec ouvert ou d'un snapshot)
     r.spec.provenance = this.state.provenance;
     this.state.spec = r.spec;
+    this.adopt([r.spec.dataset]);
     this.emit("spec");
     return [];
   }
@@ -175,7 +180,24 @@ export class Store {
 
   setStory(next: StoryState): void {
     this.state.story = next;
+    this.adopt(next.snapshots.map((s) => (s.spec as { dataset?: ChartSpec["dataset"] } | null)?.dataset ?? null));
     this.emit("story");
+  }
+
+  /* ---------------------------------------------------------------- datasets dérivés */
+
+  /** Remplace le catalogue des datasets (projet ouvert, création, modification). */
+  setDatasets(list: DatasetRecipe[]): void {
+    this.state.datasets = list;
+    this.emit("spec");
+  }
+
+  /** Recettes connues des specs (projets, fichiers, scènes plus anciens) ajoutées au catalogue de la source courante. */
+  private adopt(refs: (ChartSpec["dataset"] | null | undefined)[]): void {
+    const ds = this.state.ds;
+    let list = this.state.datasets;
+    for (const ref of refs) if (ref && ds && refFits(ref, ds)) list = adoptRef(list, ref, ds.name) ?? list;
+    if (list !== this.state.datasets) this.state.datasets = list;
   }
 
   private saveStoryNow(): void {
@@ -206,6 +228,10 @@ export class Store {
     this.state.importNote = meta.note ?? null;
     this.state.sheets = meta.sheets ?? null;
     this.state.sheet = meta.sheet ?? null;
+    // Dataset dérivé d'une autre source (colonnes absentes) : le graphique repasse sur la source entière
+    const ref = this.state.spec.dataset;
+    if (ref && ds && !refFits(ref, ds)) this.state.spec = { ...this.state.spec, dataset: null };
+    else if (ref) this.adopt([ref]);
     this.emit("data");
   }
 
@@ -234,14 +260,14 @@ export class Store {
 
   save() {
     try {
-      const { spec, ds, sampleId, ui, importNote } = this.state;
+      const { spec, ds, sampleId, ui, importNote, datasets } = this.state;
       let data: unknown = null;
       if (ds && !sampleId) {
         const raw = JSON.stringify(serializableRaw(ds.raw));
         if (raw.length <= MAX_DATA_CHARS) data = { name: ds.name, raw: JSON.parse(raw), typeOverrides: ds.typeOverrides };
       }
       const typeOverrides = ds && sampleId ? ds.typeOverrides : undefined;
-      localStorage.setItem(KEY, JSON.stringify({ v: SESSION_VERSION, spec, sampleId, data, typeOverrides, ui, importNote, savedAt: new Date().toISOString() }));
+      localStorage.setItem(KEY, JSON.stringify({ v: SESSION_VERSION, spec, sampleId, data, typeOverrides, ui, importNote, ...(datasets.length ? { datasets } : {}), savedAt: new Date().toISOString() }));
     } catch {
       /* quota dépassé / navigation privée : on ignore */
     }
@@ -260,11 +286,13 @@ export class Store {
         typeOverrides?: Record<string, ColumnType>;
         ui?: Partial<UiState>;
         importNote?: string | null;
+        datasets?: unknown;
       };
       const spec = chartSpecSchema.safeParse(migrateSessionSpec(s.spec ?? {}, s.v ?? 1));
       if (!spec.success) return false;
       this.state.spec = spec.data;
       if (s.ui) this.state.ui = { ...this.state.ui, ...s.ui };
+      this.state.datasets = parseDatasets(s.datasets);
       const sample = sampleById(s.sampleId);
       if (sample) {
         this.setDataset(buildDataset(sample.name, sample.rows(), s.typeOverrides ?? {}), { sampleId: sample.id });

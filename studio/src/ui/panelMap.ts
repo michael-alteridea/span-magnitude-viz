@@ -1,18 +1,23 @@
 /**
  * Panneau de réglages en accordéon (étape H) : logique pure, testable sans navigateur.
- * - les cinq sections (Données → Graphique → Récit → Style → Export) et leur résumé d'une ligne ;
+ * - les quatre sections (Graphique → Récit → Style → Export) et leur résumé d'une ligne. Déploiement 2 (datasets) :
+ *   l'ancienne carte « Données » est fondue en tête de « ① Graphique » (Dataset ▾, axes, mesure, filtre de vue,
+ *   nombre d'éléments) ; le filtre permanent se règle sur le dataset (panneau gauche, fenêtre Données) ;
  * - la recherche de réglages (sans accents, tous les mots) ;
  * - « toucher un élément du graphique » : élément cliqué → section et réglage à mettre en avant.
  */
 import { AGGREGATE_LABELS, CHART_TYPE_LABELS, SIZE_PRESETS, isBarType, isCartesian, isRadial, isSpecial, isVariance, type ChartSpec, type ChartType } from "../spec";
 import { PALETTE_LABELS } from "../theme";
 
-export const SECTION_IDS = ["donnees", "graphique", "recit", "style", "export"] as const;
+export const SECTION_IDS = ["graphique", "recit", "style", "export"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
-export const SECTION_TITLES: Record<SectionId, string> = { donnees: "Données", graphique: "Graphique", recit: "Récit", style: "Style", export: "Export" };
+export const SECTION_TITLES: Record<SectionId, string> = { graphique: "Graphique", recit: "Récit", style: "Style", export: "Export" };
 export const DEFAULT_SECTION: SectionId = "graphique";
 
 export const isSectionId = (s: unknown): s is SectionId => typeof s === "string" && (SECTION_IDS as readonly string[]).includes(s);
+
+/** Anciens identifiants (session, liens) : « donnees » → « graphique ». */
+export const sectionAlias = (s: unknown): SectionId | null => (s === "donnees" ? "graphique" : isSectionId(s) ? s : null);
 
 /** Texte de recherche normalisé : minuscules, sans accents ni apostrophes typographiques. */
 export function normSearch(s: string): string {
@@ -57,7 +62,7 @@ export function dataComplete(spec: ChartSpec, hasData: boolean): boolean {
 }
 
 /** Résumé d'une ligne de chaque section (affiché dans l'en-tête, ouvert ou replié). */
-export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<SectionId, string> {
+export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<SectionId, string> & { donnees: string } {
   const t = spec.type;
   const e = spec.encoding;
   const s = spec.style;
@@ -100,7 +105,8 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
   /* Export */
   const size = s.size.preset === "custom" ? `${s.size.width} × ${s.size.height} px` : s.size.preset;
   const exp = `${size} · ${ANIM_LABELS[animKind(spec)]}${s.authQr ? " · QR" : ""}`;
-  return { donnees, graphique: g.filter(Boolean).join(" · "), recit, style, export: exp };
+  const ds = spec.dataset ? `${spec.dataset.id}` : "";
+  return { donnees, graphique: [ds, g.filter(Boolean).join(" · ")].filter(Boolean).join(" · "), recit, style, export: exp };
 }
 
 /** Section et réglage(s) à mettre en avant (premier chemin présent dans le panneau), ou groupe (« axe-y »). */

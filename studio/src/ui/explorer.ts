@@ -9,7 +9,7 @@ import { ROLE_LABELS } from "../story/snapshots";
 import { miniThumbnail } from "./miniCharts";
 import { h, svgIcon, ICONS } from "./dom";
 import { setMiniNorme } from "./miniBase";
-import { effectiveDataset } from "../data/transform";
+import { datasetBase, effectiveDataset } from "../data/transform";
 import { normeAdvice, normeSubtitle, specScenarios } from "../norme";
 import type { ChartSpec } from "../spec";
 
@@ -45,7 +45,8 @@ export class Explorer {
   }
 
   open(): void {
-    const { ds } = this.store.state;
+    // Explorer le dataset du graphique (recette appliquée à la source), sinon la source entière
+    const ds = datasetBase(this.store.state.spec, this.store.state.ds);
     this.isOpen = true;
     this.root.classList.remove("hidden");
     if (!ds || !ds.rows.length) {

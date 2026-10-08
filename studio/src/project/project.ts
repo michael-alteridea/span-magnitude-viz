@@ -10,6 +10,7 @@
 import type { ColumnType } from "../data/table";
 import type { Provenance } from "../provenance";
 import { parseStory, type Snapshot, type StoryState } from "../story/snapshots";
+import { parseDatasets, type DatasetRecipe } from "../data/datasets";
 
 export const PROJECT_FILE_KIND = "datanime-project";
 export const PROJECT_FILE_VERSION = 1;
@@ -47,6 +48,8 @@ export interface Project {
   source: ProjectSource | null;
   spec: unknown;
   sequence: Sequence;
+  /** Datasets dérivés de la source (recettes ; absent dans les projets du déploiement 1 = aucun). */
+  datasets?: DatasetRecipe[];
   /** Vignette JPEG (data URL) : 1re scène, sinon le graphique courant. */
   thumb: string | null;
   /** Signature de l'état enregistré (référence de « modifiée » ; recalculée à l'ouverture). */
@@ -107,9 +110,22 @@ export function sceneSig(s: Snapshot): string {
   return JSON.stringify([s.id, s.name, s.role, stripProvenance(s.spec), s.title, s.subtitle, s.comments, s.source, s.path ?? [], s.scenario ?? null, s.step ?? null, s.sampleId, s.dataName]);
 }
 
+/**
+ * Spec comparé pour « modifiée » : sans la provenance (recalculée) ni les champs ajoutés depuis, à leur valeur par
+ * défaut (dataset, forme des points) — un projet enregistré avant leur arrivée ne paraît pas modifié.
+ */
 function stripProvenance(spec: unknown): unknown {
   if (!spec || typeof spec !== "object") return spec;
   const { provenance: _p, ...rest } = spec as Record<string, unknown>;
+  if (rest.dataset == null) delete rest.dataset;
+  const st = rest.style as Record<string, unknown> | undefined;
+  if (st && typeof st === "object" && (st.pointShape === "circle" || st.pointIcon === "" || (st.pointIcons && typeof st.pointIcons === "object" && !Object.keys(st.pointIcons).length))) {
+    const style = { ...st };
+    if (style.pointShape === "circle") delete style.pointShape;
+    if (style.pointIcon === "") delete style.pointIcon;
+    if (style.pointIcons && typeof style.pointIcons === "object" && !Object.keys(style.pointIcons as object).length) delete style.pointIcons;
+    rest.style = style;
+  }
   return rest;
 }
 
@@ -124,11 +140,12 @@ export interface WorkingState {
   source: Pick<ProjectSource, "name" | "sampleId" | "rowCount" | "colCount" | "typeOverrides" | "provenance"> | null;
   spec: unknown;
   sequence: Pick<Sequence, "title" | "snapshots" | "sameScale" | "film">;
+  datasets?: readonly DatasetRecipe[];
 }
 
 /** Signature globale : différente ⇔ modifications non enregistrées. */
 export function projectSig(w: WorkingState): string {
-  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig)]);
+  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig), ...(w.datasets?.length ? [w.datasets.map((d) => [d.id, d.name, d.version, d.filters, d.columns, d.source])] : [])]);
 }
 
 export type SceneState = "saved" | "modified" | "new";
@@ -212,6 +229,7 @@ export function parseProjectFile(input: unknown): { project: Project; withData: 
     source,
     spec: p.spec ?? null,
     sequence: { title: story.title, snapshots: story.snapshots, sameScale: !!story.sameScale, film: { morph: film.morph === true } },
+    datasets: parseDatasets(p.datasets),
     thumb: typeof p.thumb === "string" && p.thumb.startsWith("data:image/") ? p.thumb : null,
   };
   return { project, withData: o.withData !== false };

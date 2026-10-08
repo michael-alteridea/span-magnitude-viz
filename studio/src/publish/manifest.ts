@@ -293,6 +293,11 @@ export function fingerprintSpec(spec: unknown): unknown {
     delete encoding.topOrder;
     spec = { ...(spec as object), encoding };
   }
+  if (spec && typeof spec === "object" && "dataset" in spec && (spec as { dataset?: unknown }).dataset == null) {
+    // Dataset dérivé : absent (source entière) = hors empreinte (empreintes publiées inchangées)
+    const { dataset: _d, ...rest } = spec as Record<string, unknown>;
+    spec = rest;
+  }
   const st = (spec as { style?: Record<string, unknown> } | null)?.style;
   if (!st || typeof st !== "object") return spec;
   const style = { ...st };
