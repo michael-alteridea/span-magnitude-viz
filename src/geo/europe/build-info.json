@@ -1,0 +1,59 @@
+{
+  "builtAt": "2026-10-08T07:41:44.384Z",
+  "keepOverseas": false,
+  "bbox": [
+    -25,
+    34,
+    45,
+    72
+  ],
+  "contextBbox": [
+    -40,
+    22,
+    95,
+    80
+  ],
+  "overseasExcluded": [
+    "FRY",
+    "ES7",
+    "PT2",
+    "PT3",
+    "NO0B"
+  ],
+  "overseasEraseBoxes": [
+    [
+      -18.6,
+      27.3,
+      -13.3,
+      29.6
+    ],
+    [
+      -17.6,
+      32.2,
+      -15.9,
+      33.3
+    ],
+    [
+      -31.6,
+      36.6,
+      -24.4,
+      40.1
+    ],
+    [
+      -9.6,
+      70.6,
+      -7.6,
+      71.4
+    ]
+  ],
+  "simplify": {
+    "countries": "14%",
+    "nuts1": "12%",
+    "nuts2": "12%",
+    "nuts3": "10%"
+  },
+  "sources": {
+    "nuts": "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_10M_2024_4326_LEVL_{1,2,3}.geojson",
+    "countries": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
+  }
+}

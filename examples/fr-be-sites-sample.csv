@@ -1,0 +1,9 @@
+id,label,start,end,budget,group,postal,lat,lon
+geo-001,Paris Hub,2019-01-05,2019-04-10,413000,Product,75008,,
+geo-002,Lyon Nord,2020-02-06,2020-06-11,466000,Ops,69003,,
+geo-003,Marseille Port,2021-03-07,2021-08-12,196000,Product,13002,,
+geo-004,Toulouse Aero,2022-04-08,2022-10-13,133000,R&D,31000,,
+geo-005,Bordeaux Vin,2023-05-09,2023-12-14,544000,Marketing,33000,,
+geo-006,Nantes Atlantique,2019-06-10,2020-02-15,387000,Product,44000,,
+geo-007,Lille Flandre,2020-07-11,2020-10-16,95000,Ops,59000,,
+geo-008,Strasbourg EU,2021-08-12,2021-12-17,201000,R&D,67000,,
