@@ -133,6 +133,8 @@ export function parseDateLoose(v: unknown, opts: { allowSerial?: boolean; allowY
   if (typeof v !== "string") return null;
   const s = v.trim();
   if (!s) return null;
+  // année seule (« 2004 » dans une colonne « Année ») : 1er janvier
+  if (opts.allowYear && /^\d{4}$/.test(s) && +s >= 1900 && +s <= 2100) return Date.UTC(+s, 0, 1);
   let m: RegExpMatchArray | null;
   // ISO date / datetime
   if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?/))) {

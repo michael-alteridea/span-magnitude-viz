@@ -98,3 +98,11 @@ describe("samples are anchored on 8 Oct 2026", () => {
     expect(Math.max(...created)).toBeLessThanOrEqual(Date.UTC(2026, 9, 8));
   });
 });
+
+describe("parseDateLoose : année seule", () => {
+  it("« 2004 » → 1er janvier si allowYear, sinon pas une date", () => {
+    expect(parseDateLoose("2004", { allowYear: true })).toBe(Date.UTC(2004, 0, 1));
+    expect(parseDateLoose("2004")).toBeNull();
+    expect(parseDateLoose("1850", { allowYear: true })).toBeNull();
+  });
+});

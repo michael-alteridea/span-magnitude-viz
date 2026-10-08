@@ -31,7 +31,8 @@ import { effectiveDataset, describeTransform } from "../data/transform";
 import { KIND_LABELS, type InsightKind } from "../story/insights";
 import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
-import { categoryIcon, iconChoices, iconFor, iconSvg, ICON_LABELS } from "../charts/icons";
+import { iconFor, iconSvg } from "../charts/icons";
+import { iconPickLabel, openIconPicker } from "./iconPicker";
 import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
@@ -128,6 +129,7 @@ export class SettingsPanel {
       spec.norme.autoSwitch,
       spec.special.mapRegion,
       spec.style.barCap,
+      spec.style.barCap === "icon" || spec.style.barCap === "picto" ? spec.style.capIcons : null,
       !!spec.style.focus.key,
       ds?.columns.map((c) => c.type),
     ]);
@@ -883,27 +885,33 @@ export class SettingsPanel {
     if (!xc || xc.type === "number" || xc.type === "date") return null;
     const cats = this.categories(spec, 12);
     if (!cats.length) return null;
-    const choices = iconChoices();
     const rows = cats.map((c) => {
       const auto = iconFor(c);
       const cur = spec.style.capIcons[c];
-      const sel = h(
-        "select",
-        { "data-icon-for": c, "data-testid": "icon-select", "aria-label": `Icône pour « ${c} »` },
-        h("option", { value: "@auto", selected: cur === undefined }, auto ? `Auto · ${ICON_LABELS[auto] ?? auto}` : "Auto · aucune"),
-        h("option", { value: "", selected: cur === "" }, "Aucune"),
-        ...choices.map(([n, l]) => h("option", { value: n, selected: cur === n }, l))
+      const { icon, label, isAuto } = iconPickLabel(cur, auto);
+      const btn = h(
+        "button",
+        { type: "button", class: `icon-pick-btn${isAuto ? " is-auto" : ""}`, "data-icon-for": c, "data-testid": "icon-select", "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": `Icône pour « ${c} » : ${label}${isAuto ? " (automatique)" : ""}`, title: isAuto ? `${label} (choisie d'après le nom)` : label },
+        h("span", { class: "ip-ic", html: icon ? iconSvg(icon, 18) : "" }),
+        h("span", { class: "ip-l" }, label),
+        h("span", { class: "ip-chev", "aria-hidden": "true" }, "▾")
       );
-      sel.addEventListener("change", () => {
-        const next = { ...this.store.state.spec.style.capIcons };
-        if (sel.value === "@auto") delete next[c];
-        else next[c] = sel.value;
-        this.store.set("style.capIcons", next);
-      });
-      const ic = categoryIcon(c, spec.style.capIcons);
-      return h("label", { class: "field field-inline icon-row" }, h("span", { class: "icon-prev", html: ic ? iconSvg(ic, 16) : "" }), h("span", { class: "field-label" }, c), sel);
+      btn.addEventListener("click", () =>
+        openIconPicker(btn, {
+          category: c,
+          current: cur,
+          auto,
+          onPick: (v) => {
+            const next = { ...this.store.state.spec.style.capIcons };
+            if (v === "@auto") delete next[c];
+            else next[c] = v;
+            this.store.set("style.capIcons", next);
+          },
+        })
+      );
+      return h("div", { class: "field field-inline icon-row" }, h("span", { class: "field-label", title: c }, c), btn);
     });
-    return this.group("icones", "Icône par catégorie", ...rows, h("p", { class: "muted small" }, "Auto : choisie d'après le nom (dictionnaire français / anglais) ; pas de correspondance → pas d'icône. ", h("a", { href: "licences/phosphor-icons-MIT.txt", target: "_blank", rel: "noopener", "data-licence": "phosphor" }, "Icônes Phosphor (licence MIT)"), "."));
+    return this.group("icones", "Icône par catégorie", ...rows, h("p", { class: "muted small" }, "En gris : icône automatique, choisie d'après le nom (dictionnaire français / anglais) ; pas de correspondance → pas d'icône. ", h("a", { href: "licences/phosphor-icons-MIT.txt", target: "_blank", rel: "noopener", "data-licence": "phosphor" }, "Icônes Phosphor (licence MIT)"), "."));
   }
 
   /** Mise en avant d'une barre (mode focus) : les autres en gris, annotation reliée, moyenne des autres. */

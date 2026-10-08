@@ -387,12 +387,17 @@ les QR (cartouche, PowerPoint) et les noms d'images publiées (`publie/<revue>/<
 
 ## Barres racontées : icônes, pictogrammes, objectif, mise en avant (étape I)
 
+> Galerie des types (au-dessus de l'aperçu) : chaque tuile prend la largeur de son libellé (aucun texte ne déborde,
+> points de suspension en dernier recours) ; le type choisi est marqué par un filet pétrole au-dessus du pictogramme et
+> sous le libellé (sur iPad, icônes seules : filets au-dessus et au-dessous du pictogramme).
+
 Pour les barres simples (verticales ou horizontales, hors mode norme), **② Graphique › Extrémité des barres** propose :
 
 - **Icône** : une pastille au bout de chaque barre, avec une icône choisie d'après le nom de la catégorie
   (dictionnaire français / anglais : Hébergement → nuage, Équipe → personnes, Licences → clé, Serveurs, Logistique →
   camion, Agences → bâtiments…). Pas de correspondance → pas d'icône. **Plus d'options › Icône par catégorie** : « Auto »,
-  « Aucune » ou une icône choisie dans la liste (libellés en français). Une seule mesure, sans série.
+  « Aucune » ou une icône choisie dans une liste illustrée (chaque pictogramme dessiné à côté de son libellé français,
+  recherche, clavier ↑ ↓ Entrée Échap ; icône automatique affichée en gris). Une seule mesure, sans série.
 - **Pictos** (isotype) : icônes pleines jointives dans la barre ; l'unité (1, 2 ou 5 × 10ⁿ) est calculée pour garder des
   icônes lisibles, la dernière est coupée à la valeur exacte ; la clé « icône = 50 k€ » est en haut à droite.
 - **Objectif** : 1re mesure = réalisé, 2e = objectif. Repère d'objectif sur chaque barre, pastille verte (atteint) ou rouge

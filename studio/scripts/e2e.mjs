@@ -290,6 +290,22 @@ try {
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "72-panneau-accordeon.png") });
   }
 
+  /* Galerie des types : aucun libellé ne déborde ; sélection = filets pétrole au-dessus du pictogramme et sous le libellé */
+  {
+    await page.evaluate(() => window.r4d.pickType("barH"));
+    await sleep(500);
+    const gal = await page.evaluate(() => {
+      const tiles = [...document.querySelectorAll("[data-testid=gallery] .type-tile")];
+      const over = tiles.filter((t) => { const l = t.querySelector(".tile-label"); if (!l || l.offsetParent === null) return false; const a = l.getBoundingClientRect(), b = t.getBoundingClientRect(); return l.scrollWidth > l.clientWidth + 1 || a.left < b.left - 0.5 || a.right > b.right + 0.5; }).map((t) => t.dataset.type);
+      const act = document.querySelector("[data-testid=gallery] .type-tile.active");
+      const lab = act.querySelector(".tile-label"), ic = act.querySelector(".tile-icon");
+      const after = getComputedStyle(lab, "::after"), before = getComputedStyle(ic, "::before");
+      return { over, type: act.dataset.type, outline: getComputedStyle(act).borderTopWidth + "/" + getComputedStyle(act).boxShadow, barUnder: after.transform, barOver: before.transform, color: after.backgroundColor, labW: lab.getBoundingClientRect().width, tileW: act.getBoundingClientRect().width };
+    });
+    check("galerie des types : aucun libellé ne déborde ; « Horizontales » sélectionnée = filet sous le libellé + filet au-dessus du pictogramme (sans cadre)", gal.over.length === 0 && gal.type === "barH" && /^0px\/none$/.test(gal.outline) && /matrix\(1, 0, 0, 1/.test(gal.barUnder) && /matrix\(1, 0, 0, 1/.test(gal.barOver) && gal.labW <= gal.tileW, JSON.stringify(gal));
+    if (SHOTS) await (await page.$("[data-testid=gallery]")).screenshot({ path: join(shotsDir, "80-galerie-types-selection.png") });
+  }
+
   /* I. Barres racontées : icône au bout des barres (Phosphor), pictogrammes, objectif, barre mise en avant annotée */
   {
     const load = async (id) => {
@@ -315,13 +331,26 @@ try {
     await shotStage("73-barres-icones.png");
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "74-panneau-extremite-barres.png") });
     // icône choisie pour une catégorie (Plus d'options › Icône par catégorie)
-    await page.select('[data-icon-for="Équipe"]', "headset");
+    // liste illustrée : pictogramme dessiné à côté de chaque libellé
+    await page.evaluate(() => { const b = document.querySelector('[data-icon-for="Équipe"]'); window.r4d.panel().reveal({ section: "graphique", paths: [], group: "icones" }); b.scrollIntoView({ block: "center" }); });
+    await sleep(200);
+    await page.click('[data-icon-for="Équipe"]');
+    await sleep(300);
+    const pick = await page.evaluate(() => {
+      const pop = document.querySelector("[data-testid=icon-pick-pop]");
+      const its = [...pop.querySelectorAll(".ip-it")];
+      return { open: !pop.hidden, n: its.length, withGlyph: its.filter((b) => b.querySelector(".ip-ic svg path")).length, first: its[0]?.textContent, sel: pop.querySelector(".ip-it.on")?.dataset.icon };
+    });
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "79-choix-icone-illustre.png") });
+    await page.click('[data-testid=icon-pick-pop] .ip-it[data-icon="headset"]');
     await sleep(500);
-    const forced = await page.evaluate(() => ({ cfg: window.r4d.getSpec().style.capIcons, icon: document.querySelectorAll("[data-testid=chart-svg] .r4d-cap [data-icon]")[1]?.dataset.icon }));
-    await page.select('[data-icon-for="Équipe"]', "@auto");
+    const forced = await page.evaluate(() => ({ cfg: window.r4d.getSpec().style.capIcons, icon: document.querySelectorAll("[data-testid=chart-svg] .r4d-cap [data-icon]")[1]?.dataset.icon, btn: document.querySelector('[data-icon-for="Équipe"]')?.textContent, glyph: !!document.querySelector('[data-icon-for="Équipe"] .ip-ic svg') }));
+    await page.click('[data-icon-for="Équipe"]');
+    await sleep(250);
+    await page.click('[data-testid=icon-pick-pop] .ip-it[data-icon="@auto"]');
     await sleep(300);
     const back = await page.evaluate(() => window.r4d.getSpec().style.capIcons);
-    check("icône par catégorie : choix forcé (Équipe → casque) puis retour à « Auto »", forced.cfg["Équipe"] === "headset" && forced.icon === "headset" && Object.keys(back).length === 0, JSON.stringify({ forced, back }));
+    check("icône par catégorie : liste illustrée (pictogramme + libellé), choix forcé (Équipe → casque) puis retour à « Auto »", pick.open && pick.n > 60 && pick.withGlyph >= pick.n - 1 && pick.sel === "@auto" && /^Auto · /.test(pick.first ?? "") && forced.cfg["Équipe"] === "headset" && forced.icon === "headset" && /Support/.test(forced.btn ?? "") && forced.glyph && Object.keys(back).length === 0, JSON.stringify({ pick, forced, back }));
     await domClick('[data-testid=bar-cap] [data-value="picto"]');
     await sleep(400);
     await page.evaluate(() => window.r4d.settle());
