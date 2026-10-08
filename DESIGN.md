@@ -117,7 +117,7 @@ Render surfaces: three stacked <canvas> layers
 
 **Persistence modes** (runtime option, not schema): `keep` (default) · `ephemeral` (fade after reveal) · `finale` (ephemeral during film, then all reappear as cloud).
 
-**Map view (`viewMode: "map"`):** France départements + Belgium NUTS2 provinces SVG basemap (D3 `geoMercator`). Marks project from `meta.lat`/`meta.lon` or FR/BE `meta.postal` via offline lookup (city overrides → département/province centroids). Same film reveal schedule; optional Alteridea-red choropleth + soft heatmap at finale. Mapping UI columns: Latitude, Longitude, Code postal.
+**Map view (`viewMode: "map"`):** France départements + Belgium provinces SVG basemap (IGN ADMIN EXPRESS, NGI-IGN AdminVector) (D3 `geoMercator`). Marks project from `meta.lat`/`meta.lon` or FR/BE `meta.postal` via offline lookup (city overrides → département/province centroids). Same film reveal schedule; optional Alteridea-red choropleth + soft heatmap at finale. Mapping UI columns: Latitude, Longitude, Code postal.
 
 ### Axis model
 

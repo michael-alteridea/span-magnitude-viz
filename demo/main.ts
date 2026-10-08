@@ -78,7 +78,9 @@ function parseMapRegion(v: string | undefined): MapRegion {
 }
 
 function parseMapLevel(v: string | undefined): MapLevel {
-  return v === "country" || v === "nuts1" || v === "nuts3" ? v : "nuts2";
+  // Maille unique « pays » (anciennes valeurs acceptées par la bibliothèque, affichées en pays).
+  void v;
+  return "country";
 }
 
 function parseMapFit(v: string | undefined): "region" | "data" {

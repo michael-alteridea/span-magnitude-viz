@@ -1,12 +1,13 @@
 /**
- * Régions administratives FR · BE → identifiants NUTS 1 (Eurostat GISCO 2024), pour la carte des régions
+ * Régions administratives FR · BE → identifiants internes historiques (« FR1 », « BE3 »), pour la carte des régions
+ * (géométries IGN ADMIN EXPRESS et NGI-IGN AdminVector, voir `span-magnitude-viz/geo/europe` → `frBeRegionLayer`)
  * de l'exploration guidée. Chaque région liste aussi ses départements / provinces, c'est-à-dire les
  * identifiants du fond « FR · BE » (`src/geo/frBeRegions.json`, cartes par code postal) qui la composent.
  * Module pur (aucune géométrie ici).
  */
 
 export interface RegionRef {
-  /** Identifiant NUTS 1 (« BE3 », « FRE »). */
+  /** Identifiant interne de région (« BE3 », « FRE ») — clé de jointure du fond de carte. */
   nuts: string;
   /** Nom d'affichage français. */
   name: string;
@@ -44,7 +45,7 @@ const norm = (s: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/** Variantes de noms (FR, NL, EN, sigles) → NUTS 1. */
+/** Variantes de noms (FR, NL, EN, sigles) → identifiant de région. */
 const ALIASES: Record<string, string> = {
   bruxelles: "BE1",
   "bruxelles capitale": "BE1",
@@ -85,7 +86,7 @@ const ALIASES: Record<string, string> = {
   corse: "FRM",
 };
 
-/** NUTS 1 d'un nom de région (« Wallonie » → « BE3 ») ; null si inconnu. */
+/** Identifiant de région d'un nom (« Wallonie » → « BE3 ») ; null si inconnu. */
 export function regionNuts(v: unknown): string | null {
   if (v == null || v === "") return null;
   const k = norm(String(v));

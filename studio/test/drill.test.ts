@@ -99,7 +99,7 @@ describe("exploration guidée : modèle et navigation", () => {
     expect(drillPathLabels(drillTo(wal, 0, root))).toEqual(["Tout"]);
   });
 
-  it("carte : 5 régions reconnues (NUTS 1), Wallonie explique la baisse", () => {
+  it("carte : 5 régions reconnues (FR · BE), Wallonie explique la baisse", () => {
     const root = rootGrain(ds, "date_creation");
     const juin = drillInto(drillInto(d0, { kind: "period", start: Date.UTC(2026, 3, 1), grain: "quarter" }, root), { kind: "period", start: Date.UTC(2026, 5, 1), grain: "month" }, root);
     const { model } = buildDrillModel({ drill: drillView(juin, "map", "region"), transform: NT }, ds);

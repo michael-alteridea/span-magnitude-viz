@@ -1,11 +1,11 @@
 /**
  * Rendu de l'exploration guidée (type « drill ») : périodes (trimestres / mois), mois jour par jour,
- * carte choroplèthe des régions (NUTS 1, échelle en km, légende), historique par région (petits multiples
+ * carte choroplèthe des régions FR · BE (IGN, NGI ; échelle en km, légende), historique par région (petits multiples
  * à échelle commune) et détail par catégorie. Les éléments cliquables portent data-drill-* : la prévisualisation
  * les transforme en zoom / focus. Rouge et vert sont réservés aux écarts.
  */
 import { geoDistance, geoMercator, geoPath, scaleBand, scaleLinear, type GeoPermissibleObjects } from "d3";
-import { europeCountryBorders, europeLayer } from "span-magnitude-viz/geo/europe";
+import { europeCountryBorders, europeLayer, frBeRegionLayer } from "span-magnitude-viz/geo/europe";
 import type { BreakdownModel, BridgeItem, BridgeModel, CompareModel, DrillCtx, DrillModel, HistoryModel, MonthModel, PeriodsModel, PivotModel } from "../data/drill";
 import { grainLabel } from "../data/drill";
 import { VARIANCE_NEG, VARIANCE_POS, normeInk } from "../theme";
@@ -383,13 +383,14 @@ function mix(a: string, b: string, t: number): string {
 function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
   const { s, frame, font, theme } = ctx;
   const ink = inkOf(ctx);
-  const layer = europeLayer("nuts1");
+  // Régions FR (IGN ADMIN EXPRESS) et BE (NGI-IGN AdminVector) ; pays voisins : Natural Earth.
+  const layer = frBeRegionLayer();
   const byId = new Map(layer.features.map((ft) => [ft.properties.id, ft]));
   const matched = m.stats.filter((st) => st.nuts && byId.has(st.nuts));
   const legendW = 160 * s;
   const mapR = { x: r.x + legendW, y: r.y, w: r.w - legendW, h: r.h };
   if (!matched.length) {
-    g.append("text").attr("x", r.x + r.w / 2).attr("y", r.y + r.h / 2).attr("text-anchor", "middle").attr("font-size", 16 * s).attr("fill", theme.muted).text(`Aucune valeur de « ${m.field} » reconnue comme région (NUTS 1).`);
+    g.append("text").attr("x", r.x + r.w / 2).attr("y", r.y + r.h / 2).attr("text-anchor", "middle").attr("font-size", 16 * s).attr("fill", theme.muted).text(`Aucune valeur de « ${m.field} » reconnue comme région FR · BE.`);
     return;
   }
   const fc = { type: "FeatureCollection", features: matched.map((st) => byId.get(st.nuts!)!) } as unknown as GeoJSON.FeatureCollection;
@@ -406,8 +407,9 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
   const gm = g.append("g").attr("clip-path", `url(#${clipId})`);
   gm.append("rect").attr("x", mapR.x).attr("y", mapR.y).attr("width", mapR.w).attr("height", mapR.h).attr("rx", 8 * s).attr("fill", theme.dark ? "#1b2730" : "#eef4f6");
   const matchedIds = new Set(matched.map((st) => st.nuts!));
-  // voisins en gris
-  for (const ft of layer.features) {
+  // voisins en gris : pays limitrophes puis régions FR · BE sans valeur
+  const neighbours = [...europeLayer("country").features.filter((ft) => ft.properties.id !== "FR" && ft.properties.id !== "BE"), ...layer.features];
+  for (const ft of neighbours) {
     if (matchedIds.has(ft.properties.id)) continue;
     const b = path.bounds(ft as unknown as GeoPermissibleObjects);
     if (b[1][0] < mapR.x || b[0][0] > mapR.x + mapR.w || b[1][1] < mapR.y || b[0][1] > mapR.y + mapR.h) continue;
@@ -442,7 +444,7 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
         }),
       );
   });
-  const borders = europeCountryBorders("nuts1");
+  const borders = europeCountryBorders();
   if (borders) gm.append("path").attr("d", path(borders as unknown as GeoPermissibleObjects)).attr("fill", "none").attr("stroke", theme.dark ? "#71717a" : "#8a9399").attr("stroke-width", 1.3 * s).attr("stroke-dasharray", `${4 * s} ${2.5 * s}`);
   if (std && std.nuts && byId.has(std.nuts) && p > 0.6) gm.append("path").attr("class", "r4d-drill-standout").attr("d", path(byId.get(std.nuts)! as unknown as GeoPermissibleObjects)).attr("fill", "none").attr("stroke", ink.text).attr("stroke-width", 3 * s).attr("stroke-linejoin", "round").attr("pointer-events", "none");
   // étiquettes : nom, valeur, écart vs référence ; petites régions → étiquette déportée à droite avec filet

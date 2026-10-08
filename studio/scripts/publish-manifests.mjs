@@ -7,7 +7,7 @@
  *
  *   studio-dist/publie/index.json
  *   studio-dist/publie/<revue>/manifeste.json
- *   studio-dist/publie/<revue>/<snapshot>.png   (1600 × 900, cartouche, QR vers le mode lecture)
+ *   studio-dist/publie/<revue>/<snapshot>.png   (1600 × 900, cartouche, QR vers le mode lecture ; adresse ?v=<empreinte>)
  *   studio-dist/publie/<revue>/<snapshot>.svg   (autonome, polices intégrées)
  *
  * Déterministe : dates de génération figées (données de démonstration), aucun horodatage de construction.
@@ -90,7 +90,10 @@ for (const id of ids) {
     const img = images[k];
     if (!s.image_png.startsWith(prefix)) problems.push(`${id}/${s.id} : adresse PNG inattendue ${s.image_png}`);
     const pngBuf = Buffer.from(img.png.split(",")[1], "base64");
-    const pngFile = join(dir, decodeURIComponent(s.image_png.slice(prefix.length)));
+    // adresse versionnée (…/<snapshot>.png?v=<12 hex>) : le fichier publié garde son nom stable
+    const fileOf = (u) => decodeURIComponent(u.slice(prefix.length).split("?")[0]);
+    if (!new RegExp(`\\?v=${s.empreinte.slice(0, 12)}$`).test(s.image_png)) problems.push(`${id}/${s.id} : version d'image ≠ empreinte`);
+    const pngFile = join(dir, fileOf(s.image_png));
     writeFileSync(pngFile, pngBuf);
     const png = PNG.sync.read(pngBuf);
     if (png.width !== 1600 || png.height !== 900) problems.push(`${id}/${s.id} : PNG ${png.width}×${png.height} (1600×900 attendu)`);
@@ -98,7 +101,7 @@ for (const id of ids) {
     if (!qr || qr.data !== s.lien_lecture) problems.push(`${id}/${s.id} : QR ${qr ? qr.data : "illisible"} ≠ ${s.lien_lecture}`);
     if (s.image_svg) {
       if (!img.svg) problems.push(`${id}/${s.id} : SVG annoncé mais absent`);
-      else writeFileSync(join(dir, decodeURIComponent(s.image_svg.slice(prefix.length))), img.svg);
+      else writeFileSync(join(dir, fileOf(s.image_svg)), img.svg);
     }
     summary.push({ id, snap: s.id, png: sha(pngBuf), kb: Math.round(pngBuf.length / 1024), svgKb: img.svg ? Math.round(img.svg.length / 1024) : 0 });
   }

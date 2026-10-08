@@ -37,14 +37,16 @@ export interface CartoucheLayout {
 
 /**
  * Source et licence du fond de carte (cartes uniquement), voir studio/docs/licence-cartes.md.
- * Europe « Pays » : Natural Earth seul (domaine public) ; NUTS et fond FR · BE : Eurostat GISCO (© EuroGeographics,
- * usage non commercial sans licence EuroGeographics) + Natural Earth en contexte.
+ * Toutes les sources sont réutilisables, y compris commercialement :
+ * IGN ADMIN EXPRESS (Licence Ouverte), NGI-IGN AdminVector d'après Statbel (CC BY 4.0), Natural Earth (domaine public).
  */
+export const MAP_SOURCE_FRBE = ["Fond : IGN, NGI-Statbel, Natural Earth", "Licence Ouverte · CC BY 4.0 · domaine public"];
+export const MAP_SOURCE_EUROPE = ["Fond : Natural Earth (domaine public)"];
 export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { drill?: ChartSpec["drill"] }): string[] {
-  if (spec.type === "drill" && spec.drill?.view === "map") return ["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"];
+  if (spec.type === "drill" && spec.drill?.view === "map") return MAP_SOURCE_FRBE;
   if (spec.type !== "map") return [];
-  if (spec.special.mapRegion === "europe" && spec.special.mapLevel === "country") return ["Fond : Natural Earth (domaine public)"];
-  return ["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"];
+  if (spec.special.mapRegion === "europe") return MAP_SOURCE_EUROPE;
+  return MAP_SOURCE_FRBE;
 }
 
 const K = { pad: 8, gap: 10, brandRow: 18, lineH: 13.5, fs: 9.5, fsBrand: 12.5, logo: 14, qrMin: 72, sourceMax: 125 };

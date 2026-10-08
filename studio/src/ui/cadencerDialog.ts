@@ -28,7 +28,7 @@ export interface CadencerActions {
 }
 
 export const CADENCER_STEPS = ["Ordre du jour › Ajouter › Revue Datanime", "Coller l'URL du manifeste", "Un point d'ordre du jour par snapshot : image, titre, commentaire, lien de lecture"];
-export const LOCAL_PUBLISH_NOTE = "Les histoires personnelles restent sur cet appareil : leur publication en ligne arrive avec l'enregistrement en ligne. En attendant, le manifeste téléchargé a exactement le même format, images intégrées.";
+export const LOCAL_PUBLISH_NOTE = "Les histoires personnelles restent sur cet appareil : leur publication en ligne arrive avec l'enregistrement en ligne. En attendant, le manifeste téléchargé a le même format, images intégrées (12 Mo au plus) ; les liens de lecture de cet appareil n'y figurent pas.";
 
 export class CadencerDialog {
   readonly root: HTMLElement;

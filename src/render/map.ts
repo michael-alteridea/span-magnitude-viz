@@ -1,7 +1,7 @@
 /**
  * Map layer (D3 geo + same film reveal schedule).
  * Basemaps: France + Belgium (legacy, `mapRegion: "fr-be"`) or Europe
- * (`mapRegion: "europe"`, countries / NUTS 1-2-3).
+ * (`mapRegion: "europe"`, countries).
  * Modes: animated dots; optional choropleth / soft heatmap intensity at finale.
  */
 import {
@@ -20,10 +20,10 @@ import frBeRegions from "../geo/frBeRegions.json";
 import { resolveMarkGeo, type GeoPoint } from "../geo/postalLookup.js";
 import {
   EUROPE_ATTRIBUTION_FR,
-  europeCountryBorders,
+  EUROPE_FIT_EXTENT,
+  FRBE_ATTRIBUTION_FR,
   europeLayer,
   europeRegionIdAt,
-  nutsCoveredCountries,
 } from "../geo/europe.js";
 import {
   effectiveDrawProgress,
@@ -94,9 +94,9 @@ export interface MapLayout {
   path: ReturnType<typeof geoPath>;
   /** Choropleth layer (FR+BE départements/provinces, or the European level). */
   regions: BasemapCollection;
-  /** Europe NUTS levels: countries outside NUTS coverage (UK, UA, …), drawn underneath. */
+  /** Background layer drawn underneath (unused since the country-only Europe map). */
   background: BasemapCollection | null;
-  /** Europe NUTS levels: inner country borders (heavier stroke). */
+  /** Inner country borders (heavier stroke), or null. */
   countryBorders: GeoJSON.MultiLineString | null;
   mapRegion: MapRegion;
   mapLevel: MapLevel | null;
@@ -125,13 +125,6 @@ const MAP_CSS = `
 }
 .smv-map-region--bg {
   stroke: #2e2a27;
-}
-.smv-map-basemap--nuts3 .smv-map-region {
-  stroke-width: 0.3;
-}
-.smv-map-basemap--nuts2 .smv-map-region,
-.smv-map-basemap--nuts1 .smv-map-region {
-  stroke-width: 0.45;
 }
 .smv-map-borders {
   fill: none;
@@ -210,13 +203,6 @@ export function documentHasGeo(marks: NormalizedMark[]): boolean {
   return marksWithGeo(marks).length > 0;
 }
 
-const LEVEL_LABEL_FR: Record<MapLevel, string> = {
-  country: "pays",
-  nuts1: "NUTS 1",
-  nuts2: "NUTS 2",
-  nuts3: "NUTS 3",
-};
-
 /** Base fills (dark theme) — background countries recede slightly. */
 export const MAP_FILL = "#1c1917";
 export const MAP_FILL_BG = "#151312";
@@ -236,26 +222,17 @@ export function computeMapLayout(
   let geocoded = marksWithGeo(visible);
   let projection: GeoProjection;
   let regions: BasemapCollection;
-  let background: BasemapCollection | null = null;
-  let countryBorders: GeoJSON.MultiLineString | null = null;
+  const background: BasemapCollection | null = null;
+  const countryBorders: GeoJSON.MultiLineString | null = null;
   let mapLevel: MapLevel | null = null;
   let caption = "France · Belgique — lat/lon ou code postal";
-  let attribution: string | null = null;
+  let attribution: string | null = FRBE_ATTRIBUTION_FR;
 
   if (mapRegion === "europe") {
-    const level: MapLevel = options.mapLevel ?? "nuts2";
+    // Maille unique : pays (les niveaux historiques « nuts* » sont lus comme « country »).
+    const level: MapLevel = "country";
     mapLevel = level;
     regions = europeLayer(level) as unknown as BasemapCollection;
-    if (level !== "country") {
-      const covered = nutsCoveredCountries(level);
-      background = {
-        type: "FeatureCollection",
-        features: europeLayer("country").features.filter(
-          (f) => !covered.has(f.properties.id)
-        ) as unknown as BasemapFeature[],
-      };
-      countryBorders = europeCountryBorders(level);
-    }
     // Re-assign every point to the region of the active level (point-in-polygon).
     geocoded = geocoded.map(({ mark, geo }) => ({
       mark,
@@ -271,10 +248,10 @@ export function computeMapLayout(
       [pad, pad],
       [innerWidth - pad, innerHeight - pad],
     ];
-    let fitTarget: unknown = europeLayer("nuts1");
+    let fitTarget: unknown = EUROPE_FIT_EXTENT;
     if (options.mapFit === "data" && geocoded.length) {
       const ids = new Set(geocoded.map((g) => g.geo.regionId));
-      const hit = [...regions.features, ...(background?.features ?? [])].filter((f) =>
+      const hit = regions.features.filter((f) =>
         ids.has(f.properties.id)
       );
       if (hit.length) fitTarget = { type: "FeatureCollection", features: hit };
@@ -284,7 +261,7 @@ export function computeMapLayout(
       [0, 0],
       [innerWidth, innerHeight],
     ]);
-    caption = `Europe · ${LEVEL_LABEL_FR[level]} — lat/lon (code postal FR/BE)`;
+    caption = "Europe · pays — lat/lon (code postal FR/BE)";
     attribution = EUROPE_ATTRIBUTION_FR;
   } else {
     regions = REGIONS as unknown as BasemapCollection;

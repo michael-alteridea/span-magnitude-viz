@@ -5,7 +5,7 @@
  * 1. Exact / prefix city overrides (compact table of major cities).
  * 2. France: 5-digit code → département from the first two digits
  *    (Corsica 200xx→2A, 201xx→2A, 202–206→2B; DOM 97x skipped if absent).
- * 3. Belgium: 4-digit code → province via official postal ranges → NUTS2 id.
+ * 3. Belgium: 4-digit code → province via official postal ranges → province id (« BE-BE21 »…).
  * 4. Fallback: region centroid from the embedded FR+BE basemap.
  *
  * No network calls — safe for standalone / file:// demos.
@@ -73,7 +73,7 @@ export function frDepartmentFromPostal(postal: string): string | null {
 }
 
 /**
- * Belgium province NUTS2 id from a 4-digit postal (lightweight range table).
+ * Belgium province id from a 4-digit postal (lightweight range table).
  * Accurate enough for province choropleth + centroid dots; city overrides refine hubs.
  */
 export function beProvinceFromPostal(postal: string): string | null {

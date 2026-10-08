@@ -1,13 +1,17 @@
 /**
- * European basemap layers (offline, bundled TopoJSON).
+ * Fonds de carte européens (hors ligne, TopoJSON embarqué).
  *
- * - countries: Natural Earth 1:50m admin-0 (public domain), clipped to Europe.
- * - nuts1 / nuts2 / nuts3: Eurostat GISCO NUTS 2024 1:10M (© EuroGeographics
- *   for the administrative boundaries), far-overseas units excluded.
+ * - Pays : Natural Earth 1:50m admin-0 (domaine public), découpé sur l'Europe et son
+ *   contexte (Afrique du Nord, Proche-Orient), Crimée rattachée à l'Ukraine.
+ * - Régions France · Belgique (vue d'exploration) : IGN ADMIN EXPRESS (Licence Ouverte)
+ *   et NGI-IGN AdminVector (CC BY 4.0), voir `frBeRegionLayer`.
  *
- * Built by `scripts/build-europe-geo.mjs` (mapshaper); see `src/geo/europe/SOURCES.md`.
- * Rings are CW (d3 spherical convention); a runtime guard rewinds any feature
- * whose spherical area exceeds a hemisphere (classic mis-wound ring symptom).
+ * Les anciens niveaux « nuts1 / nuts2 / nuts3 » restent acceptés pour compatibilité des
+ * configurations enregistrées : ils affichent désormais la maille pays.
+ *
+ * Construit par `scripts/build-geo.mjs` (mapshaper) ; voir `src/geo/europe/SOURCES.md`.
+ * Anneaux dans le sens horaire (convention sphérique d3) ; un garde-fou ré-oriente toute
+ * entité dont l'aire sphérique dépasse un hémisphère.
  */
 import {
   geoArea,
@@ -20,23 +24,23 @@ import {
 import { feature, mesh } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import countriesTopo from "./europe/countries.topo.json";
-import nuts1Topo from "./europe/nuts1.topo.json";
-import nuts2Topo from "./europe/nuts2.topo.json";
-import nuts3Topo from "./europe/nuts3.topo.json";
+import frBeRegionsTopo from "./frBe/regions.topo.json";
 
 import type { MapLevel, MapRegion } from "../types.js";
 
 export type { MapLevel, MapRegion };
 
 export interface EuropeRegionProps {
-  /** NUTS_ID (e.g. "FR101", "BE24") or ISO-3166 alpha-2 for countries ("FR", "GB"). */
+  /** Code ISO 3166 alpha-2 (« FR », « GB ») ; clé interne pour les régions France · Belgique (« FR1 », « BE2 »). */
   id: string;
   name: string;
-  /** GISCO country code (NUTS layers: "EL" for Greece) or ISO alpha-2 for countries. */
+  /** Code pays ISO alpha-2. */
   country: string;
   level: MapLevel;
-  /** French display name (countries layer only). */
+  /** Nom français (pays). */
   nameFr?: string;
+  /** Code officiel (INSEE, NIS) pour les régions France · Belgique. */
+  code?: string;
 }
 
 export interface EuropeFeature {
@@ -54,22 +58,22 @@ export interface EuropeCollection {
   features: EuropeFeature[];
 }
 
-export const EUROPE_ATTRIBUTION_FR =
-  "© EuroGeographics pour les limites administratives (Eurostat GISCO NUTS 2024) · Natural Earth";
-export const EUROPE_ATTRIBUTION_EN =
-  "© EuroGeographics for the administrative boundaries (Eurostat GISCO NUTS 2024) · Natural Earth";
+export const EUROPE_ATTRIBUTION_FR = "Fond : Natural Earth (domaine public)";
+export const EUROPE_ATTRIBUTION_EN = "Basemap: Natural Earth (public domain)";
+export const FRBE_ATTRIBUTION_FR = "Fond : IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0)";
+export const FRBE_ATTRIBUTION_EN = "Basemap: IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0)";
 
-/** GISCO country codes that differ from ISO 3166 alpha-2. */
-const GISCO_TO_ISO: Record<string, string> = { EL: "GR", UK: "GB" };
-export function giscoToIso(code: string): string {
-  return GISCO_TO_ISO[code] ?? code;
-}
-
-const TOPOS: Record<MapLevel, { topo: unknown; object: string }> = {
-  country: { topo: countriesTopo, object: "countries" },
-  nuts1: { topo: nuts1Topo, object: "nuts1" },
-  nuts2: { topo: nuts2Topo, object: "nuts2" },
-  nuts3: { topo: nuts3Topo, object: "nuts3" },
+/** Emprise par défaut de la carte Europe (longitude −11…32, latitude 35…71). */
+export const EUROPE_FIT_EXTENT: GeoJSON.MultiPoint = {
+  type: "MultiPoint",
+  coordinates: [
+    [-11, 35],
+    [32, 35],
+    [-11, 71],
+    [32, 71],
+    [10, 71.5],
+    [10, 34.5],
+  ],
 };
 
 const cache = new Map<MapLevel, EuropeCollection>();
@@ -87,11 +91,7 @@ function reverseRings(geom: GeoJSON.Geometry): GeoJSON.Geometry {
   return geom;
 }
 
-/** Decode (once) and return a European layer as a d3-ready FeatureCollection. */
-export function europeLayer(level: MapLevel): EuropeCollection {
-  const hit = cache.get(level);
-  if (hit) return hit;
-  const { topo, object } = TOPOS[level];
+function decode(topo: unknown, object: string, level: MapLevel): EuropeCollection {
   const t = topo as unknown as Topology<Record<string, GeometryCollection>>;
   const fc = feature(t, t.objects[object]!) as unknown as GeoJSON.FeatureCollection;
   const features: EuropeFeature[] = [];
@@ -107,9 +107,10 @@ export function europeLayer(level: MapLevel): EuropeCollection {
       properties: {
         id: String(p.id ?? f.id ?? ""),
         name: String(p.name ?? ""),
-        country: String(level === "country" ? p.id ?? "" : p.cntr ?? ""),
+        country: String(p.cntr ?? p.id ?? ""),
         level,
         ...(p.nameFr ? { nameFr: String(p.nameFr) } : {}),
+        ...(p.code ? { code: String(p.code) } : {}),
       },
     };
     const [[x0, y0], [x1, y1]] = geoBounds(ef as unknown as GeoPermissibleObjects);
@@ -117,17 +118,34 @@ export function europeLayer(level: MapLevel): EuropeCollection {
     ef.centroid = geoCentroid(ef as unknown as GeoPermissibleObjects) as [number, number];
     features.push(ef);
   }
-  const out: EuropeCollection = { type: "FeatureCollection", features };
-  cache.set(level, out);
+  return { type: "FeatureCollection", features };
+}
+
+/**
+ * Couche pays (décodée une fois). Les niveaux historiques « nuts* » renvoient
+ * la même couche pays (compatibilité des configurations).
+ */
+export function europeLayer(_level: MapLevel = "country"): EuropeCollection {
+  const hit = cache.get("country");
+  if (hit) return hit;
+  const out = decode(countriesTopo, "countries", "country");
+  cache.set("country", out);
   return out;
 }
 
-/** ISO alpha-2 codes of countries covered by a NUTS layer (for background masking). */
-export function nutsCoveredCountries(level: MapLevel): Set<string> {
-  const s = new Set<string>();
-  if (level === "country") return s;
-  for (const f of europeLayer(level).features) s.add(giscoToIso(f.properties.country));
-  return s;
+let frBeCache: EuropeCollection | null = null;
+/**
+ * Régions France (13, IGN ADMIN EXPRESS) et Belgique (3, NGI-IGN AdminVector),
+ * identifiants internes « FR1 »…« FRM », « BE1 »…« BE3 », `code` = INSEE / NIS.
+ */
+export function frBeRegionLayer(): EuropeCollection {
+  if (!frBeCache) frBeCache = decode(frBeRegionsTopo, "regions", "country");
+  return frBeCache;
+}
+
+/** Ensemble vide (compatibilité : plus aucune couche infra-nationale en Europe). */
+export function nutsCoveredCountries(_level: MapLevel): Set<string> {
+  return new Set<string>();
 }
 
 function inBbox(b: [number, number, number, number] | undefined, lon: number, lat: number): boolean {
@@ -172,50 +190,29 @@ function nearestFeature(
 }
 
 /**
- * Region id for a point at `level` (point-in-polygon on the bundled layer).
- * Fallbacks, in order:
- *  - NUTS levels: the country layer (no NUTS coverage there, e.g. United Kingdom, Ukraine);
- *  - country level: the NUTS-3 unit's country (coastal points the 1:50m outline misses);
- *  - nearest region centroid within ~60 km (coastal / simplified-outline misses);
- *  - null.
+ * Pays contenant [lon, lat] (point dans polygone sur la couche embarquée), sinon
+ * pays dont le centroïde est le plus proche à moins d'environ 60 km (côtes simplifiées), sinon null.
  */
 export function europeRegionIdAt(level: MapLevel, lon: number, lat: number): string | null {
   const layer = europeLayer(level);
   const f = featureAtPoint(layer, lon, lat);
   if (f) return f.properties.id;
-  if (level !== "country") {
-    const c = featureAtPoint(europeLayer("country"), lon, lat);
-    if (c) return c.properties.id;
-  } else {
-    const n = featureAtPoint(europeLayer("nuts3"), lon, lat);
-    if (n) {
-      const iso = giscoToIso(n.properties.country);
-      if (layer.features.some((x) => x.properties.id === iso)) return iso;
-    }
-  }
   const near = nearestFeature(layer, lon, lat, 60 / 6371);
-  return near ? near.properties.id : null;
+  if (near) return near.properties.id;
+  // Point côtier hors du tracé simplifié : pays le plus proche à moins d'environ 150 km.
+  const far = nearestFeature(layer, lon, lat, 150 / 6371);
+  return far ? far.properties.id : null;
 }
 
-const borderCache = new Map<MapLevel, GeoJSON.MultiLineString>();
+let borderCache: GeoJSON.MultiLineString | null = null;
 
 /**
- * Inner country borders derived from a NUTS topology (arcs shared by units of
- * two different countries) — drawn slightly heavier over the NUTS mesh.
+ * Frontières terrestres entre pays (arcs partagés par deux pays Natural Earth),
+ * tracées en tirets par-dessus les régions France · Belgique.
  */
-export function europeCountryBorders(level: MapLevel): GeoJSON.MultiLineString | null {
-  if (level === "country") return null;
-  const hit = borderCache.get(level);
-  if (hit) return hit;
-  const { topo, object } = TOPOS[level];
-  const t = topo as unknown as Topology<Record<string, GeometryCollection>>;
-  const cntrOf = (g: unknown) =>
-    (g as { properties?: { cntr?: string } }).properties?.cntr ?? "";
-  const m = mesh(
-    t,
-    t.objects[object]!,
-    (a, b) => a !== b && cntrOf(a) !== cntrOf(b)
-  ) as GeoJSON.MultiLineString;
-  borderCache.set(level, m);
-  return m;
+export function europeCountryBorders(_level?: MapLevel): GeoJSON.MultiLineString {
+  if (borderCache) return borderCache;
+  const t = countriesTopo as unknown as Topology<Record<string, GeometryCollection>>;
+  borderCache = mesh(t, t.objects.countries!, (a, b) => a !== b) as GeoJSON.MultiLineString;
+  return borderCache;
 }

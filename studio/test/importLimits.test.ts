@@ -53,9 +53,13 @@ describe("source du fond de carte dans le cartouche", () => {
     if (!r.ok) throw new Error(r.issues.join(";"));
     return r.spec;
   };
-  it("carte FR·BE et NUTS : © EuroGeographics + usage non commercial", () => {
-    expect(mapSourceLines(spec({ mapRegion: "fr-be" }))).toEqual(["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"]);
-    expect(mapSourceLines(spec({ mapRegion: "europe", mapLevel: "nuts2" }))[1]).toMatch(/non commercial/);
+  it("carte FR·BE et carte des régions : IGN, NGI-Statbel, Natural Earth (licences ouvertes)", () => {
+    expect(mapSourceLines(spec({ mapRegion: "fr-be" }))).toEqual(["Fond : IGN, NGI-Statbel, Natural Earth", "Licence Ouverte · CC BY 4.0 · domaine public"]);
+    expect(mapSourceLines({ type: "drill", special: spec({}).special, drill: { view: "map" } } as never).join(" ")).not.toMatch(/GISCO|EuroGeographics|commercial/i);
+  });
+  it("anciennes configurations « nuts2 » : lues comme Europe pays (aucune limite sous licence restrictive)", () => {
+    expect(spec({}).special.mapLevel).toBe("country");
+    expect(mapSourceLines(spec({ mapRegion: "europe", mapLevel: "nuts2" }))).toEqual(["Fond : Natural Earth (domaine public)"]);
   });
   it("Europe pays : Natural Earth (domaine public) ; autres graphiques : rien", () => {
     expect(mapSourceLines(spec({ mapRegion: "europe", mapLevel: "country" }))).toEqual(["Fond : Natural Earth (domaine public)"]);

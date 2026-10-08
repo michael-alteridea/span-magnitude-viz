@@ -186,10 +186,10 @@ export interface VizOptions {
   viewMode?: ViewMode;
   /**
    * Basemap for the map view. `"fr-be"` (default) = France départements + Belgian
-   * provinces; `"europe"` = Europe (Natural Earth countries + Eurostat NUTS 2024).
+   * provinces; `"europe"` = Europe (Natural Earth countries, public domain).
    */
   mapRegion?: MapRegion;
-  /** Europe only: region level used for the basemap + choropleth. Default `"nuts2"`. */
+  /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */
   mapLevel?: MapLevel;
   /**
    * Europe only: `"region"` (default) frames the whole of Europe;

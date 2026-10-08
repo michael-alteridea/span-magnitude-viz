@@ -310,9 +310,9 @@ try {
     const info = await stageInfo();
     check(`type ${t} (spécial)`, info.special > 20 && !info.empty, `${info.special} éléments SVG`);
     if (t === "map") {
-      // Barre d'échelle en km sur toutes les cartes (FR·BE, Europe à chaque maille)
+      // Barre d'échelle en km sur toutes les cartes (FR·BE, Europe ; ancienne maille « nuts2 » lue comme pays)
       const scales = [];
-      for (const [region, level] of [["fr-be", null], ["europe", "country"], ["europe", "nuts1"], ["europe", "nuts2"], ["europe", "nuts3"]]) {
+      for (const [region, level] of [["fr-be", null], ["europe", "country"], ["europe", "nuts2"]]) {
         await page.evaluate((r, l) => {
           window.r4d.set("special.mapRegion", r);
           if (l) window.r4d.set("special.mapLevel", l);
@@ -326,7 +326,7 @@ try {
           }, region, level)
         );
       }
-      check("carte : barre d'échelle en km (FR·BE + Europe, toutes mailles)", scales.every((x) => x.km > 0 && x.px > 20 && /^\d[\d\s]*\s?km$/.test(x.label)), scales.map((x) => `${x.where} ${x.label}`).join(" · "));
+      check("carte : barre d'échelle en km (FR·BE + Europe)", scales.every((x) => x.km > 0 && x.px > 20 && /^\d[\d\s]*\s?km$/.test(x.label)), scales.map((x) => `${x.where} ${x.label}`).join(" · "));
       await page.evaluate(() => window.r4d.set("special.mapRegion", "fr-be"));
       await page.waitForFunction(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"), { timeout: 10000 }).catch(() => {});
       await sleep(400);
@@ -338,7 +338,7 @@ try {
       const mc = await cartoucheInfo();
       const scaleBar = await page.evaluate(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"));
       const mapSrc = await page.evaluate(() => [...document.querySelectorAll("[data-testid=preview] .r4d-map-source, .r4d-cartouche .r4d-map-source")].map((e) => e.textContent));
-      check("carte : source et licence du fond dans le cartouche (© EuroGeographics, usage non commercial)", mapSrc.some((t) => /EuroGeographics/.test(t)) && mapSrc.some((t) => /non commercial/.test(t)) && mapText.includes("Limites GISCO : usage non commercial"), mapSrc.join(" · "));
+      check("carte : source du fond dans le cartouche (IGN, NGI-Statbel, Natural Earth ; aucune licence restrictive)", mapSrc.some((t) => /IGN, NGI-Statbel, Natural Earth/.test(t)) && !/GISCO|EuroGeographics|Eurostat|non commercial|NUTS/i.test(mapSrc.join(" ") + mapText) && mapText.includes("Fond : IGN, NGI-Statbel, Natural Earth"), mapSrc.join(" · "));
       if (process.env.R4D_MAP_SHOT) await (await page.$(".r4d-cartouche"))?.screenshot({ path: process.env.R4D_MAP_SHOT });
       check("carte : cartouche + QR sans chevauchement (barre d'échelle km, carte)", !!mc?.qr && scaleBar && mc.overlaps.length === 0 && /#1\.E\./.test(mc.qr.url), mc ? `${Math.round(mc.w)}×${Math.round(mc.h)} · ${mc.overlaps.length ? "chevauche " + mc.overlaps.slice(0, 3).join(", ") : "aucun chevauchement"}` : "absent");
       await page.click("[data-testid=type-film]");
@@ -1200,7 +1200,7 @@ try {
       km: document.querySelector("[data-testid=chart-svg] .r4d-scalebar")?.getAttribute("data-km"),
       cart: document.querySelector("[data-testid=chart-svg] .r4d-cartouche")?.textContent ?? "",
     }));
-    check("démo : « Répartir dans l'espace » → carte des 5 régions, échelle en km, cartouche", map.regions.length === 5 && Number(map.km) > 0 && /EuroGeographics/.test(map.cart) && /Généré le/.test(map.cart) && /Wallonie concentre toute la baisse/.test(await t()), `${map.regions.join(", ")} · ${map.km} km`);
+    check("démo : « Répartir dans l'espace » → carte des 5 régions, échelle en km, cartouche", map.regions.length === 5 && Number(map.km) > 0 && /IGN, NGI-Statbel, Natural Earth/.test(map.cart) && !/GISCO|EuroGeographics|non commercial/.test(map.cart) && /Généré le/.test(map.cart) && /Wallonie concentre toute la baisse/.test(await t()), `${map.regions.join(", ")} · ${map.km} km`);
     if (SHOTS) await shotStage("27-exploration-carte.png");
     await domClick("[data-testid=drill-view-history]");
     await sleep(500);
@@ -1765,7 +1765,7 @@ try {
       return { type: r.headers.get("content-type"), json: await r.json() };
     }, BASE);
     const ids = (idx.json.revues ?? []).map((r) => r.id);
-    check("index.json : 4 revues publiées (démos + revues Norvia), adresses absolues issues de la base unique", /application\/json/.test(idx.type) && idx.json.format === "datanime-index" && ids.join() === "demo-dircom,demo-daf,norvia-pipeline-oct-2026,norvia-budget-2026" && idx.json.revues.every((r) => r.manifeste === `${PUB}${r.id}/manifeste.json`), JSON.stringify(ids));
+    check("index.json : 4 revues publiées (démos + revues Norvia), adresses absolues issues de la base unique", /application\/json/.test(idx.type) && idx.json.format === "datanime-index" && ids.join() === "demo-dircom,demo-daf,norvia-pipeline-oct-2026,norvia-budget-2026" && idx.json.revues.every((r) => r.manifeste === `${PUB}${r.id}/manifeste.json` && /^[0-9a-f]{64}$/.test(r.empreinte) && r.nb_snapshots === 7 && !!r.genere_le), JSON.stringify(ids));
     const bad = [];
     let nImg = 0;
     for (const id of ids) {
@@ -1773,16 +1773,20 @@ try {
       const issues = await page.evaluate((mm) => window.r4d.validateManifest(mm), m);
       if (issues) bad.push(`${id}: ${issues.join(";")}`);
       if (m.snapshots.length !== 7 || m.lien_lecture !== `https://alteridea-dashboard.web.app/reporting/#/lire/${id}`) bad.push(`${id}: ${m.snapshots.length} snapshots, ${m.lien_lecture}`);
+      const notes = m.snapshots.filter((s) => s.commentaire_animateur).length;
+      if (id.startsWith("demo-") && (notes < 2 || notes > 3)) bad.push(`${id}: ${notes} notes d'animateur`);
       for (const s of m.snapshots) {
-        const f = join(dist, "publie", s.image_png.slice(PUB.length));
+        if (!s.image_png.endsWith(`?v=${s.empreinte.slice(0, 12)}`)) bad.push(`version ${s.id}`);
+        if (!s.alt || s.a_retenir.includes(s.commentaire_genere) || s.commentaire_genere === s.a_retenir.join(" ")) bad.push(`textes ${s.id}`);
+        const f = join(dist, "publie", s.image_png.slice(PUB.length).split("?")[0]);
         if (!existsSync(f)) { bad.push(`absent ${f}`); continue; }
         const png = PNG.sync.read(readFileSync(f));
         if (png.width !== 1600 || png.height !== 900) bad.push(`${f}: ${png.width}×${png.height}`);
-        if (!s.image_svg || !existsSync(join(dist, "publie", s.image_svg.slice(PUB.length)))) bad.push(`svg ${s.id}`);
+        if (!s.image_svg || !existsSync(join(dist, "publie", s.image_svg.slice(PUB.length).split("?")[0]))) bad.push(`svg ${s.id}`);
         nImg++;
       }
     }
-    check(`4 manifestes valides (schéma Zod), ${nImg} PNG 1600 × 900 + SVG présents`, !bad.length && nImg === 28, bad.slice(0, 3).join(" | "));
+    check(`4 manifestes valides (schéma Zod 1.1 : ?v=empreinte, alt, synthèse ≠ puces, notes des démos), ${nImg} PNG 1600 × 900 + SVG présents`, !bad.length && nImg === 28, bad.slice(0, 3).join(" | "));
     // Histoire = démo « Directeur commercial » complète → URL du manifeste publié
     await page.evaluate(() => window.r4d.store.setUi({ openSections: { ...window.r4d.store.state.ui.openSections, histoire: true } }));
     await domClick("[data-testid=story-cadencer]");
@@ -1822,9 +1826,18 @@ try {
       const m = JSON.parse(readFileSync(jf, "utf8"));
       const issues = await page.evaluate((mm) => window.r4d.validateManifest(mm), m);
       const png = PNG.sync.read(Buffer.from(m.snapshots[0].image_png.split(",")[1], "base64"));
-      d4 = { name: jf.split("/").pop(), issues, id: m.id, n: m.snapshots.length, w: png.width, h: png.height, svg: "image_svg" in m.snapshots[0], lien: m.snapshots[1].lien_lecture };
+      d4 = { name: jf.split("/").pop(), issues, id: m.id, n: m.snapshots.length, w: png.width, h: png.height, svg: "image_svg" in m.snapshots[0], lien: m.snapshots[1].lien_lecture, lienRevue: m.lien_lecture, maxImg: Math.max(...m.snapshots.map((s) => s.image_png.length)), bytes: statSync(jf).size, alt: !!m.snapshots[0].alt };
     }
-    check("manifeste téléchargé : schéma valide, 2 snapshots, PNG intégrés 1600 × 900, sans SVG, lien de lecture local", d4.issues === null && /^histoire-[0-9a-f]{10}$/.test(d4.id) && d4.n === 2 && d4.w === 1600 && d4.h === 900 && !d4.svg && /#\/lire\/histoire\/dircom-02-mois-88z5ap$/.test(d4.lien) && /^datanime-manifeste-histoire-/.test(d4.name), JSON.stringify(d4));
+    check("manifeste téléchargé : schéma valide, 2 snapshots, PNG intégrés (≤ 800 000 caractères, fichier ≤ 12 Mo), sans SVG, liens de lecture null", d4.issues === null && /^histoire-[0-9a-f]{10}$/.test(d4.id) && d4.n === 2 && d4.w >= 640 && d4.w * 9 === d4.h * 16 && !d4.svg && d4.lien === null && d4.lienRevue === null && d4.maxImg <= 800000 && d4.bytes <= 12000000 && d4.alt && /^datanime-manifeste-histoire-/.test(d4.name), JSON.stringify(d4));
+    if (jf) {
+      // limite des images intégrées : une image trop lourde est réduite (paliers puis palette réduite)
+      const m = JSON.parse(readFileSync(jf, "utf8"));
+      const fit = await page.evaluate(async (u) => {
+        const r = await window.r4d.fitPng(u, 120000);
+        return { len: r.png.length, w: r.w, from: u.length };
+      }, m.snapshots[0].image_png);
+      check("manifeste téléchargé : image au-delà du budget réduite sous la limite", fit.len <= 120000 && fit.w < 1600, JSON.stringify(fit));
+    }
     await domClick("[data-testid=cad-close]");
     await page.evaluate((j) => window.r4d.store.setStory(JSON.parse(j)), saved);
     check("fenêtre Cadencer : Échap ferme", closed);

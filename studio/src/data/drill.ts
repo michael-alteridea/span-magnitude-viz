@@ -317,7 +317,7 @@ export interface CatStat {
   delta: number | null;
   /** Période suivante (reprise ?) : valeur et nombre ; null si hors données. */
   next: { value: number; count: number } | null;
-  /** Carte : identifiant NUTS 1 (null si non reconnu). */
+  /** Carte : identifiant de région FR · BE (null si non reconnu). */
   nuts?: string | null;
 }
 

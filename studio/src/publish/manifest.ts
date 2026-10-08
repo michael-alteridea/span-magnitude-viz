@@ -16,6 +16,14 @@ import { readUrl } from "../story/reading";
 export const MANIFEST_FORMAT = "datanime-revue";
 export const INDEX_FORMAT = "datanime-index";
 export const MANIFEST_VERSION = 1;
+/** Révision du contrat (ajouts compatibles, `version` reste 1). */
+export const CONTRACT_REVISION = "1.1";
+/** Image intégrée (manifeste téléchargé) : 800 000 caractères au plus par adresse data:. */
+export const DATA_URL_MAX_CHARS = 800_000;
+/** Manifeste téléchargé (images intégrées) : 12 Mo au plus (12 000 000 octets). */
+export const MANIFEST_MAX_BYTES = 12_000_000;
+/** Longueur du suffixe de version des images publiées (`?v=` + 12 premiers caractères de l'empreinte du snapshot). */
+export const IMAGE_VERSION_LEN = 12;
 /** Dimensions des images publiées (16:9, cartouche compris). */
 export const IMAGE_W = 1600;
 export const IMAGE_H = 900;
@@ -40,7 +48,14 @@ const enc = encodeURIComponent;
 export const publishBase = (base: string = PLATFORM_URL): string => `${base}${PUBLISH_DIR}/`;
 export const indexUrl = (base: string = PLATFORM_URL): string => `${publishBase(base)}${INDEX_FILE}`;
 export const manifestUrl = (id: string, base: string = PLATFORM_URL): string => `${publishBase(base)}${enc(id)}/${MANIFEST_FILE}`;
-export const imageUrl = (id: string, snapId: string, ext: "png" | "svg", base: string = PLATFORM_URL): string => `${publishBase(base)}${enc(id)}/${enc(snapId)}.${ext}`;
+/**
+ * Adresse publiée d'une image. `version` (empreinte du snapshot) ajoute `?v=<12 hex>` : une image republiée
+ * change d'adresse et ne sort jamais d'un cache périmé (Firebase garde jusqu'à 1 h).
+ */
+export const imageUrl = (id: string, snapId: string, ext: "png" | "svg", base: string = PLATFORM_URL, version?: string): string =>
+  `${publishBase(base)}${enc(id)}/${enc(snapId)}.${ext}${version ? `?v=${version.slice(0, IMAGE_VERSION_LEN)}` : ""}`;
+/** Nom du fichier d'une adresse d'image publiée (sans le suffixe `?v=`). */
+export const imageFileOf = (u: string): string => decodeURIComponent((u.split("?")[0] ?? "").split("/").pop() ?? "");
 
 /* ------------------------------------------------------------------ schéma */
 
@@ -53,20 +68,29 @@ const id = z.string().regex(ID, "identifiant : lettres, chiffres, « . », « _ 
 const iso = z.string().regex(ISO, "date ISO 8601 avec fuseau");
 const url = z.string().regex(HTTP, "adresse http(s) absolue");
 const hex64 = z.string().regex(HEX64, "empreinte SHA-256 (64 caractères hexadécimaux)");
-/** Image PNG : adresse publiée (…/<snapshot>.png) ou image intégrée (manifeste téléchargé). */
-const png = z.string().refine((s) => /^https?:\/\/\S+\.png$/.test(s) || /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s), "image PNG : adresse …/.png ou data:image/png;base64");
+const PNG_URL = /^https?:\/\/[^\s?]+\.png(\?v=[0-9a-f]{12})?$/;
+const PNG_DATA = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+/** Image PNG : adresse publiée (…/<snapshot>.png?v=…) ou image intégrée (manifeste téléchargé, ≤ 800 000 caractères). */
+const png = z
+  .string()
+  .refine((s) => PNG_URL.test(s) || PNG_DATA.test(s), "image PNG : adresse …/.png ou data:image/png;base64")
+  .refine((s) => !s.startsWith("data:") || s.length <= DATA_URL_MAX_CHARS, `image intégrée : ${DATA_URL_MAX_CHARS.toLocaleString("fr-FR")} caractères au plus`);
 
 export const manifestSnapshotSchema = z.object({
   id,
   position: z.number().int().min(1),
   titre: z.string().min(1).max(300),
+  /** Synthèse narrative en une phrase (message du snapshot) ; distincte des puces « À retenir ». */
   commentaire_genere: z.string().max(2000),
   commentaire_animateur: z.string().max(2000).nullable(),
   a_retenir: z.array(z.string().max(400)).max(10),
   chemin: z.string().max(400),
   image_png: png,
-  image_svg: z.string().regex(/^https?:\/\/\S+\.svg$/).optional(),
-  lien_lecture: url,
+  image_svg: z.string().regex(/^https?:\/\/[^\s?]+\.svg(\?v=[0-9a-f]{12})?$/).optional(),
+  /** Texte alternatif de l'image (français) : type de graphique, périmètre, chiffre clé. */
+  alt: z.string().min(1).max(1000),
+  /** Lien https partageable ; null dans un manifeste téléchargé (liens propres à l'appareil, non partagés). */
+  lien_lecture: url.nullable(),
   empreinte: hex64,
 });
 
@@ -82,13 +106,21 @@ export const manifestSchema = z
     genere_le: iso,
     source: z.string().max(400),
     empreinte: hex64,
-    lien_lecture: url,
+    lien_lecture: url.nullable(),
     snapshots: z.array(manifestSnapshotSchema).min(1).max(24),
   })
   .superRefine((m, ctx) => {
     m.snapshots.forEach((s, i) => {
       if (s.position !== i + 1) ctx.addIssue({ code: "custom", path: ["snapshots", i, "position"], message: `position attendue : ${i + 1}` });
+      const bullets = s.a_retenir.map((x) => x.trim());
+      const g = s.commentaire_genere.trim();
+      if (g && (bullets.includes(g) || (bullets.length && g === bullets.join(" ")))) ctx.addIssue({ code: "custom", path: ["snapshots", i, "commentaire_genere"], message: "commentaire_genere doit être une synthèse distincte des puces « À retenir »" });
+      const published = /^https?:/.test(s.image_png);
+      if (published && !s.lien_lecture) ctx.addIssue({ code: "custom", path: ["snapshots", i, "lien_lecture"], message: "revue publiée : lien de lecture https obligatoire" });
+      if (published && !/\?v=[0-9a-f]{12}$/.test(s.image_png)) ctx.addIssue({ code: "custom", path: ["snapshots", i, "image_png"], message: "image publiée : suffixe de version ?v=<12 hex> attendu" });
+      if (published && !s.image_png.endsWith(`?v=${s.empreinte.slice(0, IMAGE_VERSION_LEN)}`)) ctx.addIssue({ code: "custom", path: ["snapshots", i, "image_png"], message: "image publiée : ?v= doit reprendre l'empreinte du snapshot" });
     });
+    if (m.snapshots.some((s) => /^https?:/.test(s.image_png)) && !m.lien_lecture) ctx.addIssue({ code: "custom", path: ["lien_lecture"], message: "revue publiée : lien de lecture https obligatoire" });
     const ids = new Set(m.snapshots.map((s) => s.id));
     if (ids.size !== m.snapshots.length) ctx.addIssue({ code: "custom", path: ["snapshots"], message: "identifiants de snapshots en double" });
   });
@@ -99,7 +131,17 @@ export const indexSchema = z.object({
   format: z.literal(INDEX_FORMAT),
   version: z.literal(MANIFEST_VERSION),
   genere_le: iso,
-  revues: z.array(z.object({ id, titre: z.string().min(1), persona: z.string(), manifeste: url })),
+  revues: z.array(
+    z.object({
+      id,
+      titre: z.string().min(1),
+      persona: z.string(),
+      manifeste: url,
+      empreinte: hex64,
+      genere_le: iso,
+      nb_snapshots: z.number().int().min(1).max(24),
+    })
+  ),
 });
 export type ManifestIndex = z.infer<typeof indexSchema>;
 
@@ -114,6 +156,8 @@ export interface SourceSnapshot {
   path?: string[] | undefined;
   source: string;
   spec?: unknown;
+  /** Rôle narratif (contexte, tension, révélation, recommandation). */
+  role?: string | null;
 }
 
 export interface ManifestInput {
@@ -129,7 +173,7 @@ export interface ManifestInput {
 }
 
 export interface ManifestOptions {
-  /** « publie » : images par adresse (`…/publie/<revue>/<snapshot>.png`) ; « integre » : images data: (téléchargement). */
+  /** « publie » : images par adresse (`…/publie/<revue>/<snapshot>.png?v=…`) ; « integre » : images data: (téléchargement, liens de lecture null). */
   images: "publie" | "integre";
   /** Base des adresses publiées (constante unique). */
   base?: string;
@@ -144,13 +188,88 @@ export function cheminOf(s: Pick<SourceSnapshot, "subtitle" | "path">): string {
   return [measure, ...path].filter(Boolean).join(" › ");
 }
 
-/** Commentaire généré en un paragraphe (les « À retenir » mis bout à bout). */
-export function commentaireOf(comments: string[]): string {
-  return comments
-    .map((c) => c.trim())
-    .filter(Boolean)
-    .map((c) => (/[.!?…:]$/.test(c) ? c : `${c}.`))
-    .join(" ");
+const ROLE_LEADS: Record<string, string> = {
+  context: "Pour situer",
+  tension: "Point d'attention",
+  revelation: "Ce que montre l'analyse",
+  recommendation: "À décider",
+};
+
+const sentence = (t: string): string => {
+  const x = t.trim().replace(/[ \t\r\n]+/g, " ");
+  return !x ? "" : /[.!?…]$/.test(x) ? x : `${x}.`;
+};
+
+/** Phrase avec un nombre (montant, pourcentage, effectif) : sert de chiffre clé. */
+const HAS_NUMBER = /\d/;
+
+/**
+ * Commentaire généré : synthèse narrative en une phrase, le message du snapshot (titre d'action) introduit par son
+ * rôle dans le récit et son périmètre (« Point d'attention (Pipeline créé › T2 2026) — Juin 2026 décroche… »).
+ * Les puces « À retenir » restent dans `a_retenir` (jamais recopiées ici).
+ */
+export function commentaireOf(s: Pick<SourceSnapshot, "title" | "subtitle" | "path" | "role" | "comments">): string {
+  const title = s.title.trim();
+  if (!title) return "";
+  const lead = ROLE_LEADS[s.role ?? ""] ?? "Message";
+  const scope = cheminOf(s);
+  const out = sentence(`${lead}${scope ? ` (${scope})` : ""} — ${title}`);
+  const bullets = s.comments.map((c) => c.trim());
+  return bullets.includes(out) ? `${lead} — ${out}` : out;
+}
+
+/** Description courte du type de graphique d'un snapshot (texte alternatif). */
+export function chartKindOf(spec: unknown): string {
+  const sp = (spec ?? {}) as { type?: string; drill?: { view?: string }; special?: { mapRegion?: string } };
+  const t = sp.type ?? "";
+  if (t === "drill") {
+    const v = sp.drill?.view ?? "periods";
+    return (
+      {
+        periods: "Graphique en barres par période",
+        month: "Courbe du cumul jour par jour comparé au rythme moyen",
+        map: "Carte des régions France · Belgique",
+        history: "Petits multiples mensuels par région",
+        breakdown: "Graphique en barres par catégorie",
+        bridge: "Cascade des écarts",
+        compare: "Barres comparées avec écarts",
+        pivot: "Tableau croisé en graphique",
+      } as Record<string, string>
+    )[v] ?? "Graphique d'exploration";
+  }
+  if (t === "map") return sp.special?.mapRegion === "europe" ? "Carte d'Europe" : "Carte France · Belgique";
+  return (
+    {
+      bar: "Graphique en barres verticales",
+      barH: "Graphique en barres horizontales",
+      groupedBar: "Graphique en barres groupées",
+      stackedBar: "Graphique en barres empilées",
+      line: "Graphique en courbes",
+      area: "Graphique en aires",
+      stackedArea: "Graphique en aires empilées",
+      scatter: "Nuage de points",
+      pie: "Camembert",
+      donut: "Graphique en anneau",
+      radialBar: "Arcs radiaux",
+      variance: "Graphique des écarts",
+      film: "Film animé des montants dans le temps",
+    } as Record<string, string>
+  )[t] ?? "Graphique";
+}
+
+/**
+ * Texte alternatif (français) : type de graphique, périmètre, message et chiffre clé — titre d'action, complété par
+ * la première puce chiffrée quand le titre n'a pas de nombre.
+ */
+export function altOf(s: Pick<SourceSnapshot, "title" | "subtitle" | "path" | "comments" | "spec">): string {
+  const scope = cheminOf(s);
+  const parts = [sentence(`${chartKindOf(s.spec)}${scope ? ` : ${scope}` : ""}`), sentence(s.title)];
+  if (!HAS_NUMBER.test(s.title)) {
+    const k = s.comments.map((c) => c.trim()).find((c) => HAS_NUMBER.test(c));
+    if (k) parts.push(sentence(`Chiffre clé : ${k}`));
+  }
+  const out = parts.filter(Boolean).join(" ");
+  return out.length > 1000 ? `${out.slice(0, 997)}…` : out || "Graphique Datanime";
 }
 
 function dataHashOf(spec: unknown): string | null {
@@ -177,6 +296,7 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
   const base = o.base ?? PLATFORM_URL;
   const readBase = o.readBase ?? base;
   const readId = input.readId ?? input.id;
+  const publie = o.images === "publie";
   const prints = await Promise.all(input.snapshots.map((x) => snapshotFingerprint(x.snap)));
   const sources = [...new Set(input.snapshots.map((x) => x.snap.source.trim()).filter(Boolean))];
   const m: Manifest = {
@@ -193,18 +313,20 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
       input.snapshots.map((x) => x.snap),
       prints
     ),
-    lien_lecture: readUrl(readBase, readId),
+    // Manifeste téléchargé : les liens de cet appareil ne sont pas partagés (null) ; seuls les liens https publiés circulent.
+    lien_lecture: publie ? readUrl(readBase, readId) : null,
     snapshots: input.snapshots.map(({ snap, note, png, svg }, i) => ({
       id: snap.id,
       position: i + 1,
       titre: snap.title || `Snapshot ${i + 1}`,
-      commentaire_genere: commentaireOf(snap.comments),
+      commentaire_genere: commentaireOf(snap),
       commentaire_animateur: note?.trim() ? note.trim() : null,
       a_retenir: snap.comments.map((c) => c.trim()).filter(Boolean),
       chemin: cheminOf(snap),
-      image_png: o.images === "publie" ? imageUrl(input.id, snap.id, "png", base) : png,
-      ...(o.images === "publie" && svg ? { image_svg: imageUrl(input.id, snap.id, "svg", base) } : {}),
-      lien_lecture: readUrl(readBase, readId, snap.id),
+      image_png: publie ? imageUrl(input.id, snap.id, "png", base, prints[i]) : png,
+      ...(publie && svg ? { image_svg: imageUrl(input.id, snap.id, "svg", base, prints[i]) } : {}),
+      alt: altOf(snap),
+      lien_lecture: publie ? readUrl(readBase, readId, snap.id) : null,
       empreinte: prints[i]!,
     })),
   };
@@ -216,7 +338,7 @@ export function buildIndex(manifests: Manifest[], genere_le: string, base: strin
     format: INDEX_FORMAT,
     version: MANIFEST_VERSION,
     genere_le,
-    revues: manifests.map((m) => ({ id: m.id, titre: m.titre, persona: m.persona, manifeste: manifestUrl(m.id, base) })),
+    revues: manifests.map((m) => ({ id: m.id, titre: m.titre, persona: m.persona, manifeste: manifestUrl(m.id, base), empreinte: m.empreinte, genere_le: m.genere_le, nb_snapshots: m.snapshots.length })),
   });
 }
 

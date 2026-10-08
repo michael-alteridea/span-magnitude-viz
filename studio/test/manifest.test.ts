@@ -10,7 +10,14 @@ import { PLATFORM_URL } from "../src/brand";
 import { READING_PUBLIC_BASE } from "../src/story/reading";
 import { VERIFY_URL } from "../src/provenance";
 import { DEMO_FINANCE_ID, DEMO_PIPELINE_ID, demoPipelineReview, demoReadingStory } from "../src/review/demo";
+import { DEMO_ANIMATOR_NOTES, demoNotesFor } from "../src/publish/demoNotes";
 import {
+  CONTRACT_REVISION,
+  DATA_URL_MAX_CHARS,
+  MANIFEST_MAX_BYTES,
+  altOf,
+  chartKindOf,
+  imageFileOf,
   IMAGE_H,
   IMAGE_W,
   PUBLISHED_STORIES,
@@ -55,6 +62,11 @@ describe("adresses du manifeste", () => {
     expect(indexUrl()).toBe("https://alteridea-dashboard.web.app/reporting/publie/index.json");
     expect(manifestUrl("demo-dircom")).toBe("https://alteridea-dashboard.web.app/reporting/publie/demo-dircom/manifeste.json");
     expect(imageUrl("norvia-budget-2026", "daf-05-baisse-mois-14j5oil", "png")).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-14j5oil.png");
+    // 1.1 : adresse versionnée par l'empreinte du snapshot (12 premiers caractères), nom de fichier inchangé
+    const v = imageUrl("norvia-budget-2026", "daf-05-baisse-mois-14j5oil", "png", PLATFORM_URL, "3e82fc50fa44e17e93562b50");
+    expect(v).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-14j5oil.png?v=3e82fc50fa44");
+    expect(imageFileOf(v)).toBe("daf-05-baisse-mois-14j5oil.png");
+    expect(CONTRACT_REVISION).toBe("1.1");
     // futur domaine : une seule base à changer
     expect(manifestUrl("demo-daf", "https://datanime.io/")).toBe("https://datanime.io/publie/demo-daf/manifeste.json");
   });
@@ -86,10 +98,22 @@ describe("construction du manifeste", () => {
     expect(s3.id).toBe("dircom-03-mois-focus-88z5ap");
     expect(s3.chemin).toBe("Pipeline créé › T2 2026 › Juin 2026");
     expect(s3.a_retenir).toHaveLength(3);
-    expect(s3.commentaire_genere.startsWith(s3.a_retenir[0]!)).toBe(true);
+    // 1.1 : synthèse en une phrase (message du snapshot), distincte des puces
+    expect(s3.commentaire_genere).toContain(s3.titre);
+    expect(s3.commentaire_genere).toMatch(/^(Pour situer|Point d'attention|Ce que montre l'analyse|À décider|Message) \(Pipeline créé › T2 2026 › Juin 2026\) — /);
+    expect(s3.a_retenir).not.toContain(s3.commentaire_genere);
+    expect(s3.commentaire_genere).not.toBe(s3.a_retenir.join(" "));
+    expect(s3.commentaire_genere.match(/[.!?…](\s|$)/g)?.length ?? 0).toBeLessThanOrEqual(1);
     expect(s3.commentaire_animateur).toMatch(/Pas d'incident CRM/);
-    expect(s3.image_png).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.png`);
-    expect(s3.image_svg).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.svg`);
+    const v = s3.empreinte.slice(0, 12);
+    expect(s3.image_png).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.png?v=${v}`);
+    expect(s3.image_svg).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.svg?v=${v}`);
+    // 1.1 : texte alternatif (type de graphique, périmètre, chiffre clé)
+    expect(s3.alt).toMatch(/^Courbe du cumul jour par jour/);
+    expect(s3.alt).toContain("Pipeline créé › T2 2026 › Juin 2026");
+    expect(s3.alt).toMatch(/\d/);
+    for (const s of m.snapshots) expect(s.alt.length).toBeGreaterThan(20);
+    expect(m.snapshots[3]!.alt).toMatch(/^Carte des régions France · Belgique/);
     expect(s3.lien_lecture).toBe(`${PLATFORM_URL}#/lire/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap`);
     expect(s3.empreinte).toMatch(/^[0-9a-f]{64}$/);
     expect(new Set(m.snapshots.map((s) => s.empreinte)).size).toBe(7);
@@ -106,22 +130,31 @@ describe("construction du manifeste", () => {
     expect(changed).not.toBe(prints[0]);
   });
 
-  it("manifeste téléchargé (histoire locale) : images intégrées, sans SVG, liens de cet appareil", async () => {
+  it("manifeste téléchargé (histoire locale) : images intégrées, sans SVG, liens de lecture null (non partagés)", async () => {
     const input = await pipelineInput();
     const id = await localStoryManifestId(input.snapshots.map((x) => x.snap.id));
     expect(id).toMatch(/^histoire-[0-9a-f]{10}$/);
     const m = await buildManifest({ ...input, id, readId: "histoire", date_reunion: null, persona: "", entreprise: "" }, { images: "integre", readBase: "http://localhost:5174/" });
     expect(m.snapshots[0]!.image_png).toBe(PNG);
     expect("image_svg" in m.snapshots[0]!).toBe(false);
-    expect(m.lien_lecture).toBe("http://localhost:5174/#/lire/histoire");
-    expect(m.snapshots[1]!.lien_lecture).toBe("http://localhost:5174/#/lire/histoire/dircom-02-mois-88z5ap");
+    expect(m.lien_lecture).toBeNull();
+    expect(m.snapshots.every((s) => s.lien_lecture === null)).toBe(true);
     expect(m.date_reunion).toBeNull();
+    // limites des images intégrées
+    expect([DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES]).toEqual([800_000, 12_000_000]);
+    const big = "data:image/png;base64," + "A".repeat(DATA_URL_MAX_CHARS);
+    expect(manifestSchema.safeParse({ ...m, snapshots: m.snapshots.map((s, i) => (i ? s : { ...s, image_png: big })) }).success).toBe(false);
   });
 
   it("index des revues publiées", async () => {
     const m = await buildManifest(await pipelineInput(), { images: "publie" });
     const idx = buildIndex([m], m.genere_le);
-    expect(idx).toEqual({ format: "datanime-index", version: 1, genere_le: "2026-10-08T06:30:00+02:00", revues: [{ id: DEMO_PIPELINE_ID, titre: m.titre, persona: "Directeur commercial", manifeste: manifestUrl(DEMO_PIPELINE_ID) }] });
+    expect(idx).toEqual({
+      format: "datanime-index",
+      version: 1,
+      genere_le: "2026-10-08T06:30:00+02:00",
+      revues: [{ id: DEMO_PIPELINE_ID, titre: m.titre, persona: "Directeur commercial", manifeste: manifestUrl(DEMO_PIPELINE_ID), empreinte: m.empreinte, genere_le: m.genere_le, nb_snapshots: 7 }],
+    });
     expect(indexSchema.safeParse({ ...idx, version: 2 }).success).toBe(false);
   });
 });
@@ -144,6 +177,14 @@ describe("schéma Zod du manifeste", () => {
     expect(bad((x) => (x.snapshots[0]!.image_png = "data:image/jpeg;base64,AAAA", x))).toBe(false);
     expect(bad((x) => (x.snapshots[0]!.image_svg = "data:image/svg+xml;base64,AAAA", x))).toBe(false);
     expect(bad((x) => (x.snapshots[0]!.id = "a b", x))).toBe(false);
+    // 1.1 : version d'image = empreinte, synthèse ≠ puces, alt obligatoire, lien https obligatoire pour une revue publiée
+    expect(bad((x) => (x.snapshots[0]!.image_png = x.snapshots[0]!.image_png.split("?")[0]!, x))).toBe(false);
+    expect(bad((x) => (x.snapshots[0]!.image_png = x.snapshots[0]!.image_png.replace(/v=.*/, "v=000000000000"), x))).toBe(false);
+    expect(bad((x) => (x.snapshots[0]!.commentaire_genere = x.snapshots[0]!.a_retenir.join(" "), x))).toBe(false);
+    expect(bad((x) => (x.snapshots[0]!.commentaire_genere = x.snapshots[0]!.a_retenir[0]!, x))).toBe(false);
+    expect(bad((x) => (delete (x.snapshots[0] as Partial<typeof x.snapshots[0]>).alt, x))).toBe(false);
+    expect(bad((x) => (x.snapshots[0]!.lien_lecture = null, x))).toBe(false);
+    expect(bad((x) => ({ ...x, lien_lecture: null }))).toBe(false);
     // champ absent facultatif, champs inconnus ignorés (évolutions compatibles)
     expect(bad((x) => (delete x.snapshots[0]!.image_svg, x))).toBe(true);
     const extra = manifestSchema.parse({ ...m, nouveau: 1 }) as Record<string, unknown>;
@@ -165,11 +206,31 @@ describe("champs dérivés", () => {
     expect(cheminOf({ subtitle: "Pipeline créé en € · T2 2026 › Juin 2026 · jour par jour", path: ["Tout", "T2 2026", "Juin 2026"] })).toBe("Pipeline créé › T2 2026 › Juin 2026");
     expect(cheminOf({ subtitle: "Marge contributive en € · Réel 2025 → Budget 2026 · cascade par ligne métier", path: ["Tout"] })).toBe("Marge contributive");
     expect(cheminOf({ subtitle: "", path: undefined })).toBe("");
-    expect(commentaireOf(["Juin : −22 %", " Fin juin : 1,3 M€. ", ""])).toBe("Juin : −22 %. Fin juin : 1,3 M€.");
+    const snap = { title: "Juin 2026 décroche : 1,3 M€", subtitle: "Pipeline créé en € · T2 2026", path: ["Tout", "T2 2026"], role: "tension", comments: ["Juin : −22 %", " Fin juin : 1,3 M€. ", ""] };
+    expect(commentaireOf(snap)).toBe("Point d'attention (Pipeline créé › T2 2026) — Juin 2026 décroche : 1,3 M€.");
+    expect(commentaireOf({ ...snap, title: "" })).toBe("");
+    expect(chartKindOf({ type: "drill", drill: { view: "bridge" } })).toBe("Cascade des écarts");
+    expect(chartKindOf({ type: "pie" })).toBe("Camembert");
+    expect(altOf({ ...snap, title: "La Wallonie concentre la baisse", spec: { type: "drill", drill: { view: "map" } } })).toBe(
+      "Carte des régions France · Belgique : Pipeline créé › T2 2026. La Wallonie concentre la baisse. Chiffre clé : Juin : −22 %."
+    );
     expect(isoOrNull("2026-10-08T09:00:00+02:00")).toBe("2026-10-08T09:00:00+02:00");
     expect(isoOrNull("")).toBeNull();
     expect(isoOrNull("pas une date")).toBeNull();
     expect(isoLocal(new Date("2026-10-08T07:00:00Z"))).toMatch(/^2026-10-08T\d{2}:00:00[+-]\d{2}:\d{2}$/);
     expect(isoOrNull("2026-10-15T09:00")).toMatch(/^2026-10-15T09:00:00[+-]\d{2}:\d{2}$/);
+  });
+});
+
+describe("démonstrations : notes d'animateur·rice fictives (1.1)", () => {
+  it("3 notes par démo intégrée, rattachées aux snapshots publiés", async () => {
+    for (const id of ["demo-dircom", "demo-daf"]) {
+      const st = (await demoReadingStory(id))!;
+      const notes = demoNotesFor(id, st.snapshots.map((s) => s.id));
+      expect(Object.keys(notes)).toHaveLength(Object.keys(DEMO_ANIMATOR_NOTES[id]!).length);
+      expect(Object.keys(notes).length).toBeGreaterThanOrEqual(2);
+      expect(Object.keys(notes).length).toBeLessThanOrEqual(3);
+    }
+    expect(demoNotesFor("histoire", ["a"])).toEqual({});
   });
 });

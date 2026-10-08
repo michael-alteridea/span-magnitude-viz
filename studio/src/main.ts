@@ -41,7 +41,8 @@ import { DrillBar } from "./ui/drillBar";
 import { StoryFilm } from "./ui/storyFilm";
 import { LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryDef, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, type ReadRoute } from "./story/reading";
 import { DEMO_FINANCE_ID, DEMO_ORG, DEMO_PIPELINE_ID, demoFinanceReview, demoPipelineReview, demoReadingStory } from "./review/demo";
-import { IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
+import { demoNotesFor } from "./publish/demoNotes";
+import { DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES, IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
 import { CadencerDialog, type CadencerTarget } from "./ui/cadencerDialog";
 import { drillStepAdded, type NativeSlide } from "./story/morph";
 import { ScenarioDialog } from "./ui/scenarioDialog";
@@ -618,7 +619,7 @@ async function publicationSource(storyId: string, publie: boolean): Promise<Publ
   if (d) {
     const st = await demoReadingStory(storyId);
     if (!st) return null;
-    return { id: storyId, readId: storyId, titre: st.title, persona: d.scenario.label.replace(/^Scénario\s+/u, ""), entreprise: DEMO_ORG, date_reunion: null, genere_le: publie ? d.generatedAt : now, snapshots: st.snapshots, notes: {} };
+    return { id: storyId, readId: storyId, titre: st.title, persona: d.scenario.label.replace(/^Scénario\s+/u, ""), entreprise: DEMO_ORG, date_reunion: null, genere_le: publie ? d.generatedAt : now, snapshots: st.snapshots, notes: demoNotesFor(storyId, st.snapshots.map((s) => s.id)) };
   }
   if (storyId === LOCAL_STORY_ID) {
     const st = store.state.story;
@@ -687,12 +688,71 @@ async function publication(storyId: string, mode: "publie" | "integre"): Promise
   return { manifest, images };
 }
 
+/**
+ * Image intégrée sous la limite du contrat : PNG 1600 × 900 si possible, sinon réduit par paliers (1280, 1024, 800,
+ * 640 px de large) puis, en dernier recours, quantifié (palette réduite) jusqu'à tenir dans `maxChars`.
+ */
+async function fitPngDataUrl(dataUrl: string, maxChars: number, bg: string): Promise<{ png: string; w: number }> {
+  if (dataUrl.length <= maxChars) return { png: dataUrl, w: IMAGE_W };
+  for (const w of [1280, 1024, 800, 640]) {
+    const h = Math.round((w * IMAGE_H) / IMAGE_W);
+    const png = await blobToDataUrl(await pngFit(dataUrl, IMAGE_W, IMAGE_H, w, h, bg));
+    if (png.length <= maxChars) return { png, w };
+    if (w === 640) {
+      const q = await blobToDataUrl(await quantizePng(png, w, h, 32));
+      return { png: q, w };
+    }
+  }
+  return { png: dataUrl, w: IMAGE_W };
+}
+
+/** Réduction de palette (postérisation à `levels` niveaux par canal) : PNG nettement plus léger, texte lisible. */
+async function quantizePng(dataUrl: string, w: number, h: number, levels: number): Promise<Blob> {
+  const img = new Image();
+  img.src = dataUrl;
+  await img.decode();
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const g = c.getContext("2d")!;
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h);
+  const step = 255 / (levels - 1);
+  for (let i = 0; i < d.data.length; i += 4) for (let k = 0; k < 3; k++) d.data[i + k] = Math.round(Math.round(d.data[i + k]! / step) * step);
+  g.putImageData(d, 0, 0);
+  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Échec de la quantification PNG"))), "image/png"));
+}
+
+/**
+ * Manifeste téléchargé dans les limites du contrat : chaque image ≤ 800 000 caractères et fichier ≤ 12 Mo ;
+ * le budget par image est partagé entre les snapshots. Renvoie le JSON et les éventuels avertissements.
+ */
+async function fitManifestForDownload(m: Manifest, bg = "#ffffff"): Promise<{ json: string; reduced: number; over: boolean }> {
+  const n = m.snapshots.length;
+  const overhead = JSON.stringify({ ...m, snapshots: m.snapshots.map((s) => ({ ...s, image_png: "" })) }, null, 2).length + 4096;
+  const budget = Math.max(50_000, Math.min(DATA_URL_MAX_CHARS, Math.floor((MANIFEST_MAX_BYTES - overhead) / Math.max(1, n))));
+  let reduced = 0;
+  const snapshots = [];
+  for (const s of m.snapshots) {
+    const r = await fitPngDataUrl(s.image_png, budget, bg);
+    if (r.png !== s.image_png) reduced++;
+    snapshots.push({ ...s, image_png: r.png });
+  }
+  const out = { ...m, snapshots };
+  const json = JSON.stringify(out, null, 2);
+  const over = new Blob([json]).size > MANIFEST_MAX_BYTES || snapshots.some((s) => s.image_png.length > DATA_URL_MAX_CHARS);
+  return { json, reduced, over };
+}
+
 async function downloadManifest(storyId: string): Promise<void> {
   try {
     const p = await publication(storyId, "integre");
     if (!p) return void toast("Rien à envoyer : l'histoire est vide", "info");
-    download(new Blob([JSON.stringify(p.manifest, null, 2)], { type: "application/json" }), manifestDownloadName(p.manifest.id));
-    toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots, images intégrées)`, "ok", 4000);
+    const fit = await fitManifestForDownload(p.manifest);
+    download(new Blob([fit.json], { type: "application/json" }), manifestDownloadName(p.manifest.id));
+    if (fit.over) toast(`Manifeste téléchargé, mais au-delà des limites de Cadencer (12 Mo, 800 000 caractères par image) : retirez des snapshots avant l'envoi.`, "error", 8000);
+    else if (fit.reduced) toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots ; ${fit.reduced} image${fit.reduced > 1 ? "s" : ""} réduite${fit.reduced > 1 ? "s" : ""} pour rester sous 12 Mo)`, "ok", 5000);
+    else toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots, images intégrées)`, "ok", 4000);
   } catch (e) {
     toast("Manifeste impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
   }
@@ -1333,6 +1393,8 @@ const api = {
   publication: (storyId: string, mode: "publie" | "integre" = "publie") => publication(storyId, mode),
   publishedStories: () => [...PUBLISHED_STORIES],
   publicationIndex: (manifests: Manifest[], genere_le: string) => buildIndex(manifests, genere_le),
+  /** Image intégrée ramenée sous `maxChars` caractères (réduction par paliers, puis palette réduite). */
+  fitPng: (dataUrl: string, maxChars: number) => fitPngDataUrl(dataUrl, maxChars, "#ffffff"),
   validateManifest: (m: unknown) => {
     const r = manifestSchema.safeParse(m);
     return r.success ? null : r.error.issues.map((i) => `${i.path.join(".")} : ${i.message}`);

@@ -29,7 +29,7 @@ const datasets: Record<string, unknown> = {
   "opportunities-500": opportunities500,
 };
 
-/** Optional deep-link: ?dataset=opportunities-500&view=map&region=europe&level=nuts2&fit=region&persistence=finale&t=1 */
+/** Optional deep-link: ?dataset=opportunities-500&view=map&region=europe&level=country&fit=region&persistence=finale&t=1 */
 const params = new URLSearchParams(location.search);
 
 const hostEl = document.getElementById("chart-host");
@@ -80,7 +80,9 @@ function parseMapRegion(v: string | undefined): MapRegion {
 }
 
 function parseMapLevel(v: string | undefined): MapLevel {
-  return v === "country" || v === "nuts1" || v === "nuts3" ? v : "nuts2";
+  // Maille unique « pays » (anciennes valeurs acceptées par la bibliothèque, affichées en pays).
+  void v;
+  return "country";
 }
 
 function parseMapFit(v: string | undefined): "region" | "data" {

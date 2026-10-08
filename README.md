@@ -208,13 +208,12 @@ Le mode `lane` (packing) est réservé à une version ultérieure.
 | Option | Valeurs | Défaut | Rôle |
 |---|---|---|---|
 | `mapRegion` | `"fr-be"` / `"europe"` | `"fr-be"` | Fond FR (départements) + BE (provinces), ou Europe |
-| `mapLevel` | `"country"` / `"nuts1"` / `"nuts2"` / `"nuts3"` | `"nuts2"` | Europe : maille du fond + choroplèthe |
+| `mapLevel` | `"country"` | `"country"` | Europe : maille pays (les anciennes valeurs `"nuts1"`… restent acceptées et s'affichent en pays) |
 | `mapFit` | `"region"` / `"data"` | `"region"` | Europe entière, ou zoom sur les régions contenant des points |
 
-- Points : `meta.lat` + `meta.lon` partout ; codes postaux **FR/BE** seulement (lookup hors-ligne existant). En Europe, chaque point est rattaché à sa région par point-in-polygon (`d3.geoContains`), avec repli sur la couche pays (Royaume-Uni, Ukraine… hors NUTS 2024) puis sur la région la plus proche (< 60 km).
+- Points : `meta.lat` + `meta.lon` partout ; codes postaux **FR/BE** seulement (lookup hors-ligne existant). En Europe, chaque point est rattaché à son pays par point-in-polygon (`d3.geoContains`), avec repli sur le pays le plus proche (côtes simplifiées).
 - Projection Europe : `geoAzimuthalEqualArea` centrée 10°E 52°N. Changement à chaud : `viz.setMap({ region, level, fit })`.
-- Données : Natural Earth 1:50m (domaine public) + Eurostat GISCO NUTS 2024 1:10M — **© EuroGeographics pour les limites administratives** (mention affichée sous la carte ; usage **non commercial** sans licence EuroGeographics). Détails : `src/geo/europe/SOURCES.md` ; synthèse et options pour un usage commercial : [`studio/docs/licence-cartes.md`](studio/docs/licence-cartes.md). Régénérer : `npm run build:geo`.
-- Cartons SVG statiques (Europe pays / NUTS 2, France régions / départements, Belgique régions / provinces) : `docs/maps/*.svg`, aperçus `docs/maps/previews/*.png` — `npm run build:maps`.
+- Données : France IGN ADMIN EXPRESS (Licence Ouverte), Belgique NGI-IGN AdminVector (CC BY 4.0), pays Natural Earth 1:50m (domaine public) — toutes réutilisables commercialement ; mention affichée sous la carte et dans le cartouche du Studio. Détails : `src/geo/europe/SOURCES.md` et [`studio/docs/licence-cartes.md`](studio/docs/licence-cartes.md). Régénérer : `npm run build:geo`.
 
 ---
 

@@ -1,6 +1,7 @@
-# Contrat Datanime → Cadencer : « manifeste de revue » (V1)
+# Contrat Datanime → Cadencer : « manifeste de revue » (V1, révision 1.1)
 
-*Version 1 — 8 octobre 2026. Côté Datanime : `studio/src/publish/manifest.ts` (schéma Zod, adresses, construction),
+*Version 1, révision 1.1 — 8 octobre 2026 (ajouts compatibles : `version` reste `1`, voir « Révision 1.1 » en fin de
+document). Côté Datanime : `studio/src/publish/manifest.ts` (schéma Zod, adresses, construction),
 `studio/scripts/publish-manifests.mjs` (publication à la construction), tests `studio/test/manifest.test.ts`.*
 
 ## Répartition des rôles
@@ -22,8 +23,8 @@ aujourd'hui `https://alteridea-dashboard.web.app/reporting/` (futur domaine : `d
 |---|---|
 | Index des revues publiées | `GET <PLATFORM_URL>publie/index.json` |
 | Manifeste d'une revue | `GET <PLATFORM_URL>publie/<reviewId>/manifeste.json` |
-| Image PNG d'un snapshot | `GET <PLATFORM_URL>publie/<reviewId>/<snapshotId>.png` |
-| Image SVG d'un snapshot (facultative) | `GET <PLATFORM_URL>publie/<reviewId>/<snapshotId>.svg` |
+| Image PNG d'un snapshot | `GET <PLATFORM_URL>publie/<reviewId>/<snapshotId>.png?v=<12 hex>` |
+| Image SVG d'un snapshot (facultative) | `GET <PLATFORM_URL>publie/<reviewId>/<snapshotId>.svg?v=<12 hex>` |
 | Mode lecture (revue / snapshot) | `<PLATFORM_URL>#/lire/<reviewId>` · `<PLATFORM_URL>#/lire/<reviewId>/<snapshotId>` |
 
 Revues publiées (V1) :
@@ -54,18 +55,19 @@ CORS non nécessaire (import côté serveur).
   "genere_le": "ISO 8601 avec fuseau",
   "source": "…",                         // sources des données (plusieurs : séparées par « ; »)
   "empreinte": "<64 hex>",               // empreinte des données (voir plus bas)
-  "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>",
+  "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>" | null,   // null : manifeste téléchargé (1.1)
   "snapshots": [ {
-    "id": "<snapshotId>",                // stable d'une publication à l'autre
+    "id": "<snapshotId>",                // stable d'une publication à l'autre, unique DANS la revue seulement (1.1)
     "position": 1,                       // 1, 2, 3… dans l'ordre du récit
     "titre": "…",                        // titre d'action
-    "commentaire_genere": "…",           // commentaires calculés en un paragraphe
+    "commentaire_genere": "…",           // synthèse narrative en une phrase (message du snapshot) (1.1)
     "commentaire_animateur": "…" | null, // note de l'animateur·rice
-    "a_retenir": ["…"],                  // les mêmes commentaires, en puces (0 à 10)
+    "a_retenir": ["…"],                  // les puces « À retenir » (0 à 10), jamais identiques à commentaire_genere
     "chemin": "Pipeline créé › T2 2026 › Juin 2026",
-    "image_png": "<PLATFORM_URL>publie/<reviewId>/<snapshotId>.png",
-    "image_svg": "<PLATFORM_URL>publie/<reviewId>/<snapshotId>.svg",   // facultatif (champ absent)
-    "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>/<snapshotId>",
+    "image_png": "<PLATFORM_URL>publie/<reviewId>/<snapshotId>.png?v=<12 hex>",   // (1.1) ou data:image/png;base64,…
+    "image_svg": "<PLATFORM_URL>publie/<reviewId>/<snapshotId>.svg?v=<12 hex>",   // facultatif (champ absent)
+    "alt": "…",                          // texte alternatif en français (1.1)
+    "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>/<snapshotId>" | null,      // null : manifeste téléchargé (1.1)
     "empreinte": "<64 hex>"
   } ]
 }
@@ -76,6 +78,23 @@ CORS non nécessaire (import côté serveur).
 - **Images.** `image_png` : 1600 × 900 px, image complète (titre d'action, sous-titre, graphique, « À retenir »,
   cartouche Datanime avec date de génération, source, empreinte et QR vers `lien_lecture` du snapshot).
   `image_svg` : même rendu en vectoriel, polices intégrées ; facultatif.
+- **Adresses d'images versionnées (1.1).** `image_png` et `image_svg` se terminent par `?v=<12 premiers caractères de
+  l'empreinte du snapshot>` : une image republiée change d'adresse et ne sort jamais du cache (jusqu'à 1 h) avec
+  l'ancien contenu. Le fichier servi garde le même nom (`<snapshotId>.png`) ; le paramètre ne sert qu'à contourner
+  les caches. Utiliser l'adresse telle quelle (ne pas retirer `?v=`).
+- **Identifiants (1.1).** Un `id` de snapshot n'est unique **qu'au sein d'une revue** : le même snapshot peut
+  figurer dans plusieurs revues (ex. `demo-dircom` et `norvia-pipeline-oct-2026` partagent leurs 7 identifiants).
+  Côté Cadencer, la clé d'un point d'ordre du jour est **(`reviewId`, `snapshotId`)**, jamais `snapshotId` seul.
+- **Commentaires (1.1).** `commentaire_genere` = synthèse narrative **en une phrase** : rôle dans le récit
+  (« Pour situer », « Point d'attention », « Ce que montre l'analyse », « À décider »), périmètre (`chemin`) et message
+  (titre d'action). `a_retenir` = les puces détaillées. Les deux ne sont jamais identiques (contrôlé par le schéma) :
+  afficher `commentaire_genere` en chapeau et `a_retenir` en liste.
+- **Texte alternatif (1.1).** `alt` (1 à 1 000 caractères, français) décrit l'image : type de graphique (« Carte des
+  régions France · Belgique », « Cascade des écarts »…), périmètre, message et chiffre clé (titre d'action, complété par
+  la première puce chiffrée si le titre n'a pas de nombre). À reprendre dans l'attribut `alt` de l'image.
+- **Note de l'animateur·rice.** `commentaire_animateur` vaut `null` quand il n'y en a pas (cas de la plupart des
+  snapshots). Les deux démonstrations intégrées en renseignent 3 chacune (texte fictif) pour tester l'affichage ;
+  `date_reunion` y reste `null`.
 - **Liens de lecture.** S'ouvrent sur tout appareil (téléphone compris) pour les revues publiées : le Studio
   recalcule ces histoires depuis les données de démonstration embarquées.
 - **Empreintes** (SHA-256, 64 caractères hexadécimaux minuscules) :
@@ -84,7 +103,7 @@ CORS non nécessaire (import côté serveur).
   - snapshot : SHA-256 du JSON canonique (clés triées) de son contenu (identifiant, titres, commentaires, chemin,
     spécification du graphique, données) — **change dès que le snapshot change** : Cadencer peut détecter une
     mise à jour et rafraîchir le point d'ordre du jour.
-- **Ordre.** `position` vaut 1, 2, 3… sans trou ; identifiants de snapshots uniques ; 1 à 24 snapshots.
+- **Ordre.** `position` vaut 1, 2, 3… sans trou ; identifiants de snapshots uniques dans la revue ; 1 à 24 snapshots.
 - **Évolutions.** Champs ajoutés plus tard = compatibles : Cadencer **ignore les champs inconnus**. Changement
   incompatible = `version: 2` (Cadencer refuse une version qu'il ne connaît pas).
 - **Déterminisme.** Les manifestes publiés sont reconstruits à chaque `npm run build:studio` avec des dates figées
@@ -110,7 +129,7 @@ CORS non nécessaire (import côté serveur).
       "id": "dircom-01-trimestres-88z5ap",
       "position": 1,
       "titre": "T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse",
-      "commentaire_genere": "Pipeline créé : 4,6 M€ au T2 2026 contre 4,8 M€ au T1 2026 (−180 k€). Sur la période : de 4 M€ (T1 2025) à 5,2 M€ (T3 2026), +31 %. T3 2026 repart (+13 %) : à quel mois tient le recul ?",
+      "commentaire_genere": "Pour situer (Pipeline créé) — T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse.",
       "commentaire_animateur": "Premier trimestre en recul depuis début 2025 : on cherche d'où vient l'écart avant de parler du T4.",
       "a_retenir": [
         "Pipeline créé : 4,6 M€ au T2 2026 contre 4,8 M€ au T1 2026 (−180 k€).",
@@ -118,10 +137,11 @@ CORS non nécessaire (import côté serveur).
         "T3 2026 repart (+13 %) : à quel mois tient le recul ?"
       ],
       "chemin": "Pipeline créé",
-      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.png",
-      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.svg",
+      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.png?v=f077caff5f0f",
+      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.svg?v=f077caff5f0f",
+      "alt": "Graphique en barres par période : Pipeline créé. T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse.",
       "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap",
-      "empreinte": "3e82fc50fa44e17e93562b501a1438ccb039f3ee6f04bc9c0d613e3c1ca4bf4f"
+      "empreinte": "f077caff5f0f5df61b747b172c0a0d33fa84ba9d4ea1f0924ee0ffb9b0c92864"
     }
   ]
 }
@@ -139,32 +159,64 @@ CORS non nécessaire (import côté serveur).
       "id": "norvia-pipeline-oct-2026",
       "titre": "Revue pipeline — octobre 2026",
       "persona": "Directeur commercial",
-      "manifeste": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/manifeste.json"
+      "manifeste": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/manifeste.json",
+      "empreinte": "d923bd5f307bd229554addaf4c4c2c1ce280921b0786618d11f834e4f8ba1a0a",
+      "genere_le": "2026-10-08T06:30:00+02:00",
+      "nb_snapshots": 7
     }
   ]
 }
 ```
 
-(extrait : une revue sur 4 ; `revues` liste toutes les revues publiées, `genere_le` = date la plus récente des manifestes.)
+(extrait : une revue sur 4 ; `revues` liste toutes les revues publiées, `genere_le` = date la plus récente des manifestes.
+1.1 : chaque entrée reprend aussi l'`empreinte`, le `genere_le` et le nombre de snapshots (`nb_snapshots`) de son
+manifeste : Cadencer peut détecter une revue modifiée sans télécharger le manifeste.)
 
 ## Côté Cadencer (import, rappel)
 
 1. Ordre du jour › Ajouter › **Revue Datanime** › coller l'URL du manifeste (ou choisir dans `index.json`).
 2. Serveur : `GET` de l'URL ; refuser si `content-type` ≠ `application/json`, `format` ≠ `datanime-revue` ou
-   `version` ≠ 1 ; limiter la taille (un manifeste publié pèse ~10 Ko ; un manifeste téléchargé, images intégrées, quelques Mo).
-3. Créer un point d'ordre du jour par snapshot (source `datanime`) : `titre`, `image_png`, `commentaire_genere`
-   (ou `a_retenir`), `commentaire_animateur`, `lien_lecture` ; mémoriser `id` + `empreinte` pour les mises à jour.
+   `version` ≠ 1 ; limiter la taille (un manifeste publié pèse ~15 Ko ; un manifeste téléchargé, images intégrées,
+   12 Mo au plus, voir « Histoires locales »).
+3. Créer un point d'ordre du jour par snapshot (source `datanime`) : `titre`, `image_png` (+ `alt`),
+   `commentaire_genere` (chapeau) et `a_retenir` (puces), `commentaire_animateur`, `lien_lecture` ; mémoriser
+   (`reviewId`, `id`) + `empreinte` pour les mises à jour.
 4. Ré-import de la même URL : mettre à jour les points dont l'`empreinte` a changé, ajouter / retirer les autres.
 
 ## Histoires locales (pas encore publiées)
 
 Dans le Studio, « Envoyer vers Cadencer » propose, pour une histoire ou une revue créée sur l'appareil,
-**« Télécharger le manifeste »** : même format, `image_png` en `data:image/png;base64,…` (pas d'`image_svg`),
-`lien_lecture` vers ce même appareil. La publication en ligne des histoires personnelles arrive avec
-l'enregistrement en ligne.
+**« Télécharger le manifeste »** : même format, `image_png` en `data:image/png;base64,…` (pas d'`image_svg`).
+
+- **Liens (1.1).** `lien_lecture` vaut `null` (revue et snapshots) : les liens de lecture d'une histoire locale ne
+  s'ouvrent que sur l'appareil qui l'a créée et ne sont pas partagés. Règle côté Cadencer : ne conserver un
+  `lien_lecture` que s'il commence par `https://`.
+- **Limites (1.1).** Chaque image intégrée fait **800 000 caractères au plus** (adresse `data:` complète) et le
+  fichier **12 Mo au plus** (12 000 000 octets). Le Studio respecte ces limites au téléchargement : budget partagé
+  entre les snapshots, image réduite par paliers (1 280, 1 024, 800, 640 px de large) puis, en dernier recours,
+  palette réduite ; un message avertit si une limite reste dépassée (retirer des snapshots avant l'envoi). Cadencer
+  peut refuser au-delà.
+
+La publication en ligne des histoires personnelles arrive avec l'enregistrement en ligne.
 
 ## Limites V1
 
 - Revues publiées : uniquement les 4 histoires autonomes de démonstration (données fictives Norvia).
 - Pas d'écriture retour (accusés de lecture, questions, décisions restent dans Cadencer) ; pas de webhook.
 - Mise en cache Firebase par défaut (jusqu'à 1 h) : un manifeste mis à jour peut mettre jusqu'à une heure à être vu.
+
+## Révision 1.1 (8 octobre 2026) — ajouts compatibles, `version` reste 1
+
+Suite à la revue du contrat par Cadencer :
+
+1. Adresses d'images versionnées : `image_png` / `image_svg` se terminent par `?v=<12 hex de l'empreinte du snapshot>`.
+2. Identifiants de snapshots uniques au sein d'une revue seulement : clé (`reviewId`, `snapshotId`).
+3. `commentaire_genere` = synthèse narrative en une phrase, distincte des puces `a_retenir` (contrôlé par le schéma).
+4. Démonstrations : `commentaire_animateur` fictif sur 3 snapshots chacune (`date_reunion` reste `null`).
+5. Nouveau champ `alt` par snapshot (texte alternatif en français).
+6. Index : `empreinte`, `genere_le`, `nb_snapshots` par revue.
+7. Manifeste téléchargé : `lien_lecture` = `null` (liens propres à l'appareil, non partagés) ; ne garder que les liens `https://`.
+8. Manifeste téléchargé : 800 000 caractères au plus par image intégrée, 12 Mo au plus par fichier.
+
+Un consommateur 1.0 reste compatible : il ignore `alt` et les nouveaux champs d'index, et charge les adresses
+d'images telles quelles. Seul changement à prévoir : `lien_lecture` peut être `null` dans un manifeste téléchargé.

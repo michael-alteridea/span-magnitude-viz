@@ -353,7 +353,6 @@ export class SettingsPanel {
         sp.push(this.row("Géométrie", this.segmented("special.geometry", [["arc", "Arcs"], ["bar", "Barres"], ["point", "Points"]])));
       } else {
         sp.push(this.row("Fond de carte", this.segmented("special.mapRegion", [["fr-be", "France · Belgique"], ["europe", "Europe"]])));
-        if (spec.special.mapRegion === "europe") sp.push(this.row("Maille", this.select("special.mapLevel", [["country", "Pays"], ["nuts1", "NUTS 1"], ["nuts2", "NUTS 2"], ["nuts3", "NUTS 3"]])));
       }
       sp.push(this.row("Persistance", this.select("special.persistence", [["keep", "Garder (keep)"], ["ephemeral", "Éphémère"], ["finale", "Final en nuage"]])));
       sp.push(this.check("special.tickers", "Compteurs (nombre, somme)"));

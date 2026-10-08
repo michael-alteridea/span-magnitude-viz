@@ -35,8 +35,8 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   camembert, donut, arcs radiaux, **écarts IBCS** (réel vs budget / N-1 / prévision, écarts absolus en barres ou
   relatifs en épingles, rouge / vert réservés aux écarts) ; spéciaux : film 4D (span/magnitude) et carte FR·BE / Europe
   (toujours avec une **barre d'échelle en km** adaptée à la projection et au cadrage ; source et licence du fond dans le
-  cartouche). Licences des fonds (Natural Earth, Eurostat GISCO / EuroGeographics non commercial) et options pour un usage
-  commercial : [`docs/licence-cartes.md`](docs/licence-cartes.md).
+  cartouche). Fonds IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0) et Natural Earth (domaine public),
+  tous réutilisables commercialement : [`docs/licence-cartes.md`](docs/licence-cartes.md).
 - **Encodages** : X, une ou plusieurs mesures Y, axe Y secondaire à droite (échelle indépendante), série / couleur,
   temps (4D), taille, étiquette, agrégat, pas temporel.
 - **Axes** : linéaire / log / temps, min-max auto ou manuels, unité (€, k€, M€, %, k, M, perso), format français,
@@ -206,7 +206,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   3 mois précédents et écart par semaine. **Fil d'Ariane** cliquable (Tout › T2 2026 › Juin 2026) et bouton retour.
   Le décrochage est mesuré (plus forte baisse vs la période précédente, ou vs la moyenne des 3 périodes précédentes)
   et repéré par un contour pointillé (référence) et un encadré d'écart.
-- **Répartir dans l'espace** : carte choroplèthe des régions (NUTS 1 : régions belges et françaises, valeur + écart en %,
+- **Répartir dans l'espace** : carte choroplèthe des régions belges et françaises (IGN, NGI ; valeur + écart en %,
   légende, **barre d'échelle en km**, petite région déportée avec filet) ; **Historique par région** : petits multiples
   mensuels à échelle commune, mois focalisé en pétrole, mois saisonnier (bas partout, ex. août) en gris.
 - **Focus** : clic sur une région / un panneau / une ligne → la catégorie dans son historique ; **Détailler par…**
@@ -371,7 +371,7 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
 | `data/transform.ts` | Colonnes calculées et filtres du spec (`spec.transform`), mémoïsés |
 | `data/variance.ts` | Modèle d'écarts réel / référence (sommes appariées) |
 | `data/drill.ts`, `charts/drill.ts` | Exploration guidée : modèle pur (périodes, mois, carte, historique, détail), navigation, rendu SVG |
-| `data/regions.ts`, `data/demoPipeline.ts` | Régions FR·BE ↔ NUTS 1 ; générateur de la démo pipeline (fictive, graine fixe) |
+| `data/regions.ts`, `data/demoPipeline.ts` | Régions FR·BE ↔ identifiants de carte ; générateur de la démo pipeline (fictive, graine fixe) |
 | `story/drillStory.ts`, `story/scenarios.ts` | Récit de l'exploration ; scénarios persona rejouables (rôles, étapes) |
 | `story/*` | Rôles des colonnes, statistiques, détecteurs, narration, textes français, snapshots, export PowerPoint |
 | `review/*` | Revues partagées : modèle, stockage, démo Norvia, pages liste / partager / participant / réunion / compte rendu, `review.css` |
