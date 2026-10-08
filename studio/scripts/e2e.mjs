@@ -93,7 +93,7 @@ async function waitDownload(prefixExt, before) {
 }
 const stageInfo = () =>
   page.evaluate(() => ({
-    marks: document.querySelectorAll('[data-testid=chart-svg] .r4d-marks *').length,
+    marks: document.querySelectorAll('[data-testid=chart-svg] .r4d-marks *, [data-testid=chart-svg] .r4d-drill-mark').length,
     empty: document.querySelector("[data-testid=chart-svg] .r4d-empty")?.textContent ?? null,
     special: document.querySelectorAll("[data-testid=special-host] svg *").length,
     title: document.querySelector("[data-testid=chart-svg] .r4d-title")?.textContent ?? null,
@@ -289,7 +289,7 @@ try {
 
   /* 2. Chaque type de graphique */
   const types = await page.$$eval("[data-testid^=type-]", (els) => els.map((e) => e.dataset.type));
-  check("galerie : 14 types", types.length === 14, types.join(","));
+  check("galerie : 15 types", types.length === 15, types.join(","));
   for (const t of types) {
     if (t === "film" || t === "map") continue;
     await page.click(`[data-testid=type-${t}]`);
@@ -1146,6 +1146,126 @@ try {
     await page.keyboard.press("Escape");
     await sleep(200);
     check("Échap ferme la fenêtre", !(await page.evaluate(() => window.r4d.mapping().isOpen)));
+  }
+
+  /* 14. Exploration guidée + Scénario Directeur commercial (démo pipeline fictive) */
+  {
+    if (SHOTS) await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    const csvRes = await page.evaluate(async () => {
+      const r = await fetch("demo/pipeline-commercial-2026.csv");
+      return { status: r.status, text: r.ok ? await r.text() : "" };
+    });
+    const csvLines = csvRes.text.trim().split("\n");
+    check("démo : CSV servi (demo/pipeline-commercial-2026.csv)", csvRes.status === 200 && csvLines.length === 1976 && csvLines[0].startsWith("id_opportunite;"), `${csvRes.status} · ${csvLines.length} lignes`);
+    // Import du CSV (séparateur « ; », décimales françaises) puis exploration
+    await page.evaluate((t) => window.r4d.importText(t), csvRes.text);
+    await sleep(500);
+    const imp = await page.evaluate(() => {
+      const ds = window.r4d.store.state.ds;
+      const col = (n) => ds.columns.find((c) => c.name === n)?.type;
+      return { rows: ds.rows.length, montant: col("montant_eur"), date: col("date_creation"), proba: ds.rows[0].montant_pondere_eur };
+    });
+    check("démo : CSV importé (1 975 lignes, montants et dates reconnus)", imp.rows === 1975 && imp.montant === "number" && imp.date === "date" && typeof imp.proba === "number", JSON.stringify(imp));
+    await page.evaluate(() => window.r4d.pickType("drill"));
+    await sleep(500);
+    const fromCsv = await page.evaluate(() => ({ bar: !document.querySelector("[data-testid=drill-bar]").hidden, title: window.r4d.getSpec().style.title, d: window.r4d.drill() }));
+    check("démo : exploration sur le CSV importé (rôles devinés, T2 2026 en recul)", fromCsv.bar && fromCsv.d.date === "date_creation" && fromCsv.d.measure === "montant_eur" && /T2 2026 : seul trimestre en recul/.test(fromCsv.title), fromCsv.title);
+
+    // Exemple intégré « Démo : pipeline commercial » : clics réels
+    await page.evaluate(() => window.r4d.loadSample("demo-pipeline"));
+    await sleep(700);
+    const t = async () => page.evaluate(() => window.r4d.getSpec().style.title);
+    const crumbs = async () => page.$$eval("[data-testid=drill-crumbs] button", (b) => b.map((x) => x.textContent));
+    const clickSvg = async (sel) => {
+      await page.evaluate(() => window.r4d.seek(1));
+      const el = await page.$(`[data-testid=chart-svg] ${sel}`);
+      if (!el) throw new Error("élément introuvable : " + sel);
+      await el.click();
+      await sleep(450);
+      await page.evaluate(() => window.r4d.seek(1));
+    };
+    check("démo : vue de départ par trimestre", /^T2 2026 : seul trimestre en recul \(−3,8 %\)/.test(await t()) && (await page.$$("[data-testid=chart-svg] .r4d-drill-bar")).length === 7, await t());
+    const tap = await page.$$eval(".drill-btn, .drill-crumb, .drill-select", (els) => Math.min(...els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect().height)));
+    check("démo : cibles tactiles ≥ 44 px (iPad)", tap >= 44, `${tap} px`);
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "26-exploration-trimestres.png") });
+    await clickSvg('.r4d-drill-bar[data-focus="1"]');
+    check("démo : clic sur T2 2026 → mois, juin décroche", /^Juin 2026 décroche : 1,3 M€, −22 %/.test(await t()) && JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "T2 2026"]), await t());
+    await clickSvg('.r4d-drill-bar[data-focus="1"]');
+    check("démo : clic sur juin → jour par jour (fil d'Ariane Tout › T2 2026 › Juin 2026)", /tout au long du mois/.test(await t()) && JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "T2 2026", "Juin 2026"]), await t());
+    await domClick("[data-testid=drill-view-map]");
+    await sleep(500);
+    await page.evaluate(() => window.r4d.seek(1));
+    const map = await page.evaluate(() => ({
+      regions: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-region")].map((e) => e.getAttribute("data-drill-value")),
+      km: document.querySelector("[data-testid=chart-svg] .r4d-scalebar")?.getAttribute("data-km"),
+      cart: document.querySelector("[data-testid=chart-svg] .r4d-cartouche")?.textContent ?? "",
+    }));
+    check("démo : « Répartir dans l'espace » → carte des 5 régions, échelle en km, cartouche", map.regions.length === 5 && Number(map.km) > 0 && /EuroGeographics/.test(map.cart) && /Généré le/.test(map.cart) && /Wallonie concentre toute la baisse/.test(await t()), `${map.regions.join(", ")} · ${map.km} km`);
+    if (SHOTS) await shotStage("27-exploration-carte.png");
+    await domClick("[data-testid=drill-view-history]");
+    await sleep(500);
+    check("démo : historique par région (5 petits multiples, août saisonnier)", (await page.$$("[data-testid=chart-svg] .r4d-drill-panel")).length === 5 && /août est bas partout/.test(await t()), await t());
+    if (SHOTS) await shotStage("28-exploration-historique.png");
+    await clickSvg('.r4d-drill-panel[data-drill-value="Wallonie"]');
+    check("démo : focus Wallonie (juin au plus bas)", /^Wallonie : juin 2026 au plus bas/.test(await t()) && (await crumbs()).at(-1) === "Wallonie", await t());
+    await page.select("[data-testid=drill-detail]", "commercial");
+    await sleep(500);
+    const bd = await page.evaluate(() => ({ rows: document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-row").length, comments: window.r4d.getSpec().story.comments }));
+    check("démo : « Détailler par » commercial → Julie M. à 0, collègues stables", /^Julie M\. : 0 opportunité créée en juin 2026 contre 13 en moyenne/.test(await t()) && bd.rows === 4 && bd.comments.some((c) => /stables/.test(c)), (await t()) + " · " + bd.rows);
+    if (SHOTS) await shotStage("29-exploration-commerciaux.png");
+    await domClick("[data-testid=drill-back]");
+    await sleep(300);
+    check("démo : retour (←) → vue temps du niveau Wallonie", (await page.evaluate(() => window.r4d.drill().view)) === "periods" && (await crumbs()).length === 4);
+    await domClick("[data-testid=drill-crumb-1]");
+    await sleep(300);
+    check("démo : fil d'Ariane → retour au T2 2026", JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "T2 2026"]) && /Juin 2026 décroche/.test(await t()));
+
+    // Scénario en un clic (fenêtre « Scénarios »)
+    await domClick("[data-testid=scenario-open]");
+    await sleep(300);
+    const roles = await page.evaluate(() => [...document.querySelectorAll("[data-testid^=scenario-role-]")].map((s) => `${s.getAttribute("data-testid").slice(14)}=${s.value}`));
+    check("scénario : rôles associés automatiquement (date, montant, région, commercial)", roles.join(",") === "date=date_creation,mesure=montant_eur,region=region,commercial=commercial", roles.join(", "));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "30-scenario-directeur-commercial.png") });
+    await domClick("[data-testid=scenario-run]");
+    await page.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
+    const story = await page.evaluate(() => window.r4d.story());
+    const ids = story.snapshots.map((s) => s.id);
+    check("scénario : 7 snapshots (ids stables, chemin, commentaires) puis film", story.snapshots.length === 7 && ids.every((id) => /^dircom-0\d-/.test(id)) && story.snapshots[3].path.join(" › ") === "Tout › T2 2026 › Juin 2026" && story.snapshots.every((s) => s.comments.length >= 2 && s.svg && s.thumb) && story.title === "Revue du pipeline — octobre 2026", ids.join(" "));
+    await sleep(2200);
+    const film = await page.evaluate(() => ({ open: window.r4d.film().isOpen, marks: document.querySelectorAll("[data-testid=film-svg] .r4d-drill-mark").length, counter: document.querySelector("[data-testid=film-counter]").textContent }));
+    check("film : rejoue l'histoire (construction animée, compteur)", film.open && film.marks > 0 && film.counter === "1 / 7", JSON.stringify(film));
+    await page.evaluate(() => window.r4d.film().close());
+    await page.evaluate(() => window.r4d.film().open(window.r4d.story().snapshots, 3));
+    await sleep(3600);
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "31-film-carte.png") });
+    await domClick("[data-testid=film-next]");
+    await sleep(2400);
+    check("film : étape suivante (→) et commentaires révélés", (await page.$eval("[data-testid=film-counter]", (e) => e.textContent)) === "5 / 7" && (await page.$$("[data-testid=film-svg] .r4d-comment")).length >= 1);
+    await page.keyboard.press("Escape");
+    await sleep(200);
+    check("film : Échap ferme", !(await page.evaluate(() => window.r4d.film().isOpen)));
+    // Rejouer le scénario : mêmes identifiants (partage futur par QR)
+    await page.evaluate(() => window.r4d.scenario("dircom", true));
+    await page.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
+    await page.evaluate(() => window.r4d.film().close());
+    const ids2 = await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.id));
+    check("scénario : identifiants de snapshots stables d'un passage à l'autre", JSON.stringify(ids2) === JSON.stringify(ids));
+    const b64 = await page.evaluate(() => window.r4d.pptxBase64());
+    const zip = Buffer.from(b64, "base64").toString("latin1");
+    const slides = new Set(zip.match(/ppt\/slides\/slide\d+\.xml/g) ?? []).size;
+    check("scénario : PowerPoint 9 diapositives (couverture, sommaire, 7 snapshots)", slides === 9, `${slides} diapositives`);
+    // Pas à pas : guidage dans la barre d'exploration
+    await page.evaluate(() => window.r4d.scenario("dircom", false));
+    await sleep(500);
+    const guide = await page.$eval("[data-testid=drill-guide]", (e) => e.textContent).catch(() => "");
+    check("scénario pas à pas : guidage (étape 1/7)", /Scénario Directeur commercial · étape 1\/7/.test(guide), guide);
+    await domClick("[data-testid=drill-suggest]");
+    await sleep(400);
+    await domClick("[data-testid=drill-snapshot]");
+    await sleep(600);
+    const st2 = await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.step));
+    check("scénario pas à pas : « Suggestion » puis 📸 → snapshot de l'étape 2", JSON.stringify(st2) === JSON.stringify(["02-mois"]), st2.join(","));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "32-pas-a-pas.png") });
   }
 
   /* ------------------------------------------------ captures de documentation */

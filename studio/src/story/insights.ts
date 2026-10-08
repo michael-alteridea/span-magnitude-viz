@@ -42,6 +42,8 @@ import {
   quarterOf,
 } from "./fr";
 
+import { drillStory } from "./drillStory";
+
 const DAY = 86400000;
 
 export const INSIGHT_KINDS = [
@@ -59,6 +61,7 @@ export const INSIGHT_KINDS = [
   "geo",
   "correlation",
   "film",
+  "drill",
   "total",
 ] as const;
 export type InsightKind = (typeof INSIGHT_KINDS)[number];
@@ -78,6 +81,7 @@ export const KIND_LABELS: Record<InsightKind, string> = {
   geo: "Géographie",
   correlation: "Corrélation",
   film: "Film 4D",
+  drill: "Exploration guidée",
   total: "Synthèse",
 };
 
@@ -1031,7 +1035,15 @@ const analyzeTotal: Analyzer = (spec, eff, ctx) => {
   };
 };
 
+/** Exploration guidée : récit de la vue courante (data/drill + story/drillStory), sur les lignes déjà filtrées. */
+const analyzeDrill: Analyzer = (spec, eff) => {
+  const st = drillStory({ drill: spec.drill, transform: { calculate: [], filters: [] } }, eff);
+  if (!st) return null;
+  return { kind: "drill", title: st.title, comments: st.comments, why: "Exploration guidée : décrochage mesuré vs la moyenne des périodes précédentes.", role: st.role, effect: 0.6, coverage: 1, scope: st.scope, facts: st.facts };
+};
+
 export const ANALYZERS: Record<InsightKind, Analyzer> = {
+  drill: analyzeDrill,
   trend: analyzeTrend,
   concentration: analyzeConcentration,
   ranking: analyzeRanking,
@@ -1365,6 +1377,7 @@ const PRIOR: Record<InsightKind, number> = {
   outlier: 0.5,
   correlation: 0.4,
   film: 0.2,
+  drill: 0.3,
   total: 0.1,
 };
 

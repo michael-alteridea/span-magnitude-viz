@@ -76,6 +76,14 @@ export class Preview {
     this.root = h("div", { class: "preview" }, this.wrap, this.bar, this.status);
     new ResizeObserver(() => this.fit()).observe(this.wrap);
     this.svg.addEventListener("dblclick", (e) => this.onEditRequest(e));
+    // Exploration guidée : clic (ou toucher) sur une barre, une région, une ligne → zoom / focus
+    this.svg.addEventListener("click", (e) => {
+      const el = (e.target as Element | null)?.closest?.("[data-drill-kind]");
+      if (el && this.onDrill) {
+        e.preventDefault();
+        this.onDrill(el);
+      }
+    });
     document.addEventListener("keydown", (e) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (e.code === "Space" && !["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) && this.mode !== "none") {
@@ -122,7 +130,7 @@ export class Preview {
     this.mode = this.computeMode();
     if (prevMode !== this.mode) this.onModeChange?.(this.mode);
     this.bar.classList.toggle("hidden", this.mode === "none");
-    const rk = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.mode, this.mode]);
+    const rk = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.mode, this.mode, spec.type === "drill" ? spec.drill : null]);
     const restartNeeded = rk !== this.restartKey;
     this.restartKey = rk;
     if (restartNeeded && this.mode !== "none" && this.mode !== "special") {
@@ -330,6 +338,19 @@ export class Preview {
     const res = renderChart(tmp, spec, ds, this.cache!, { build: 1, timePos: this.mode === "4d" ? this.frameAt(1).timePos : null }, { bare: true });
     return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null, embedFonts: false });
   }
+
+  /** Rendu complet en fin d'animation (vignettes de snapshot), sans toucher à la lecture en cours. */
+  async finalSvg(): Promise<string> {
+    const { spec, ds } = this.store.state;
+    if (!this.last) this.draw();
+    if (this.mode === "none" || this.mode === "special") return this.currentSvg();
+    const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const res = renderChart(tmp, spec, ds, this.cache!, this.frameAt(1));
+    return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null });
+  }
+
+  /** Clic sur un élément d'exploration (data-drill-*) : branché par main. */
+  onDrill: ((el: Element) => void) | null = null;
 
   /* ------------------------------------------------------- édition directe */
 

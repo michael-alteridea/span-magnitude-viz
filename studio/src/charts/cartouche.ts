@@ -39,7 +39,8 @@ export interface CartoucheLayout {
  * Europe « Pays » : Natural Earth seul (domaine public) ; NUTS et fond FR · BE : Eurostat GISCO (© EuroGeographics,
  * usage non commercial sans licence EuroGeographics) + Natural Earth en contexte.
  */
-export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special">): string[] {
+export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { drill?: ChartSpec["drill"] }): string[] {
+  if (spec.type === "drill" && spec.drill?.view === "map") return ["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"];
   if (spec.type !== "map") return [];
   if (spec.special.mapRegion === "europe" && spec.special.mapLevel === "country") return ["Fond : Natural Earth (domaine public)"];
   return ["Fond : © EuroGeographics, Natural Earth", "Limites GISCO : usage non commercial"];

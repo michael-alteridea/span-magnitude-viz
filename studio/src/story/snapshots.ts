@@ -35,6 +35,11 @@ export const snapshotSchema = z.object({
   sampleId: z.string().nullable().default(null),
   dataName: z.string().default(""),
   generatedAt: z.string().default(""),
+  /** Chemin d'exploration (« Tout › T2 2026 › Juin 2026 ») : fil d'Ariane du film et de la diapositive. */
+  path: z.array(z.string()).optional(),
+  /** Scénario et étape d'origine (identifiant stable : futur partage par QR). */
+  scenario: z.string().nullable().optional(),
+  step: z.string().nullable().optional(),
 });
 export type Snapshot = z.infer<typeof snapshotSchema>;
 

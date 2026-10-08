@@ -35,6 +35,7 @@ const UNIT_TXT: Record<string, string> = { eur: "€", keur: "k€", meur: "M€
 function generic(spec: ChartSpec, eff: Dataset): InsightKind[] {
   const t = spec.type;
   const xCol = columnOf(eff, spec.encoding.x);
+  if (t === "drill") return ["drill"];
   if (t === "variance") return ["variance"];
   if (t === "map") return ["geo", "total"];
   if (t === "film") return ["film"];
@@ -60,6 +61,7 @@ function pickGeneric(kinds: InsightKind[], spec: ChartSpec, eff: Dataset, ctx: C
 
 export function subtitleFor(spec: ChartSpec, eff: Dataset, ctx: Ctx, a: Analysis | null): string {
   const parts: string[] = [];
+  if (spec.type === "drill" && a?.scope) return clip(a.scope, 300);
   if (ctx.entity) parts.push(ctx.entity);
   const y = spec.encoding.y;
   const unit = UNIT_TXT[spec.axes.y.unit];
@@ -136,7 +138,7 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
 
 /** Clé de recalcul du récit (ne dépend pas des textes affichés). */
 export function narrativeKey(spec: ChartSpec, dsVersion: number, sc: StoryContext): string {
-  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme]);
+  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.type === "drill" ? spec.drill : null]);
 }
 
 /**

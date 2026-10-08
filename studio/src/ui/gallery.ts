@@ -19,6 +19,7 @@ const SHORT: Record<ChartType, string> = {
   variance: "Écarts",
   film: "Film 4D",
   map: "Carte",
+  drill: "Zoom",
 };
 
 export class Gallery {

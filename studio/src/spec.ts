@@ -28,6 +28,7 @@ export const CHART_TYPES = [
   "variance",
   "film",
   "map",
+  "drill",
 ] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
@@ -46,9 +47,11 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
   variance: "Écarts (IBCS)",
   film: "Film 4D (span × magnitude)",
   map: "Carte FR·BE / Europe",
+  drill: "Exploration guidée (zoom temps · espace)",
 };
 
 export const CHART_FAMILIES: { label: string; types: ChartType[] }[] = [
+  { label: "Exploration", types: ["drill"] },
   { label: "Barres", types: ["bar", "barH", "groupedBar", "stackedBar"] },
   { label: "Lignes & aires", types: ["line", "area", "stackedArea"] },
   { label: "Points", types: ["scatter"] },
@@ -71,6 +74,7 @@ export const isBarType = (t: ChartType) =>
 export const isRadial = (t: ChartType) => t === "pie" || t === "donut" || t === "radialBar";
 export const isSpecial = (t: ChartType) => t === "film" || t === "map";
 export const isVariance = (t: ChartType) => t === "variance";
+export const isDrill = (t: ChartType) => t === "drill";
 
 export const AGGREGATES = ["sum", "mean", "count", "min", "max", "last"] as const;
 export const AGGREGATE_LABELS: Record<(typeof AGGREGATES)[number], string> = {
@@ -317,6 +321,52 @@ export const provenanceSchema = z.object({
 });
 export type ProvenanceSpec = z.infer<typeof provenanceSchema>;
 
+/**
+ * Exploration guidée (type « drill ») : zoom dans le temps (trimestres → mois → mois focalisé), puis dans
+ * l'espace (carte des régions, historique par région) et par n'importe quelle catégorie (commercial…).
+ * `path` est le fil d'Ariane (« Tout › T2 2026 › Juin 2026 › Wallonie ») : étapes « période » (filtre ou
+ * mise en avant selon la vue) et « catégorie » (toujours un filtre). Les dates sont en ms UTC.
+ */
+export const DRILL_GRAINS = ["week", "month", "quarter", "year"] as const;
+export type DrillGrain = (typeof DRILL_GRAINS)[number];
+export const DRILL_VIEWS = ["periods", "month", "map", "history", "breakdown", "bridge"] as const;
+export type DrillView = (typeof DRILL_VIEWS)[number];
+export const drillStepSchema = z.object({
+  kind: z.enum(["period", "cat"]),
+  grain: z.enum(DRILL_GRAINS).nullable().default(null),
+  start: z.number().finite().nullable().default(null),
+  field: z.string().max(120).nullable().default(null),
+  value: z.string().max(200).nullable().default(null),
+  label: z.string().max(80).default(""),
+});
+export type DrillStep = z.infer<typeof drillStepSchema>;
+export const drillSchema = z.object({
+  /** Colonne date (création, commande…) ; null = première date détectée. */
+  date: field,
+  /** Mesure additionnée ; null = nombre de lignes. */
+  measure: field,
+  /** Nom lisible de la mesure (« Pipeline créé ») ; vide = déduit de la colonne. */
+  label: z.string().max(80).default(""),
+  path: z.array(drillStepSchema).max(8).default([]),
+  view: z.enum(DRILL_VIEWS).default("periods"),
+  /** Pas de temps de la vue « périodes ». */
+  grain: z.enum(DRILL_GRAINS).default("quarter"),
+  /** Dimension de la répartition (carte, historique, détail) : région, commercial… */
+  by: field,
+  /** Nombre de périodes précédentes de la référence (moyenne). */
+  compare: z.number().int().min(1).max(12).default(3),
+  /**
+   * Comparaison de deux versions / scénarios d'une même colonne (« Réel 2025 » → « Budget 2026 ») : la valeur
+   * devient l'écart `to − from` (cascade, barres d'écart) ; null = mesure simple.
+   */
+  version: field,
+  from: z.string().max(120).nullable().default(null),
+  to: z.string().max(120).nullable().default(null),
+  /** Cascade : tri des facteurs par impact, sous-totaux par groupe. */
+  sortByImpact: z.boolean().default(true),
+});
+export type DrillSpec = z.infer<typeof drillSchema>;
+
 export const NARRATIVE_ROLES = ["context", "tension", "revelation", "recommendation"] as const;
 export type NarrativeRole = (typeof NARRATIVE_ROLES)[number];
 
@@ -366,6 +416,7 @@ export const chartSpecSchema = z.object({
   variance: varianceSchema.default({}),
   norme: normeSchema.default({}),
   story: storySchema.default({}),
+  drill: drillSchema.default({}),
   /** Offre : seule l'offre « pro » peut masquer la signature (avec `style.brandMark: false`). */
   branding: z.enum(["free", "pro"]).default("free"),
   /** Provenance des données affichées (null : aucune donnée, ou empreinte en cours de calcul). */

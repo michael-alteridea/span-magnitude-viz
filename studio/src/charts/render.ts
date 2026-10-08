@@ -5,7 +5,9 @@
  */
 import { select } from "d3";
 import type { ChartSpec } from "../spec";
-import { isBarType, isCartesian, isRadial, isSpecial, isVariance, chartSize } from "../spec";
+import { isBarType, isCartesian, isDrill, isRadial, isSpecial, isVariance, chartSize } from "../spec";
+import { buildDrillModel, type DrillCtx, type DrillModel } from "../data/drill";
+import { drawDrill, drillLegend } from "./drill";
 import type { Dataset } from "../data/table";
 import { columnOf } from "../data/table";
 import {
@@ -38,6 +40,7 @@ export type { Frame, Prepared, PlotRect };
 export interface PrepCache {
   key: string;
   variance?: VarianceModel | null;
+  drill?: { model: DrillModel; ctx: DrillCtx } | null;
   full: Model | null;
   time: TimeModel | null;
   frozen: Domains;
@@ -50,7 +53,7 @@ function validate(spec: ChartSpec, ds: Dataset | null): { error: string | null; 
   if (!ds || !ds.rows.length) return { error: "Aucune donnée — importez un fichier, collez un tableau ou choisissez un exemple.", warnings };
   const enc = spec.encoding;
   const t = spec.type;
-  if (isSpecial(t)) return { error: null, warnings };
+  if (isSpecial(t) || isDrill(t)) return { error: null, warnings };
   if (isVariance(t)) {
     const ys2 = enc.y.filter((f) => columnOf(ds, f)?.type === "number");
     if (ys2.length < 2) return { error: "Le graphique d'écarts compare deux mesures : choisissez le réel (Y1) puis la référence — budget, N-1 ou prévision (Y2).", warnings };
@@ -105,12 +108,12 @@ function unionDomain(a: [number, number] | undefined, b: [number, number] | unde
 }
 
 export function fourDActive(spec: ChartSpec, ds: Dataset | null): boolean {
-  return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time) && !isSpecial(spec.type) && !isVariance(spec.type);
+  return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time) && !isSpecial(spec.type) && !isVariance(spec.type) && !isDrill(spec.type);
 }
 
 /** Calcule (et met en cache) le modèle complet, le modèle temporel et les domaines figés. */
 export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepCache | null, dsVersion: number): PrepCache {
-  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.style.horizontal, spec.mode, spec.axes.x.scale, spec.transform, spec.variance, spec.norme.enabled, spec.norme.autoSwitch]);
+  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.style.horizontal, spec.mode, spec.axes.x.scale, spec.transform, spec.variance, spec.norme.enabled, spec.norme.autoSwitch, spec.type === "drill" ? spec.drill : null]);
   if (prev && prev.key === key) return prev;
   const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
   const { error, warnings } = validate(spec, ds);
@@ -119,6 +122,11 @@ export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepC
     if (adv?.soft) warnings.push(adv.notice);
   }
   if (error || !ds || isSpecial(spec.type)) return { key, full: null, time: null, frozen: {}, error, warnings };
+  if (isDrill(spec.type)) {
+    const { model, ctx, error: e } = buildDrillModel(spec, rawDs);
+    if (!model || !ctx) return { key, full: null, time: null, frozen: {}, error: e ?? "Exploration impossible avec ces données.", warnings, drill: null };
+    return { key, full: null, time: null, frozen: {}, error: null, warnings, drill: { model, ctx } };
+  }
   if (isVariance(spec.type)) {
     const vm = buildVarianceModel(spec, ds);
     if (!vm || !vm.keys.length) return { key, full: null, time: null, frozen: {}, error: "Aucune ligne où le réel et la référence sont tous deux renseignés.", warnings, variance: null };
@@ -153,7 +161,7 @@ export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepC
  * null si le type n'a pas d'échelle comparable.
  */
 export function valueMaxOf(spec: ChartSpec, rawDs: Dataset | null): number | null {
-  if (!rawDs || !scaleKey(spec)) return null;
+  if (!rawDs || isDrill(spec.type) || !scaleKey(spec)) return null;
   const cache = prepareCache(spec, rawDs, null, -1);
   if (cache.error) return null;
   const vm = cache.variance;
@@ -169,7 +177,7 @@ export function valueMaxOf(spec: ChartSpec, rawDs: Dataset | null): number | nul
 
 export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: PrepCache, frame: Frame): Prepared {
   const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
-  const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error, variance: cache.variance ?? null };
+  const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error, variance: cache.variance ?? null, drill: cache.drill ?? null };
   if (cache.error || !cache.full || !ds) return base;
   const tm = cache.time;
   if (!tm || frame.timePos == null || tm.steps.length < 2) return base;
@@ -377,7 +385,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
       const y0 = H - pad * 0.55 - lay.h;
       cartouche = drawCartouche(root, theme, lay, x0, y0);
       const reserve = H - y0 - pad + 10 * s;
-      if (sideComments && !opts.scaleNote && lay.w <= colW + 8 * s) colFootH = reserve;
+      if (sideComments && !opts.scaleNote && lay.w <= colW + 14 * s) colFootH = reserve;
       else footH = reserve;
     } else if (spec.style.source) {
       const fsz = 12 * s;
@@ -430,7 +438,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
 
   // ---- légende
-  const items = chrome ? legendItems(spec, prep.model, colors, theme.text, prep.variance, theme) : [];
+  const items: LegendItem[] = !chrome ? [] : prep.drill ? drillLegend(prep.drill.model, { spec, ds: ds!, theme, colors, font, s, W, H, frame, prep }) : legendItems(spec, prep.model, colors, theme.text, prep.variance, theme);
   let legendPos = spec.style.legend === "auto" ? (items.length ? "top" : "none") : spec.style.legend;
   if (!items.length) legendPos = "none";
   let plot: PlotRect;
@@ -473,7 +481,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
 
   if (isSpecial(spec.type)) return result();
 
-  if (prep.error || (!prep.model && !prep.variance)) {
+  if (prep.error || (!prep.model && !prep.variance && !prep.drill)) {
     const msg = prep.error ?? "Encodage incomplet.";
     const lines = wrap(msg, Math.min(plot.w * 0.8, 640 * s), 16 * s, font, 400, 4);
     gChart.append("rect").attr("x", plot.x).attr("y", plot.y).attr("width", plot.w).attr("height", plot.h).attr("rx", 10 * s).attr("fill", "none").attr("stroke", theme.grid).attr("stroke-dasharray", `${6 * s} ${6 * s}`);
@@ -483,6 +491,10 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
 
   if (prep.variance) {
     drawVariance(gChart, plot, ctx, prep.variance);
+    return result();
+  }
+  if (prep.drill) {
+    drawDrill(gChart, plot, ctx, prep.drill.model, prep.drill.ctx);
     return result();
   }
 

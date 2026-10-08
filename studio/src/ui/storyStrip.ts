@@ -14,6 +14,8 @@ export interface StoryActions {
   exportPptx(btn: HTMLButtonElement): void;
   /** Groupes d'échelle (graphiques de même mesure). */
   scales?(): Map<string, ScaleInfo>;
+  /** Rejoue l'histoire en plein écran. */
+  film?(): void;
 }
 
 export class StoryStrip {
@@ -22,6 +24,7 @@ export class StoryStrip {
   private count: HTMLElement;
   private titleInp: HTMLInputElement;
   private pptxBtn: HTMLButtonElement;
+  private filmBtn: HTMLButtonElement;
   private orderBtn: HTMLButtonElement;
   private sameScale: HTMLInputElement;
   private sameScaleLabel: HTMLElement;
@@ -35,6 +38,7 @@ export class StoryStrip {
     this.list = h("div", { class: "story-list", "data-testid": "story-list" });
     this.orderBtn = h("button", { class: "btn btn-small", "data-testid": "story-order", title: "Contexte → tension → révélation → recommandation", onclick: () => this.order() }, "Ordonner en récit");
     this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
+    this.filmBtn = h("button", { class: "btn btn-small", "data-testid": "story-film", title: "Rejouer l'histoire en plein écran (animations, commentaires) — ←/→, espace, Échap", onclick: () => this.actions.film?.() }, "▶ Film");
     this.sameScale = h("input", { type: "checkbox", "data-testid": "story-same-scale" });
     this.sameScale.addEventListener("change", () => this.store.setStory({ ...this.store.state.story, sameScale: this.sameScale.checked }));
     this.sameScaleLabel = h("label", { class: "check mini story-same-scale", title: "Graphiques de même mesure : même échelle dans l'histoire et le PowerPoint (lecture comparable)" }, this.sameScale, h("span", null, "Même échelle"));
@@ -57,6 +61,7 @@ export class StoryStrip {
         h("button", { class: "btn btn-small btn-accent", "data-testid": "snapshot", title: "Ajouter le graphique courant à l'histoire", onclick: () => this.actions.snapshot() }, "📸 Snapshot"),
         this.sameScaleLabel,
         this.orderBtn,
+        this.filmBtn,
         this.pptxBtn
       ),
       this.list
@@ -80,6 +85,7 @@ export class StoryStrip {
     if (document.activeElement !== this.titleInp) this.titleInp.value = st.title;
     this.orderBtn.disabled = st.snapshots.length < 2;
     this.pptxBtn.disabled = !st.snapshots.length;
+    this.filmBtn.disabled = !st.snapshots.length;
     this.sameScale.checked = !!st.sameScale;
     const scales = this.actions.scales?.() ?? new Map<string, ScaleInfo>();
     this.sameScaleLabel.classList.toggle("dim", scales.size === 0);

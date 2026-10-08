@@ -199,6 +199,35 @@ régénérables (LibreOffice requis) : `npx vite-node --config vitest.config.ts 
 recalcul (Worker), 4 graphiques construits dans la fenêtre, ⇄, regroupement, Appliquer, collage large, version hors ligne.
 Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-poste.png`, `25-mrr-produits.png`.
 
+## Exploration guidée et scénarios de réunion (étape démo)
+
+- **Type « Exploration guidée (zoom temps · espace) »** (`spec.drill`) : barres par trimestre → clic sur un trimestre →
+  ses mois (avec le trimestre précédent en contexte) → clic sur un mois → cumul jour par jour vs le rythme moyen des
+  3 mois précédents et écart par semaine. **Fil d'Ariane** cliquable (Tout › T2 2026 › Juin 2026) et bouton retour.
+  Le décrochage est mesuré (plus forte baisse vs la période précédente, ou vs la moyenne des 3 périodes précédentes)
+  et repéré par un contour pointillé (référence) et un encadré d'écart.
+- **Répartir dans l'espace** : carte choroplèthe des régions (NUTS 1 : régions belges et françaises, valeur + écart en %,
+  légende, **barre d'échelle en km**, petite région déportée avec filet) ; **Historique par région** : petits multiples
+  mensuels à échelle commune, mois focalisé en pétrole, mois saisonnier (bas partout, ex. août) en gris.
+- **Focus** : clic sur une région / un panneau / une ligne → la catégorie dans son historique ; **Détailler par…**
+  n'importe quelle colonne catégorielle (commercial, secteur, étape…) avec comparaison aux mois précédents.
+  Rouge / vert uniquement pour les écarts (au-delà de ±3 %, gris en deçà : stable).
+- **Récit calculé** (`story/drillStory.ts`) : titre affirmatif, 3 commentaires chiffrés, piste suivante (« Suggestion »),
+  rôle narratif. Les textes restent modifiables (double-clic) et sont conservés dans les snapshots.
+- **Scénarios persona** (`story/scenarios.ts`) : objet déclaratif `Scenario` (persona, rôles requis — date, montant,
+  région, commercial… —, étapes = opération d'exploration + vue + rôle narratif + gabarit de commentaire facultatif).
+  Rejouable sur n'importe quel fichier : fenêtre **Scénarios** (barre du haut) → associer les colonnes aux rôles →
+  **▶ Lancer le scénario** (snapshots de chaque étape puis film) ou **Pas à pas** (vous cliquez ; la barre d'exploration
+  indique l'étape et la suivante). Les démos intégrées sont des instances : « Scénario Directeur commercial ».
+  Chaque snapshot de scénario a un **identifiant stable** (scénario + étape + empreinte des données), pour un futur partage.
+- **Film** (bandeau Histoire → ▶ Film) : rejoue les snapshots en plein écran, construction animée, zoom dans la barre ou la
+  région cliquée quand l'étape suivante prolonge le chemin, commentaires révélés un à un ; ←/→, espace, Échap, toucher = suivant.
+- **Démo fictive** : exemple « Démo : pipeline commercial » et `public/demo/pipeline-commercial-2026.csv`
+  (dictionnaire : `public/demo/LISEZMOI-pipeline-commercial-2026.md`), générés par
+  `npx vite-node --config vitest.config.ts studio/scripts/make-demo-pipeline.ts`.
+  `node studio/scripts/demo-scenario.mjs --out <dossier>` produit les PNG des snapshots et le PowerPoint du scénario.
+- Barre d'exploration et fenêtres : cibles tactiles ≥ 44 px (iPad).
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -220,12 +249,16 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 | `charts/*` | Rendu SVG pur : cartésien, radial, écarts IBCS (`variance.ts`), spéciaux (film / carte via la lib), mise en page, cartouche |
 | `data/transform.ts` | Colonnes calculées et filtres du spec (`spec.transform`), mémoïsés |
 | `data/variance.ts` | Modèle d'écarts réel / référence (sommes appariées) |
+| `data/drill.ts`, `charts/drill.ts` | Exploration guidée : modèle pur (périodes, mois, carte, historique, détail), navigation, rendu SVG |
+| `data/regions.ts`, `data/demoPipeline.ts` | Régions FR·BE ↔ NUTS 1 ; générateur de la démo pipeline (fictive, graine fixe) |
+| `story/drillStory.ts`, `story/scenarios.ts` | Récit de l'exploration ; scénarios persona rejouables (rôles, étapes) |
 | `story/*` | Rôles des colonnes, statistiques, détecteurs, narration, textes français, snapshots, export PowerPoint |
 | `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage du cartouche |
 | `provenance.ts` | Empreinte des données (SHA-256), provenance, lien de vérification (construction / lecture), `VERIFY_BASE` |
 | `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Tell4D |
 | `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
+| `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire, fenêtre Scénarios |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts, fenêtre « Mise en forme des données » (`ui/mapping.ts`) |
 
 ## Extensions prévues (V2, non construites)

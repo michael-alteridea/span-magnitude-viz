@@ -3,6 +3,7 @@
  * de la V1 (8 octobre 2026) : réel jusqu'à septembre 2026, prévisions jusqu'à fin 2026.
  */
 import type { ChartSpecInput } from "../spec";
+import { demoPipelineRows } from "./demoPipeline";
 
 export const SAMPLE_TODAY = "2026-10-08";
 
@@ -400,6 +401,19 @@ export const SAMPLES: Sample[] = [
       variance: { show: "abs", polarity: "higher" },
       norme: { enabled: true, entity: "Alteridea SA", measure: "Chiffre d’affaires" },
       style: { source: "Source : business review de démonstration Alteridea · réel au 30/09/2026, prévision oct.–déc.", valueLabels: true },
+    },
+  },
+  {
+    id: "demo-pipeline",
+    name: "Démo : pipeline commercial",
+    description: "1 975 opportunités fictives · 5 régions FR·BE, 18 commerciaux · créées de janv. 2025 à sept. 2026, extrait du 8 oct. 2026 · Scénario Directeur commercial",
+    rows: () => demoPipelineRows() as unknown as Record<string, unknown>[],
+    spec: {
+      type: "drill",
+      drill: { date: "date_creation", measure: "montant_eur", label: "Pipeline créé", by: "region", view: "periods", grain: "quarter", path: [] },
+      axes: { y: { unit: "eur", decimals: 0 } },
+      mode: { kind: "dynamic", buildIn: true, buildInMs: 1100 },
+      style: { source: "Source : CRM de démonstration (données fictives) · extrait du 8 oct. 2026", background: "light" },
     },
   },
 ];

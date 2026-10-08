@@ -34,6 +34,13 @@ import { MappingWindow, type MappingApply, type MappingSource } from "./ui/mappi
 import { readWorkbookData, sheetMatrix, toWorkbookIn, type Matrix, type WorkbookData } from "./data/workbook";
 import { detectStructure } from "./data/structure";
 import { detectDelimiter, parseDelimitedMatrix } from "span-magnitude-viz/fileImport";
+import { DrillBar } from "./ui/drillBar";
+import { StoryFilm } from "./ui/storyFilm";
+import { ScenarioDialog } from "./ui/scenarioDialog";
+import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
+import type { DrillGrain } from "./spec";
+import { columnOf } from "./data/table";
+import { runScenario, scenarioSnapshotId, type RoleBinding, type Scenario } from "./story/scenarios";
 import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
 
 const store = new Store();
@@ -317,24 +324,35 @@ function openInsight(ins: Insight): void {
 
 /* ------------------------------------------------------------------ histoire */
 
-async function takeSnapshot(): Promise<Snapshot | null> {
+interface SnapOpts {
+  /** Identifiant stable (scénario) ; remplace un snapshot de même id. */
+  id?: string;
+  scenario?: string | null;
+  step?: string | null;
+  quiet?: boolean;
+}
+
+async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
   const { spec, ds, sampleId, story } = store.state;
   if (!ds) {
     toast("Chargez des données avant de prendre un snapshot.", "info");
     return null;
   }
-  if (story.snapshots.length >= MAX_SNAPSHOTS) {
+  const guided = !opts.id ? guideMatch() : null;
+  if (guided) opts = { ...opts, ...guided };
+  const replace = opts.id ? story.snapshots.findIndex((x) => x.id === opts.id) : -1;
+  if (replace < 0 && story.snapshots.length >= MAX_SNAPSHOTS) {
     toast(`Histoire limitée à ${MAX_SNAPSHOTS} snapshots.`, "info");
     return null;
   }
   const { width, height } = chartSize(spec);
   const th = themeFor(spec);
   const n = currentNarrative();
-  const full = await preview.currentSvg();
+  const full = await preview.finalSvg();
   const [thumb, svg] = await Promise.all([svgToJpegDataUrl(full, width, height, 320, th.bg).catch(() => null), preview.bareSvg().catch(() => null)]);
   const kind = spec.story.kind ?? n?.kind ?? null;
   const snap: Snapshot = {
-    id: newSnapshotId(),
+    id: opts.id ?? newSnapshotId(),
     name: spec.style.title || `Snapshot ${story.snapshots.length + 1}`,
     createdAt: new Date().toISOString(),
     spec: structuredClone(spec),
@@ -351,10 +369,16 @@ async function takeSnapshot(): Promise<Snapshot | null> {
     sampleId,
     dataName: ds.name,
     generatedAt: new Date().toISOString(),
+    path: spec.type === "drill" ? drillPathLabels(spec.drill) : [],
+    scenario: opts.scenario ?? null,
+    step: opts.step ?? null,
   };
-  store.setStory({ ...store.state.story, snapshots: [...store.state.story.snapshots, snap] });
+  const list = [...store.state.story.snapshots];
+  if (replace >= 0) list[replace] = snap;
+  else list.push(snap);
+  store.setStory({ ...store.state.story, snapshots: list });
   store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
-  toast(`Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
+  if (!opts.quiet) toast(replace >= 0 ? "Snapshot mis à jour dans l'histoire" : `Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
   return snap;
 }
 
@@ -503,8 +527,102 @@ async function pickType(t: ChartType): Promise<void> {
       lon: cur.lon ?? sug.lon ?? null,
     };
   }
-  const errs = store.setSpec({ ...spec, type: t, encoding });
+  const drill = t === "drill" && ds ? initDrill(ds, spec.drill) : spec.drill;
+  const errs = store.setSpec({ ...spec, type: t, encoding, drill });
   if (errs.length) toast(errs.join(" ; "), "error");
+}
+
+/* ------------------------------------------------------------------ exploration guidée & scénarios */
+
+function drillRoot(): DrillGrain {
+  const { spec, ds } = store.state;
+  return ds && columnOf(ds, spec.drill.date) ? rootGrain(ds, spec.drill.date!) : spec.drill.grain;
+}
+
+/** Clic sur une barre / région / ligne : zoom (période) ou focus (catégorie). */
+function onDrillClick(el: Element): void {
+  const { spec } = store.state;
+  if (spec.type !== "drill") return;
+  const kind = el.getAttribute("data-drill-kind");
+  const d = spec.drill;
+  if (kind === "period") {
+    const start = Number(el.getAttribute("data-drill-key"));
+    const grain = el.getAttribute("data-drill-grain") as DrillGrain;
+    if (!Number.isFinite(start)) return;
+    store.set("drill", drillInto(d, { kind: "period", start, grain }, drillRoot()));
+  } else if (kind === "cat") {
+    const field = el.getAttribute("data-drill-field") ?? "";
+    const value = el.getAttribute("data-drill-value") ?? "";
+    if (!field || !value || /^Autres \(/.test(value)) return;
+    if (d.path.some((p) => p.kind === "cat" && p.field === field && p.value === value)) return;
+    store.set("drill", drillInto(d, { kind: "cat", field, value }, drillRoot()));
+  }
+}
+
+/** Scénario en cours (guidage pas à pas, identifiants stables des snapshots). */
+let guide: { sc: Scenario; binding: RoleBinding; frames: ReturnType<typeof runScenario>["frames"]; dataKey: string } | null = null;
+
+function dataKey(): string {
+  const { provenance, ds, sampleId } = store.state;
+  return provenance?.hash ?? `${sampleId ?? ""}:${ds?.name ?? ""}:${ds?.rows.length ?? 0}`;
+}
+
+/** Étape du scénario qui correspond à la vue courante (snapshot pris à la main pendant le pas à pas). */
+function guideMatch(): SnapOpts | null {
+  const { spec } = store.state;
+  if (!guide || spec.type !== "drill") return null;
+  const cur = JSON.stringify({ ...spec.drill });
+  const f = guide.frames.find((x) => JSON.stringify({ ...x.drill }) === cur);
+  return f ? { id: scenarioSnapshotId(guide.sc, f.step, guide.dataKey), scenario: guide.sc.id, step: f.step.id } : null;
+}
+
+function guideText(): string | null {
+  if (!guide || store.state.spec.type !== "drill") return null;
+  const cur = JSON.stringify(store.state.spec.drill);
+  const k = guide.frames.findIndex((x) => JSON.stringify(x.drill) === cur);
+  const n = guide.frames.length;
+  const taken = new Set(store.state.story.snapshots.map((s) => s.step).filter(Boolean));
+  if (k < 0) return `${guide.sc.label} · hors parcours — « Suggestion » ou le fil d'Ariane pour y revenir`;
+  const next = guide.frames[k + 1];
+  return `${guide.sc.label} · étape ${k + 1}/${n} : ${guide.frames[k]!.step.name}${taken.has(guide.frames[k]!.step.id) ? " ✓" : " — 📸 Snapshot"}${next ? ` · ensuite : ${next.step.name}` : " · puis ▶ Film"}`;
+}
+
+/** Spec d'une étape de scénario (textes recalculés, style courant conservé). */
+function scenarioSpec(drill: ChartSpec["drill"]): ChartSpec {
+  const cur = store.state.spec;
+  return { ...cur, type: "drill", drill, story: { ...cur.story, auto: true, kind: null, edited: { title: false, subtitle: false, comments: false } } };
+}
+
+let lastUpdate: Promise<void> = Promise.resolve();
+
+async function settle(): Promise<void> {
+  await lastUpdate;
+  await new Promise((r) => requestAnimationFrame(() => r(null)));
+}
+
+async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean): Promise<void> {
+  const ds = store.state.ds;
+  if (!ds) return;
+  const run = runScenario(sc, ds, binding);
+  if (!run.frames.length) {
+    toast("Scénario impossible sur ces données : vérifiez les colonnes associées aux rôles.", "error", 6000);
+    return;
+  }
+  guide = { sc, binding, frames: run.frames, dataKey: dataKey() };
+  store.setStory({ title: sc.storyTitle, snapshots: [], sameScale: false });
+  if (run.stoppedAt) toast(`Étape « ${run.stoppedAt.name} » sans objet sur ces données : scénario arrêté à ${run.frames.length} étape(s).`, "info", 6000);
+  if (!auto) {
+    store.setSpec(scenarioSpec(run.frames[0]!.drill));
+    toast(`${sc.label} : cliquez les barres et les régions, ou suivez « Suggestion ». 📸 à chaque étape, puis ▶ Film.`, "ok", 6500);
+    return;
+  }
+  for (const f of run.frames) {
+    store.setSpec(scenarioSpec(f.drill));
+    await settle();
+    await takeSnapshot({ id: scenarioSnapshotId(sc, f.step, guide.dataKey), scenario: sc.id, step: f.step.id, quiet: true });
+  }
+  toast(`${sc.label} : ${run.frames.length} snapshots créés — lecture du film`, "ok", 3000);
+  film.open(store.state.story.snapshots, 0);
 }
 
 /* ------------------------------------------------------------------ exports */
@@ -627,6 +745,7 @@ const includeData = h("input", { type: "checkbox", checked: store.state.ui.inclu
 includeData.addEventListener("change", () => store.setUi({ includeData: includeData.checked }));
 
 const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données");
+const scenarioTopBtn = h("button", { class: "btn btn-scenario", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => scenarioDialog.open() }, h("span", { html: svgIcon(ICONS.clapper, 16) }), "Scénarios");
 const snapTopBtn = h("button", { class: "btn", "data-testid": "snapshot-top", title: "Ajouter le graphique courant à l'histoire", onclick: () => void takeSnapshot() }, "📸 Snapshot");
 
 /* ---- mode norme : badge, légende de notation */
@@ -696,7 +815,7 @@ const header = h(
   h(
     "div",
     { class: "toolbar" },
-    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, snapTopBtn),
+    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, scenarioTopBtn, snapTopBtn),
     h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Exporter"),
       h("button", { class: "btn btn-accent", "data-testid": "export-svg", onclick: () => void exportSvg().catch((e) => toast(String(e), "error")) }, h("span", { html: svgIcon(ICONS.download, 16) }), "SVG"),
       h("span", { class: "split" }, h("button", { class: "btn", "data-testid": "export-png", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) }, "PNG"), pngScale),
@@ -717,7 +836,11 @@ const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store);
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales() });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0) });
+const film = new StoryFilm((s) => datasetFor(s));
+const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText() });
+preview.onDrill = (el) => onDrillClick(el);
+const scenarioDialog = new ScenarioDialog(store, { loadSample: (id) => loadSample(id), start: (sc, b, auto) => void startScenario(sc, b, auto) });
 preview.onEditText = (field, value) => {
   if (field === "title") store.set("style.title", value);
   else if (field === "subtitle") store.set("style.subtitle", value);
@@ -728,12 +851,12 @@ preview.onEditText = (field, value) => {
     store.set("story.comments", c.map((x) => (x ?? "").trim()).filter(Boolean));
   }
 };
-const center = h("section", { class: "center" }, gallery.root, h("div", { class: "center-stack" }, preview.root), storyStrip.root);
+const center = h("section", { class: "center" }, gallery.root, h("div", { class: "center-stack" }, drillBar.root, preview.root), storyStrip.root);
 const leftRail = h("button", { class: "rail rail-left", title: "Afficher les données", onclick: () => store.setUi({ leftCollapsed: false }) }, h("span", { html: svgIcon(ICONS.table, 18) }), h("span", { class: "rail-label" }, "Données"));
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
 // L'Explorer recouvre l'aperçu et les réglages (vignettes plus grandes, 4 colonnes sur grand écran)
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -750,12 +873,13 @@ function applyUi() {
 store.subscribe((kinds) => {
   applyUi();
   storyStrip.update();
+  drillBar.update();
   if (kinds.size === 1 && kinds.has("story")) return;
   gallery.update();
   dataPanel.update();
   settings.update();
   if (kinds.has("data") && explorer.isOpen) explorer.open();
-  void preview.update(kinds);
+  lastUpdate = preview.update(kinds);
 });
 
 preview.onModeChange = (m) => {
@@ -794,6 +918,11 @@ const api = {
   narrative: () => currentNarrative(),
   regenerate: () => store.regenerate(),
   snapshot: () => takeSnapshot(),
+  scenario: (id: string, auto = true) => scenarioDialog.run(id, auto),
+  openSnapshot: (s: Snapshot) => openSnapshot(s),
+  film: () => film,
+  settle: () => settle(),
+  drill: () => store.state.spec.drill,
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
   pptxBase64: async () => (await buildStoryPptx("base64")) as string,

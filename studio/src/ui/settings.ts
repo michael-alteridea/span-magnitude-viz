@@ -239,7 +239,14 @@ export class SettingsPanel {
     const enc: (Node | null)[] = [];
     enc.push(h("p", { class: "section-intro" }, `Type : ${CHART_TYPE_LABELS[t]}`));
     if (!cols.length) enc.push(h("p", { class: "muted" }, "Chargez des données pour choisir les colonnes."));
-    else if (isVariance(t)) {
+    else if (t === "drill") {
+      enc.push(this.row("Date (axe du temps)", this.select("drill.date", this.colOpts(cols, (c) => c.type === "date"), true), "Date de création, de commande…"));
+      enc.push(this.row("Mesure", this.select("drill.measure", this.colOpts(cols, num), true), "Vide : nombre de lignes"));
+      enc.push(this.row("Nom de la mesure", this.text("drill.label", "ex. Pipeline créé", 60)));
+      enc.push(this.row("Répartir / détailler par", this.select("drill.by", this.colOpts(cols, (c) => c.type === "category" || (c.type === "text" && c.cardinality <= 60)), true), "Région → carte ; commercial, produit… → barres"));
+      enc.push(this.row("Référence : moyenne des", this.number("drill.compare", { min: 1, max: 12, step: 1 }), "périodes précédentes"));
+      enc.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → mois), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
+    } else if (isVariance(t)) {
       enc.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true)));
       const xc = cols.find((c) => c.name === spec.encoding.x);
       if (xc?.type === "date") enc.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]])));
@@ -280,7 +287,7 @@ export class SettingsPanel {
       }
     }
     if (cols.length && !special && spec.norme.enabled && spec.encoding.y.length) enc.push(this.scenarioRows(spec));
-    if (cols.length && !special && !isVariance(t))
+    if (cols.length && !special && !isVariance(t) && t !== "drill")
       enc.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), "Active la 4D dans « Mode & animation »"));
     out.push(this.section("encodage", "Encodages", ...enc));
 
