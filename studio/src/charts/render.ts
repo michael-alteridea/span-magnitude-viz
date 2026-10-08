@@ -27,7 +27,10 @@ import { ellipsize, measure, wrap } from "./text";
 import { effectiveDataset } from "../data/transform";
 import { buildVarianceModel, type VarianceModel } from "../data/variance";
 import { drawVariance, refLabelOf, refStyleOf } from "./variance";
-import { LOGO_COLOR, PLATFORM_URL, PRODUCT_LABEL, showSignature } from "../brand";
+import { PLATFORM_URL, PRODUCT_LABEL, appendTell4dIcon, showSignature, type Appendable } from "../brand";
+
+/** Identifiants uniques des dégradés de l'icône (plusieurs graphiques par page). */
+let iconSeq = 0;
 import { generatedOn } from "../story/fr";
 
 export type { Frame, Prepared, PlotRect };
@@ -270,7 +273,7 @@ function drawCartouche(root: G, spec: ChartSpec, theme: Theme, s: number, font: 
   const lh = 15 * s;
   const px = 9 * s;
   const py = 6 * s;
-  const logo = 10 * s;
+  const logo = 14 * s;
   const date = generatedOn(now);
   const source = spec.style.source.trim();
   const w1 = logo + 6 * s + measure(PRODUCT_LABEL, fs1, font, 700);
@@ -293,7 +296,14 @@ function drawCartouche(root: G, spec: ChartSpec, theme: Theme, s: number, font: 
   a.append("title").text(`${PRODUCT_LABEL} — ${PLATFORM_URL}`);
   const ly = y0 + py + lh / 2;
   const tx = right - measure(PRODUCT_LABEL, fs1, font, 700);
-  a.append("rect").attr("class", "r4d-logo").attr("x", tx - 6 * s - logo).attr("y", ly - logo / 2).attr("width", logo).attr("height", logo).attr("rx", 2 * s).attr("fill", LOGO_COLOR);
+  // Icône Tell4D en SVG imbriqué (nette à toute échelle, exports SVG/PNG/WebM compris)
+  appendTell4dIcon(a as unknown as Appendable, `t4d-i${++iconSeq}`)
+    .attr("class", "r4d-logo")
+    .attr("x", tx - 6 * s - logo)
+    .attr("y", ly - logo / 2)
+    .attr("width", logo)
+    .attr("height", logo)
+    .attr("aria-hidden", "true");
   a.append("text").attr("class", "r4d-brand").attr("x", right).attr("y", ly).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", fs1).attr("font-weight", 700).attr("fill", theme.muted).text(PRODUCT_LABEL);
   lines2.forEach((l, i) => {
     const isDate = i === 0;
@@ -335,7 +345,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     .attr("viewBox", `0 0 ${W} ${H}`)
     .attr("font-family", font)
     .attr("role", "img")
-    .attr("aria-label", spec.style.title || "Graphique Reporting 4D");
+    .attr("aria-label", spec.style.title || `Graphique ${PRODUCT_LABEL}`);
   const root = svg.append("g") as unknown as G;
   root.append("rect").attr("class", "r4d-bg").attr("width", W).attr("height", H).attr("fill", theme.bg);
 

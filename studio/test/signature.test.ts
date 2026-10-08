@@ -3,10 +3,12 @@
  * graphique ; barre d'échelle en km sur chaque carte ; export PowerPoint valide.
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { parseHTML } from "linkedom";
 import JSZip from "jszip";
 import { geoAzimuthalEqualArea, geoMercator } from "d3";
-import { PLATFORM_URL, PRODUCT_LABEL, showSignature } from "../src/brand";
+import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, showSignature, tell4dIconMarkup } from "../src/brand";
 import { parseSpec } from "../src/spec";
 import { sampleById } from "../src/data/samples";
 import { buildDataset } from "../src/data/table";
@@ -32,12 +34,38 @@ function draw(specInput: unknown, sampleId = "business-review", opts = {}) {
   return { svg, res, html: svg.outerHTML };
 }
 
+describe("identité Tell4D", () => {
+  it("nom du produit et icône « Bulle + barres »", () => {
+    expect(PRODUCT_LABEL).toBe("Tell4D");
+    expect(ICON_PNG_2X).toMatch(/^data:image\/png;base64,/);
+    const file = readFileSync(fileURLToPath(new URL("../src/assets/brand/tell4d-h1-icon-64.png", import.meta.url)));
+    expect(ICON_PNG_2X.slice("data:image/png;base64,".length)).toBe(file.toString("base64"));
+    const a = tell4dIconMarkup("hdr", 30);
+    expect(a).toMatch(/^<svg[^>]* width="30" height="30"/);
+    expect(a).toContain('id="hdr-bg"');
+    expect(a).toContain("url(#hdr-bg)");
+    expect(a).not.toMatch(/id="i-|url\(#i-/);
+  });
+  it("identifiants de dégradés uniques d'un graphique à l'autre", () => {
+    const ids = (html: string) => [...html.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]!).filter((i) => /^t4d-/.test(i));
+    const a = ids(draw({ type: "bar", encoding: { x: "Région", y: ["Réel (€)"] } }).html);
+    const b = ids(draw({ type: "bar", encoding: { x: "Région", y: ["Réel (€)"] } }).html);
+    expect(a.length).toBeGreaterThan(0);
+    expect(a.filter((i) => b.includes(i))).toEqual([]);
+  });
+});
+
 describe("signature « label qualité »", () => {
   it("présente sur chaque graphique : logo, produit, lien <a href>, date, source", () => {
     for (const type of ["bar", "line", "pie", "scatter", "variance"]) {
       const { html, res, svg } = draw({ type, encoding: { x: type === "scatter" ? "Budget (€)" : "Région", y: type === "variance" ? ["Réel (€)", "Budget (€)"] : ["Réel (€)"] }, style: { source: "Source : CRM" } });
       expect(html, type).toContain('class="r4d-cartouche"');
-      expect(svg.querySelector(".r4d-logo"), type).toBeTruthy();
+      const logo = svg.querySelector(".r4d-logo");
+      expect(logo, type).toBeTruthy();
+      // icône Tell4D inline (SVG imbriqué « Bulle + barres »), pas une image ni un carré
+      expect(logo!.tagName.toLowerCase()).toBe("svg");
+      expect(logo!.getAttribute("viewBox")).toBe("0 0 512 512");
+      expect(logo!.querySelectorAll("rect").length).toBeGreaterThanOrEqual(12);
       expect(svg.querySelector(".r4d-brand")?.textContent).toBe(PRODUCT_LABEL);
       expect(svg.querySelector("a.r4d-cartouche-link")?.getAttribute("href")).toBe(PLATFORM_URL);
       expect(norm(svg.querySelector(".r4d-cartouche-date")?.textContent ?? "")).toMatch(/^Généré le 8 oct\. 2026 · Source : CRM$/);
@@ -114,5 +142,15 @@ describe("export PowerPoint", () => {
     const cover = await zip.file("ppt/slides/slide1.xml")!.async("string");
     expect(cover).toContain("Revue T3");
     expect(norm(cover)).toContain("Généré le 8 oct. 2026");
+    // identité Tell4D : couverture, sommaire et pied de page (nom + logo PNG 2×), plus de « Reporting 4D »
+    const agenda = await zip.file("ppt/slides/slide2.xml")!.async("string");
+    for (const x of [cover, agenda, s3]) {
+      expect(x).toContain(">Tell4D<");
+      expect(x).not.toContain("Reporting 4D");
+      expect(x).toMatch(/<p:pic>/);
+    }
+    const media = await Promise.all(Object.keys(zip.files).filter((f) => /^ppt\/media\/image.*\.png$/.test(f)).map((f) => zip.file(f)!.async("uint8array")));
+    // le PNG 64 px de l'icône (2×) figure parmi les médias
+    expect(media.some((m) => m.length > 100 && new DataView(m.buffer, m.byteOffset).getUint32(16) === 64)).toBe(true);
   });
 });

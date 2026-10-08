@@ -25,7 +25,7 @@ import playfair400 from "./fonts/playfair-400.woff2?url";
 import playfair700 from "./fonts/playfair-700.woff2?url";
 
 /**
- * Identité Reporting 4D : bleu pétrole (choisi le 08/10/2026).
+ * Identité Tell4D : bleu pétrole (choisi le 08/10/2026).
  * - MAIN : ton principal (graphiques sur fond clair, aplats) ;
  * - LIGHT : accents, boutons et mises en avant sur fond SOMBRE (le ton principal y paraît terne) ;
  * - DARK : ombres, dégradés, texte d'accent sur fond clair.

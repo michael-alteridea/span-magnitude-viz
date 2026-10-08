@@ -1,5 +1,5 @@
 /**
- * Types « spéciaux » : le film Reporting 4D (span × magnitude) et la carte FR·BE / Europe,
+ * Types « spéciaux » : le film 4D (span × magnitude, moteur Reporting 4D) et la carte FR·BE / Europe,
  * rendus par la bibliothèque span-magnitude-viz dans la zone de tracé du cadre Studio.
  * Chargé à la demande (import dynamique) : la bibliothèque embarque les fonds de carte.
  */

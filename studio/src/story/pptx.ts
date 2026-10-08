@@ -1,12 +1,12 @@
 /**
  * Export PowerPoint de l'histoire (pptxgenjs, chargé à la demande) :
- * couverture bleu pétrole, sommaire, puis une diapositive par snapshot — rôle, titre d'action,
+ * couverture bleu pétrole (logo Tell4D), sommaire, puis une diapositive par snapshot — rôle, titre d'action,
  * sous-titre IBCS, graphique PNG 2× (avec sa signature), commentaires, filet d'accent.
  * Module sans DOM : les images sont fournies par l'appelant (testable sous Node).
  */
 import type { ChartSpec } from "../spec";
 import { themeFor } from "../theme";
-import { PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST } from "../brand";
+import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST } from "../brand";
 import { generatedOn } from "./fr";
 import { ROLE_LABELS, type Snapshot, type StoryState } from "./snapshots";
 
@@ -36,9 +36,10 @@ const hex = (c: string) => c.replace("#", "").slice(0, 6).toUpperCase();
 function cartouche(slide: any, opts: { dark: boolean; date: string; source?: string }) {
   const x = SLIDE_W - 4.1;
   const y = SLIDE_H - 0.78;
-  slide.addShape("rect", { x: x + 0.12, y: y + 0.1, w: 0.14, h: 0.14, fill: { color: opts.dark ? PETROL_LIGHT : PETROL }, line: { color: opts.dark ? PETROL_LIGHT : PETROL, width: 0.75 } });
+  // Logo Tell4D : PNG 64 px affiché à 0,26 po (≥ 2× à 96 ppp)
+  slide.addImage({ data: ICON_PNG_2X, x: x + 0.02, y: y + 0.03, w: 0.26, h: 0.26, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(PRODUCT_LABEL, {
-    x: x + 0.32,
+    x: x + 0.36,
     y: y + 0.02,
     w: 3.6,
     h: 0.3,
@@ -50,7 +51,7 @@ function cartouche(slide: any, opts: { dark: boolean; date: string; source?: str
     margin: 0,
   });
   slide.addText(`${opts.date}${opts.source ? ` · ${opts.source}` : ""} · ${PLATFORM_HOST}`, {
-    x: x + 0.32,
+    x: x + 0.36,
     y: y + 0.3,
     w: 3.7,
     h: 0.26,
@@ -79,6 +80,8 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   /* ---- couverture */
   const cover = pptx.addSlide();
   cover.background = { color: PETROL_DARK };
+  cover.addImage({ data: ICON_PNG_2X, x: 0.8, y: 0.7, w: 0.6, h: 0.6, altText: PRODUCT_LABEL });
+  cover.addText(PRODUCT_LABEL, { x: 1.55, y: 0.78, w: 6, h: 0.44, fontFace: FONT, fontSize: 22, bold: true, color: "FFFFFF", valign: "middle", margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   cover.addShape("rect", { x: 0.8, y: 2.35, w: 0.9, h: 0.09, fill: { color: PETROL_LIGHT }, line: { color: PETROL_LIGHT } });
   cover.addText(story.title || "Notre histoire en données", { x: 0.8, y: 2.6, w: 11.5, h: 1.5, fontFace: FONT, fontSize: 40, bold: true, color: "FFFFFF", valign: "top", margin: 0, fit: "shrink" });
   const names = [...new Set(snaps.map((s) => s.dataName).filter(Boolean))].slice(0, 3).join(" · ");
@@ -156,11 +159,8 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   }
   slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 } });
   slide.addText(storyTitle, { x: 0.5, y: 7.05, w: 8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, margin: 0 });
-  slide.addText(
-    [
-      { text: `${PRODUCT_LABEL}`, options: { bold: true, color: muted, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } } },
-      { text: `   ${i + 3} / ${total}`, options: { color: muted } },
-    ],
-    { x: SLIDE_W - 4.5, y: 7.05, w: 4, h: 0.3, fontFace: FONT, fontSize: 9, align: "right", margin: 0 }
-  );
+  // Pied : logo Tell4D (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
+  slide.addImage({ data: ICON_PNG_2X, x: SLIDE_W - 2.42, y: 7.07, w: 0.22, h: 0.22, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
+  slide.addText(PRODUCT_LABEL, { x: SLIDE_W - 2.14, y: 7.05, w: 0.85, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: muted, margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
+  slide.addText(`${i + 3} / ${total}`, { x: SLIDE_W - 1.2, y: 7.05, w: 0.7, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0 });
 }

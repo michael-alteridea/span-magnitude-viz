@@ -1,4 +1,6 @@
-# Reporting 4D · Studio
+# Tell4D (moteur Reporting 4D / span-magnitude-viz)
+
+**Tell4D · Studio** — data storytelling 4D : explorer, raconter, exporter. Propulsé par Reporting 4D.
 
 Générateur de graphiques SVG (D3 v7, sans canvas) pour Alteridea — futur hébergement : `reporting.alteridea.com`.
 Nom technique du dépôt : `span-magnitude-viz` ; le Studio réutilise sa bibliothèque (`src/`) pour l'import,
@@ -62,7 +64,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 ## Label qualité
 
 Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite une signature
-discrète : logo (carré pétrole provisoire), nom du produit (`PRODUCT_LABEL` dans `brand.ts`, « Reporting 4D »),
+discrète : icône Tell4D « Bulle + barres » (SVG inline dans les SVG/PNG/WebM, PNG 2× dans le PowerPoint), nom du produit (`PRODUCT_LABEL` dans `brand.ts`, « Tell4D »),
 lien `<a href>` vers `PLATFORM_URL`, date de génération (« Généré le 8 oct. 2026 ») et source. Elle ne peut être
 masquée qu'avec `branding: "pro"` + `style.brandMark: false` ; l'interface ne propose pas de la masquer.
 
@@ -98,6 +100,11 @@ masquée qu'avec `branding: "pro"` + `style.brandMark: false` ; l'interface ne p
 Captures : `studio/docs/shots/`.
 
 ## Identité visuelle
+
+**Tell4D**, logo « Bulle + barres » (h1, choisi le 8 oct. 2026) : sources dans `src/assets/brand/` (© Alteridea,
+voir son README), favicon SVG et apple-touch-icon 180 px dans `public/`. L'en-tête et la signature utilisent l'icône
+en SVG inline (`brand.ts`), le PowerPoint son PNG 2×. Les noms techniques (`span-magnitude-viz`, clés
+`reporting-4d-studio`, fichier `reporting-4d-studio.html`) restent inchangés.
 
 Bleu pétrole : principal `#0E6E8C`, clair `#3FA7C4` (accents, boutons et mises en avant sur l'interface sombre),
 foncé `#08465A`. Le rouge `#d62839` et le vert `#2e9e4f` sont réservés aux écarts défavorables / favorables

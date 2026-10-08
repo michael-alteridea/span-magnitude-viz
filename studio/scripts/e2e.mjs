@@ -133,14 +133,32 @@ try {
   await page.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
   await page.waitForSelector("[data-testid=chart-svg] .r4d-marks");
   const header = await page.$eval("header", (e) => e.textContent ?? "");
-  check("en-tête « Reporting 4D · Studio »", /Reporting 4D\s*·\s*Studio/.test(header));
-  // Identité bleu pétrole : bouton principal, logo, palette par défaut
+  check("en-tête « Tell4D · Studio »", /Tell4D\s*·\s*Studio/.test(header) && !/Reporting 4D/.test(header));
+  // Identité Tell4D bleu pétrole : bouton principal, logo « Bulle + barres », palette par défaut, titre, favicon
   const brand = await page.evaluate(() => ({
     btn: getComputedStyle(document.querySelector("[data-testid=export-svg]")).backgroundColor,
     logo: document.querySelector(".brand .logo stop")?.getAttribute("stop-color"),
+    bars: document.querySelectorAll(".brand .logo svg rect").length,
     palette: window.r4d.getSpec().style.palette,
+    title: document.title,
+    icon: document.querySelector("link[rel=icon]")?.getAttribute("href"),
+    touch: document.querySelector("link[rel=apple-touch-icon]")?.getAttribute("href"),
   }));
-  check("identité bleu pétrole (bouton, logo, palette)", brand.btn === "rgb(63, 167, 196)" && brand.logo === "#3FA7C4" && brand.palette === "petrole", JSON.stringify(brand));
+  check(
+    "identité Tell4D (bouton, logo Bulle + barres, palette, titre, favicon)",
+    brand.btn === "rgb(63, 167, 196)" && brand.logo === "#0E6E8C" && brand.bars >= 12 && brand.palette === "petrole" && /^Tell4D · Studio/.test(brand.title) && /favicon\.svg$/.test(brand.icon ?? "") && /apple-touch-icon\.png$/.test(brand.touch ?? ""),
+    JSON.stringify(brand)
+  );
+  {
+    const icons = await page.evaluate(async () => {
+      const get = async (sel) => {
+        const r = await fetch(document.querySelector(sel).href);
+        return { ok: r.ok, type: r.headers.get("content-type") };
+      };
+      return { svg: await get("link[rel=icon]"), png: await get("link[rel=apple-touch-icon]") };
+    });
+    check("favicon SVG + apple-touch-icon 180 px servis", icons.svg.ok && icons.png.ok && /svg/.test(icons.svg.type) && /png/.test(icons.png.type), JSON.stringify(icons));
+  }
 
   /* 1. Collage type Excel (tabulations, virgule décimale, mois FR) */
   const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
@@ -291,8 +309,13 @@ try {
     const flat = svgText.replace(/[\u00a0\u202f]/g, " ");
     const dateRe = /Généré le \d{1,2}(er)? (janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.? \d{4}/;
     check(
-      "export SVG : signature (logo, « Reporting 4D », lien plateforme) + date de génération",
-      flat.includes('class="r4d-cartouche"') && flat.includes('href="https://alteridea-dashboard.web.app/reporting/"') && />Reporting 4D</.test(flat) && dateRe.test(flat) && flat.includes('class="r4d-logo"'),
+      "export SVG : signature (icône Tell4D inline, « Tell4D », lien plateforme) + date de génération",
+      flat.includes('class="r4d-cartouche"') &&
+        flat.includes('href="https://alteridea-dashboard.web.app/reporting/"') &&
+        />Tell4D</.test(flat) &&
+        !/Reporting 4D/.test(flat.replace(/<metadata>.*?<\/metadata>/s, "")) &&
+        dateRe.test(flat) &&
+        /<svg(?=[^>]*\sclass="r4d-logo")(?=[^>]*\sviewBox="0 0 512 512")[^>]*>/.test(flat),
       (flat.match(dateRe) ?? ["date absente"])[0]
     );
   }
@@ -307,10 +330,11 @@ try {
   }
   check("export PNG 2×", dims?.[0] === 2400 && dims?.[1] === 1350, dims ? dims.join("×") : "aucun fichier");
   if (pngFile) {
-    // Le logo pétrole de la signature est bien dans le PNG (pixel au centre du carré, échelle 2×)
+    // L'icône Tell4D de la signature est bien dans le PNG : pixel du fond pétrole (bord gauche de l'icône,
+    // hors bulle blanche), échelle 2×
     const logo = await page.evaluate(() => {
       const r = document.querySelector("[data-testid=chart-svg] .r4d-logo");
-      return r ? { x: +r.getAttribute("x") + +r.getAttribute("width") / 2, y: +r.getAttribute("y") + +r.getAttribute("height") / 2 } : null;
+      return r ? { x: +r.getAttribute("x") + +r.getAttribute("width") * 0.07, y: +r.getAttribute("y") + +r.getAttribute("height") / 2 } : null;
     });
     const px = logo
       ? await page.evaluate(
@@ -330,8 +354,8 @@ try {
           logo.y
         )
       : null;
-    const near = px && Math.abs(px[0] - 0x0e) < 24 && Math.abs(px[1] - 0x6e) < 24 && Math.abs(px[2] - 0x8c) < 24;
-    check("export PNG : signature présente (logo pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
+    const near = px && px[0] < 70 && px[1] > 60 && px[1] < 150 && px[2] > 85 && px[2] < 180 && px[2] > px[0] + 50;
+    check("export PNG : signature présente (icône Tell4D pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
     const frame = await page.evaluate(() => window.r4d.preview.svgAt(0.5));
     check("vidéo WebM : chaque image porte la signature et la date", frame.includes("r4d-cartouche") && /Généré le/.test(frame));
   }

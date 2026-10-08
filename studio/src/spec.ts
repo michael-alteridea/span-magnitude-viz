@@ -1,5 +1,5 @@
 /**
- * Reporting 4D Studio — spécification de graphique (JSON sérialisable, validée par Zod).
+ * Tell4D Studio (moteur Reporting 4D) — spécification de graphique (JSON sérialisable, validée par Zod).
  *
  * Le spec est la seule source de vérité : l'UI le modifie, le moteur de rendu le lit,
  * l'export JSON le sauvegarde tel quel. Toutes les clés ont une valeur par défaut, si bien
