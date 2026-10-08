@@ -8,6 +8,25 @@ import { isRadial } from "../spec";
 import type { Column, Dataset, Row } from "./table";
 import { columnOf } from "./table";
 import { formatDate, guessGrain, formatCell, type TimeGrain } from "../format";
+import { AGE_BUCKETS, MONTHS_SHORT_FR } from "./transform";
+
+/** Ordres naturels de catégories connues (mois, tranches d'âge, étapes de pipeline). */
+export const KNOWN_ORDERS: string[][] = [
+  MONTHS_SHORT_FR,
+  AGE_BUCKETS,
+  ["Prospection", "Qualification", "Analyse des besoins", "Proposition", "Négociation", "Fermée gagnée", "Fermée perdue", "Gagnée", "Perdue"],
+  ["Prospecting", "Qualification", "Needs Analysis", "Value Proposition", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"],
+  ["T1", "T2", "T3", "T4"],
+];
+
+/** Rang de chaque clé si toutes appartiennent à un ordre connu, sinon null. */
+export function knownOrder(keys: Key[]): Map<string, number> | null {
+  if (keys.length < 2) return null;
+  for (const order of KNOWN_ORDERS) {
+    if (keys.every((k) => order.includes(String(k)))) return new Map(order.map((v, i) => [v, i]));
+  }
+  return null;
+}
 
 export type Key = string | number;
 
@@ -248,6 +267,9 @@ export function buildCatModel(spec: ChartSpec, ds: Dataset, rows: WRow[], opts: 
     let order = keys.map((_, i) => i);
     if (xKind !== "band" || (xCol && (xCol.type === "date" || xCol.type === "number"))) {
       order.sort((a, b) => (keys[a]! as number) - (keys[b]! as number));
+    } else if (spec.style.sort === "none" && knownOrder(keys)) {
+      const rank = knownOrder(keys)!;
+      order.sort((a, b) => rank.get(String(keys[a]))! - rank.get(String(keys[b]))!);
     } else if (spec.style.sort !== "none") {
       const tot = (i: number) => values.reduce((s, row) => s + (Number.isFinite(row[i]!) ? row[i]! : 0), 0);
       if (spec.style.sort === "desc") order.sort((a, b) => tot(b) - tot(a));
@@ -258,6 +280,30 @@ export function buildCatModel(spec: ChartSpec, ds: Dataset, rows: WRow[], opts: 
     values = values.map((row) => order.map((i) => row[i]!));
     if (y2) y2 = order.map((i) => y2![i]!);
     keys.splice(0, keys.length, ...k2);
+  }
+
+  // N premières catégories + « Autres »
+  const topN = enc.topN;
+  if (topN && xKind === "band" && !(xCol && (xCol.type === "date" || xCol.type === "number")) && keys.length > topN && !opts.fixedKeys) {
+    const tot = (i: number) => values.reduce((s, row) => s + (Number.isFinite(row[i]!) ? row[i]! : 0), 0);
+    const ranked = keys.map((_, i) => i).sort((a, b) => Math.abs(tot(b)) - Math.abs(tot(a)));
+    const keepSet = new Set(ranked.slice(0, topN));
+    const kept = keys.map((_, i) => i).filter((i) => keepSet.has(i));
+    if (spec.style.sort === "none") kept.sort((a, b) => tot(b) - tot(a));
+    const rest = keys.map((_, i) => i).filter((i) => !keepSet.has(i));
+    const additive = enc.aggregate === "sum" || enc.aggregate === "count";
+    const nk = kept.map((i) => keys[i]!);
+    values = values.map((row) => {
+      const out = kept.map((i) => row[i]!);
+      if (enc.others && additive) {
+        const finite = rest.map((i) => row[i]!).filter(Number.isFinite);
+        out.push(finite.length ? finite.reduce((a, b) => a + b, 0) : NaN);
+      }
+      return out;
+    });
+    if (y2) y2 = [...kept.map((i) => y2![i]!), ...(enc.others && additive ? [NaN] : [])];
+    if (enc.others && additive) nk.push(`Autres (${rest.length})`);
+    keys.splice(0, keys.length, ...nk);
   }
 
   return {

@@ -14,6 +14,7 @@ export interface DataActions {
   importText(text: string): void;
   importFile(file: File): void;
   changeSheet(name: string): void;
+  explore(): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -104,6 +105,11 @@ export class DataPanel {
         h("div", { class: "block" }, h("h3", null, "Importer"), drop, fileInput),
         h("div", { class: "block" }, h("h3", null, h("span", { html: svgIcon(ICONS.paste, 15) }), " Coller un tableau"), ta, pasteBtn),
         h("div", { class: "block" }, h("h3", null, "Exemples"), samples),
+        h(
+          "div",
+          { class: "block" },
+          h("button", { class: "btn btn-explore", "data-testid": "explore-data", title: "Pistes de graphiques calculées sur vos données (tendance, concentration, écarts, pipeline…)", onclick: () => actions.explore() }, h("span", { html: svgIcon(ICONS.explore, 18) }), "Explorer mes données")
+        ),
         h("div", { class: "block grow" }, h("h3", null, "Aperçu"), this.info, sheetHost, this.table)
       )
     );

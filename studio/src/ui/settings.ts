@@ -16,6 +16,7 @@ import {
   isCartesian,
   isRadial,
   isSpecial,
+  isVariance,
   SIZE_PRESETS,
   type ChartSpec,
 } from "../spec";
@@ -24,6 +25,11 @@ import { COLUMN_TYPE_LABELS } from "../data/table";
 import { FONTS, PALETTE_LABELS, paletteColors, themeFor } from "../theme";
 import { h, svgIcon, ICONS } from "./dom";
 import { guessUnit } from "../format";
+import { effectiveDataset, describeTransform } from "../data/transform";
+import { KIND_LABELS, type InsightKind } from "../story/insights";
+import { PRODUCT_LABEL } from "../brand";
+
+const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
 
 type Opt = [string, string];
 
@@ -67,13 +73,44 @@ export class SettingsPanel {
       spec.axes.y2.unit,
       spec.axes.x.scale,
       spec.axes.y.scale,
+      spec.transform,
+      spec.story.showComments,
       ds?.columns.map((c) => c.type),
     ]);
-    if (key === this.key) return;
+    if (key === this.key) {
+      this.syncStory();
+      return;
+    }
     this.key = key;
     const scroll = this.body.scrollTop;
-    this.body.replaceChildren(...this.build(spec, ds?.columns ?? []));
+    const cols = ds ? effectiveDataset(spec, ds).columns : [];
+    this.body.replaceChildren(...this.build(spec, cols));
     this.body.scrollTop = scroll;
+    this.syncStory();
+  }
+
+  /** Recopie les textes calculés dans les champs (sauf celui en cours de saisie) et les badges. */
+  private syncStory(): void {
+    const spec = this.store.state.spec;
+    for (const path of STORY_TEXT_PATHS) {
+      const el = this.body.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-path="${path}"]`);
+      if (!el || document.activeElement === el) continue;
+      const v = String(this.store.get(path) ?? "");
+      if (el.value !== v) el.value = v;
+    }
+    const ed = spec.story.edited;
+    const badge = (which: "title" | "subtitle" | "comments") => {
+      const b = this.body.querySelector<HTMLElement>(`[data-badge="${which}"]`);
+      if (!b) return;
+      b.textContent = ed[which] ? "modifié" : "calculé";
+      b.classList.toggle("edited", ed[which]);
+      b.title = ed[which] ? "Saisie conservée lors des changements de données — « Régénérer » rétablit le texte calculé" : "Texte calculé à partir des données";
+    };
+    badge("title");
+    badge("subtitle");
+    badge("comments");
+    const k = this.body.querySelector<HTMLElement>("[data-story-kind]");
+    if (k) k.textContent = spec.story.kind && KIND_LABELS[spec.story.kind as InsightKind] ? `Piste : ${KIND_LABELS[spec.story.kind as InsightKind]}` : "Récit générique (selon la forme du graphique)";
   }
 
   /* ------------------------------------------------------------ contrôles */
@@ -197,7 +234,17 @@ export class SettingsPanel {
     const enc: (Node | null)[] = [];
     enc.push(h("p", { class: "section-intro" }, `Type : ${CHART_TYPE_LABELS[t]}`));
     if (!cols.length) enc.push(h("p", { class: "muted" }, "Chargez des données pour choisir les colonnes."));
-    else if (special) {
+    else if (isVariance(t)) {
+      enc.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true)));
+      const xc = cols.find((c) => c.name === spec.encoding.x);
+      if (xc?.type === "date") enc.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]])));
+      enc.push(this.row("Réel (Y1)", this.yAt(cols, 0)));
+      enc.push(this.row("Référence (Y2)", this.yAt(cols, 1), "Budget (contour), N-1 (gris) ou prévision (hachuré)"));
+      enc.push(this.row("Sens favorable", this.segmented("variance.polarity", [["higher", "Plus = mieux"], ["lower", "Moins = mieux"]]), "Coûts, délais : « Moins = mieux »"));
+      enc.push(this.row("Écarts", this.segmented("variance.show", [["abs", "Absolus (barres)"], ["rel", "Relatifs % (épingles)"]])));
+      enc.push(this.check("variance.total", "Ligne « Total »"));
+      enc.push(h("p", { class: "muted small" }, "Rouge et vert sont réservés aux écarts (IBCS)."));
+    } else if (special) {
       enc.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true)));
       enc.push(this.row("Fin (optionnel)", this.select("encoding.end", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Sans fin : événements ponctuels"));
       enc.push(this.row("Magnitude (épaisseur)", this.ySingle(cols)));
@@ -227,9 +274,23 @@ export class SettingsPanel {
         enc.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true)));
       }
     }
-    if (cols.length && !special)
+    if (cols.length && !special && !isVariance(t))
       enc.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), "Active la 4D dans « Mode & animation »"));
     out.push(this.section("encodage", "Encodages", ...enc));
+
+    /* ---- Filtres & calculs (posés par l'Explorer) */
+    const tr = spec.transform;
+    if (tr.filters.length || tr.calculate.length) {
+      const chips: HTMLElement[] = [];
+      const labels = describeTransform(tr);
+      tr.filters.forEach((f, i) =>
+        chips.push(
+          h("span", { class: "chip", "data-testid": "transform-chip" }, h("span", null, labels[i] || f.field), h("button", { type: "button", class: "chip-x", title: "Retirer ce filtre", onclick: () => this.store.set("transform.filters", tr.filters.filter((_, k) => k !== i)) }, "×"))
+        )
+      );
+      tr.calculate.forEach((c) => chips.push(h("span", { class: "chip chip-calc", title: "Colonne calculée" }, h("span", null, `ƒ ${c.as}`))));
+      out.push(this.section("transform", "Filtres & calculs", h("div", { class: "chips" }, ...chips), h("p", { class: "muted small" }, "Les colonnes calculées (ƒ) apparaissent dans les listes de colonnes.")));
+    }
 
     /* ---- Axes */
     if (isCartesian(t)) {
@@ -282,14 +343,35 @@ export class SettingsPanel {
       out.push(this.section("special", t === "film" ? "Film 4D" : "Carte", ...sp));
     }
 
-    /* ---- Textes */
+    /* ---- Récit : titres et commentaires calculés, modifiables */
+    const labelWithBadge = (label: string, which: "title" | "subtitle" | "comments") => h("span", { class: "field-label" }, label, " ", h("span", { class: "story-badge", "data-badge": which }, ""));
+    const fieldB = (label: string, which: "title" | "subtitle" | "comments", control: Node) => h("label", { class: "field" }, labelWithBadge(label, which), control);
+    const comments = [0, 1, 2].map((i) => {
+      const ta = h("textarea", { rows: "2", placeholder: `Commentaire ${i + 1}`, maxlength: "300", "data-path": `story.comments.${i}`, "data-testid": `story-comment-${i}` });
+      ta.value = spec.story.comments[i] ?? "";
+      ta.addEventListener("input", () => {
+        const vals = [0, 1, 2].map((k) => (this.body.querySelector<HTMLTextAreaElement>(`[data-path="story.comments.${k}"]`)?.value ?? "").slice(0, 300));
+        while (vals.length && !vals[vals.length - 1]!.trim()) vals.pop();
+        this.store.set("story.comments", vals);
+      });
+      return ta;
+    });
+    const regen = h("button", { type: "button", class: "btn btn-small", "data-testid": "story-regenerate", title: "Rétablir les textes calculés à partir des données", onclick: () => this.store.regenerate() }, h("span", { html: svgIcon(ICONS.refresh, 14) }), "Régénérer");
+    const titleInp = this.text("style.title", "Titre du graphique", 200);
+    titleInp.setAttribute("data-testid", "story-title");
+    const subInp = this.textarea("style.subtitle", "Entité · mesure · unité · période");
+    subInp.setAttribute("data-testid", "story-subtitle");
     out.push(
       this.section(
-        "textes",
-        "Titres & source",
-        this.row("Titre", this.text("style.title", "Titre du graphique", 200)),
-        this.row("Sous-titre", this.textarea("style.subtitle", "Contexte, période, unité…")),
-        this.row("Source / note", this.text("style.source", "Source : …", 300))
+        "recit",
+        "Récit",
+        h("div", { class: "story-head" }, h("small", { class: "muted", "data-story-kind": "" }, ""), regen),
+        fieldB("Titre (message)", "title", titleInp),
+        fieldB("Sous-titre (IBCS)", "subtitle", subInp),
+        h("div", { class: "field" }, labelWithBadge("À retenir (1 à 3 points)", "comments"), ...comments),
+        this.check("story.showComments", "Afficher les commentaires sur le graphique"),
+        this.row("Source / note", this.text("style.source", "Source : …", 300)),
+        h("p", { class: "muted small" }, "Double-cliquez sur le titre, le sous-titre ou un commentaire du graphique pour le modifier directement.")
       )
     );
 
@@ -321,7 +403,7 @@ export class SettingsPanel {
     if (t === "groupedBar" || t === "stackedBar") st.push(this.check("style.horizontal", "Barres horizontales"));
     if (t === "stackedBar" || t === "stackedArea") st.push(this.check("style.normalize", "Empilement 100 %"));
     st.push(this.check("style.accentBar", "Filet d'accent devant le titre"));
-    st.push(this.check("style.brandMark", "Signature « Reporting 4D · alteridea »"));
+    st.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Signature « label qualité » toujours présente : logo ${PRODUCT_LABEL}, lien vers la plateforme, date de génération et source.`));
     out.push(this.section("style", "Style", ...st));
 
     /* ---- Format */
@@ -350,6 +432,19 @@ export class SettingsPanel {
     const cur = this.store.get(`${axisPath}.unit`);
     if (u && cur !== u && !(u === "eur" && (cur === "keur" || cur === "meur"))) this.store.set(`${axisPath}.unit`, u);
     else if (!u && (cur === "eur" || cur === "keur" || cur === "meur" || cur === "pct")) this.store.set(`${axisPath}.unit`, "none");
+  }
+
+  /** Mesure à la position i de `encoding.y` (graphique d'écarts : réel, référence). */
+  private yAt(cols: Column[], i: number): HTMLSelectElement {
+    const cur = this.store.state.spec.encoding.y[i] ?? "";
+    const sel = h("select", { "data-path": `encoding.y.${i}` }, h("option", { value: "" }, "— choisir —"), ...this.colOpts(cols, (c) => c.type === "number").map(([v, l]) => h("option", { value: v, selected: v === cur }, l)));
+    sel.addEventListener("change", () => {
+      const y = [...this.store.state.spec.encoding.y];
+      y[i] = sel.value;
+      this.store.set("encoding.y", y.filter(Boolean).slice(0, 2));
+      if (i === 0) this.hintUnit("axes.y", sel.value);
+    });
+    return sel;
   }
 
   private ySingle(cols: Column[]): HTMLSelectElement {

@@ -50,6 +50,7 @@ import {
   mapAnnotationTargets,
   mapLayerCss,
   paintMapLayers,
+  paintScaleBar,
   type MapLayout,
   type MapMark,
   type MapPaintContext,
@@ -526,6 +527,8 @@ export function mountSvg(
           ),
       };
       paintMapLayers(mapCtx);
+      // Every map carries a km scale bar matching the current projection / framing
+      paintScaleBar(g, mapLayout, (currentOpts.theme ?? "dark") === "light");
 
       g.append("text")
         .attr("x", mapLayout.innerWidth / 2)

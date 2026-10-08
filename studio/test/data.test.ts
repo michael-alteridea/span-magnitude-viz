@@ -94,7 +94,7 @@ describe("samples are anchored on 8 Oct 2026", () => {
       }
     }
     const pipeline = buildDataset("p", SAMPLES.find((s) => s.id === "pipeline")!.rows());
-    const created = pipeline.rows.map((r) => r["Créée le"] as number);
+    const created = pipeline.rows.map((r) => r["Date de création"] as number);
     expect(Math.max(...created)).toBeLessThanOrEqual(Date.UTC(2026, 9, 8));
   });
 });

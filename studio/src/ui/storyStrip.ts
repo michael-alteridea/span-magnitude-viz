@@ -1,0 +1,126 @@
+/**
+ * Bandeau « Histoire » (sous l'aperçu) : snapshots ordonnés — vignettes glissables, renommage,
+ * suppression, rechargement au clic, « Ordonner en récit », export PowerPoint.
+ */
+import type { Store } from "../state";
+import { NARRATIVE_ROLES, type NarrativeRole } from "../spec";
+import { assignNarrativeOrder, moveSnapshot, ROLE_LABELS, type Snapshot } from "../story/snapshots";
+import { h, svgIcon, ICONS } from "./dom";
+
+export interface StoryActions {
+  snapshot(): void;
+  open(s: Snapshot): void;
+  exportPptx(btn: HTMLButtonElement): void;
+}
+
+export class StoryStrip {
+  readonly root: HTMLElement;
+  private list: HTMLElement;
+  private count: HTMLElement;
+  private titleInp: HTMLInputElement;
+  private pptxBtn: HTMLButtonElement;
+  private orderBtn: HTMLButtonElement;
+  private key = "";
+  private dragFrom = -1;
+
+  constructor(private store: Store, private actions: StoryActions) {
+    this.count = h("span", { class: "story-count", "data-testid": "story-count" }, "0");
+    this.titleInp = h("input", { type: "text", class: "story-title-input", maxlength: "200", "aria-label": "Titre de l'histoire", "data-testid": "story-name" });
+    this.titleInp.addEventListener("input", () => this.store.setStory({ ...this.store.state.story, title: this.titleInp.value }));
+    this.list = h("div", { class: "story-list", "data-testid": "story-list" });
+    this.orderBtn = h("button", { class: "btn btn-small", "data-testid": "story-order", title: "Contexte → tension → révélation → recommandation", onclick: () => this.order() }, "Ordonner en récit");
+    this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
+    const toggle = h(
+      "button",
+      { class: "story-toggle", "data-testid": "story-toggle", title: "Afficher / masquer l'histoire", onclick: () => this.store.setUi({ openSections: { ...this.store.state.ui.openSections, histoire: !this.isOpen() } }) },
+      h("span", { html: svgIcon(ICONS.story, 16) }),
+      h("strong", null, "Histoire"),
+      this.count
+    );
+    this.root = h(
+      "section",
+      { class: "story-strip", "data-testid": "story-strip" },
+      h(
+        "header",
+        { class: "story-bar" },
+        toggle,
+        this.titleInp,
+        h("span", { class: "spacer" }),
+        h("button", { class: "btn btn-small btn-accent", "data-testid": "snapshot", title: "Ajouter le graphique courant à l'histoire", onclick: () => this.actions.snapshot() }, "📸 Snapshot"),
+        this.orderBtn,
+        this.pptxBtn
+      ),
+      this.list
+    );
+  }
+
+  private isOpen(): boolean {
+    return this.store.state.ui.openSections.histoire ?? true;
+  }
+
+  private order(): void {
+    const st = this.store.state.story;
+    this.store.setStory({ ...st, snapshots: assignNarrativeOrder(st.snapshots) });
+  }
+
+  update(): void {
+    const st = this.store.state.story;
+    const open = this.isOpen();
+    this.root.classList.toggle("collapsed", !open);
+    this.count.textContent = String(st.snapshots.length);
+    if (document.activeElement !== this.titleInp) this.titleInp.value = st.title;
+    this.orderBtn.disabled = st.snapshots.length < 2;
+    this.pptxBtn.disabled = !st.snapshots.length;
+    const key = JSON.stringify([open, st.snapshots.map((s) => [s.id, s.name, s.role, !!s.thumb])]);
+    if (key === this.key) return;
+    this.key = key;
+    if (!st.snapshots.length) {
+      this.list.replaceChildren(h("p", { class: "story-empty" }, "Aucun snapshot : cliquez « 📸 Snapshot » pour ajouter le graphique courant, puis ordonnez votre récit."));
+      return;
+    }
+    this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i)));
+  }
+
+  private patch(id: string, p: Partial<Snapshot>): void {
+    const st = this.store.state.story;
+    this.store.setStory({ ...st, snapshots: st.snapshots.map((s) => (s.id === id ? { ...s, ...p } : s)) });
+  }
+
+  private card(s: Snapshot, i: number): HTMLElement {
+    const name = h("input", { type: "text", class: "story-card-name", value: s.name, maxlength: "200", title: "Renommer", "data-testid": "story-card-name" });
+    name.addEventListener("change", () => this.patch(s.id, { name: name.value.trim() || s.title || `Snapshot ${i + 1}` }));
+    name.addEventListener("keydown", (e) => e.key === "Enter" && name.blur());
+    const role = h("select", { class: `story-role role-${s.role}`, title: "Rôle dans le récit", "data-testid": "story-card-role" }, ...NARRATIVE_ROLES.map((r) => h("option", { value: r, selected: r === s.role }, ROLE_LABELS[r])));
+    role.addEventListener("change", () => this.patch(s.id, { role: role.value as NarrativeRole }));
+    const del = h("button", { class: "icon-btn story-del", title: "Supprimer", "data-testid": "story-card-delete", html: svgIcon(ICONS.trash, 15), onclick: () => this.store.setStory({ ...this.store.state.story, snapshots: this.store.state.story.snapshots.filter((x) => x.id !== s.id) }) });
+    const thumb = h("button", { class: "story-thumb", title: "Recharger ce graphique dans l'éditeur", "data-testid": "story-card-open", onclick: () => this.actions.open(s) }, s.thumb ? h("img", { src: s.thumb, alt: s.title, draggable: "false" }) : h("span", { class: "muted" }, s.title.slice(0, 60)));
+    const card = h("article", { class: "story-card", draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i) }, h("span", { class: "story-num" }, String(i + 1)), thumb, h("div", { class: "story-card-foot" }, role, del), name);
+    card.addEventListener("dragstart", (e) => {
+      this.dragFrom = i;
+      card.classList.add("dragging");
+      e.dataTransfer?.setData("text/plain", String(i));
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      card.classList.add("drop-target");
+    });
+    card.addEventListener("dragleave", () => card.classList.remove("drop-target"));
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      card.classList.remove("drop-target");
+      const from = this.dragFrom >= 0 ? this.dragFrom : Number(e.dataTransfer?.getData("text/plain"));
+      this.dragFrom = -1;
+      if (!Number.isFinite(from) || from === i) return;
+      this.move(from, i);
+    });
+    return card;
+  }
+
+  /** Déplace un snapshot (aussi utilisé par l'API de test). */
+  move(from: number, to: number): void {
+    const st = this.store.state.story;
+    this.store.setStory({ ...st, snapshots: moveSnapshot(st.snapshots, from, to) });
+  }
+}

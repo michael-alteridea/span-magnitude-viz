@@ -5,7 +5,7 @@
  */
 import { select } from "d3";
 import type { ChartSpec } from "../spec";
-import { isBarType, isCartesian, isRadial, isSpecial, chartSize } from "../spec";
+import { isBarType, isCartesian, isRadial, isSpecial, isVariance, chartSize } from "../spec";
 import type { Dataset } from "../data/table";
 import { columnOf } from "../data/table";
 import {
@@ -23,7 +23,12 @@ import { fontStack, paletteColors, themeFor, type Theme } from "../theme";
 import { catExtent, drawCategorical, drawScatter, y2Color, y2Extent } from "./cartesian";
 import { drawPie, drawRadialBars, slicesOf } from "./radial";
 import type { Domains, DrawCtx, Frame, G, PlotRect, Prepared } from "./context";
-import { measure, wrap } from "./text";
+import { ellipsize, measure, wrap } from "./text";
+import { effectiveDataset } from "../data/transform";
+import { buildVarianceModel, type VarianceModel } from "../data/variance";
+import { drawVariance, refLabelOf, refStyleOf } from "./variance";
+import { LOGO_COLOR, PLATFORM_URL, PRODUCT_LABEL, showSignature } from "../brand";
+import { generatedOn } from "../story/fr";
 
 export type { Frame, Prepared, PlotRect };
 
@@ -31,6 +36,7 @@ export type { Frame, Prepared, PlotRect };
 
 export interface PrepCache {
   key: string;
+  variance?: VarianceModel | null;
   full: Model | null;
   time: TimeModel | null;
   frozen: Domains;
@@ -44,6 +50,11 @@ function validate(spec: ChartSpec, ds: Dataset | null): { error: string | null; 
   const enc = spec.encoding;
   const t = spec.type;
   if (isSpecial(t)) return { error: null, warnings };
+  if (isVariance(t)) {
+    const ys2 = enc.y.filter((f) => columnOf(ds, f)?.type === "number");
+    if (ys2.length < 2) return { error: "Le graphique d'écarts compare deux mesures : choisissez le réel (Y1) puis la référence — budget, N-1 ou prévision (Y2).", warnings };
+    return { error: null, warnings };
+  }
   const ys = enc.y.filter((f) => columnOf(ds, f));
   if (enc.aggregate !== "count" && !ys.length) return { error: "Choisissez au moins une mesure numérique pour l'axe Y (valeur).", warnings };
   for (const f of ys) {
@@ -93,15 +104,22 @@ function unionDomain(a: [number, number] | undefined, b: [number, number] | unde
 }
 
 export function fourDActive(spec: ChartSpec, ds: Dataset | null): boolean {
-  return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time) && !isSpecial(spec.type);
+  return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time) && !isSpecial(spec.type) && !isVariance(spec.type);
 }
 
 /** Calcule (et met en cache) le modèle complet, le modèle temporel et les domaines figés. */
-export function prepareCache(spec: ChartSpec, ds: Dataset | null, prev: PrepCache | null, dsVersion: number): PrepCache {
-  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.mode, spec.axes.x.scale]);
+export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepCache | null, dsVersion: number): PrepCache {
+  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.mode, spec.axes.x.scale, spec.transform, spec.variance]);
   if (prev && prev.key === key) return prev;
+  const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
   const { error, warnings } = validate(spec, ds);
   if (error || !ds || isSpecial(spec.type)) return { key, full: null, time: null, frozen: {}, error, warnings };
+  if (isVariance(spec.type)) {
+    const vm = buildVarianceModel(spec, ds);
+    if (!vm || !vm.keys.length) return { key, full: null, time: null, frozen: {}, error: "Aucune ligne où le réel et la référence sont tous deux renseignés.", warnings, variance: null };
+    if (vm.coverage < 0.999 && vm.coverage > 0) warnings.push(`Écarts calculés sur les lignes où les deux scénarios sont renseignés (${Math.round(vm.coverage * 100)} % des lignes avec réel).`);
+    return { key, full: null, time: null, frozen: {}, error: null, warnings, variance: vm };
+  }
   const full = buildModel(spec, ds, allRows(ds));
   const time = fourDActive(spec, ds) ? buildTimeModel(spec, ds) : null;
   let frozen: Domains = {};
@@ -125,8 +143,9 @@ export function prepareCache(spec: ChartSpec, ds: Dataset | null, prev: PrepCach
   return { key, full, time, frozen, error: null, warnings };
 }
 
-export function prepareFrame(spec: ChartSpec, ds: Dataset | null, cache: PrepCache, frame: Frame): Prepared {
-  const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error };
+export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: PrepCache, frame: Frame): Prepared {
+  const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
+  const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error, variance: cache.variance ?? null };
   if (cache.error || !cache.full || !ds) return base;
   const tm = cache.time;
   if (!tm || frame.timePos == null || tm.steps.length < 2) return base;
@@ -152,10 +171,17 @@ export function prepareFrame(spec: ChartSpec, ds: Dataset | null, cache: PrepCac
 interface LegendItem {
   label: string;
   color: string;
-  shape: "square" | "line" | "dot" | "dash";
+  shape: "square" | "line" | "dot" | "dash" | "outline" | "hatch";
 }
 
-function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neutral: string): LegendItem[] {
+function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neutral: string, vm?: VarianceModel | null, theme?: Theme): LegendItem[] {
+  if (vm && isVariance(spec.type)) {
+    const st = refStyleOf(vm.refName);
+    return [
+      { label: vm.actualName.replace(/\s*\(.*\)\s*$/, ""), color: colors[0]!, shape: "square" },
+      { label: refLabelOf(vm.refName), color: st === "grey" ? (theme?.dark ? "#52525b" : "#c4c4c8") : neutral, shape: st === "grey" ? "square" : st },
+    ];
+  }
   if (!model) return [];
   const t = spec.type;
   if (model.kind === "points") {
@@ -180,7 +206,10 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
 
 function drawSwatch(g: G, it: LegendItem, x: number, y: number, s: number, theme: Theme) {
   const sz = 12 * s;
-  if (it.shape === "square") g.append("rect").attr("x", x).attr("y", y - sz / 2).attr("width", sz).attr("height", sz).attr("rx", 2.5 * s).attr("fill", it.color);
+  if (it.shape === "outline" || it.shape === "hatch") {
+    g.append("rect").attr("x", x + 0.75 * s).attr("y", y - sz / 2 + 0.75 * s).attr("width", sz - 1.5 * s).attr("height", sz - 1.5 * s).attr("rx", 1.5 * s).attr("fill", "none").attr("stroke", it.color).attr("stroke-width", 1.5 * s);
+    if (it.shape === "hatch") for (let k = 1; k <= 2; k++) g.append("line").attr("x1", x + (k * sz) / 3).attr("y1", y + sz / 2 - 1.5 * s).attr("x2", x + (k * sz) / 3 + sz / 4).attr("y2", y - sz / 2 + 1.5 * s).attr("stroke", it.color).attr("stroke-width", 1.4 * s);
+  } else if (it.shape === "square") g.append("rect").attr("x", x).attr("y", y - sz / 2).attr("width", sz).attr("height", sz).attr("rx", 2.5 * s).attr("fill", it.color);
   else if (it.shape === "dot") g.append("circle").attr("cx", x + sz / 2).attr("cy", y).attr("r", sz / 2).attr("fill", it.color);
   else {
     g.append("line").attr("x1", x - 2 * s).attr("x2", x + sz + 2 * s).attr("y1", y).attr("y2", y).attr("stroke", it.color).attr("stroke-width", 3 * s).attr("stroke-linecap", "round").attr("stroke-dasharray", it.shape === "dash" ? `${4 * s} ${3 * s}` : null);
@@ -217,6 +246,68 @@ export interface RenderResult {
   prepared: Prepared;
   width: number;
   height: number;
+  /** Zone de la signature (coordonnées SVG), pour les contrôles et l'export. */
+  cartouche: PlotRect | null;
+}
+
+export interface RenderOptions {
+  /** Sans titre, sous-titre, commentaires ni filet (image de diapositive / snapshot). */
+  bare?: boolean;
+  /** Vignette : rien que le graphique (Explorer, bandeau Histoire). */
+  thumb?: boolean;
+  /** Date de génération affichée (défaut : maintenant). */
+  now?: Date;
+}
+
+/**
+ * Signature « label qualité », coin bas droit : logo + produit (lien vers la plateforme),
+ * date de génération et source. Renvoie le rectangle occupé.
+ */
+function drawCartouche(root: G, spec: ChartSpec, theme: Theme, s: number, font: string, W: number, H: number, pad: number, maxW: number, now: Date): PlotRect {
+  const g = root.append("g").attr("class", "r4d-cartouche").attr("data-r4d", "cartouche");
+  const fs1 = 12 * s;
+  const fs2 = 11 * s;
+  const lh = 15 * s;
+  const px = 9 * s;
+  const py = 6 * s;
+  const logo = 10 * s;
+  const date = generatedOn(now);
+  const source = spec.style.source.trim();
+  const w1 = logo + 6 * s + measure(PRODUCT_LABEL, fs1, font, 700);
+  const sep = " · ";
+  const inner = maxW - px * 2;
+  let lines2: string[] = [];
+  const one = source ? `${date}${sep}${source.startsWith("Source") ? source : `Source : ${source}`}` : date;
+  if (measure(one, fs2, font) <= inner) lines2 = [one];
+  else {
+    lines2 = [date];
+    if (source) lines2.push(...wrap(source.startsWith("Source") ? source : `Source : ${source}`, inner, fs2, font, 400, 2));
+  }
+  const w = Math.min(maxW, Math.max(w1, ...lines2.map((l) => measure(l, fs2, font))) + px * 2);
+  const h = py * 2 + lh * (1 + lines2.length) - 2 * s;
+  const x0 = W - pad - w;
+  const y0 = H - pad * 0.55 - h;
+  g.append("rect").attr("class", "r4d-cartouche-box").attr("x", x0).attr("y", y0).attr("width", w).attr("height", h).attr("rx", 5 * s).attr("fill", theme.bg).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+  const right = W - pad - px;
+  const a = g.append("a").attr("class", "r4d-cartouche-link").attr("href", PLATFORM_URL).attr("target", "_blank").attr("rel", "noopener");
+  a.append("title").text(`${PRODUCT_LABEL} — ${PLATFORM_URL}`);
+  const ly = y0 + py + lh / 2;
+  const tx = right - measure(PRODUCT_LABEL, fs1, font, 700);
+  a.append("rect").attr("class", "r4d-logo").attr("x", tx - 6 * s - logo).attr("y", ly - logo / 2).attr("width", logo).attr("height", logo).attr("rx", 2 * s).attr("fill", LOGO_COLOR);
+  a.append("text").attr("class", "r4d-brand").attr("x", right).attr("y", ly).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", fs1).attr("font-weight", 700).attr("fill", theme.muted).text(PRODUCT_LABEL);
+  lines2.forEach((l, i) => {
+    const isDate = i === 0;
+    g.append("text")
+      .attr("class", isDate ? "r4d-cartouche-date" : "r4d-source")
+      .attr("x", right)
+      .attr("y", ly + lh * (i + 1))
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("font-size", fs2)
+      .attr("fill", theme.faint)
+      .text(ellipsize(l, inner, fs2, font));
+  });
+  return { x: x0, y: y0, w, h };
 }
 
 /**
@@ -224,13 +315,16 @@ export interface RenderResult {
  * Pour les types spéciaux (film, carte), seul le cadre est dessiné : la zone `plot`
  * est remplie par la bibliothèque span-magnitude.
  */
-export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, ds: Dataset | null, cache: PrepCache, frame: Frame): RenderResult {
+export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Dataset | null, cache: PrepCache, frame: Frame, opts: RenderOptions = {}): RenderResult {
+  const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
   const { width: W, height: H } = chartSize(spec);
   const theme = themeFor(spec);
   const colors = paletteColors(spec, theme);
   const font = fontStack(spec.style.font);
-  const s = Math.sqrt(W * H) / Math.sqrt(1200 * 675);
+  const s = opts.thumb ? Math.max(0.5, Math.sqrt(W * H) / Math.sqrt(1200 * 675)) : Math.sqrt(W * H) / Math.sqrt(1200 * 675);
   const prep = prepareFrame(spec, ds, cache, frame);
+  const chrome = !opts.thumb;
+  const texts = chrome && !opts.bare;
 
   const svg = select(svgEl);
   svg.selectAll("*").remove();
@@ -245,88 +339,136 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, ds: Dataset |
   const root = svg.append("g") as unknown as G;
   root.append("rect").attr("class", "r4d-bg").attr("width", W).attr("height", H).attr("fill", theme.bg);
 
-  const pad = 40 * s;
+  const pad = (opts.thumb ? 14 : 40) * s;
   let y = pad;
   const innerW = W - pad * 2;
 
   // ---- titre / sous-titre
-  if (spec.style.accentBar) {
-    root.append("rect").attr("x", pad).attr("y", y).attr("width", 44 * s).attr("height", 5 * s).attr("rx", 2.5 * s).attr("fill", theme.accent);
+  if (texts && spec.style.accentBar) {
+    root.append("rect").attr("class", "r4d-accent").attr("x", pad).attr("y", y).attr("width", 44 * s).attr("height", 5 * s).attr("rx", 2.5 * s).attr("fill", theme.accent);
     y += 5 * s + 14 * s;
   }
-  if (spec.style.title) {
+  if (texts && spec.style.title) {
     const ts = 32 * s;
     const lines = wrap(spec.style.title, innerW, ts, font, 700, 2);
     lines.forEach((l, i) => {
-      root.append("text").attr("class", "r4d-title").attr("x", pad).attr("y", y + ts * 0.8 + i * ts * 1.15).attr("font-size", ts).attr("font-weight", 700).attr("fill", theme.text).attr("letter-spacing", -0.3 * s).text(l);
+      root.append("text").attr("class", "r4d-title").attr("data-r4d-edit", "title").attr("x", pad).attr("y", y + ts * 0.8 + i * ts * 1.15).attr("font-size", ts).attr("font-weight", 700).attr("fill", theme.text).attr("letter-spacing", -0.3 * s).text(l);
     });
     y += lines.length * ts * 1.15 + 4 * s;
   }
-  if (spec.style.subtitle) {
+  if (texts && spec.style.subtitle) {
     const ss = 17 * s;
     const lines = wrap(spec.style.subtitle, innerW, ss, font, 400, 2);
-    lines.forEach((l, i) => root.append("text").attr("class", "r4d-subtitle").attr("x", pad).attr("y", y + ss * 0.85 + i * ss * 1.3).attr("font-size", ss).attr("fill", theme.muted).text(l));
+    lines.forEach((l, i) => root.append("text").attr("class", "r4d-subtitle").attr("data-r4d-edit", "subtitle").attr("x", pad).attr("y", y + ss * 0.85 + i * ss * 1.3).attr("font-size", ss).attr("fill", theme.muted).text(l));
     y += lines.length * ss * 1.3 + 4 * s;
   }
 
-  // ---- pied : source + signature
-  const fsz = 12 * s;
-  const footY = H - pad * 0.75;
+  // ---- pied : signature « label qualité » (logo, lien, date, source)
   let footH = 0;
-  const brandW = spec.style.brandMark ? measure("REPORTING 4D · alteridea", fsz, font, 700) + 10 * s : 0;
-  if (spec.style.source) {
-    const lines = wrap(spec.style.source, innerW - brandW - 20 * s, fsz, font, 400, 2);
-    lines.forEach((l, i) => root.append("text").attr("class", "r4d-source").attr("x", pad).attr("y", footY - (lines.length - 1 - i) * fsz * 1.3).attr("font-size", fsz).attr("fill", theme.faint).text(l));
-    footH = lines.length * fsz * 1.3 + 10 * s;
+  let cartouche: PlotRect | null = null;
+  if (chrome) {
+    if (showSignature(spec)) {
+      cartouche = drawCartouche(root, spec, theme, s, font, W, H, pad, Math.min(innerW * 0.62, 520 * s), opts.now ?? new Date());
+      footH = H - cartouche.y - pad + 8 * s;
+    } else if (spec.style.source) {
+      const fsz = 12 * s;
+      const lines = wrap(spec.style.source, innerW, fsz, font, 400, 2);
+      const footY = H - pad * 0.75;
+      lines.forEach((l, i) => root.append("text").attr("class", "r4d-source").attr("x", pad).attr("y", footY - (lines.length - 1 - i) * fsz * 1.3).attr("font-size", fsz).attr("fill", theme.faint).text(l));
+      footH = lines.length * fsz * 1.3 + 10 * s;
+    }
   }
-  if (spec.style.brandMark) {
-    const t = root.append("text").attr("class", "r4d-brand").attr("x", W - pad).attr("y", footY).attr("text-anchor", "end").attr("font-size", fsz).attr("font-weight", 700).attr("letter-spacing", 0.6 * s).attr("fill", theme.faint);
-    t.append("tspan").text("REPORTING ");
-    t.append("tspan").attr("fill", theme.accent).text("4D");
-    t.append("tspan").attr("font-weight", 400).text(" · alteridea");
-    footH = Math.max(footH, fsz + 10 * s);
+
+  // ---- commentaires « À retenir » (colonne à droite en paysage, bandeau en bas sinon)
+  const comments = texts && spec.story.showComments ? spec.story.comments.map((c) => c.trim()).filter(Boolean).slice(0, 3) : [];
+  let contentW = innerW;
+  const gCom = root.append("g").attr("class", "r4d-comments");
+  if (comments.length) {
+    const head = "À RETENIR";
+    const hs = 12 * s;
+    if (W / H >= 1.3) {
+      const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
+      const x0 = W - pad - colW;
+      const fs = 15 * s;
+      let cy = y + 16 * s;
+      gCom.append("line").attr("x1", x0 - 16 * s).attr("x2", x0 - 16 * s).attr("y1", y + 6 * s).attr("y2", H - pad - footH).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+      gCom.append("text").attr("class", "r4d-comments-head").attr("x", x0).attr("y", cy).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
+      cy += 22 * s;
+      const maxH = H - pad - footH - cy;
+      const maxLines = Math.max(2, Math.floor(maxH / comments.length / (fs * 1.35)) - 1);
+      comments.forEach((c, i) => {
+        const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
+        const lines = wrap(c, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
+        g.append("rect").attr("x", x0).attr("y", cy + fs * 0.32 - 3.5 * s).attr("width", 7 * s).attr("height", 7 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
+        lines.forEach((l, k) => g.append("text").attr("x", x0 + 16 * s).attr("y", cy + fs * 0.32 + k * fs * 1.35).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
+        cy += lines.length * fs * 1.35 + 14 * s;
+      });
+      contentW = innerW - colW - 32 * s;
+    } else {
+      const fs = 14 * s;
+      const blocks = comments.map((c) => wrap(c, innerW - 16 * s, fs, font, 400, 2));
+      const bh = 20 * s + blocks.reduce((a, b) => a + b.length * fs * 1.3 + 8 * s, 0);
+      let cy = H - pad - footH - bh + 4 * s;
+      gCom.append("line").attr("x1", pad).attr("x2", W - pad).attr("y1", cy - 6 * s).attr("y2", cy - 6 * s).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+      gCom.append("text").attr("class", "r4d-comments-head").attr("x", pad).attr("y", cy + hs * 0.6).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
+      cy += 20 * s;
+      blocks.forEach((lines, i) => {
+        const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
+        g.append("rect").attr("x", pad).attr("y", cy + fs * 0.32 - 3 * s).attr("width", 6 * s).attr("height", 6 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
+        lines.forEach((l, k) => g.append("text").attr("x", pad + 14 * s).attr("y", cy + fs * 0.32 + k * fs * 1.3).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
+        cy += lines.length * fs * 1.3 + 8 * s;
+      });
+      footH += bh + 10 * s;
+    }
   }
 
   // ---- légende
-  const items = legendItems(spec, prep.model, colors, theme.text);
+  const items = chrome ? legendItems(spec, prep.model, colors, theme.text, prep.variance, theme) : [];
   let legendPos = spec.style.legend === "auto" ? (items.length ? "top" : "none") : spec.style.legend;
   if (!items.length) legendPos = "none";
   let plot: PlotRect;
   const gLegend = root.append("g").attr("class", "r4d-legend");
-  y += 12 * s;
+  y += (opts.thumb ? 0 : 12) * s;
   if (legendPos === "top") {
-    const h = layoutLegendRow(gLegend, items, pad, y, innerW, s, font, theme, true);
+    const h = layoutLegendRow(gLegend, items, pad, y, contentW, s, font, theme, true);
     y += h + 14 * s;
-    plot = { x: pad, y, w: innerW, h: H - pad - footH - y };
+    plot = { x: pad, y, w: contentW, h: H - pad - footH - y };
   } else if (legendPos === "bottom") {
-    const h = layoutLegendRow(gLegend, items, pad, 0, innerW, s, font, theme, false);
+    const h = layoutLegendRow(gLegend, items, pad, 0, contentW, s, font, theme, false);
     const ly = H - pad - footH - h;
-    layoutLegendRow(gLegend, items, pad, ly, innerW, s, font, theme, true);
-    plot = { x: pad, y: y + 6 * s, w: innerW, h: ly - y - 22 * s };
+    layoutLegendRow(gLegend, items, pad, ly, contentW, s, font, theme, true);
+    plot = { x: pad, y: y + 6 * s, w: contentW, h: ly - y - 22 * s };
   } else if (legendPos === "right") {
-    const lw = Math.min(innerW * 0.28, Math.max(...items.map((i) => measure(i.label, 13 * s, font))) + 40 * s);
+    const lw = Math.min(contentW * 0.28, Math.max(...items.map((i) => measure(i.label, 13 * s, font))) + 40 * s);
+    const lx = pad + contentW - lw;
     items.forEach((it, i) => {
       const yy = y + 12 * s + i * 24 * s;
-      drawSwatch(gLegend, it, W - pad - lw + 4 * s, yy, s, theme);
-      gLegend.append("text").attr("x", W - pad - lw + 23 * s).attr("y", yy).attr("dy", "0.35em").attr("font-size", 13 * s).attr("fill", theme.muted).text(it.label);
+      drawSwatch(gLegend, it, lx + 4 * s, yy, s, theme);
+      gLegend.append("text").attr("x", lx + 23 * s).attr("y", yy).attr("dy", "0.35em").attr("font-size", 13 * s).attr("fill", theme.muted).text(it.label);
     });
-    plot = { x: pad, y: y + 6 * s, w: innerW - lw - 16 * s, h: H - pad - footH - y - 6 * s };
+    plot = { x: pad, y: y + 6 * s, w: contentW - lw - 16 * s, h: H - pad - footH - y - 6 * s };
   } else {
-    plot = { x: pad, y: y + 6 * s, w: innerW, h: H - pad - footH - y - 6 * s };
+    plot = { x: pad, y: y + 6 * s, w: contentW, h: H - pad - footH - y - 6 * s };
   }
   plot.h = Math.max(40, plot.h);
 
   const ctx: DrawCtx = { spec, ds: ds!, theme, colors, font, s, W, H, frame, prep };
   const gChart = root.append("g").attr("class", "r4d-chart") as unknown as G;
+  const result = (): RenderResult => ({ plot, theme, prepared: prep, width: W, height: H, cartouche });
 
-  if (isSpecial(spec.type)) return { plot, theme, prepared: prep, width: W, height: H };
+  if (isSpecial(spec.type)) return result();
 
-  if (prep.error || !prep.model) {
+  if (prep.error || (!prep.model && !prep.variance)) {
     const msg = prep.error ?? "Encodage incomplet.";
     const lines = wrap(msg, Math.min(plot.w * 0.8, 640 * s), 16 * s, font, 400, 4);
     gChart.append("rect").attr("x", plot.x).attr("y", plot.y).attr("width", plot.w).attr("height", plot.h).attr("rx", 10 * s).attr("fill", "none").attr("stroke", theme.grid).attr("stroke-dasharray", `${6 * s} ${6 * s}`);
     lines.forEach((l, i) => gChart.append("text").attr("class", "r4d-empty").attr("x", plot.x + plot.w / 2).attr("y", plot.y + plot.h / 2 + (i - (lines.length - 1) / 2) * 22 * s).attr("text-anchor", "middle").attr("font-size", 16 * s).attr("fill", theme.muted).text(l));
-    return { plot, theme, prepared: prep, width: W, height: H };
+    return result();
+  }
+
+  if (prep.variance) {
+    drawVariance(gChart, plot, ctx, prep.variance);
+    return result();
   }
 
   // ---- tampon 4D (filigrane) sous les marques : en haut à droite (zone la plus libre, tri décroissant), en bas pour les circulaires
@@ -346,7 +488,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, ds: Dataset |
       .text(prep.stamp);
   }
 
-  const model = prep.model;
+  const model = prep.model!;
   if (model.kind === "points") drawScatter(gChart, plot, ctx, model);
   else if (spec.type === "pie" || spec.type === "donut") drawPie(gChart, plot, ctx, model as CatModel, spec.type === "donut");
   else if (spec.type === "radialBar") drawRadialBars(gChart, plot, ctx, model as CatModel);
@@ -358,7 +500,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, ds: Dataset |
     root.append("rect").attr("x", 0).attr("y", by).attr("width", W).attr("height", 3 * s).attr("fill", theme.track);
     root.append("rect").attr("class", "r4d-progress").attr("x", 0).attr("y", by).attr("width", W * prep.progress).attr("height", 3 * s).attr("fill", theme.accent);
   }
-  return { plot, theme, prepared: prep, width: W, height: H };
+  return result();
 }
 
 export { themeFor, paletteColors };

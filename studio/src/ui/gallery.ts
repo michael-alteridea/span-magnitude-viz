@@ -15,6 +15,7 @@ const SHORT: Record<ChartType, string> = {
   pie: "Camembert",
   donut: "Donut",
   radialBar: "Arcs radiaux",
+  variance: "Écarts",
   film: "Film 4D",
   map: "Carte",
 };

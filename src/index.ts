@@ -158,7 +158,8 @@ export {
   beProvinceFromPostal,
 } from "./geo/postalLookup.js";
 export type { GeoPoint } from "./geo/postalLookup.js";
-export { documentHasGeo, marksWithGeo, computeMapLayout } from "./render/map.js";
+export { documentHasGeo, marksWithGeo, computeMapLayout, computeScaleBar, paintScaleBar } from "./render/map.js";
+export type { ScaleBar } from "./render/map.js";
 export {
   europeLayer,
   europeRegionIdAt,

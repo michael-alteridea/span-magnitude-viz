@@ -5,6 +5,7 @@
 import type { Store, ChangeKind } from "../state";
 import { chartSize, isSpecial } from "../spec";
 import { fourDActive, prepareCache, renderChart, type PrepCache, type RenderResult } from "../charts/render";
+import { effectiveDataset } from "../data/transform";
 import type { Frame, PlotRect } from "../charts/context";
 import { ensureFont, fontStack } from "../theme";
 import { composeSvg } from "../export";
@@ -74,6 +75,7 @@ export class Preview {
     this.status = h("div", { class: "status", "data-testid": "status" });
     this.root = h("div", { class: "preview" }, this.wrap, this.bar, this.status);
     new ResizeObserver(() => this.fit()).observe(this.wrap);
+    this.svg.addEventListener("dblclick", (e) => this.onEditRequest(e));
     document.addEventListener("keydown", (e) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (e.code === "Space" && !["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) && this.mode !== "none") {
@@ -176,7 +178,7 @@ export class Preview {
       this.overlay.style.display = "none";
       return;
     }
-    const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.special, spec.mode.kind, spec.mode.fourD.durationMs, spec.style.palette, spec.style.background, spec.style.backgroundCustom, Math.round(plot.w), Math.round(plot.h)]);
+    const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.transform, spec.special, spec.mode.kind, spec.mode.fourD.durationMs, spec.style.palette, spec.style.background, spec.style.backgroundCustom, Math.round(plot.w), Math.round(plot.h)]);
     Object.assign(this.specialHost.style, { display: "block", left: `${plot.x}px`, top: `${plot.y}px`, width: `${plot.w}px`, height: `${plot.h}px` });
     if (key === this.specialKey) return;
     this.specialKey = key;
@@ -186,7 +188,7 @@ export class Preview {
     if (key !== this.specialKey) return;
     const animate = spec.mode.kind === "dynamic";
     const theme = this.last!.theme;
-    const m = mod.mountSpecial(this.specialHost, spec, ds, plot, theme, {
+    const m = mod.mountSpecial(this.specialHost, spec, effectiveDataset(spec, ds), plot, theme, {
       animate,
       onTick: (st) => {
         if (!this.scrubbing) this.setScrub(st.progress);
@@ -315,6 +317,83 @@ export class Preview {
     const { spec } = this.store.state;
     if (!this.last) this.draw();
     return composeSvg({ svg: this.svg, spec, plot: this.last!.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null });
+  }
+
+  /**
+   * SVG « nu » pour les snapshots / diapositives : graphique + signature, sans titre, sous-titre
+   * ni commentaires (portés par la diapositive), polices non embarquées (ré-embarquées à l'export).
+   */
+  async bareSvg(): Promise<string> {
+    const { spec, ds } = this.store.state;
+    if (!this.last) this.draw();
+    const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const res = renderChart(tmp, spec, ds, this.cache!, { build: 1, timePos: this.mode === "4d" ? this.frameAt(1).timePos : null }, { bare: true });
+    return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null, embedFonts: false });
+  }
+
+  /* ------------------------------------------------------- édition directe */
+
+  /** Callback d'édition (titre, sous-titre, commentaire i) : branché par main. */
+  onEditText: ((field: string, value: string) => void) | null = null;
+
+  private onEditRequest(e: MouseEvent): void {
+    const target = (e.target as Element | null)?.closest?.("[data-r4d-edit]");
+    if (!target) return;
+    const field = target.getAttribute("data-r4d-edit")!;
+    this.openEditor(field);
+  }
+
+  /** Ouvre l'éditeur en place (zone de texte superposée au texte du graphique). */
+  openEditor(field: string): HTMLTextAreaElement | null {
+    const spec = this.store.state.spec;
+    const sel = field.startsWith("comment:") ? `[data-r4d-edit="${field}"]` : `[data-r4d-edit="${field}"]`;
+    const nodes = [...this.svg.querySelectorAll(sel)];
+    if (!nodes.length) return null;
+    const rects = nodes.map((n) => n.getBoundingClientRect());
+    const box = this.stage.getBoundingClientRect();
+    const left = Math.min(...rects.map((r) => r.left)) - box.left;
+    const top = Math.min(...rects.map((r) => r.top)) - box.top;
+    const right = Math.max(...rects.map((r) => r.right)) - box.left;
+    const bottom = Math.max(...rects.map((r) => r.bottom)) - box.top;
+    const k = this.scale || 1;
+    const value = field === "title" ? spec.style.title : field === "subtitle" ? spec.style.subtitle : spec.story.comments[Number(field.split(":")[1])] ?? "";
+    const fs = parseFloat(nodes[0]!.getAttribute("font-size") ?? (nodes[0]!.querySelector("text")?.getAttribute("font-size") ?? "16"));
+    this.stage.querySelector(".r4d-inline-editor")?.remove();
+    const { width: W } = chartSize(spec);
+    const ta = h("textarea", { class: "r4d-inline-editor", "data-testid": "inline-editor", spellcheck: "true", maxlength: field === "title" ? "200" : "300" });
+    ta.value = value;
+    const lx = left / k;
+    Object.assign(ta.style, {
+      left: `${lx - 6}px`,
+      top: `${top / k - 6}px`,
+      width: `${Math.max(240, Math.min(W - lx - 10, Math.max(right - left, 200) / k + 40))}px`,
+      height: `${Math.max(fs * 1.6, (bottom - top) / k + 16)}px`,
+      fontSize: `${fs}px`,
+      fontWeight: field === "title" ? "700" : "400",
+    });
+    let done = false;
+    const finish = (commit: boolean) => {
+      if (done) return;
+      done = true;
+      const v = ta.value.replace(/\s*\n\s*/g, " ").trim();
+      ta.remove();
+      if (commit && v !== value) this.onEditText?.(field, v);
+    };
+    ta.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        finish(true);
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        finish(false);
+      }
+      ev.stopPropagation();
+    });
+    ta.addEventListener("blur", () => finish(true));
+    this.stage.appendChild(ta);
+    ta.focus();
+    ta.select();
+    return ta;
   }
 
   /** SVG d'une frame à la progression p (export vidéo). */

@@ -3,6 +3,7 @@ import type { ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
 import type { Model } from "../data/model";
 import type { Theme } from "../theme";
+import type { VarianceModel } from "../data/variance";
 
 export type G = Selection<SVGGElement, unknown, null, undefined>;
 
@@ -38,6 +39,8 @@ export interface Prepared {
   warnings: string[];
   /** Message bloquant (encodage incomplet…). */
   error: string | null;
+  /** Modèle d'écarts (type « variance »). */
+  variance?: VarianceModel | null;
 }
 
 export interface DrawCtx {

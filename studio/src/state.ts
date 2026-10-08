@@ -4,8 +4,16 @@
 import { chartSpecSchema, defaultSpec, parseSpec, type ChartSpec } from "./spec";
 import { buildDataset, serializableRaw, type ColumnType, type Dataset } from "./data/table";
 import { sampleById } from "./data/samples";
+import { emptyStory, loadStory, saveStory, type StoryState } from "./story/snapshots";
 
-export type ChangeKind = "spec" | "data" | "ui";
+export type ChangeKind = "spec" | "data" | "ui" | "story";
+
+/** Chemins de texte protégés par les drapeaux `story.edited` (saisie utilisateur). */
+const EDIT_FLAGS: Record<string, "title" | "subtitle" | "comments"> = {
+  "style.title": "title",
+  "style.subtitle": "subtitle",
+  "story.comments": "comments",
+};
 
 export interface UiState {
   leftCollapsed: boolean;
@@ -24,6 +32,8 @@ export interface AppState {
   sheets: string[] | null;
   sheet: string | null;
   ui: UiState;
+  /** Histoire : snapshots ordonnés (persistés à part). */
+  story: StoryState;
 }
 
 const KEY = "reporting-4d-studio:session:v1";
@@ -53,6 +63,11 @@ export class Store {
   private saveTimer: number | null = null;
   /** Fichier Excel courant (pour changer de feuille). */
   lastFile: File | null = null;
+  /**
+   * Crochet appelé juste avant la notification (récit calculé) : peut renvoyer un spec complété
+   * (titre, sous-titre, commentaires) qui remplace l'état sans marquer de saisie utilisateur.
+   */
+  beforeNotify: ((state: AppState, kinds: Set<ChangeKind>) => ChartSpec | null) | null = null;
 
   constructor() {
     this.state = {
@@ -63,7 +78,8 @@ export class Store {
       importNote: null,
       sheets: null,
       sheet: null,
-      ui: { leftCollapsed: false, rightCollapsed: false, openSections: { encodage: true, style: true }, pngScale: 2, includeData: true },
+      ui: { leftCollapsed: false, rightCollapsed: false, openSections: { encodage: true, style: true, recit: true }, pngScale: 2, includeData: true },
+      story: emptyStory(),
     };
   }
 
@@ -80,8 +96,20 @@ export class Store {
       this.scheduled = false;
       const kinds = new Set(this.pending);
       this.pending.clear();
+      if (this.beforeNotify && (kinds.has("spec") || kinds.has("data"))) {
+        try {
+          const next = this.beforeNotify(this.state, kinds);
+          if (next) {
+            this.state.spec = next;
+            kinds.add("spec");
+          }
+        } catch (e) {
+          console.warn("Récit : génération impossible", e);
+        }
+      }
       for (const l of this.listeners) l(kinds);
-      this.scheduleSave();
+      if (kinds.has("story")) this.saveStoryNow();
+      if (kinds.has("spec") || kinds.has("data") || kinds.has("ui")) this.scheduleSave();
     });
   }
 
@@ -94,14 +122,52 @@ export class Store {
     return [];
   }
 
-  /** Modifie un chemin du spec (ex. "axes.y.min"). */
+  /**
+   * Modifie un chemin du spec (ex. "axes.y.min"). Les textes du récit (titre, sous-titre,
+   * commentaires) modifiés ainsi sont marqués comme saisis par l'utilisateur.
+   */
   set(path: string, value: unknown): string[] {
     const draft = structuredClone(this.state.spec) as Record<string, unknown>;
     const keys = path.split(".");
     let o: Record<string, unknown> = draft;
     for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>;
     o[keys[keys.length - 1]!] = value;
+    const flag = EDIT_FLAGS[path] ?? (path.startsWith("story.comments.") ? "comments" : null);
+    if (flag) {
+      const story = draft.story as { edited: Record<string, boolean> };
+      story.edited = { ...story.edited, [flag]: true };
+    }
     return this.setSpec(draft);
+  }
+
+  /** « Régénérer » : rend la main au calcul pour les textes (tous, ou un seul). */
+  regenerate(which?: "title" | "subtitle" | "comments"): void {
+    const spec = structuredClone(this.state.spec);
+    if (which) spec.story.edited[which] = false;
+    else spec.story.edited = { title: false, subtitle: false, comments: false };
+    spec.story.auto = true;
+    this.state.spec = spec;
+    this.emit("spec");
+  }
+
+  /* ---------------------------------------------------------------- histoire */
+
+  setStory(next: StoryState): void {
+    this.state.story = next;
+    this.emit("story");
+  }
+
+  private saveStoryNow(): void {
+    try {
+      const r = saveStory(this.state.story);
+      if (r.trimmed) console.info(`Histoire : ${r.trimmed} rendu(s) allégé(s) pour tenir dans le stockage local.`);
+    } catch {
+      /* stockage indisponible */
+    }
+  }
+
+  restoreStory(): void {
+    this.state.story = loadStory();
   }
 
   get(path: string): unknown {

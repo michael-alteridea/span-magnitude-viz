@@ -3,7 +3,8 @@
  * et les types de colonnes détectés. Conserve les choix valides de l'utilisateur.
  */
 import type { ChartSpec, ChartType } from "../spec";
-import { isBarType, isRadial, isSpecial } from "../spec";
+import { isBarType, isRadial, isSpecial, isVariance } from "../spec";
+import { detectRoles } from "../story/roles";
 import type { Column, Dataset } from "./table";
 
 type Enc = ChartSpec["encoding"];
@@ -35,6 +36,21 @@ export function autoEncode(spec: ChartSpec, ds: Dataset | null, type: ChartType,
   const D = dates(ds);
 
   if (isSpecial(type)) return enc;
+
+  if (isVariance(type)) {
+    // Réel vs référence : colonnes de scénarios reconnues, sinon les deux premières mesures
+    const sc = detectRoles(ds).scenarios;
+    const actual = sc.actual?.name ?? (enc.y[0] && col(ds, enc.y[0])?.type === "number" ? enc.y[0] : M[0]?.name);
+    const ref = (sc.budget ?? sc.py ?? sc.forecast)?.name ?? (enc.y[1] && enc.y[1] !== actual ? enc.y[1] : M.find((c) => c.name !== actual)?.name);
+    enc.y = [actual, ref].filter((v): v is string => !!v);
+    const xCol = col(ds, enc.x);
+    if (!xCol || xCol.type === "number") enc.x = bestCategory(ds, [], 24)?.name ?? D[0]?.name ?? null;
+    enc.series = null;
+    enc.y2 = null;
+    enc.time = null;
+    enc.aggregate = "sum";
+    return enc;
+  }
 
   if (!enc.y.length && M[0]) enc.y = [M[0].name];
   const xCol = col(ds, enc.x);

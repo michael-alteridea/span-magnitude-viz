@@ -4,8 +4,12 @@ let ctx: CanvasRenderingContext2D | null = null;
 
 export function measure(text: string, sizePx: number, family: string, weight = 400): number {
   if (!ctx) {
-    const c = document.createElement("canvas");
-    ctx = c.getContext("2d");
+    try {
+      const c = document.createElement("canvas");
+      ctx = typeof c.getContext === "function" ? c.getContext("2d") : null;
+    } catch {
+      ctx = null;
+    }
   }
   if (!ctx) return text.length * sizePx * 0.55;
   ctx.font = `${weight} ${sizePx}px ${family}`;

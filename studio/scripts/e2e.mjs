@@ -193,7 +193,7 @@ try {
 
   /* 2. Chaque type de graphique */
   const types = await page.$$eval("[data-testid^=type-]", (els) => els.map((e) => e.dataset.type));
-  check("galerie : 13 types", types.length === 13, types.join(","));
+  check("galerie : 14 types", types.length === 14, types.join(","));
   for (const t of types) {
     if (t === "film" || t === "map") continue;
     await page.click(`[data-testid=type-${t}]`);
@@ -213,6 +213,37 @@ try {
     await sleep(400);
     const info = await stageInfo();
     check(`type ${t} (spécial)`, info.special > 20 && !info.empty, `${info.special} éléments SVG`);
+    if (t === "map") {
+      // Barre d'échelle en km sur toutes les cartes (FR·BE, Europe à chaque maille)
+      const scales = [];
+      for (const [region, level] of [["fr-be", null], ["europe", "country"], ["europe", "nuts1"], ["europe", "nuts2"], ["europe", "nuts3"]]) {
+        await page.evaluate((r, l) => {
+          window.r4d.set("special.mapRegion", r);
+          if (l) window.r4d.set("special.mapLevel", l);
+        }, region, level);
+        await page.waitForFunction(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"), { timeout: 10000 }).catch(() => {});
+        await sleep(300);
+        scales.push(
+          await page.evaluate((r, l) => {
+            const g = document.querySelector("[data-testid=special-host] .smv-map-scale");
+            return { where: l ? `${r}/${l}` : r, km: Number(g?.getAttribute("data-km")), px: Number(g?.getAttribute("data-px")), label: g?.querySelector(".smv-map-scale-label")?.textContent ?? "" };
+          }, region, level)
+        );
+      }
+      check("carte : barre d'échelle en km (FR·BE + Europe, toutes mailles)", scales.every((x) => x.km > 0 && x.px > 20 && /^\d[\d\s]*\s?km$/.test(x.label)), scales.map((x) => `${x.where} ${x.label}`).join(" · "));
+      await page.evaluate(() => window.r4d.set("special.mapRegion", "fr-be"));
+      await page.waitForFunction(() => !!document.querySelector("[data-testid=special-host] .smv-map-scale"), { timeout: 10000 }).catch(() => {});
+      await sleep(400);
+      const bm = readdirSync(dl);
+      await domClick("[data-testid=export-svg]");
+      const mapSvg = await waitDownload(".svg", bm);
+      const mapText = mapSvg ? readFileSync(mapSvg, "utf8") : "";
+      check("export SVG de la carte : barre d'échelle + signature", /data-km="\d+"/.test(mapText) && /\d km</.test(mapText.replace(/[\u00a0\u202f]/g, " ")) && mapText.includes("r4d-cartouche"), mapSvg ? "ok" : "aucun fichier");
+      await page.click("[data-testid=type-film]");
+      await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] svg *").length > 20, { timeout: 10000 }).catch(() => {});
+      await page.evaluate(() => window.r4d.seek(0.8));
+      await sleep(300);
+    }
   }
   const before0 = readdirSync(dl);
   await domClick("[data-testid=export-svg]");
@@ -253,9 +284,18 @@ try {
   const svgText = svgFile ? readFileSync(svgFile, "utf8") : "";
   check(
     "export SVG autonome",
-    /@font-face/.test(svgText) && /data:font\/woff2;base64,/.test(svgText) && /<svg[^>]+viewBox="0 0 1200 675"/.test(svgText) && !/(src|href)="(?!data:|#)[^"]+"/.test(svgText),
+    /@font-face/.test(svgText) && /data:font\/woff2;base64,/.test(svgText) && /<svg[^>]+viewBox="0 0 1200 675"/.test(svgText) && !/(src|href)="(?!data:|#|https:\/\/alteridea-dashboard\.web\.app\/reporting\/")[^"]+"/.test(svgText),
     svgFile ? `${(svgText.length / 1024).toFixed(0)} Ko` : "aucun fichier"
   );
+  {
+    const flat = svgText.replace(/[\u00a0\u202f]/g, " ");
+    const dateRe = /Généré le \d{1,2}(er)? (janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.? \d{4}/;
+    check(
+      "export SVG : signature (logo, « Reporting 4D », lien plateforme) + date de génération",
+      flat.includes('class="r4d-cartouche"') && flat.includes('href="https://alteridea-dashboard.web.app/reporting/"') && />Reporting 4D</.test(flat) && dateRe.test(flat) && flat.includes('class="r4d-logo"'),
+      (flat.match(dateRe) ?? ["date absente"])[0]
+    );
+  }
   await selectValue("[data-testid=png-scale]", "2");
   const b2 = readdirSync(dl);
   await domClick("[data-testid=export-png]");
@@ -266,6 +306,35 @@ try {
     dims = buf.toString("ascii", 1, 4) === "PNG" ? [buf.readUInt32BE(16), buf.readUInt32BE(20)] : null;
   }
   check("export PNG 2×", dims?.[0] === 2400 && dims?.[1] === 1350, dims ? dims.join("×") : "aucun fichier");
+  if (pngFile) {
+    // Le logo pétrole de la signature est bien dans le PNG (pixel au centre du carré, échelle 2×)
+    const logo = await page.evaluate(() => {
+      const r = document.querySelector("[data-testid=chart-svg] .r4d-logo");
+      return r ? { x: +r.getAttribute("x") + +r.getAttribute("width") / 2, y: +r.getAttribute("y") + +r.getAttribute("height") / 2 } : null;
+    });
+    const px = logo
+      ? await page.evaluate(
+          async (b64, x, y) => {
+            const img = new Image();
+            img.src = "data:image/png;base64," + b64;
+            await img.decode();
+            const c = document.createElement("canvas");
+            c.width = img.width;
+            c.height = img.height;
+            const ctx = c.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            return [...ctx.getImageData(Math.round(x * 2), Math.round(y * 2), 1, 1).data];
+          },
+          readFileSync(pngFile).toString("base64"),
+          logo.x,
+          logo.y
+        )
+      : null;
+    const near = px && Math.abs(px[0] - 0x0e) < 24 && Math.abs(px[1] - 0x6e) < 24 && Math.abs(px[2] - 0x8c) < 24;
+    check("export PNG : signature présente (logo pétrole en bas à droite)", !!near, px ? `rgb(${px.slice(0, 3).join(", ")}) @ ${Math.round(logo.x)},${Math.round(logo.y)}` : "logo introuvable");
+    const frame = await page.evaluate(() => window.r4d.preview.svgAt(0.5));
+    check("vidéo WebM : chaque image porte la signature et la date", frame.includes("r4d-cartouche") && /Généré le/.test(frame));
+  }
 
   /* 6. Sauvegarde / chargement de configuration */
   const b3 = readdirSync(dl);
@@ -307,6 +376,156 @@ try {
   const label = await page.$eval("[data-testid=time-label]", (e) => e.textContent);
   const stamp = await page.evaluate(() => document.querySelector("[data-testid=chart-svg] .r4d-stamp")?.textContent ?? "");
   check("4D : position intermédiaire", /20(24|25|26)/.test(stamp + label), `${stamp} · ${label}`);
+
+  /* 9. Récit : Explorer, titres calculés, édition, snapshots, PowerPoint */
+  if (SHOTS) await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await page.evaluate(() => window.r4d.store.setStory({ title: "Revue commerciale T3 2026", snapshots: [] }));
+  for (const [id, shot] of [["pipeline", "11-explorer-pipeline.png"], ["business-review", "12-explorer-business-review.png"]]) {
+    await domClick(`[data-testid=sample-${id}]`);
+    await sleep(700);
+    await domClick("[data-testid=explore-data]");
+    await page.waitForSelector("[data-testid=explorer-card]", { timeout: 8000 }).catch(() => {});
+    await sleep(500);
+    const cards = await page.$$eval("[data-testid=explorer-card]", (els) => els.map((e) => ({ kind: e.dataset.kind, title: e.querySelector("h3")?.textContent ?? "", why: e.querySelector(".explorer-why")?.textContent ?? "", thumb: e.querySelectorAll(".explorer-thumb svg *").length })));
+    check(`Explorer « ${id} » : 5 à 8 pistes avec vignette, titre, pourquoi`, cards.length >= 5 && cards.length <= 8 && cards.every((c) => c.title.length > 10 && c.why.length > 10 && c.thumb > 0), `${cards.length} : ${cards.map((c) => c.kind).join(", ")}`);
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, shot) });
+    const pick = id === "pipeline" ? cards.findIndex((c) => c.kind === "concentration") : cards.findIndex((c) => c.kind === "variance" && /budget/i.test(c.title));
+    const idx = Math.max(0, pick);
+    await page.evaluate((i) => document.querySelectorAll("[data-testid=explorer-open]")[i].click(), idx);
+    await sleep(900);
+    const opened = await page.evaluate(() => ({ kind: window.r4d.getSpec().story.kind, title: window.r4d.getSpec().style.title, explorer: !document.querySelector("[data-testid=explorer]").classList.contains("hidden"), comments: document.querySelectorAll("[data-testid=chart-svg] .r4d-comment").length, svgTitle: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-title")].map((t) => t.textContent).join(" ") }));
+    const info = await stageInfo();
+    check(`Explorer « ${id} » : « Ouvrir » charge le graphique et son récit`, opened.kind === cards[idx].kind && opened.title === cards[idx].title && !opened.explorer && opened.comments >= 1 && (info.marks > 0 || info.special > 0), `${opened.kind} · « ${opened.title} » · ${opened.comments} commentaire(s)`);
+    if (id === "pipeline") check("titre de l'exemple demandé", opened.title.replace(/[\u00a0\u202f]/g, " ") === "Le pipeline T4 repose à 60 % sur 3 comptes", opened.title);
+  }
+
+  // Titre modifié directement sur le graphique (double-clic) → conservé → « Régénérer » le rétablit
+  const computed = await page.evaluate(() => window.r4d.getSpec().style.title);
+  const tbox = await (await page.$("[data-testid=chart-svg] .r4d-title")).boundingBox();
+  await page.mouse.click(tbox.x + 30, tbox.y + tbox.height / 2, { count: 2, clickCount: 2 });
+  await page.waitForSelector("[data-testid=inline-editor]", { timeout: 3000 }).catch(() => {});
+  const editorOpen = !!(await page.$("[data-testid=inline-editor]"));
+  if (editorOpen) {
+    await page.evaluate(() => {
+      const ta = document.querySelector("[data-testid=inline-editor]");
+      ta.select();
+    });
+    await page.keyboard.type("Nouvelle-Aquitaine : plan d'action avant décembre");
+    await page.keyboard.press("Enter");
+  }
+  await sleep(500);
+  const afterEdit = await page.evaluate(() => ({ title: window.r4d.getSpec().style.title, edited: window.r4d.getSpec().story.edited.title, svg: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-title")].map((t) => t.textContent).join(" ") }));
+  check("édition directe du titre (double-clic sur le graphique)", editorOpen && afterEdit.title === "Nouvelle-Aquitaine : plan d'action avant décembre" && afterEdit.edited && afterEdit.svg.startsWith("Nouvelle-Aquitaine"), JSON.stringify(afterEdit));
+  // un changement de données / de réglage ne l'écrase pas, la session non plus
+  await page.evaluate(() => window.r4d.set("variance.show", "rel"));
+  await sleep(500);
+  await page.evaluate(() => window.r4d.store.save());
+  await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
+  await sleep(900);
+  const kept = await page.evaluate(() => ({ title: window.r4d.getSpec().style.title, sub: window.r4d.getSpec().style.subtitle }));
+  check("titre modifié conservé (changement de réglage + rechargement)", kept.title === "Nouvelle-Aquitaine : plan d'action avant décembre" && kept.sub.length > 10, kept.title);
+  await domClick("[data-testid=story-regenerate]");
+  await sleep(500);
+  const regen = await page.evaluate(() => ({ title: window.r4d.getSpec().style.title, edited: window.r4d.getSpec().story.edited.title, field: document.querySelector("[data-testid=story-title]")?.value }));
+  check("« Régénérer » rétablit le titre calculé", regen.title === computed && !regen.edited && regen.field === computed, regen.title);
+  await page.evaluate(() => window.r4d.set("variance.show", "abs"));
+  await sleep(400);
+  if (SHOTS) {
+    await page.evaluate(() => {
+      document.querySelector('[data-section="recit"]')?.setAttribute("open", "");
+      document.querySelector('[data-section="recit"]')?.scrollIntoView();
+    });
+    await sleep(300);
+    await page.screenshot({ path: join(shotsDir, "13-titre-commentaires.png") });
+  }
+
+  // Trois snapshots → glisser-déposer → rechargement → toujours là
+  const snapIds = [];
+  await domClick("[data-testid=snapshot]");
+  await sleep(900);
+  await domClick("[data-testid=sample-pipeline]");
+  await sleep(700);
+  for (const kind of ["pipelineSlipping", "trend"]) {
+    await page.evaluate(() => window.r4d.explore());
+    await sleep(300);
+    await page.evaluate((k) => {
+      const cards = [...document.querySelectorAll("[data-testid=explorer-card]")];
+      const c = cards.find((e) => e.dataset.kind === k) ?? cards[0];
+      c.querySelector("[data-testid=explorer-open]").click();
+    }, kind);
+    await sleep(900);
+    await page.evaluate(() => window.r4d.seek(1));
+    await sleep(200);
+    await domClick("[data-testid=snapshot]");
+    await sleep(900);
+  }
+  snapIds.push(...(await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.id))));
+  check("3 snapshots dans l'histoire", snapIds.length === 3 && (await page.$$("[data-testid=story-card]")).length === 3, String(snapIds.length));
+  await page.evaluate(() => {
+    const cards = document.querySelectorAll("[data-testid=story-card]");
+    const dt = new DataTransfer();
+    cards[0].dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+    cards[2].dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    cards[2].dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    cards[0].dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
+  });
+  await sleep(400);
+  const reordered = await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.id));
+  const expected = [snapIds[1], snapIds[2], snapIds[0]];
+  check("glisser-déposer : réordonner les snapshots", JSON.stringify(reordered) === JSON.stringify(expected), reordered.join(" → "));
+  await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
+  await sleep(900);
+  const afterReload = await page.evaluate(() => ({ ids: window.r4d.story().snapshots.map((s) => s.id), cards: document.querySelectorAll("[data-testid=story-card] img").length, svg: window.r4d.story().snapshots.every((s) => s.svg && s.svg.includes("r4d-cartouche")) }));
+  check("histoire persistée (rechargement) avec vignettes et signature", JSON.stringify(afterReload.ids) === JSON.stringify(expected) && afterReload.cards === 3 && afterReload.svg, `${afterReload.ids.length} snapshots · ${afterReload.cards} vignettes`);
+  await domClick("[data-testid=story-order]");
+  await sleep(400);
+  const roles = await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.role));
+  const rank = { context: 0, tension: 1, revelation: 2, recommendation: 3 };
+  check("« Ordonner en récit » : contexte → tension → révélation → recommandation", roles.every((r, i) => i === 0 || rank[roles[i - 1]] <= rank[r]), roles.join(" → "));
+  // Clic sur une vignette : recharge le graphique
+  await page.evaluate(() => document.querySelectorAll("[data-testid=story-card-open]")[0].click());
+  await sleep(900);
+  const reloadedTitle = await page.evaluate(() => [window.r4d.getSpec().style.title, window.r4d.story().snapshots[0].title]);
+  check("clic sur un snapshot : recharge le graphique", reloadedTitle[0] === reloadedTitle[1], reloadedTitle[0]);
+  if (SHOTS) {
+    await page.evaluate(() => {
+      const st = window.r4d.story();
+      window.r4d.store.setStory({ ...st, snapshots: st.snapshots.map((s, i) => (i === 0 ? { ...s, name: s.name } : s)) });
+    });
+    await sleep(300);
+    await page.screenshot({ path: join(shotsDir, "14-histoire-snapshots.png") });
+  }
+
+  // Export PowerPoint : zip valide, couverture + sommaire + 1 diapositive par snapshot
+  const bp = readdirSync(dl);
+  await domClick("[data-testid=story-pptx]");
+  const pptxFile = await waitDownload(".pptx", bp);
+  let pptxOk = false;
+  let pptxDetail = "aucun fichier";
+  if (pptxFile) {
+    const JSZip = createRequire(join(repo, "package.json"))("jszip");
+    const zip = await JSZip.loadAsync(readFileSync(pptxFile));
+    const slides = Object.keys(zip.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f));
+    const media = Object.keys(zip.files).filter((f) => /^ppt\/media\//.test(f));
+    const rels = (await Promise.all(Object.keys(zip.files).filter((f) => /slides\/_rels\/.+\.rels$/.test(f)).map((f) => zip.file(f).async("string")))).join("");
+    pptxOk = slides.length === 5 && media.length >= 3 && rels.includes("https://alteridea-dashboard.web.app/reporting/") && !!zip.file("[Content_Types].xml");
+    pptxDetail = `${slides.length} diapositives · ${media.length} images · ${(readFileSync(pptxFile).length / 1024).toFixed(0)} Ko`;
+    if (SHOTS) {
+      const { execFileSync } = await import("node:child_process");
+      const out = join(dl, "pptx-render");
+      mkdirSync(out, { recursive: true });
+      try {
+        execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", out, pptxFile], { stdio: "ignore", timeout: 120000 });
+        const pdf = readdirSync(out).find((f) => f.endsWith(".pdf"));
+        for (const f of readdirSync(shotsDir).filter((f) => /^15-pptx-slide-/.test(f))) rmSync(join(shotsDir, f));
+        execFileSync("pdftoppm", ["-png", "-r", "80", join(out, pdf), join(shotsDir, "15-pptx-slide")], { stdio: "ignore", timeout: 120000 });
+        // pdftoppm nomme « -1.png » : on garde ce schéma (15-pptx-slide-1.png …)
+      } catch (e) {
+        results.push("(rendu LibreOffice impossible : " + e.message + ")");
+      }
+    }
+  }
+  check("export PowerPoint (.pptx = zip valide)", pptxOk, pptxDetail);
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

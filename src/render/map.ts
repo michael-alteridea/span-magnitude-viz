@@ -6,6 +6,7 @@
  */
 import {
   geoAzimuthalEqualArea,
+  geoDistance,
   geoMercator,
   geoPath,
   type GeoProjection,
@@ -355,6 +356,93 @@ export function computeMapLayout(
     markScale,
     regionTotals,
   };
+}
+
+/* ------------------------------------------------------------------ scale bar */
+
+export interface ScaleBar {
+  /** Distance shown (km, "nice" value). */
+  km: number;
+  /** Bar length in px (layout inner coordinates). */
+  px: number;
+  /** French label, e.g. "100 km". */
+  label: string;
+  /** Bottom-left anchor (inner coordinates). */
+  x: number;
+  y: number;
+}
+
+const NICE_KM = [1, 2, 5, 10, 20, 25, 50, 75, 100, 150, 200, 250, 300, 500, 750, 1000, 1500, 2000, 2500, 5000];
+const EARTH_RADIUS_KM = 6371.0088;
+
+/**
+ * Scale bar in km for the current projection / framing: measures the ground distance of a
+ * horizontal pixel span at the bar position (Mercator scale varies with latitude), then picks a
+ * round distance whose length is close to ~16 % of the map width.
+ */
+export function computeScaleBar(layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight">): ScaleBar | null {
+  const { projection, innerWidth: w, innerHeight: h } = layout;
+  if (!projection.invert) return null;
+  const x = Math.max(8, Math.min(18, w * 0.02));
+  const y = h - Math.max(8, Math.min(16, h * 0.03));
+  const span = Math.max(20, w * 0.2);
+  const measureAt = (px: number, py: number): number | null => {
+    const a = projection.invert!([px, py]);
+    const b = projection.invert!([px + span, py]);
+    if (!a || !b || !a.every(Number.isFinite) || !b.every(Number.isFinite)) return null;
+    const d = geoDistance(a, b) * EARTH_RADIUS_KM;
+    return d > 0 && Number.isFinite(d) ? d / span : null;
+  };
+  // At the bar's latitude, else at the map centre
+  const kmPerPx = measureAt(x, y - 6) ?? measureAt(w / 2 - span / 2, h / 2);
+  if (!kmPerPx) return null;
+  const targetKm = kmPerPx * Math.max(36, Math.min(160, w * 0.16));
+  let km = NICE_KM[0]!;
+  for (const n of NICE_KM) if (n <= targetKm) km = n;
+  const px = km / kmPerPx;
+  return { km, px, label: `${km.toLocaleString("fr-FR").replace(/\u202f/g, "\u00a0")}\u00a0km`, x, y };
+}
+
+/** Paints the km scale bar (always shown on maps) into `g` (inner map coordinates). */
+export function paintScaleBar(
+  g: Selection<SVGGElement, unknown, null, undefined>,
+  layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight">,
+  light: boolean
+): ScaleBar | null {
+  g.selectAll("g.smv-map-scale").remove();
+  const sb = computeScaleBar(layout);
+  if (!sb) return null;
+  const ink = light ? "#44403c" : "#d6d3d1";
+  const paper = light ? "#ffffff" : "#1c1917";
+  const hgt = 4;
+  const gs = g
+    .append("g")
+    .attr("class", "smv-map-scale")
+    .attr("data-km", sb.km)
+    .attr("data-px", sb.px.toFixed(1))
+    .attr("transform", `translate(${sb.x},${sb.y})`)
+    .style("pointer-events", "none");
+  // Two-tone bar (half / half) with end ticks, label above
+  gs.append("rect").attr("x", 0).attr("y", -hgt).attr("width", sb.px).attr("height", hgt).attr("fill", paper).attr("stroke", ink).attr("stroke-width", 0.8);
+  gs.append("rect").attr("x", 0).attr("y", -hgt).attr("width", sb.px / 2).attr("height", hgt).attr("fill", ink);
+  gs.append("text")
+    .attr("x", 0)
+    .attr("y", -hgt - 4)
+    .attr("font-size", 10)
+    .attr("fill", ink)
+    .attr("font-family", "inherit")
+    .text("0");
+  gs.append("text")
+    .attr("class", "smv-map-scale-label")
+    .attr("x", sb.px)
+    .attr("y", -hgt - 4)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 10)
+    .attr("font-weight", 600)
+    .attr("fill", ink)
+    .attr("font-family", "inherit")
+    .text(sb.label);
+  return sb;
 }
 
 function choroplethColor(t: number, scheme?: string): string {

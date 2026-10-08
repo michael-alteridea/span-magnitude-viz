@@ -9,6 +9,7 @@
 import type { ChartSpec, StudioFile } from "./spec";
 import { embeddedFontCss, fontStack } from "./theme";
 import type { PlotRect } from "./charts/context";
+import { PLATFORM_URL, PRODUCT_LABEL } from "./brand";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -83,6 +84,17 @@ export interface ComposeInput {
   plot: PlotRect;
   /** Hôte de la bibliothèque (types spéciaux). */
   specialHost?: HTMLElement | null;
+  /** Polices en base64 (défaut : oui). Non pour les snapshots stockés (ré-embarquées à l'export). */
+  embedFonts?: boolean;
+}
+
+const FONT_MARKER = "/*r4d-fonts*/";
+
+/** Ré-embarque les polices dans un SVG composé sans elles (snapshots). */
+export async function embedFontsInto(svgText: string, fontKey: ChartSpec["style"]["font"]): Promise<string> {
+  if (!svgText.includes(FONT_MARKER)) return svgText;
+  const css = await embeddedFontCss(fontKey);
+  return svgText.replace(FONT_MARKER, css);
 }
 
 /** Construit la chaîne SVG autonome de l'état courant. */
@@ -112,11 +124,11 @@ export async function composeSvg(input: ComposeInput): Promise<string> {
   const defs = document.createElementNS(SVG_NS, "defs");
   const style = document.createElementNS(SVG_NS, "style");
   style.setAttribute("type", "text/css");
-  style.textContent = (await embeddedFontCss(spec.style.font)) + `\ntext{font-family:${font};}`;
+  style.textContent = (input.embedFonts === false ? FONT_MARKER : await embeddedFontCss(spec.style.font)) + `\ntext{font-family:${font};}`;
   defs.appendChild(style);
   clone.insertBefore(defs, clone.firstChild);
   const meta = document.createElementNS(SVG_NS, "metadata");
-  meta.textContent = JSON.stringify({ generator: "Reporting 4D Studio (alteridea)", type: spec.type, created: new Date().toISOString() });
+  meta.textContent = JSON.stringify({ generator: `${PRODUCT_LABEL} Studio (alteridea)`, url: PLATFORM_URL, type: spec.type, created: new Date().toISOString() });
   clone.insertBefore(meta, clone.firstChild);
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
 }
@@ -159,6 +171,29 @@ export async function svgToImage(svgText: string): Promise<HTMLImageElement> {
   }
 }
 
+/** Vignette JPEG (data URL) d'un SVG composé. */
+export async function svgToJpegDataUrl(svgText: string, width: number, height: number, targetW: number, bg: string, quality = 0.82): Promise<string> {
+  const img = await svgToImage(svgText);
+  const k = targetW / width;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * k);
+  canvas.height = Math.round(height * k);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+export async function blobToDataUrl(b: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(b);
+  });
+}
+
 export async function svgToPngBlob(svgText: string, width: number, height: number, scale: number): Promise<Blob> {
   const img = await svgToImage(svgText);
   const canvas = document.createElement("canvas");
@@ -169,7 +204,7 @@ export async function svgToPngBlob(svgText: string, width: number, height: numbe
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Échec de la rasterisation PNG"))), "image/png"));
 }
 
-export function studioFile(spec: ChartSpec, opts: { data?: StudioFile["data"]; sampleId?: string | null }): StudioFile {
+export function studioFile(spec: ChartSpec, opts: { data?: StudioFile["data"]; sampleId?: string | null; story?: StudioFile["story"] }): StudioFile {
   return {
     kind: "reporting-4d-studio",
     version: 1,
@@ -177,6 +212,7 @@ export function studioFile(spec: ChartSpec, opts: { data?: StudioFile["data"]; s
     spec,
     data: opts.data ?? null,
     sampleId: opts.sampleId ?? null,
+    ...(opts.story ? { story: opts.story } : {}),
   };
 }
 

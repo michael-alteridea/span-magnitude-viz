@@ -25,6 +25,7 @@ export const CHART_TYPES = [
   "pie",
   "donut",
   "radialBar",
+  "variance",
   "film",
   "map",
 ] as const;
@@ -42,6 +43,7 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
   pie: "Camembert",
   donut: "Donut",
   radialBar: "Arcs radiaux",
+  variance: "Écarts (IBCS)",
   film: "Film 4D (span × magnitude)",
   map: "Carte FR·BE / Europe",
 };
@@ -51,6 +53,7 @@ export const CHART_FAMILIES: { label: string; types: ChartType[] }[] = [
   { label: "Lignes & aires", types: ["line", "area", "stackedArea"] },
   { label: "Points", types: ["scatter"] },
   { label: "Circulaires", types: ["pie", "donut", "radialBar"] },
+  { label: "Écarts", types: ["variance"] },
   { label: "Spéciaux", types: ["film", "map"] },
 ];
 
@@ -67,6 +70,7 @@ export const isBarType = (t: ChartType) =>
   t === "bar" || t === "barH" || t === "groupedBar" || t === "stackedBar";
 export const isRadial = (t: ChartType) => t === "pie" || t === "donut" || t === "radialBar";
 export const isSpecial = (t: ChartType) => t === "film" || t === "map";
+export const isVariance = (t: ChartType) => t === "variance";
 
 export const AGGREGATES = ["sum", "mean", "count", "min", "max", "last"] as const;
 export const AGGREGATE_LABELS: Record<(typeof AGGREGATES)[number], string> = {
@@ -153,6 +157,10 @@ export const encodingSchema = z.object({
   postal: field,
   /** Regroupement des dates de l'axe X (barres / lignes par mois, trimestre…). */
   xGrain: z.enum(["none", "day", "week", "month", "quarter", "year"]).default("none"),
+  /** N premières catégories (par total), le reste regroupé en « Autres » ; null = toutes. */
+  topN: z.number().int().min(1).max(100).nullable().default(null),
+  /** Avec topN : regrouper le reste en « Autres ». */
+  others: z.boolean().default(true),
   aggregate: z.enum(AGGREGATES).default("sum"),
   y2Aggregate: z.enum(AGGREGATES).default("mean"),
 });
@@ -205,7 +213,10 @@ export const styleSchema = z.object({
   normalize: z.boolean().default(false),
   /** Petit filet d'accent devant le titre (bleu pétrole, ou rouge avec les palettes Alteridea). */
   accentBar: z.boolean().default(true),
-  /** Signature « Reporting 4D · alteridea.com » en pied. */
+  /**
+   * Signature « label qualité » (logo, lien plateforme, date, source) en bas à droite.
+   * Ne peut être masquée qu'avec `branding: "pro"` ; aucune option d'interface pour l'instant.
+   */
   brandMark: z.boolean().default(true),
   /** Réservé V2 : identifiant de charte de marque. */
   charterId: z.string().nullable().default(null),
@@ -218,6 +229,83 @@ export const specialSchema = z.object({
   mapLevel: z.enum(["country", "nuts1", "nuts2", "nuts3"]).default("nuts2"),
   tickers: z.boolean().default(true),
 });
+
+/**
+ * Transformations appliquées au jeu de données avant le rendu (dans cet ordre : calculs, puis filtres).
+ * Les dates sont en ms UTC ; `ref` (âge) est une date de référence figée, pour un rendu reproductible.
+ */
+export const FILTER_OPS = ["in", "notIn", "lt", "lte", "gt", "gte", "notNull"] as const;
+export const filterSchema = z.object({
+  field: z.string().min(1),
+  op: z.enum(FILTER_OPS).default("in"),
+  values: z.array(z.string()).max(200).default([]),
+  value: z.number().finite().nullable().default(null),
+  /** Libellé lisible (« affaires ouvertes », « 2026 »…). */
+  label: z.string().max(120).default(""),
+});
+export type FilterSpec = z.infer<typeof filterSchema>;
+
+export const CALC_OPS = ["mul", "sub", "add", "div", "coalesce", "age", "ageBucket", "monthOfYear", "year", "flag", "regionPostal"] as const;
+export type CalcOp = (typeof CALC_OPS)[number];
+export const calcSchema = z.object({
+  as: z.string().min(1).max(80),
+  op: z.enum(CALC_OPS),
+  a: z.string().min(1),
+  b: z.string().min(1).nullable().default(null),
+  /** Facteur appliqué au résultat (ex. 0,01 pour une probabilité en %). */
+  scale: z.number().finite().default(1),
+  /** Date de référence (ms UTC) pour « age » / « ageBucket ». */
+  ref: z.number().finite().nullable().default(null),
+  /** Valeurs « vraies » pour « flag » (→ 100, sinon 0). */
+  values: z.array(z.string()).max(50).default([]),
+});
+export type CalcSpec = z.infer<typeof calcSchema>;
+
+export const transformSchema = z.object({
+  calculate: z.array(calcSchema).max(8).default([]),
+  filters: z.array(filterSchema).max(10).default([]),
+});
+export type TransformSpec = z.infer<typeof transformSchema>;
+
+/** Graphique d'écarts (IBCS) : mesure 1 = réel, mesure 2 = référence (budget, N-1, prévision). */
+export const varianceSchema = z.object({
+  /** higher = un écart positif est favorable (ventes) ; lower = défavorable (coûts). */
+  polarity: z.enum(["higher", "lower"]).default("higher"),
+  /** Barres d'écart en valeur absolue ou relative (%). */
+  show: z.enum(["abs", "rel"]).default("abs"),
+  /** Ligne « Total » en bas. */
+  total: z.boolean().default(true),
+});
+
+export const NARRATIVE_ROLES = ["context", "tension", "revelation", "recommendation"] as const;
+export type NarrativeRole = (typeof NARRATIVE_ROLES)[number];
+
+/**
+ * Couche récit : titres et commentaires calculés. Les textes affichés vivent dans `style.title`,
+ * `style.subtitle` et `story.comments` ; les drapeaux `edited` protègent les saisies de l'utilisateur
+ * (un changement de données ne les écrase pas, « Régénérer » remet les drapeaux à false).
+ */
+export const storySchema = z.object({
+  /** Génération automatique des textes. */
+  auto: z.boolean().default(true),
+  edited: z
+    .object({
+      title: z.boolean().default(false),
+      subtitle: z.boolean().default(false),
+      comments: z.boolean().default(false),
+    })
+    .default({}),
+  comments: z.array(z.string().max(300)).max(3).default([]),
+  /** Commentaires dessinés sur le graphique (colonne « À retenir »). */
+  showComments: z.boolean().default(true),
+  /** Type d'insight à l'origine du graphique (Explorer) ; null = narration générique. */
+  kind: z.string().max(40).nullable().default(null),
+  /** Paramètres de l'insight (colonnes de rôle : étape, clôture, compte…). */
+  params: z.record(z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()])).default({}),
+  /** Empreinte type + encodage + transformations au moment de l'Explorer (narration spécifique tant qu'elle correspond). */
+  basis: z.string().max(2000).nullable().default(null),
+});
+export type StorySpec = z.infer<typeof storySchema>;
 
 export const chartSpecSchema = z.object({
   $schema: z.literal("reporting-4d-studio/spec-v1").default("reporting-4d-studio/spec-v1"),
@@ -234,6 +322,11 @@ export const chartSpecSchema = z.object({
   mode: modeSchema.default({}),
   style: styleSchema.default({}),
   special: specialSchema.default({}),
+  transform: transformSchema.default({}),
+  variance: varianceSchema.default({}),
+  story: storySchema.default({}),
+  /** Offre : seule l'offre « pro » peut masquer la signature (avec `style.brandMark: false`). */
+  branding: z.enum(["free", "pro"]).default("free"),
 });
 
 export type ChartSpec = z.infer<typeof chartSpecSchema>;
@@ -277,5 +370,7 @@ export const studioFileSchema = z.object({
     .nullable()
     .optional(),
   sampleId: z.string().nullable().optional(),
+  /** Histoire : snapshots ordonnés (validés à l'ouverture par `snapshotSchema`). */
+  story: z.object({ title: z.string().optional(), snapshots: z.array(z.unknown()) }).optional(),
 });
 export type StudioFile = z.infer<typeof studioFileSchema>;

@@ -15,12 +15,45 @@ import { DataPanel } from "./ui/dataPanel";
 import { Gallery } from "./ui/gallery";
 import { toast } from "./ui/toast";
 import { h, svgIcon, ICONS } from "./ui/dom";
-import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif } from "./export";
+import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl } from "./export";
 import { themeFor, ensureFont } from "./theme";
 import { guessUnit } from "./format";
+import { SAMPLE_TODAY } from "./data/samples";
+import { Explorer } from "./ui/explorer";
+import { StoryStrip } from "./ui/storyStrip";
+import type { Insight, StoryContext } from "./story/insights";
+import { narrate, narrativeKey, applyNarrative, type Narrative } from "./story/narrate";
+import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot } from "./story/snapshots";
+import type { SlideImage } from "./story/pptx";
 
 const store = new Store();
 const preview = new Preview(store);
+
+/* ------------------------------------------------------------------ récit calculé */
+
+/** « Aujourd'hui » : date figée des exemples (8 oct. 2026), sinon la date réelle (minuit UTC). */
+function storyContext(): StoryContext {
+  const { ds, sampleId } = store.state;
+  const d = new Date();
+  const today = sampleId ? Date.parse(`${SAMPLE_TODAY}T00:00:00Z`) : Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return { today, entity: ds?.name };
+}
+
+let narrCache: { key: string; n: Narrative | null } = { key: "", n: null };
+function currentNarrative(): Narrative | null {
+  const { spec, ds, dsVersion } = store.state;
+  const sc = storyContext();
+  const key = narrativeKey(spec, dsVersion, sc);
+  if (key !== narrCache.key) narrCache = { key, n: narrate(spec, ds, sc) };
+  return narrCache.n;
+}
+store.beforeNotify = (state) => applyNarrative(state.spec, currentNarrative());
+
+/** Spec « neuf » côté récit : textes recalculés (drapeaux de saisie remis à zéro). */
+function freshStory(spec: { story?: unknown } & Record<string, unknown>) {
+  const st = (spec.story ?? {}) as Record<string, unknown>;
+  return { ...spec, story: { ...st, auto: true, edited: { title: false, subtitle: false, comments: false } } };
+}
 
 /* ------------------------------------------------------------------ actions */
 
@@ -34,7 +67,7 @@ function loadSample(id: string): void {
   if (!sample) return;
   const ds = buildDataset(sample.name, sample.rows());
   const base = sample.spec;
-  const r = parseSpec({ ...base, style: { ...keepStyle(store.state.spec), ...(base.style ?? {}) } });
+  const r = parseSpec(freshStory({ ...base, style: { ...keepStyle(store.state.spec), ...(base.style ?? {}) } }));
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { sampleId: sample.id, note: sample.description });
   toast(`Exemple chargé : ${sample.name}`, "ok", 2200);
@@ -55,7 +88,7 @@ async function applyImport(res: ImportResult): Promise<void> {
   }
   const title = res.name && res.name !== "Collage" ? res.name : "Nouveau graphique";
   const axes = { x: { grid: false }, y: { unit: guessUnit(encoding.y[0]) }, y2: { grid: false } };
-  const r = parseSpec({ ...spec, type, encoding, axes, style: { ...spec.style, title, subtitle: "", source: "" }, mode: { ...spec.mode, fourD: { ...spec.mode.fourD, enabled: false } } });
+  const r = parseSpec({ ...spec, type, encoding, axes, transform: {}, story: {}, style: { ...spec.style, title, subtitle: "", source: "" }, mode: { ...spec.mode, fourD: { ...spec.mode.fourD, enabled: false } } });
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { note: res.note ?? null, sheets: res.sheets ?? null, sheet: res.sheet ?? null });
   const types = ds.columns.map((c) => c.type);
@@ -84,7 +117,117 @@ const actions = {
       .then(applyImport)
       .catch((e) => toast(e instanceof Error ? e.message : String(e), "error"));
   },
+  explore() {
+    explorer.open();
+  },
 };
+
+/** Ouvre une piste de l'Explorer dans l'éditeur (style courant conservé). */
+function openInsight(ins: Insight): void {
+  const cur = store.state.spec;
+  const errs = store.setSpec(
+    freshStory({
+      ...ins.spec,
+      style: { ...ins.spec.style, ...keepStyle(cur), title: ins.analysis.title, subtitle: "", source: cur.style.source },
+    } as unknown as Record<string, unknown>)
+  );
+  if (errs.length) toast(errs.join(" ; "), "error");
+  else toast(`Piste ouverte : ${ins.analysis.title}`, "ok", 2600);
+}
+
+/* ------------------------------------------------------------------ histoire */
+
+async function takeSnapshot(): Promise<Snapshot | null> {
+  const { spec, ds, sampleId, story } = store.state;
+  if (!ds) {
+    toast("Chargez des données avant de prendre un snapshot.", "info");
+    return null;
+  }
+  if (story.snapshots.length >= MAX_SNAPSHOTS) {
+    toast(`Histoire limitée à ${MAX_SNAPSHOTS} snapshots.`, "info");
+    return null;
+  }
+  const { width, height } = chartSize(spec);
+  const th = themeFor(spec);
+  const n = currentNarrative();
+  const full = await preview.currentSvg();
+  const [thumb, svg] = await Promise.all([svgToJpegDataUrl(full, width, height, 320, th.bg).catch(() => null), preview.bareSvg().catch(() => null)]);
+  const kind = spec.story.kind ?? n?.kind ?? null;
+  const snap: Snapshot = {
+    id: newSnapshotId(),
+    name: spec.style.title || `Snapshot ${story.snapshots.length + 1}`,
+    createdAt: new Date().toISOString(),
+    spec: structuredClone(spec),
+    svg,
+    thumb,
+    width,
+    height,
+    title: spec.style.title,
+    subtitle: spec.style.subtitle,
+    comments: spec.story.comments.filter((c) => c.trim()),
+    source: spec.style.source,
+    kind,
+    role: n?.role ?? roleForKind(kind),
+    sampleId,
+    dataName: ds.name,
+    generatedAt: new Date().toISOString(),
+  };
+  store.setStory({ ...store.state.story, snapshots: [...store.state.story.snapshots, snap] });
+  store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
+  toast(`Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
+  return snap;
+}
+
+function openSnapshot(s: Snapshot): void {
+  const sample = s.sampleId ? sampleById(s.sampleId) : undefined;
+  if (sample && store.state.sampleId !== sample.id) {
+    store.setDataset(buildDataset(sample.name, sample.rows()), { sampleId: sample.id, note: sample.description });
+  } else if (!sample && store.state.ds?.name !== s.dataName) {
+    toast(`Ce snapshot a été pris sur « ${s.dataName} » : rechargez ces données pour le retrouver à l'identique.`, "info", 5000);
+  }
+  const errs = store.setSpec(s.spec);
+  if (errs.length) toast(errs.join(" ; "), "error");
+}
+
+/** Image PNG 2× d'un snapshot : SVG conservé (polices ré-embarquées), sinon rendu à neuf, sinon la vignette. */
+async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
+  const spec = s.spec as ChartSpec;
+  try {
+    if (s.svg) {
+      const svg = await embedFontsInto(s.svg, spec.style.font);
+      const blob = await svgToPngBlob(svg, s.width, s.height, 2);
+      return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
+    }
+  } catch {
+    /* repli */
+  }
+  return s.thumb ? { data: s.thumb, width: s.width, height: s.height } : null;
+}
+
+async function buildStoryPptx(outputType: "blob" | "base64" = "blob") {
+  const story = store.state.story;
+  const images = new Map<string, SlideImage | null>();
+  for (const s of story.snapshots) images.set(s.id, await snapshotImage(s));
+  const { buildPptx } = await import("./story/pptx");
+  return buildPptx(story, { images, outputType });
+}
+
+async function exportPptx(btn: HTMLButtonElement): Promise<void> {
+  if (!store.state.story.snapshots.length) return;
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "PowerPoint…";
+  try {
+    const blob = (await buildStoryPptx("blob")) as Blob;
+    download(blob, `${slug(store.state.story.title || "histoire")}.pptx`);
+    toast(`PowerPoint exporté (${store.state.story.snapshots.length + 2} diapositives)`, "ok");
+  } catch (e) {
+    toast("Export PowerPoint impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
 
 async function pickType(t: ChartType): Promise<void> {
   const { spec, ds } = store.state;
@@ -164,7 +307,7 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
 function saveConfig(): void {
   const { spec, ds, sampleId, ui } = store.state;
   const data = ui.includeData && ds && !sampleId ? { name: ds.name, rows: serializableRaw(ds.raw), typeOverrides: ds.typeOverrides } : null;
-  const file = studioFile(spec, { data, sampleId });
+  const file = studioFile(spec, { data, sampleId, story: store.state.story.snapshots.length ? store.state.story : undefined });
   download(new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }), `${baseName()}.r4d.json`);
   toast(data ? "Configuration + données enregistrées" : "Configuration enregistrée", "ok");
 }
@@ -189,6 +332,7 @@ async function loadConfig(file: File): Promise<void> {
     }
     store.setSpec(r.spec);
     if (ds !== store.state.ds) store.setDataset(ds, { sampleId, note: "Chargé depuis " + file.name });
+    if (f.story && Array.isArray(f.story.snapshots) && f.story.snapshots.length) store.setStory(parseStory(f.story));
     toast("Configuration chargée", "ok");
   } catch (e) {
     toast("Configuration invalide : " + (e instanceof Error ? e.message : String(e)), "error", 7000);
@@ -215,6 +359,9 @@ const webmBtn: HTMLButtonElement = h("button", { class: "btn", "data-testid": "e
 const includeData = h("input", { type: "checkbox", checked: store.state.ui.includeData, "data-testid": "include-data" });
 includeData.addEventListener("change", () => store.setUi({ includeData: includeData.checked }));
 
+const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données");
+const snapTopBtn = h("button", { class: "btn", "data-testid": "snapshot-top", title: "Ajouter le graphique courant à l'histoire", onclick: () => void takeSnapshot() }, "📸 Snapshot");
+
 const header = h(
   "header",
   { class: "topbar" },
@@ -231,6 +378,7 @@ const header = h(
   h(
     "div",
     { class: "toolbar" },
+    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, snapTopBtn),
     h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Exporter"),
       h("button", { class: "btn btn-accent", "data-testid": "export-svg", onclick: () => void exportSvg().catch((e) => toast(String(e), "error")) }, h("span", { html: svgIcon(ICONS.download, 16) }), "SVG"),
       h("span", { class: "split" }, h("button", { class: "btn", "data-testid": "export-png", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) }, "PNG"), pngScale),
@@ -250,7 +398,19 @@ const header = h(
 const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store);
-const center = h("section", { class: "center" }, gallery.root, preview.root);
+const explorer = new Explorer(store, storyContext, openInsight);
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b) });
+preview.onEditText = (field, value) => {
+  if (field === "title") store.set("style.title", value);
+  else if (field === "subtitle") store.set("style.subtitle", value);
+  else if (field.startsWith("comment:")) {
+    const i = Number(field.split(":")[1]);
+    const c = [...store.state.spec.story.comments];
+    c[i] = value;
+    store.set("story.comments", c.map((x) => (x ?? "").trim()).filter(Boolean));
+  }
+};
+const center = h("section", { class: "center" }, gallery.root, h("div", { class: "center-stack" }, preview.root, explorer.root), storyStrip.root);
 const leftRail = h("button", { class: "rail rail-left", title: "Afficher les données", onclick: () => store.setUi({ leftCollapsed: false }) }, h("span", { html: svgIcon(ICONS.table, 18) }), h("span", { class: "rail-label" }, "Données"));
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail);
@@ -265,9 +425,12 @@ function applyUi() {
 
 store.subscribe((kinds) => {
   applyUi();
+  storyStrip.update();
+  if (kinds.size === 1 && kinds.has("story")) return;
   gallery.update();
   dataPanel.update();
   settings.update();
+  if (kinds.has("data") && explorer.isOpen) explorer.open();
   void preview.update(kinds);
 });
 
@@ -279,9 +442,11 @@ preview.onModeChange = (m) => {
 
 const params = new URLSearchParams(location.search);
 if (params.has("reset")) store.clearSession();
+store.restoreStory();
 void ensureFont(store.state.spec.style.font).finally(() => {
   if (!store.restore()) loadSample(params.get("sample") ?? SAMPLES[0]!.id);
   applyUi();
+  storyStrip.update();
 });
 
 /** API de débogage / tests (console : r4d.getSpec()). */
@@ -296,5 +461,17 @@ const api = {
   importText: (t: string) => applyImport(parseText(t, "Collage")),
   currentSvg: () => preview.currentSvg(),
   seek: (p: number) => preview.seek(p),
+  explore: () => explorer.open(),
+  closeExplorer: () => explorer.close(),
+  narrative: () => currentNarrative(),
+  regenerate: () => store.regenerate(),
+  snapshot: () => takeSnapshot(),
+  story: () => store.state.story,
+  moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
+  pptxBase64: async () => (await buildStoryPptx("base64")) as string,
+  pngDataUrl: async (scale = 1) => {
+    const { width, height } = chartSize(store.state.spec);
+    return blobToDataUrl(await svgToPngBlob(await preview.currentSvg(), width, height, scale));
+  },
 };
 (window as unknown as { r4d: typeof api }).r4d = api;
