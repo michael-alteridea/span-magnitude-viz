@@ -8,7 +8,7 @@
   "countLabel": "Contrats",
   "defaults": {
     "geometry": "arc",
-    "colorScheme": "warm",
+    "colorScheme": "altairady",
     "animate": true,
     "tickers": [
       "count",
