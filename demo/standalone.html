@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>span-magnitude-viz — standalone thin-arc preview</title>
+    <title>span-magnitude-viz — aperçu autonome</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,7 +22,7 @@
       }
       main { max-width: 1000px; margin: 0 auto; padding: 24px; }
       h1 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
-      h1 span { color: #f5a623; }
+      h1 span { color: #d62839; }
       p { margin: 0 0 16px; color: #a8a29e; font-size: 14px; line-height: 1.5; max-width: 62ch; }
       .meta {
         margin-bottom: 12px;
@@ -41,27 +41,99 @@
         cursor: pointer;
         margin-bottom: 16px;
       }
-      button:hover { border-color: #f5a623; color: #f5a623; }
+      button:hover { border-color: #d62839; color: #d62839; }
       #chart-host {
         border: 1px solid #2a2622;
         border-radius: 10px;
         overflow: hidden;
         background: #0c0b09;
       }
-      a { color: #f5a623; }
+      a { color: #d62839; }
     </style>
   </head>
   <body>
     <main>
       <h1><span>span-magnitude-viz</span> — thin arcs preview</h1>
       <p>
-        Self-contained sample (12 marks). Stroke scale is delicate:
+        Alteridea crimson · chart/carte FR+BE · colorBy · film morph · persistence keep/ephemeral/finale.
+        Sample (12) or Stress 500. Stroke scale is delicate:
         <code>scaleSqrt → [0.45, 2.1]</code> with softer arc opacity.
-        Full interactive demo:
+        Use <strong>Break down by</strong> under the chart to facet the summary
+        (year, group, meta.status, …). Full interactive demo:
         <a href="/">index.html</a>.
       </p>
       <div class="meta">Open via Vite: http://127.0.0.1:5173/standalone.html</div>
-      <button type="button" id="replay">Replay</button>
+      <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px">
+      <label style="font-size:13px;color:#a8a29e">Jeu de données
+      <select id="dataset" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="sample">Sample (12)</option>
+        <option value="projects-500">Stress 500</option>
+        <option value="fr-be-map">Carte FR·BE</option>
+        <option value="opportunities-500">Opportunités 500 (FR·BE)</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Vue
+      <select id="viewMode" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="chart">Graphique</option>
+        <option value="map">Carte</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Fond de carte
+      <select id="mapRegion" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="fr-be">France + Belgique</option>
+        <option value="europe">Europe</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Niveau
+      <select id="mapLevel" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="country">Pays</option>
+        <option value="nuts1">NUTS 1 (régions FR, régions BE)</option>
+        <option value="nuts2" selected>NUTS 2 (provinces BE)</option>
+        <option value="nuts3">NUTS 3 (départements FR)</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Cadrage
+      <select id="mapFit" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="region">Europe entière</option>
+        <option value="data">Zoom sur les données</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Géométrie
+      <select id="geometry" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="arc">Arcs</option>
+        <option value="bar">Bars</option>
+        <option value="point">Points</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Persistance
+      <select id="persistence" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="keep">Keep</option>
+        <option value="ephemeral">Ephemeral</option>
+        <option value="finale">Finale</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Couleur par
+      <select id="colorBy" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="group">group</option>
+        <option value="cohort">cohort</option>
+        <option value="magnitude">magnitude</option>
+        <option value="span">span</option>
+      </select>
+    </label>
+      <label style="font-size:13px;color:#a8a29e">Palette
+      <select id="colorScheme" style="display:block;margin-top:4px;background:#1c1917;color:#e7e5e4;border:1px solid #3f3a36;border-radius:6px;padding:6px 10px">
+        <option value="altairady">Alteridea</option>
+        <option value="warm">Warm</option>
+        <option value="coldhot">Cold→hot</option>
+      </select>
+    </label>
+    <button type="button" id="replay" style="margin-bottom:0">Rejouer</button>
+      <label style="font-size:13px;color:#a8a29e">Charger un fichier
+        <input type="file" id="file-input" accept=".json,.csv,.xlsx,.xls" style="display:block;margin-top:4px;font-size:12px;color:#a8a29e;max-width:200px" />
+      </label>
+    </div>
+    <div id="field-analysis-host" style="display:none;margin-bottom:12px;"></div>
+    <p id="errors" style="color:#fca5a5;font-size:12px;min-height:1em"></p>
       <div id="chart-host"></div>
     </main>
     <script type="module" src="./standalone.ts"></script>
