@@ -110,16 +110,21 @@ Render surfaces: three stacked <canvas> layers
 |------|--------|-------------|----------|
 | `arc` | Chord length on baseline; Bézier/elliptical bulge | Stroke width (and/or opacity) | Emotional “life/path” storytelling (Periscopic-like) |
 | `bar` | Horizontal bar from x0→x1 | Bar height | Analytic clarity, YoY comparison |
+| `point` | Dot at span midpoint (x); vertical jitter cloud | Radius or stroke ∝ magnitude | Dense event clouds; prep for geo map |
 | `lane` | Bar in a packed lane (y = packed row) | Stroke/fill thickness or lane height | Dense portfolios without overlap |
 
-**Default for v1 demo:** `arc` + optional `bar` toggle. Lane packing is v1.1.
+**Default for v1 demo:** `arc` + optional `bar` / `point` toggle. Lane packing is v1.1.
+
+**Persistence modes** (runtime option, not schema): `keep` (default) · `ephemeral` (fade after reveal) · `finale` (ephemeral during film, then all reappear as cloud).
+
+**Map view (`viewMode: "map"`):** France départements + Belgium NUTS2 provinces SVG basemap (D3 `geoMercator`). Marks project from `meta.lat`/`meta.lon` or FR/BE `meta.postal` via offline lookup (city overrides → département/province centroids). Same film reveal schedule; optional Alteridea-red choropleth + soft heatmap at finale. Mapping UI columns: Latitude, Longitude, Code postal.
 
 ### Axis model
 
 ```
 x-axis:  continuous domain over span units (dates or numbers)
 y-axis:  (arc) shared baseline with vertical bulge; (bar) magnitude scale
-         OR packed lanes (lane mode)
+         OR packed lanes (lane mode); (point) jittered cloud around baseline
 color:   ordinal on `group`
 ```
 
@@ -312,7 +317,7 @@ export interface SpanMagnitudeDocument {
   spanLabel?: string;
   countLabel?: string;
   defaults?: {
-    geometry?: "arc" | "bar" | "lane";
+    geometry?: "arc" | "bar" | "lane" | "point";
     colorScheme?: string;
     animate?: boolean;
     tickers?: Array<"count" | "magnitudeSum" | "spanSum">;
@@ -411,7 +416,8 @@ const doc = parseDocument(await fetch("./projects.json").then(r => r.json()));
 
 const chart = mount(document.getElementById("app")!, {
   data: doc,
-  geometry: "arc",          // "arc" | "bar"
+  geometry: "arc",          // "arc" | "bar" | "point"
+  persistence: "keep",     // "keep" | "ephemeral" | "finale"
   width: 960,
   height: 540,
   animate: true,
