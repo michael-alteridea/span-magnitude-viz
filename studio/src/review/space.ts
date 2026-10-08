@@ -77,6 +77,11 @@ export class ReviewSpace {
     this.show(rt);
   }
 
+  /** Revue affichée (liens de lecture du PowerPoint). */
+  currentId(): string | null {
+    return this.route && !this.root.hidden ? this.route.id : null;
+  }
+
   go(rt: ReviewRoute | null): void {
     if (!rt) {
       history.pushState(null, "", location.pathname + location.search);

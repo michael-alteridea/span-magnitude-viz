@@ -30,7 +30,8 @@ export interface CartoucheLayout {
   /** Cartes : source et licence du fond de carte (une ou deux lignes). */
   mapSource: string[];
   fingerprint: string | null;
-  qr: { url: string; m: QrMatrix; size: number } | null;
+  /** QR : vérification de l'empreinte (défaut) ou lien profond vers le mode lecture (diapositives PowerPoint). */
+  qr: { url: string; m: QrMatrix; size: number; kind: "verify" | "read" } | null;
   textW: number;
 }
 
@@ -49,7 +50,7 @@ export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { dri
 const K = { pad: 8, gap: 10, brandRow: 18, lineH: 13.5, fs: 9.5, fsBrand: 12.5, logo: 14, qrMin: 72, sourceMax: 125 };
 
 /** Mesure le cartouche (sans dessiner). */
-export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: Date): CartoucheLayout {
+export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: Date, qrUrl: string | null = null): CartoucheLayout {
   const p = spec.provenance as Provenance | null;
   const date = generatedOn(now);
   const data = p ? provenanceLines(p) : null;
@@ -65,9 +66,10 @@ export function layoutCartouche(spec: ChartSpec, s: number, font: string, now: D
   const nLines = 1 + (data ? 2 : 0) + (source ? 1 : 0) + mapSource.length + (fingerprint ? 1 : 0);
   const textH = K.brandRow * s + nLines * K.lineH * s;
   let qr: CartoucheLayout["qr"] = null;
-  if (p && spec.style.authQr) {
+  if (qrUrl) qr = { url: qrUrl, m: qrMatrix(qrUrl), size: Math.max(K.qrMin * s, textH), kind: "read" };
+  else if (p && spec.style.authQr) {
     const url = verifyUrl(verifyInfoFor(p, now));
-    qr = { url, m: qrMatrix(url), size: Math.max(K.qrMin * s, textH) };
+    qr = { url, m: qrMatrix(url), size: Math.max(K.qrMin * s, textH), kind: "verify" };
   }
   const innerH = Math.max(textH, qr?.size ?? 0);
   const w = K.pad * s * 2 + textW + (qr ? K.gap * s + qr.size : 0);
@@ -126,11 +128,12 @@ export function drawCartouche(root: G, theme: Theme, lay: CartoucheLayout, x0: n
 
   // QR d'empreinte des données : modules foncés sur plaque blanche (marge claire de QR_QUIET modules), lien vers la vérification
   if (lay.qr) {
-    const { m, size, url } = lay.qr;
+    const { m, size, url, kind } = lay.qr;
+    const read = kind === "read";
     const qx = x0 + w - pad - size;
     const qy = y0 + pad + (innerH - size) / 2;
-    const qa = g.append("a").attr("class", "r4d-qr-link").attr("href", url).attr("target", "_blank").attr("rel", "noopener").attr("aria-label", "Vérifier l'empreinte");
-    qa.append("title").text("Vérifier l'empreinte des données");
+    const qa = g.append("a").attr("class", "r4d-qr-link").attr("href", url).attr("target", "_blank").attr("rel", "noopener").attr("aria-label", read ? "Ouvrir en mode lecture" : "Vérifier l'empreinte");
+    qa.append("title").text(read ? "Ouvrir ce graphique en mode lecture (lien profond)" : "Vérifier l'empreinte des données");
     qa.append("rect").attr("class", "r4d-qr-plate").attr("x", qx).attr("y", qy).attr("width", size).attr("height", size).attr("rx", 2 * s).attr("fill", "#ffffff").attr("stroke", theme.dark ? "none" : theme.grid).attr("stroke-width", 0.75 * s);
     const n = m.size + QR_QUIET * 2;
     const q = qa
@@ -143,6 +146,7 @@ export function drawCartouche(root: G, theme: Theme, lay: CartoucheLayout, x0: n
       .attr("viewBox", `${-QR_QUIET} ${-QR_QUIET} ${n} ${n}`)
       .attr("shape-rendering", "crispEdges")
       .attr("data-url", url)
+      .attr("data-kind", kind)
       .attr("data-version", m.version)
       .attr("data-modules", m.size);
     q.append("path").attr("d", qrPath(m)).attr("fill", "#111111");

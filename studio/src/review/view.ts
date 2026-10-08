@@ -32,6 +32,7 @@ export const RV_ICONS = {
   bell: `<path d="M6 16 V11 A6 6 0 0 1 18 11 V16 L20 18 H4 Z"/><path d="M10 21 H14"/>`,
   pen: `<path d="M4 20 L8 19 L19 8 L16 5 L5 16 Z"/><path d="M14 7 L17 10"/>`,
   sparkle: `<path d="M12 3 L13.6 9.4 L20 11 L13.6 12.6 L12 19 L10.4 12.6 L4 11 L10.4 9.4 Z"/>`,
+  book: `<path d="M3 5 C6 4 9 4.5 12 6.5 C15 4.5 18 4 21 5 V19 C18 18 15 18.5 12 20.5 C9 18.5 6 18 3 19 Z"/><path d="M12 6.5 V20.5"/>`,
   replay: `<path d="M4 12 A8 8 0 1 0 7 5.8"/><path d="M4 4 V9 H9"/>`,
   arrowUp: `<path d="M12 19 V5 M6 11 L12 5 L18 11"/>`,
   mail: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7 L12 13 L21 7"/>`,

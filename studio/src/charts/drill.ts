@@ -713,6 +713,21 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
   // Seuil de matérialité : pas d'étiquette sous 0,5 % du plus grand écart mensuel (bruit de quelques centaines d'euros)
   const maxAbs = Math.max(...m.months.map((x0) => Math.abs(x0.delta ?? 0)));
   const material = (d: number) => Math.abs(d) >= maxAbs * 0.005;
+  // étiquettes d'écart : réduites puis une sur deux quand la colonne est trop étroite (format portrait)
+  const varLabels = m.months.map((mo) => (mo.delta != null ? compact(mo.delta, f) : ""));
+  let varFs = 11.5 * s;
+  const widest = (fs: number) => Math.max(0, ...varLabels.map((l) => (l ? measure(l, fs, ctx.font, 700) : 0)));
+  if (widest(varFs) > x.step() - 6 * s) varFs = Math.max(9.5 * s, varFs * ((x.step() - 6 * s) / widest(varFs)));
+  const varEvery = Math.max(1, Math.ceil((widest(varFs) + 4 * s) / x.step()));
+  const varShown = (i: number) => varEvery === 1 || i === m.breakAt || (i - (m.breakAt ?? 0)) % varEvery === 0;
+  // libellés des mois : un sur deux (ou moins) quand ils se chevauchent ; le mois de rupture reste toujours affiché
+  const tickW = Math.max(0, ...m.months.map((mo) => measure(mo.tick, 12.5 * s, ctx.font, 700)));
+  const tickEvery = Math.max(1, Math.ceil((tickW + 6 * s) / x.step()));
+  const tickShown = (i: number) => {
+    if (tickEvery === 1 || i === m.breakAt) return true;
+    if (m.breakAt != null && Math.abs(i - m.breakAt) < tickEvery) return false;
+    return (i - (m.breakAt ?? 0)) % tickEvery === 0;
+  };
   m.months.forEach((mo, i) => {
     const p = stagger(frame.build, i, 12, 0.5);
     const x0 = x(mo.key)!;
@@ -723,15 +738,15 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
       if (norme) rc.attr("fill", theme.bg).attr("stroke", normeInk(theme).ac).attr("stroke-width", 1.4 * s);
       else rc.attr("fill", toFill);
     }
-    g.append("text").attr("x", x0 + bw / 2).attr("y", y(0) + 16 * s).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", m.breakAt === i ? 700 : 400).attr("fill", m.breakAt === i ? ink.text : ink.muted).text(mo.tick);
+    if (tickShown(i)) g.append("text").attr("x", x0 + bw / 2).attr("y", y(0) + 16 * s).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", m.breakAt === i ? 700 : 400).attr("fill", m.breakAt === i ? ink.text : ink.muted).text(mo.tick);
     // écart du mois
     if (mo.delta != null) {
       const d = mo.delta * p;
       const col = tiny(mo.delta) ? ink.muted : good(mo.delta) ? ink.pos : ink.neg;
       g.append("rect").attr("class", "r4d-drill-var").attr("x", x0 + bw * 0.12).attr("y", Math.min(yv(0), yv(d))).attr("width", bw * 0.76).attr("height", Math.max(1 * s, Math.abs(yv(d) - yv(0)))).attr("fill", col).attr("rx", 2 * s);
-      if (p > 0.8 && material(mo.delta)) {
+      if (p > 0.8 && material(mo.delta) && varShown(i)) {
         const below = mo.delta < 0;
-        g.append("text").attr("x", x0 + bw / 2).attr("y", below ? yv(d) + 14 * s : yv(d) - 5 * s).attr("text-anchor", "middle").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", col).text(compact(mo.delta, f));
+        g.append("text").attr("x", x0 + bw / 2).attr("y", below ? yv(d) + varFs * 1.2 : yv(d) - 5 * s).attr("text-anchor", "middle").attr("font-size", varFs).attr("font-weight", 700).attr("fill", col).attr("stroke", theme.bg).attr("stroke-width", 3 * s).attr("stroke-linejoin", "round").attr("paint-order", "stroke").text(varLabels[i]!);
       }
     }
   });
@@ -759,6 +774,9 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
       ["1er semestre", f.sv(m.h1), ink.muted, 400],
       ["2nd semestre", f.sv(m.h2), ink.muted, 400],
     ];
+    // hauteur insuffisante (format portrait étroit) : les semestres sont omis plutôt que de déborder sur les commentaires
+    const need = 3 * 46 * s + 26 * s + 14 * s + 2 * 46 * s + 24 * s;
+    if (need > r.h + tickH) rows.splice(4, 2);
     let yy = r.y + 24 * s;
     rows.forEach(([a, b, c, w], k) => {
       if (k === 4) yy += 14 * s;

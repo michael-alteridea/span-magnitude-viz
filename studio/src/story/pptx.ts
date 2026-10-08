@@ -3,6 +3,10 @@
  * couverture bleu pétrole (logo Datanime), sommaire, puis une diapositive par snapshot — rôle, titre d'action,
  * sous-titre IBCS, graphique PNG 3× (avec sa signature), commentaires, filet d'accent.
  * Module sans DOM : les images sont fournies par l'appelant (testable sous Node).
+ *
+ * Option « Transitions Morph » : graphiques en formes natives nommées « !!… » (barres, zones de zoom) posées
+ * sur l'image du graphique sans ses barres, séquence de construction facultative (amorce → complet) et
+ * transition Morph injectée dans le XML (repli fondu). QR du cartouche et lien de l'image : mode lecture.
  */
 import type { ChartSpec } from "../spec";
 import { themeFor } from "../theme";
@@ -10,6 +14,7 @@ import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, PLATFORM_HOST } from "../bran
 import { generatedOn } from "./fr";
 import { shortFingerprint, verifyInfoFor, verifyUrl, type Provenance } from "../provenance";
 import { ROLE_LABELS, type Snapshot, type StoryState } from "./snapshots";
+import { addMorphTransitions, type NativeSlide } from "./morph";
 
 export interface SlideImage {
   /** data URL PNG (ou JPEG). */
@@ -22,6 +27,12 @@ export interface PptxOptions {
   images: Map<string, SlideImage | null>;
   now?: Date;
   outputType?: "blob" | "arraybuffer" | "base64" | "nodebuffer";
+  /** Lien profond « mode lecture » de chaque snapshot (lien de l'image, pied de page). */
+  links?: Map<string, string>;
+  /** Graphiques natifs par snapshot (une entrée par étape de construction) : export Morph. */
+  native?: Map<string, NativeSlide[]>;
+  /** Transitions Morph (repli fondu) et formes nommées « !! ». */
+  morph?: boolean;
 }
 
 const PETROL = "0E6E8C";
@@ -81,7 +92,11 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   const now = opts.now ?? new Date();
   const date = generatedOn(now);
   const snaps = story.snapshots;
-  const total = snaps.length + 2;
+  const stagesOf = (s: Snapshot): (NativeSlide | null)[] => {
+    const n = opts.native?.get(s.id);
+    return n && n.length ? n : [null];
+  };
+  const total = 2 + snaps.reduce((a, s) => a + stagesOf(s).length, 0);
 
   /* ---- couverture */
   const cover = pptx.addSlide();
@@ -121,12 +136,37 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   cartouche(agenda, { dark: false, date });
 
   /* ---- une diapositive par snapshot */
-  snaps.forEach((s, i) => addSnapshotSlide(pptx, s, i, total, story.title, opts.images.get(s.id) ?? null));
+  let page = 2;
+  snaps.forEach((s, i) => {
+    for (const native of stagesOf(s)) {
+      page += 1;
+      addSnapshotSlide(pptx, s, { i, n: snaps.length, page, total, storyTitle: story.title, img: opts.images.get(s.id) ?? null, native, link: opts.links?.get(s.id) ?? null, morph: !!opts.morph });
+    }
+  });
 
-  return pptx.write({ outputType: opts.outputType ?? "blob", compression: true });
+  const outputType = opts.outputType ?? "blob";
+  if (!opts.morph) return pptx.write({ outputType, compression: true });
+  const raw = (await pptx.write({ outputType: "arraybuffer", compression: true })) as ArrayBuffer;
+  return addMorphTransitions(raw, outputType, 2);
 }
 
-function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, storyTitle: string, img: SlideImage | null) {
+interface SlideCtx {
+  i: number;
+  n: number;
+  page: number;
+  total: number;
+  storyTitle: string;
+  img: SlideImage | null;
+  native: NativeSlide | null;
+  link: string | null;
+  morph: boolean;
+}
+
+function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
+  const { i, total, storyTitle, native, link, morph } = c;
+  const img: SlideImage | null = native ? native.bg : c.img;
+  /** Nom Morph (« !! ») des éléments communs aux diapositives : apparier titre, filet, image… */
+  const nm = (name: string) => (morph ? { objectName: `!!${name}` } : {});
   const spec = s.spec as ChartSpec;
   let dark = false;
   let bg = "FFFFFF";
@@ -142,11 +182,13 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   const accent = dark ? PETROL_LIGHT : PETROL;
   const slide = pptx.addSlide();
   slide.background = { color: bg };
-  slide.addShape("rect", { x: 0.5, y: 0.42, w: 0.6, h: 0.07, fill: { color: accent }, line: { color: accent } });
-  slide.addText(`${ROLE_LABELS[s.role].toUpperCase()} · ${i + 1}/${total - 2}`, { x: 1.25, y: 0.3, w: 6, h: 0.3, fontFace: FONT, fontSize: 10, bold: true, color: accent, charSpacing: 1, margin: 0 });
-  slide.addText(frSpaces(s.title || s.name), { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink" });
-  if (s.subtitle) slide.addText(s.subtitle, { x: 0.5, y: 1.55, w: 12.3, h: 0.4, fontFace: FONT, fontSize: 13, color: muted, margin: 0, fit: "shrink" });
-  const comments = s.comments.filter((c) => c.trim());
+  slide.addShape("rect", { x: 0.5, y: 0.42, w: 0.6, h: 0.07, fill: { color: accent }, line: { color: accent }, ...nm("filet") });
+  slide.addText(`${ROLE_LABELS[s.role].toUpperCase()} · ${i + 1}/${c.n}`, { x: 1.25, y: 0.3, w: 6, h: 0.3, fontFace: FONT, fontSize: 10, bold: true, color: accent, charSpacing: 1, margin: 0, ...nm("role") });
+  slide.addText(frSpaces(s.title || s.name), { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink", ...nm("titre") });
+  if (s.subtitle) slide.addText(s.subtitle, { x: 0.5, y: 1.55, w: 12.3, h: 0.4, fontFace: FONT, fontSize: 13, color: muted, margin: 0, fit: "shrink", ...nm("sous-titre") });
+  const comments = s.comments.filter((x) => x.trim());
+  // amorce de la séquence de construction : mêmes positions, commentaires à venir
+  const showComments = !native || native.stage === "complet";
   const norme = !!(spec as Partial<ChartSpec>)?.norme?.enabled;
   const area = { x: 0.5, y: 2.1, w: comments.length ? 8.2 : 12.3, h: norme ? 4.4 : 4.75 };
   if (norme) {
@@ -178,20 +220,37 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
     const k = Math.min(area.w / img.width, area.h / img.height);
     const w = img.width * k;
     const h = img.height * k;
-    slide.addImage({ data: img.data, x: area.x + (comments.length ? 0 : (area.w - w) / 2), y: area.y, w, h, altText: s.title });
+    const x0 = area.x + (comments.length ? 0 : (area.w - w) / 2);
+    const y0 = area.y;
+    slide.addImage({ data: img.data, x: x0, y: y0, w, h, altText: s.title, ...(link ? { hyperlink: { url: link, tooltip: "Ouvrir ce graphique en mode lecture" } } : {}), ...nm("graphique") });
+    // barres natives (Morph) : mêmes positions que dans le rendu SVG
+    for (const m of native?.marks ?? []) {
+      const tr = Math.round((1 - Math.max(0, Math.min(1, m.opacity))) * 100);
+      slide.addShape("rect", {
+        x: x0 + m.x * w,
+        y: y0 + m.y * h,
+        w: Math.max(0.002, m.w * w),
+        h: Math.max(0.002, m.h * h),
+        fill: m.fill ? { color: hex(m.fill), transparency: tr } : { type: "none" },
+        line: m.stroke ? { color: hex(m.stroke), width: 1, dashType: m.dash ? "dash" : "solid", transparency: tr } : { type: "none" },
+        objectName: m.name,
+      });
+    }
   } else {
     slide.addText("Graphique indisponible (rendu non conservé)", { ...area, fontFace: FONT, fontSize: 14, color: muted, align: "center", valign: "middle" });
   }
-  if (comments.length) {
-    slide.addText("À RETENIR", { x: 9.0, y: 2.1, w: 3.8, h: 0.35, fontFace: FONT, fontSize: 11, bold: true, color: accent, charSpacing: 1.5, margin: 0 });
+  if (comments.length && showComments) {
+    slide.addText("À RETENIR", { x: 9.0, y: 2.1, w: 3.8, h: 0.35, fontFace: FONT, fontSize: 11, bold: true, color: accent, charSpacing: 1.5, margin: 0, ...nm("a-retenir") });
     slide.addText(
-      comments.map((c) => ({ text: frSpaces(c), options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
-      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 15, color: text, valign: "top", margin: 0, fit: "shrink" }
+      comments.map((x) => ({ text: frSpaces(x), options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
+      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 15, color: text, valign: "top", margin: 0, fit: "shrink", ...nm("commentaires") }
     );
   }
-  slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 } });
+  slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 }, ...nm("pied") });
   const prov = (spec as Partial<ChartSpec>)?.provenance as Provenance | null | undefined;
-  slide.addText(storyTitle, { x: 0.5, y: 7.05, w: prov ? 6.4 : 8, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, margin: 0 });
+  const titleW = (prov ? 6.4 : 8) - (link ? 1.75 : 0);
+  slide.addText(storyTitle, { x: 0.5, y: 7.05, w: titleW, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, margin: 0, fit: "shrink" });
+  if (link) slide.addText("Mode lecture ›", { x: 0.5 + titleW + 0.1, y: 7.05, w: 1.6, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: accent, margin: 0, hyperlink: { url: link, tooltip: "Ouvrir ce graphique en mode lecture (QR du cartouche)" } });
   if (prov && /^[0-9a-f]{64}$/.test(prov.hash ?? "")) {
     // Lien natif « Vérifier l'empreinte » (le QR figure aussi dans le cartouche de l'image)
     const gen = new Date(s.generatedAt || s.createdAt || Date.now());
@@ -201,5 +260,5 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   // Pied : logo Datanime (PNG 2×) + nom (lien plateforme), puis numéro de page aligné à droite
   slide.addImage({ data: ICON_PNG_2X, x: SLIDE_W - 2.42, y: 7.07, w: 0.22, h: 0.22, altText: PRODUCT_LABEL, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
   slide.addText(PRODUCT_LABEL, { x: SLIDE_W - 2.14, y: 7.05, w: 0.85, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: muted, margin: 0, hyperlink: { url: PLATFORM_URL, tooltip: PLATFORM_HOST } });
-  slide.addText(`${i + 3} / ${total}`, { x: SLIDE_W - 1.2, y: 7.05, w: 0.7, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0 });
+  slide.addText(`${c.page} / ${total}`, { x: SLIDE_W - 1.2, y: 7.05, w: 0.7, h: 0.3, fontFace: FONT, fontSize: 9, color: muted, align: "right", margin: 0 });
 }

@@ -341,7 +341,7 @@ textarea.paste:focus { outline: none; border-color: var(--accent); }
 .type-tile.disabled:hover { background: transparent; color: var(--muted); }
 .scenario-rows .field-inline { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; gap: 8px; margin: 2px 0; }
 .scenario-rows .field-inline .field-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-.story-same-scale { white-space: nowrap; }
+.story-same-scale, .story-morph { white-space: nowrap; }
 .story-same-scale.dim { opacity: .55; }
 .story-scale { position: absolute; top: 9px; right: 9px; z-index: 1; padding: 1px 6px; border-radius: 99px; font-size: 10px; font-weight: 700; background: rgba(15, 15, 18, .88); border: 1px solid var(--line-2); color: var(--muted); }
 .story-scale.ne { color: var(--warn); border-color: rgba(245, 158, 11, .6); }
@@ -544,6 +544,38 @@ tr.in-series .mw-row-btn { color: #fff; font-weight: 700; }
 .film-dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: none; background: #3f3f46; cursor: pointer; position: relative; }
 .film-dot::after { content: ""; position: absolute; inset: -15px; }
 .film-dot.on { background: var(--accent); }
+/* mode lecture (#/lire/…) : diapositives au rythme du lecteur, toucher / balayage */
+/* le Studio (barre d'outils large) est masqué : la mise en page mobile suit l'écran */
+body.reading-open .app > :not(.reader) { display: none !important; }
+.film.reader { z-index: 95; background: #071f28; background: radial-gradient(120% 90% at 50% 0%, #0b3442 0%, #061a22 70%); }
+.film.reader .film-stage { touch-action: pan-y; cursor: default; user-select: none; -webkit-user-select: none; padding: 0 12px; }
+.film.reader .film-svg { box-shadow: 0 10px 40px rgba(0, 0, 0, .45); }
+.film.reader .film-btn { border-color: #1d5466; background: #0a2a35; }
+.film.reader .film-btn:hover { border-color: #3FA7C4; }
+.film.reader .film-role { color: #3FA7C4; white-space: nowrap; }
+.film.reader .film-dot { background: #1d5466; }
+.film.reader .film-dot.on { background: #3FA7C4; }
+.film.reader .film-counter { white-space: nowrap; }
+.film.reader .film-crumbs { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; min-width: 0; flex: 0 1 auto; mask-image: linear-gradient(90deg, #000 85%, transparent); }
+@media (max-width: 900px) { .film.reader .film-story { display: none; } }
+.film-story { font-size: 14px; font-weight: 600; color: #e6f2f5; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.film-help { margin-left: 14px; font-size: 12px; color: #8fb3bf; white-space: nowrap; }
+.film-msg { max-width: 560px; margin: auto; padding: 28px; border-radius: 14px; background: #0a2a35; border: 1px solid #1d5466; color: #e6f2f5; text-align: left; }
+.film-msg[hidden] { display: none; }
+.film-msg h2 { margin: 0 0 10px; font-size: 20px; }
+.film-msg p { margin: 0 0 18px; line-height: 1.5; color: #b9d3db; }
+.film-msg-acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.film-msg-acts .btn { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
+.film.has-msg .film-bottom, .film.has-msg [data-testid=reader-link] { visibility: hidden; }
+@media (max-width: 1100px) { .film-help { display: none; } }
+@media (max-width: 700px) {
+  .film-top, .film-bottom { padding: 8px 10px; gap: 8px; }
+  .film-story, .film-crumbs { display: none; }
+  .film-btn { width: 44px; height: 44px; }
+  .film-dots { margin-left: 4px; gap: 5px; }
+  .film-dot { width: 12px; height: 12px; }
+  .film.reader .film-stage { padding: 0 6px; }
+}
 
 /* bouton « Revues » (barre du haut) */
 .btn-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-deep); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }

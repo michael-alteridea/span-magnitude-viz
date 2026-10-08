@@ -39,6 +39,9 @@ import { detectStructure } from "./data/structure";
 import { detectDelimiter, parseDelimitedMatrix } from "span-magnitude-viz/fileImport";
 import { DrillBar } from "./ui/drillBar";
 import { StoryFilm } from "./ui/storyFilm";
+import { LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryDef, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, type ReadRoute } from "./story/reading";
+import { demoReadingStory } from "./review/demo";
+import { drillStepAdded, type NativeSlide } from "./story/morph";
 import { ScenarioDialog } from "./ui/scenarioDialog";
 import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
 import type { DrillGrain } from "./spec";
@@ -449,24 +452,37 @@ function scaleNoteFor(spec: ChartSpec, info: ScaleInfo | undefined, same: boolea
 }
 
 /** Rendu à neuf (SVG nu, polices embarquées) avec échelle commune / indicateur. */
-async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | null, scaleNote: string | null): Promise<string> {
+async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | null, scaleNote: string | null, qrUrl: string | null = null, now?: Date): Promise<string> {
   const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
   const cache = prepareCache(spec, ds, null, -1);
-  const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare: true, sharedMax, scaleNote });
+  const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare: true, sharedMax, scaleNote, qrUrl, now });
   return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null, embedFonts: true });
 }
 
-/** Image PNG 2× d'un snapshot : SVG conservé (polices ré-embarquées), sinon rendu à neuf, sinon la vignette. */
-async function snapshotImage(s: Snapshot, scales: Map<string, ScaleInfo> = storyScales(), sameScale = !!store.state.story.sameScale): Promise<SlideImage | null> {
+/** Spec de diapositive : titre, sous-titre et commentaires du snapshot. */
+function slideSpec(s: Snapshot, parsed: ChartSpec): ChartSpec {
+  return { ...parsed, style: { ...parsed.style, title: s.title, subtitle: s.subtitle }, story: { ...parsed.story, comments: s.comments } };
+}
+
+function snapNow(s: Snapshot): Date | undefined {
+  const d = new Date(s.generatedAt || s.createdAt || "");
+  return Number.isFinite(d.getTime()) ? d : undefined;
+}
+
+/**
+ * Image PNG 3× d'un snapshot : rendu à neuf depuis les données (échelle commune, QR du cartouche vers le mode
+ * lecture), sinon SVG conservé (polices ré-embarquées), sinon la vignette.
+ */
+async function snapshotImage(s: Snapshot, scales: Map<string, ScaleInfo> = storyScales(), sameScale = !!store.state.story.sameScale, qrUrl: string | null = null): Promise<SlideImage | null> {
   const spec = s.spec as ChartSpec;
   const parsed = snapshotSpec(s);
   try {
     const info = scales.get(s.id);
     const same = sameScale && !!info;
     const note = parsed ? scaleNoteFor(parsed, info, same) : null;
-    const ds = parsed && (same || note) ? datasetFor(s) : null;
-    if (parsed && ds && (same || note)) {
-      const svg = await renderScaled(parsed, ds, same ? info!.max : null, note);
+    const ds = parsed && (same || note || qrUrl) ? datasetFor(s) : null;
+    if (parsed && ds && (same || note || qrUrl)) {
+      const svg = await renderScaled(slideSpec(s, parsed), ds, same ? info!.max : null, note, qrUrl, snapNow(s));
       const blob = await svgToPngBlob(svg, s.width, s.height, 3);
       return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
     }
@@ -510,13 +526,63 @@ function scalesOf(snaps: Snapshot[]): Map<string, ScaleInfo> {
   );
 }
 
-async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: StoryState = store.state.story) {
+/* ---- mode lecture : liens profonds #/lire/<histoire>/<snapshot> */
+
+/** Base des liens : adresse courante (http) ; fichier hors ligne : adresse publique. */
+function linkBase(): string {
+  return /^https?:$/.test(location.protocol) ? location.href.split("#")[0]!.split("?")[0]! : READING_PUBLIC_BASE;
+}
+
+/** Lien de lecture d'un snapshot : démo intégrée → adresse publique (tout appareil) ; sinon histoire / revue locale. */
+function snapReadUrl(s: Snapshot, storyId: string): string {
+  const id = readingStoryIdFor(s, storyId);
+  return readUrl(demoStoryDef(id) ? READING_PUBLIC_BASE : linkBase(), id, s.id);
+}
+
+export interface PptxBuildOptions {
+  /** Transitions Morph (formes natives nommées « !! », repli fondu). */
+  morph?: boolean;
+  /** Séquence de construction (amorce → complet) en mode Morph. */
+  build?: boolean;
+  /** Histoire de lecture des liens (revue, histoire courante). */
+  storyId?: string;
+}
+
+async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: StoryState = store.state.story, o: PptxBuildOptions = {}) {
   const own = story === store.state.story;
   const scales = own ? storyScales() : scalesOf(story.snapshots);
+  const storyId = o.storyId ?? LOCAL_STORY_ID;
   const images = new Map<string, SlideImage | null>();
-  for (const s of story.snapshots) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale));
+  const links = new Map<string, string>();
+  const native = new Map<string, NativeSlide[]>();
+  const snaps = story.snapshots;
+  for (const s of snaps) links.set(s.id, snapReadUrl(s, storyId));
+  if (o.morph) {
+    const { nativeStages } = await import("./story/morphRender");
+    for (let i = 0; i < snaps.length; i++) {
+      const s = snaps[i]!;
+      const parsed = snapshotSpec(s);
+      const ds = parsed ? datasetFor(s) : null;
+      if (!parsed || !ds) continue;
+      const info = scales.get(s.id);
+      const same = !!story.sameScale && !!info;
+      const next = snaps[i + 1];
+      const prev = snaps[i - 1];
+      const outStep = next ? drillStepAdded(s.spec, next.spec) : null;
+      const inZoom = prev && native.has(prev.id) && drillStepAdded(prev.spec, s.spec) ? i - 1 : null;
+      try {
+        native.set(
+          s.id,
+          await nativeStages({ spec: slideSpec(s, parsed), ds, now: snapNow(s) ?? new Date(), sharedMax: same ? info!.max : null, scaleNote: scaleNoteFor(parsed, info, same), qrUrl: links.get(s.id) ?? null, build: o.build ?? true, zoomOut: outStep ? { step: outStep, index: i } : null, zoomInIndex: inZoom })
+        );
+      } catch (e) {
+        console.warn("Morph : rendu natif impossible", e);
+      }
+    }
+  }
+  for (const s of snaps) if (!native.has(s.id)) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale, links.get(s.id) ?? null));
   const { buildPptx } = await import("./story/pptx");
-  return buildPptx(story, { images, outputType });
+  return buildPptx(story, { images, outputType, links, native, morph: !!o.morph });
 }
 
 async function exportPptx(btn: HTMLButtonElement): Promise<void> {
@@ -525,9 +591,10 @@ async function exportPptx(btn: HTMLButtonElement): Promise<void> {
   btn.disabled = true;
   btn.textContent = "PowerPoint…";
   try {
-    const blob = (await buildStoryPptx("blob")) as Blob;
-    download(blob, `${slug(store.state.story.title || "histoire")}.pptx`);
-    toast(`PowerPoint exporté (${store.state.story.snapshots.length + 2} diapositives)`, "ok");
+    const morph = storyStrip.morph;
+    const blob = (await buildStoryPptx("blob", store.state.story, { morph, build: morph, storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID })) as Blob;
+    download(blob, `${slug(store.state.story.title || "histoire")}${morph ? "-morph" : ""}.pptx`);
+    toast(morph ? "PowerPoint exporté avec transitions Morph (à ouvrir dans PowerPoint 2019 / Microsoft 365)" : `PowerPoint exporté (${store.state.story.snapshots.length + 2} diapositives)`, "ok", morph ? 5000 : 3000);
   } catch (e) {
     toast("Export PowerPoint impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
   } finally {
@@ -646,6 +713,8 @@ async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean):
     toast("Scénario impossible sur ces données : vérifiez les colonnes associées aux rôles.", "error", 6000);
     return;
   }
+  // empreinte des données de l'exemple (sinon le dataKey tombe sur le repli sampleId:name:n et les ids changent)
+  if (store.state.sampleId && !store.state.provenance) await sampleProvenance(store.state.sampleId).then((pr) => pr && store.setProvenance(pr, store.state.dataSeq));
   guide = { sc, binding, frames: run.frames, dataKey: dataKey() };
   drillBar.closePivot();
   store.setStory({ title: sc.storyTitle, snapshots: [], sameScale: false });
@@ -877,8 +946,102 @@ const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store);
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0) });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null) });
 const film = new StoryFilm((s) => datasetFor(s));
+
+async function copyText(url: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Lien de la diapositive copié", "ok");
+  } catch {
+    toast(`Lien : ${url}`, "info", 9000);
+  }
+}
+
+let readerStory: string | null = null;
+let readerReturn = "";
+let readSeq = 0;
+let closingFromRoute = false;
+const reader = new StoryFilm((s) => datasetFor(s), {
+  reading: true,
+  onSlide: (s) => {
+    if (!readerStory) return;
+    const hash = readHash(readerStory, s.id);
+    if (location.hash !== hash) history.replaceState(null, "", hash);
+  },
+  onClose: () => {
+    readerStory = null;
+    if (closingFromRoute) return;
+    const back = readerReturn;
+    readerReturn = "";
+    history.replaceState(null, "", location.pathname + location.search + back);
+    void reviewSpace.handleHash(back);
+  },
+  linkFor: (s) => (readerStory ? snapReadUrl(s, readerStory) : null),
+  copy: (u) => void copyText(u),
+});
+
+/** Histoire d'un lien de lecture : démo intégrée (recalculée, tout appareil), histoire courante ou revue (cet appareil). */
+async function resolveReading(storyId: string): Promise<{ title: string; snapshots: Snapshot[] } | null> {
+  const demo = await demoReadingStory(storyId);
+  if (demo) return demo;
+  if (storyId === LOCAL_STORY_ID) {
+    const st = store.state.story;
+    return st.snapshots.length ? { title: st.title || "Histoire", snapshots: st.snapshots } : null;
+  }
+  await reviewSpace.ensureDemo();
+  const r = reviewStorage.get(storyId);
+  return r ? { title: r.title, snapshots: r.snapshots } : null;
+}
+
+async function openReading(rt: ReadRoute): Promise<void> {
+  const seq = ++readSeq;
+  const story = await resolveReading(rt.storyId);
+  if (seq !== readSeq) return;
+  if (!story) {
+    readerStory = null;
+    reader.showMessage(
+      "Histoire introuvable sur cet appareil",
+      "Ce lien de lecture désigne une histoire ou une revue enregistrée dans le navigateur d'un autre appareil : pour l'instant, les histoires restent sur l'appareil qui les a créées. Les démonstrations intégrées (Directeur commercial, Directeur financier) s'ouvrent partout.",
+      [
+        { label: "Lire la démo « Directeur commercial »", href: readHash("demo-dircom") },
+        { label: "Lire la démo « Directeur financier »", href: readHash("demo-daf") },
+        { label: "Ouvrir le Studio", onclick: () => reader.close() },
+      ]
+    );
+    return;
+  }
+  let k = rt.snapId ? story.snapshots.findIndex((s) => s.id === rt.snapId) : 0;
+  if (k < 0) {
+    k = 0;
+    toast("Diapositive introuvable dans cette histoire : lecture depuis le début", "info", 4500);
+  }
+  const same = reader.isOpen && readerStory === rt.storyId;
+  readerStory = rt.storyId;
+  if (same) {
+    if (reader.index !== k) reader.goTo(k);
+  } else reader.open(story.snapshots, k, story.title);
+}
+
+/** Ouvre le mode lecture depuis le Studio ou une revue (retour à la page d'origine à la fermeture). */
+function startReading(storyId: string, snapId: string | null): void {
+  if (!parseReadRoute(location.hash)) readerReturn = location.hash;
+  const hash = readHash(storyId, snapId);
+  if (location.hash === hash) void openReading({ storyId, snapId });
+  else location.hash = hash;
+}
+
+/** Routeur du fragment : mode lecture (#/lire/…), sinon espace Revues. */
+async function route(hash: string): Promise<void> {
+  const rt = parseReadRoute(hash);
+  if (rt) return openReading(rt);
+  if (reader.isOpen) {
+    closingFromRoute = true;
+    reader.close();
+    closingFromRoute = false;
+  }
+  return reviewSpace.handleHash(hash);
+}
 const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText(), guideNext: () => guideNext() });
 preview.onDrill = (el) => onDrillClick(el);
 const scenarioDialog = new ScenarioDialog(store, { loadSample: (id) => loadSample(id), start: (sc, b, auto) => void startScenario(sc, b, auto) });
@@ -899,13 +1062,14 @@ const rightRail = h("button", { class: "rail rail-right", title: "Afficher les r
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
 /* ---- espace « Revues » (partage local pour l'instant ; stockage derrière une interface) */
 const reviewStorage = new LocalReviewStorage();
-const reviewSpace = new ReviewSpace(
+const reviewSpace: ReviewSpace = new ReviewSpace(
   {
     storage: reviewStorage,
     datasetFor: (s) => datasetFor(s),
     toast: (m, k, ms) => toast(m, k ?? "info", ms),
-    pptx: async (title, snaps) => (await buildStoryPptx("blob", { title, snapshots: snaps, sameScale: false })) as Blob,
+    pptx: async (title, snaps): Promise<Blob> => (await buildStoryPptx("blob", { title, snapshots: snaps, sameScale: false }, { storyId: reviewSpace.currentId() ?? LOCAL_STORY_ID })) as Blob,
     film: (snaps, k) => film.open(snaps, k),
+    read: (id, snapId) => startReading(id, snapId),
     currentStory: () => store.state.story,
     baseUrl: () => location.href.split("#")[0]!.split("?")[0]!,
     openInStudio: (s) => (reviewSpace.close(), openSnapshot(s)),
@@ -917,7 +1081,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -960,10 +1124,12 @@ void ensureFont(store.state.spec.style.font).finally(() => {
 });
 
 // routes de l'espace Revues (#/revues…, #/r/…) : liens et QR de partage
-window.addEventListener("hashchange", () => void reviewSpace.handleHash(location.hash));
+// et mode lecture (#/lire/<histoire>/<snapshot>), ouvert directement depuis un lien ou un QR
+window.addEventListener("hashchange", () => void route(location.hash));
+if (parseReadRoute(location.hash)) void route(location.hash);
 void reviewSpace.ensureDemo().then(() => {
   updateReviewsCount();
-  if (location.hash.startsWith("#/")) void reviewSpace.handleHash(location.hash);
+  if (location.hash.startsWith("#/") && !parseReadRoute(location.hash)) void reviewSpace.handleHash(location.hash);
 });
 
 /** API de débogage / tests (console : r4d.getSpec()). */
@@ -993,13 +1159,16 @@ const api = {
   drill: () => store.state.spec.drill,
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
-  pptxBase64: async () => (await buildStoryPptx("base64")) as string,
+  pptxBase64: async (o: PptxBuildOptions = {}) => (await buildStoryPptx("base64", store.state.story, { storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, ...o })) as string,
+  reader: () => reader,
+  read: (storyId: string, snapId: string | null = null) => startReading(storyId, snapId),
+  readUrl: (s: Snapshot, storyId = LOCAL_STORY_ID) => snapReadUrl(s, storyId),
   reviews: () => reviewSpace,
   reviewStorage: () => reviewStorage,
   reviewPptxBase64: async (id: string) => {
     const r = reviewStorage.get(id);
     if (!r) return null;
-    return (await buildStoryPptx("base64", { title: r.title, snapshots: r.snapshots.map((s) => ({ ...s, comments: reportSlideComments(r, s) })), sameScale: false })) as string;
+    return (await buildStoryPptx("base64", { title: r.title, snapshots: r.snapshots.map((s) => ({ ...s, comments: reportSlideComments(r, s) })), sameScale: false }, { storyId: r.id })) as string;
   },
   storyScales: () => Object.fromEntries(storyScales()),
   setSameScale: (on: boolean) => store.setStory({ ...store.state.story, sameScale: on }),

@@ -12,6 +12,8 @@ export interface ReviewDeps {
   pptx(title: string, snaps: Snapshot[]): Promise<Blob>;
   /** Film plein écran du Studio. */
   film(snaps: Snapshot[], start: number): void;
+  /** Mode lecture plein écran (#/lire/<revue>/<snapshot>). */
+  read?(reviewId: string, snapId: string | null): void;
   /** Histoire courante du Studio (« Nouvelle revue »). */
   currentStory(): StoryState;
   /** Adresse du Studio (base des liens et QR). */

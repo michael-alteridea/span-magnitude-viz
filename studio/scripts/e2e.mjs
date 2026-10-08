@@ -1556,6 +1556,200 @@ try {
     check("retour au Studio (fragment effacé, Studio visible)", back.hash === "" && back.hidden && back.stage, JSON.stringify(back));
   }
 
+  /* 17. Mode lecture (#/lire/…) : lien profond autonome (autre appareil), navigation, iPad / iPhone ; PowerPoint Morph */
+  {
+    const P = "norvia-pipeline-oct-2026";
+    const dc = globalThis.__dircom ?? { ids: [], titles: [] };
+    const shotOn = async (pg, name) => {
+      if (!SHOTS) return;
+      await sleep(250);
+      await pg.screenshot({ path: join(shotsDir, name) });
+    };
+    // a) nouveau contexte (stockage vide) = un autre appareil : le lien de la démo s'ouvre quand même
+    const ctx = await browser.createBrowserContext();
+    const rd = await ctx.newPage();
+    const rdErrors = [];
+    rd.on("pageerror", (e) => rdErrors.push("pageerror: " + e.message));
+    rd.on("console", (m) => m.type() === "error" && rdErrors.push(m.text()));
+    await rd.setViewport({ width: 1440, height: 900, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+    await rd.goto(`${origin}${BASE}#/lire/demo-dircom/${dc.ids[2]}`, { waitUntil: "networkidle0" });
+    await rd.waitForFunction(() => window.r4d?.reader().isOpen && window.r4d.reader().current, { timeout: 20000 }).catch(() => {});
+    await rd.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await sleep(500);
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(400);
+    const rs = () =>
+      rd.evaluate(() => ({
+        hash: location.hash,
+        counter: document.querySelector("[data-testid=reader-counter]")?.textContent,
+        id: window.r4d.reader().current?.id,
+        playing: window.r4d.reader().isPlaying,
+        marks: document.querySelectorAll("[data-testid=reader-svg] .r4d-drill-mark").length,
+        cart: !!document.querySelector("[data-testid=reader-svg] .r4d-cartouche .r4d-qr"),
+        title: document.querySelector("[data-testid=reader-svg] .r4d-title")?.textContent ?? "",
+        comments: document.querySelectorAll("[data-testid=reader-svg] .r4d-comment, [data-testid=reader-svg] .r4d-comments text").length,
+        dots: document.querySelectorAll("[data-testid=reader-dots] .film-dot").length,
+        on: [...document.querySelectorAll("[data-testid=reader-dots] .film-dot")].findIndex((d) => d.classList.contains("on")),
+        stored: (window.r4d.story().snapshots ?? []).length,
+        sw: document.documentElement.scrollWidth,
+        vw: window.innerWidth,
+      }));
+    const r0 = await rs();
+    check("mode lecture : lien #/lire/demo-dircom/<snapshot 3> ouvert sur un appareil vierge (démo recalculée), diapositive 3/7", r0.counter === "3 / 7" && r0.id === dc.ids[2] && r0.stored === 0 && r0.hash === `#/lire/demo-dircom/${dc.ids[2]}`, JSON.stringify(r0));
+    check("mode lecture : titre, commentaires, cartouche (QR), points de progression", r0.title.length > 10 && r0.cart && r0.dots === 7 && r0.on === 2 && r0.comments >= 1, JSON.stringify({ t: r0.title, c: r0.comments, dots: r0.dots }));
+    await shotOn(rd, "50-lecture-bureau.png");
+    // clavier : → ← Fin Début, espace (pause), R (rejouer)
+    const press = async (k, ms = 900) => {
+      await rd.keyboard.press(k);
+      await sleep(ms);
+    };
+    await press("ArrowRight");
+    const r1 = await rs();
+    await press("ArrowLeft");
+    const r2 = await rs();
+    await press("End");
+    const r3 = await rs();
+    await press("Home");
+    const r4 = await rs();
+    check("mode lecture : ←/→, Début/Fin ; lien de la diapositive tenu à jour (#/lire/…/<snapshot>)", r1.counter === "4 / 7" && r1.hash.endsWith(dc.ids[3]) && r2.counter === "3 / 7" && r3.counter === "7 / 7" && r3.hash.endsWith(dc.ids[6]) && r4.counter === "1 / 7", [r1.counter, r2.counter, r3.counter, r4.counter, r3.hash].join(" · "));
+    await press("ArrowRight", 300);
+    await press(" ", 100);
+    const pa = await rs();
+    const frozen = await rd.evaluate(() => document.querySelector("[data-testid=reader-svg]").innerHTML.length);
+    await sleep(500);
+    const frozen2 = await rd.evaluate(() => document.querySelector("[data-testid=reader-svg]").innerHTML.length);
+    await press(" ", 200);
+    const pl = await rs();
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(300);
+    await press("r", 120);
+    const rp = await rd.evaluate(() => ({ playing: window.r4d.reader().isPlaying, labels: document.querySelectorAll("[data-testid=reader-svg] .r4d-comment").length }));
+    check("mode lecture : pause (espace) fige l'animation, reprise, « Rejouer » (R)", !pa.playing && frozen === frozen2 && pl.playing && rp.playing, JSON.stringify({ pa: pa.playing, pl: pl.playing, frozen: frozen === frozen2 }));
+    // boutons, points, zones de toucher
+    await rd.evaluate(() => document.querySelectorAll("[data-testid=reader-dots] .film-dot")[4].click());
+    await sleep(900);
+    const d5 = await rs();
+    const stageBox = await rd.evaluate(() => { const b = document.querySelector("[data-testid=reader-stage]").getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; });
+    await rd.mouse.click(stageBox.x + stageBox.w * 0.8, stageBox.y + stageBox.h * 0.5);
+    await sleep(900);
+    const t6 = await rs();
+    await rd.mouse.click(stageBox.x + stageBox.w * 0.1, stageBox.y + stageBox.h * 0.5);
+    await sleep(900);
+    const t5 = await rs();
+    await rd.evaluate(() => document.querySelector("[data-testid=reader-next]").click());
+    await sleep(900);
+    const b6 = await rs();
+    check("mode lecture : points de progression, toucher (droite = suivant, tiers gauche = précédent), boutons", d5.counter === "5 / 7" && t6.counter === "6 / 7" && t5.counter === "5 / 7" && b6.counter === "6 / 7", [d5.counter, t6.counter, t5.counter, b6.counter].join(" · "));
+    // iPad paysage : balayage
+    await rd.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+    await rd.evaluate((h2) => (location.hash = h2), `#/lire/demo-dircom/${dc.ids[1]}`);
+    await sleep(1200);
+    const swipe = async (dx) => {
+      const y = 380;
+      const x0 = dx < 0 ? 760 : 260;
+      await rd.touchscreen.touchStart(x0, y);
+      for (let k = 1; k <= 6; k++) await rd.touchscreen.touchMove(x0 + (dx * k) / 6, y + k);
+      await rd.touchscreen.touchEnd();
+      await sleep(1000);
+    };
+    const i0 = await rs();
+    await swipe(-320);
+    const i1 = await rs();
+    await swipe(320);
+    const i2 = await rs();
+    check("iPad : lien profond (hashchange), balayage gauche = suivant, droite = précédent", i0.counter === "2 / 7" && i1.counter === "3 / 7" && i2.counter === "2 / 7", [i0.counter, i1.counter, i2.counter].join(" · "));
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(500);
+    await shotOn(rd, "51-lecture-ipad-paysage.png");
+    // iPad portrait : démo financière, format portrait
+    await rd.setViewport({ width: 768, height: 1024, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+    await rd.evaluate(() => (location.hash = "#/lire/demo-daf"));
+    await sleep(1000);
+    await rd.evaluate(() => window.r4d.reader().goTo(4));
+    await sleep(1400);
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(500);
+    const pp = await rd.evaluate(() => { const vb = document.querySelector("[data-testid=reader-svg]").viewBox.baseVal; return { w: vb.width, h: vb.height, id: window.r4d.reader().current?.id, hash: location.hash, sw: document.documentElement.scrollWidth, vw: window.innerWidth, foot: document.querySelector("[data-testid=reader-next]").getBoundingClientRect().bottom <= window.innerHeight }; });
+    check("iPad portrait : démo DAF (lien autonome), graphique en format portrait, commandes visibles, pas de défilement horizontal", /^daf-05-/.test(pp.id ?? "") && pp.hash === `#/lire/demo-daf/${pp.id}` && pp.h > pp.w && pp.sw <= pp.vw && pp.foot, JSON.stringify(pp));
+    await shotOn(rd, "52-lecture-ipad-portrait.png");
+    await rd.setViewport({ width: 390, height: 844, deviceScaleFactor: SHOTS ? 2 : 1, isMobile: true, hasTouch: true });
+    await rd.evaluate((h2) => (location.hash = h2), `#/lire/demo-dircom/${dc.ids[5]}`);
+    await sleep(1400);
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(600);
+    const ph = await rs();
+    const phBtn = await rd.evaluate(() => Math.min(...[...document.querySelectorAll("[data-testid=reader] .film-btn")].map((b) => b.getBoundingClientRect().width)));
+    check("iPhone : diapositive 6/7, cibles tactiles ≥ 44 px, pas de défilement horizontal", ph.counter === "6 / 7" && ph.sw <= ph.vw && phBtn >= 44, JSON.stringify({ c: ph.counter, sw: ph.sw, vw: ph.vw, phBtn }));
+    await shotOn(rd, "53-lecture-iphone.png");
+    // histoire locale d'un autre appareil : message explicite
+    await rd.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+    await rd.evaluate(() => (location.hash = "#/lire/histoire/xyz"));
+    await sleep(900);
+    const nf = await rd.evaluate(() => ({ msg: document.querySelector("[data-testid=reader-msg]")?.textContent ?? "", hidden: document.querySelector("[data-testid=reader-msg]")?.hidden }));
+    check("lien vers une histoire locale absente : message « introuvable sur cet appareil » + liens vers les démos", !nf.hidden && /introuvable sur cet appareil/.test(nf.msg) && /Directeur commercial/.test(nf.msg), nf.msg.slice(0, 80));
+    await shotOn(rd, "54-lecture-introuvable.png");
+    check("mode lecture (autre appareil) : zéro erreur console", rdErrors.length === 0, rdErrors.slice(0, 3).join(" | "));
+    await ctx.close();
+
+    // b) revue Norvia : bouton « Mode lecture », Échap → retour à la revue
+    await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+    await page.evaluate((h2) => (location.hash = h2), `#/revues/${P}`);
+    await page.waitForSelector("[data-testid=rv-read]", { timeout: 10000 });
+    await domClick("[data-testid=rv-read]");
+    await sleep(1200);
+    const rv = await page.evaluate(() => ({ open: window.r4d.reader().isOpen, hash: location.hash, counter: document.querySelector("[data-testid=reader-counter]")?.textContent }));
+    await page.keyboard.press("Escape");
+    await sleep(600);
+    const rvBack = await page.evaluate(() => ({ open: window.r4d.reader().isOpen, hash: location.hash, rv: !document.querySelector("[data-testid=reviews]").hidden }));
+    check("revue Norvia : « Mode lecture » (#/lire/<revue>/…), Échap → retour à la revue", rv.open && rv.hash.startsWith(`#/lire/${P}/`) && rv.counter === "1 / 7" && !rvBack.open && rvBack.hash === `#/revues/${P}` && rvBack.rv, JSON.stringify({ rv, rvBack }));
+    // page participant : « Mode lecture » à partir du snapshot affiché
+    await page.evaluate((h2) => (location.hash = h2), `#/r/${P}/${dc.ids[3]}`);
+    await page.waitForSelector("[data-testid=rv-part-read]", { timeout: 10000 });
+    await domClick("[data-testid=rv-part-read]");
+    await sleep(1200);
+    const pr = await page.evaluate(() => ({ hash: location.hash, counter: document.querySelector("[data-testid=reader-counter]")?.textContent }));
+    await domClick("[data-testid=reader-close]");
+    await sleep(500);
+    const prBack = await page.evaluate(() => location.hash);
+    check("page participant : « Mode lecture » sur le snapshot courant, fermeture → page participant", pr.hash === `#/lire/${P}/${dc.ids[3]}` && pr.counter === "4 / 7" && prBack === `#/r/${P}/${dc.ids[3]}`, JSON.stringify({ pr, prBack }));
+    await page.evaluate(() => (location.hash = ""));
+    await sleep(500);
+
+    // c) Studio : histoire = démo pipeline → « Mode lecture » ouvre le lien universel ; PowerPoint Morph
+    await page.evaluate((id) => {
+      const r = window.r4d.reviewStorage().get(id);
+      window.r4d.store.setStory({ title: "Revue du pipeline — octobre 2026", snapshots: r.snapshots, sameScale: false });
+    }, P);
+    await sleep(400);
+    await domClick("[data-testid=story-read]");
+    await sleep(1000);
+    const st = await page.evaluate(() => ({ hash: location.hash, open: window.r4d.reader().isOpen }));
+    await page.keyboard.press("Escape");
+    await sleep(500);
+    check("Studio : « Mode lecture » de l'histoire (démo pipeline) → #/lire/demo-dircom/…", st.open && st.hash.startsWith("#/lire/demo-dircom/"), st.hash);
+    const JSZip = createRequire(join(repo, "package.json"))("jszip");
+    const t0 = Date.now();
+    const m64 = await page.evaluate(() => window.r4d.pptxBase64({ morph: true, build: true }));
+    const mms = Date.now() - t0;
+    const mz = await JSZip.loadAsync(Buffer.from(m64, "base64"));
+    const sl = Object.keys(mz.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+    const xs = await Promise.all(sl.map((x) => mz.file(x).async("string")));
+    const rels = await Promise.all(sl.map((x) => mz.file(x.replace("slides/", "slides/_rels/") + ".rels").async("string")));
+    const morphN = xs.filter((x) => x.includes("<p159:morph") && /<mc:Fallback><p:transition[^>]*><p:fade\/>/.test(x)).length;
+    const bars = xs.map((x) => (x.match(/name="!!barre:/g) ?? []).length);
+    const namesOf = (x) => [...x.matchAll(/name="(!![^"]+)"/g)].map((m) => m[1]);
+    const dup = xs.some((x) => { const n = namesOf(x); return new Set(n).size !== n.length; });
+    // amorce (3) → complet (4) : mêmes noms de barres ; zoom : !!zoom-0 sur 4 et 5
+    const pairOk = namesOf(xs[2]).filter((n) => n.startsWith("!!barre")).every((n) => namesOf(xs[3]).includes(n)) && namesOf(xs[3]).includes("!!zoom-0") && namesOf(xs[4]).includes("!!zoom-0");
+    const linkOk = dc.ids.every((id) => rels.some((r) => r.includes(`https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/${id}`)));
+    check(`PowerPoint Morph : 16 diapositives (amorce + complet par snapshot), Morph + repli fondu sur 15, barres natives « !! » appariées, zoom, liens de lecture (${(mms / 1000).toFixed(1)} s)`, sl.length === 16 && morphN === 15 && !xs[0].includes("p159") && bars[3] > 3 && !dup && pairOk && linkOk, JSON.stringify({ n: sl.length, morphN, bars, dup, pairOk, linkOk }));
+    const c64 = await page.evaluate(() => window.r4d.pptxBase64());
+    const cz = await JSZip.loadAsync(Buffer.from(c64, "base64"));
+    const cx = await cz.file("ppt/slides/slide3.xml").async("string");
+    const cr = await cz.file("ppt/slides/_rels/slide3.xml.rels").async("string");
+    check("PowerPoint classique : sans transition ni « !! », image et pied de page liés au mode lecture", !cx.includes("p159") && !cx.includes('name="!!') && cr.includes(`#/lire/demo-dircom/${dc.ids[0]}`) && Object.keys(cz.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x)).length === 9, cr.match(/#\/lire\/[^"]+/)?.[0] ?? "");
+  }
+
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
     await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });

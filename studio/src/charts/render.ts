@@ -318,6 +318,8 @@ export interface RenderOptions {
   scaleNote?: string | null;
   /** Agrandissement des textes imposé (page participant sur téléphone) ; défaut : BARE_TEXT_BOOST en mode bare. */
   textBoost?: number;
+  /** QR du cartouche pointant vers ce lien (mode lecture) au lieu de la vérification de l'empreinte. */
+  qrUrl?: string | null;
 }
 
 /**
@@ -361,7 +363,8 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
   if (texts && spec.style.title) {
     const ts = 32 * s;
-    const lines = wrap(spec.style.title, innerW, ts, font, 700, 2);
+    // format portrait (mode lecture sur téléphone / tablette) : le titre d'action garde toute sa phrase
+    const lines = wrap(spec.style.title, innerW, ts, font, 700, H > W * 1.5 ? 5 : H > W ? 4 : 2);
     lines.forEach((l, i) => {
       root.append("text").attr("class", "r4d-title").attr("data-r4d-edit", "title").attr("x", pad).attr("y", y + ts * 0.8 + i * ts * 1.15).attr("font-size", ts).attr("font-weight", 700).attr("fill", theme.text).attr("letter-spacing", -0.3 * s).text(l);
     });
@@ -386,7 +389,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   let cartouche: PlotRect | null = null;
   if (chrome) {
     if (showSignature(spec)) {
-      const lay = layoutCartouche(spec, s, font, opts.now ?? new Date());
+      const lay = layoutCartouche(spec, s, font, opts.now ?? new Date(), opts.qrUrl ?? null);
       const x0 = W - pad - lay.w;
       const y0 = H - pad * 0.55 - lay.h;
       cartouche = drawCartouche(root, theme, lay, x0, y0);

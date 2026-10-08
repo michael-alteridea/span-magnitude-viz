@@ -278,6 +278,38 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 - **Nouvelle revue** : reprend les snapshots de l'histoire courante.
 - Lien direct vers la revue pipeline : `…/reporting/#/revues/norvia-pipeline-oct-2026`.
 
+## Mode lecture et export Morph (étape lecture)
+
+- **Mode lecture** (`#/lire/<histoire>/<snapshot>`) : une diapositive plein écran par snapshot, construction animée du
+  graphique (révélation 4D du film, zoom quand l'étape prolonge le chemin d'exploration), titre d'action, commentaires
+  « À retenir » qui apparaissent un à un, cartouche. Navigation : toucher / clic (tiers gauche = précédent), **balayage**
+  (iPad, iPhone), ←/→ (et ↑/↓, Page préc. / suiv.), Début / Fin, points de progression, **Pause** (espace : fige
+  l'animation), **Rejouer** (R), Échap. Format portrait sur téléphone et tablette en portrait, cibles tactiles ≥ 44 px.
+  Le lien de chaque diapositive est tenu à jour dans la barre d'adresse et copiable (bouton lien).
+- **Entrées** : bouton **Mode lecture** du bandeau Histoire, de la fiche d'une revue et de la page participant ; tout lien
+  `#/lire/…` ouvert directement (QR des diapositives).
+- **Histoires** : `demo-dircom` et `demo-daf` = scénarios intégrés « Directeur commercial » et « Directeur financier »,
+  **recalculés à l'ouverture depuis les données de démonstration embarquées** (mêmes lignes que les CSV publiés, mêmes
+  identifiants de snapshots) : le lien s'ouvre sur **n'importe quel appareil**. `histoire` = histoire courante du Studio,
+  `<id de revue>` = revue (les revues Norvia de démonstration existent sur tout appareil) : ces liens-là restent sur
+  l'appareil qui les a créés (stockage local) ; ailleurs, un message l'explique et propose les démos.
+  Exemples : `https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap`,
+  `https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois-14j5oil`.
+- **PowerPoint** : le QR du cartouche de chaque graphique (bas droite) et le lien de l'image / du pied de page
+  (« Mode lecture › ») ouvrent la diapositive en mode lecture ; le lien natif « Vérifier l'empreinte des données » reste
+  dans le pied de page.
+- **Option « Transitions Morph »** (case à côté de « Exporter en PowerPoint », désactivée par défaut) : chaque barre devient
+  une **forme native** nommée d'après ses clés de données (`!!barre:<période>#0`, `!!ref:commercial=…#0`…) posée sur l'image
+  du graphique sans ses barres ; titre, sous-titre, filet, image, commentaires portent aussi un nom `!!…`. Séquence de
+  **construction** : amorce (barres à zéro, sans commentaires) puis graphique complet, donc PowerPoint fait pousser les
+  barres. **Zoom** : la barre cliquée d'une étape et la zone du détail de l'étape suivante partagent le nom `!!zoom-<n>`.
+  Après pptxgenjs, la transition est injectée dans le XML de chaque diapositive (JSZip) : `p159:morph` dans un
+  `mc:AlternateContent`, **repli fondu** pour les logiciels qui ne connaissent pas Morph.
+- **Limites** : Morph ne se vérifie vraiment que dans **PowerPoint 2019 / Microsoft 365** (LibreOffice et Keynote affichent
+  le fondu) ; seules les barres (rectangles) deviennent natives — courbes, cartes, libellés restent dans l'image.
+- **Contrôle** : `node studio/scripts/check-pptx.mjs Fichier.pptx` (transitions, repli, noms « !! » uniques, QR décodé de
+  chaque graphique) ; démos : `node studio/scripts/demo-scenario.mjs --scenario dircom --morph Datanime-demo-pipeline-morph.pptx`.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -309,7 +341,8 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 | `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Datanime |
 | `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
-| `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire, fenêtre Scénarios |
+| `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire et mode lecture, fenêtre Scénarios |
+| `story/reading.ts`, `story/morph.ts`, `story/morphRender.ts` | Liens `#/lire/…` et démos autonomes ; Morph : noms « !! », injection XML (repli fondu), barres natives extraites du SVG |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts, fenêtre « Mise en forme des données » (`ui/mapping.ts`) |
 
 ## Extensions prévues (V2, non construites)

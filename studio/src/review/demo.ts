@@ -12,6 +12,7 @@ import { SAMPLE_TODAY } from "../data/samples";
 import { drillPathLabels } from "../data/drill";
 import { SCENARIO_DAF, SCENARIO_DIRCOM, guessBinding, runScenario, scenarioSnapshotId, type Scenario } from "../story/scenarios";
 import type { Snapshot } from "../story/snapshots";
+import { demoStoryDef } from "../story/reading";
 import { initials, type Person, type Review, type ReviewComment, type ReviewItem, type Reaction, type ReactionKind } from "./model";
 
 export const DEMO_PIPELINE_ID = "norvia-pipeline-oct-2026";
@@ -267,3 +268,14 @@ export async function demoReviews(): Promise<Review[]> {
 }
 
 export { initials };
+
+/**
+ * Histoire de lecture d'une démo intégrée (`#/lire/demo-dircom…`), recalculée depuis les données de
+ * démonstration embarquées : autonome, le lien s'ouvre sur n'importe quel appareil.
+ */
+export async function demoReadingStory(id: string): Promise<{ title: string; snapshots: Snapshot[] } | null> {
+  const d = demoStoryDef(id);
+  if (!d) return null;
+  const { snaps } = await scenarioSnapshots(d.sampleId, d.scenario, d.generatedAt);
+  return { title: d.scenario.storyTitle, snapshots: snaps };
+}

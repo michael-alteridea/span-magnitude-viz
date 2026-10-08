@@ -189,6 +189,7 @@ body.rv-open .app > :not(.rv-space) { display: none !important; }
 .rv-part-chart .rv-chart { margin-top: 6px; }
 .rv-chart-acts { margin-top: 4px; }
 .rv-swipe { display: none; white-space: nowrap; }
+.rv-l-short { display: none; }
 @media (hover: none) and (pointer: coarse) { .rv-swipe { display: inline; } }
 .rv-part-acts { grid-area: acts; display: flex; flex-direction: column; gap: 12px; align-self: start; padding-top: 30px; }
 .rv-seen-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 12px; border: 0; background: var(--accent-deep); color: #fff; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(14,110,140,.35); }
@@ -244,6 +245,8 @@ body.rv-open .app > :not(.rv-space) { display: none !important; }
   .rv-part-body { padding: 4px 12px 14px; gap: 14px; }
   .rv-part-chart h1 { font-size: 20px; }
   .rv-chart-acts { flex-wrap: nowrap; }
+  .rv-l-long { display: none; }
+  .rv-l-short { display: inline; }
   .rv-chart-acts small { font-size: 11px; }
   .rv-part-acts { display: flex; align-items: stretch; }
   .rv-chart-acts small { display: none; }

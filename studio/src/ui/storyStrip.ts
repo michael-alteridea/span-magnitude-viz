@@ -16,7 +16,11 @@ export interface StoryActions {
   scales?(): Map<string, ScaleInfo>;
   /** Rejoue l'histoire en plein écran. */
   film?(): void;
+  /** Mode lecture plein écran (lien profond par diapositive). */
+  read?(): void;
 }
+
+const MORPH_PREF = "datanime:pptx-morph";
 
 export class StoryStrip {
   readonly root: HTMLElement;
@@ -25,6 +29,9 @@ export class StoryStrip {
   private titleInp: HTMLInputElement;
   private pptxBtn: HTMLButtonElement;
   private filmBtn: HTMLButtonElement;
+  private readBtn: HTMLButtonElement;
+  private morphBox: HTMLInputElement;
+  private morphLabel: HTMLElement;
   private orderBtn: HTMLButtonElement;
   private sameScale: HTMLInputElement;
   private sameScaleLabel: HTMLElement;
@@ -39,6 +46,21 @@ export class StoryStrip {
     this.orderBtn = h("button", { class: "btn btn-small", "data-testid": "story-order", title: "Contexte → tension → révélation → recommandation", onclick: () => this.order() }, "Ordonner en récit");
     this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
     this.filmBtn = h("button", { class: "btn btn-small", "data-testid": "story-film", title: "Rejouer l'histoire en plein écran (animations, commentaires) — ←/→, espace, Échap", onclick: () => this.actions.film?.() }, "▶ Film");
+    this.readBtn = h("button", { class: "btn btn-small", "data-testid": "story-read", title: "Mode lecture plein écran : une diapositive par snapshot, au rythme du lecteur (toucher, balayage, ←/→), lien partageable par diapositive", onclick: () => this.actions.read?.() }, "Mode lecture");
+    this.morphBox = h("input", { type: "checkbox", "data-testid": "story-morph" }) as HTMLInputElement;
+    try {
+      this.morphBox.checked = localStorage.getItem(MORPH_PREF) === "1";
+    } catch {
+      /* stockage indisponible */
+    }
+    this.morphBox.addEventListener("change", () => {
+      try {
+        localStorage.setItem(MORPH_PREF, this.morphBox.checked ? "1" : "0");
+      } catch {
+        /* stockage indisponible */
+      }
+    });
+    this.morphLabel = h("label", { class: "check mini story-morph", title: "PowerPoint : barres en formes natives animées par la transition Morph (PowerPoint 2019 / Microsoft 365), séquence de construction, QR vers le mode lecture ; fondu dans les autres logiciels" }, this.morphBox, h("span", null, "Transitions Morph"));
     this.sameScale = h("input", { type: "checkbox", "data-testid": "story-same-scale" });
     this.sameScale.addEventListener("change", () => this.store.setStory({ ...this.store.state.story, sameScale: this.sameScale.checked }));
     this.sameScaleLabel = h("label", { class: "check mini story-same-scale", title: "Graphiques de même mesure : même échelle dans l'histoire et le PowerPoint (lecture comparable)" }, this.sameScale, h("span", null, "Même échelle"));
@@ -62,10 +84,17 @@ export class StoryStrip {
         this.sameScaleLabel,
         this.orderBtn,
         this.filmBtn,
+        this.readBtn,
+        this.morphLabel,
         this.pptxBtn
       ),
       this.list
     );
+  }
+
+  /** Option d'export « Transitions Morph ». */
+  get morph(): boolean {
+    return this.morphBox.checked;
   }
 
   private isOpen(): boolean {
@@ -86,6 +115,7 @@ export class StoryStrip {
     this.orderBtn.disabled = st.snapshots.length < 2;
     this.pptxBtn.disabled = !st.snapshots.length;
     this.filmBtn.disabled = !st.snapshots.length;
+    this.readBtn.disabled = !st.snapshots.length;
     this.sameScale.checked = !!st.sameScale;
     const scales = this.actions.scales?.() ?? new Map<string, ScaleInfo>();
     this.sameScaleLabel.classList.toggle("dim", scales.size === 0);

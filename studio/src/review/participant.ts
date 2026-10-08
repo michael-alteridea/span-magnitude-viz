@@ -186,7 +186,8 @@ export function participantPage(ctx: Ctx, r: Review, snapId: string | null, opts
         h(
           "div",
           { class: "rv-row rv-chart-acts" },
-          h("button", { class: "btn", type: "button", "data-testid": "rv-replay", onclick: () => chart.play() }, ic("replay", 15), "Revoir l'animation"),
+          h("button", { class: "btn", type: "button", "data-testid": "rv-replay", onclick: () => chart.play() }, ic("replay", 15), h("span", { class: "rv-l-long" }, "Revoir l'animation"), h("span", { class: "rv-l-short" }, "Revoir")),
+          ctx.deps.read ? h("button", { class: "btn", type: "button", "data-testid": "rv-part-read", title: "Lecture plein écran à partir de ce snapshot", onclick: () => ctx.deps.read?.(r.id, s.id) }, ic("book", 15), h("span", { class: "rv-l-long" }, "Mode lecture"), h("span", { class: "rv-l-short" }, "Lecture")) : null,
           h("span", { class: "rv-swipe muted small" }, "‹ glisser ›"),
           h("span", { class: "rv-spacer" }),
           prov ? h("small", { class: "muted" }, `Empreinte des données ${prov.slice(0, 4)}·${prov.slice(4, 8)}`) : null

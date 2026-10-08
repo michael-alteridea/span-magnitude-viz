@@ -224,6 +224,25 @@ describe("cartouche Datanime", () => {
     // offre pro : seule à pouvoir retirer tout le cartouche
     expect(draw({ ...BAR, branding: "pro", style: { ...BAR.style, brandMark: false } }).svg.querySelector(".r4d-cartouche")).toBeNull();
   });
+  it("QR vers le mode lecture (diapositives PowerPoint) : remplace le QR d'empreinte, décodable", () => {
+    const url = "https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap";
+    const { svg } = draw(BAR, { qrUrl: url, bare: true });
+    const qr = svg.querySelector(".r4d-cartouche svg.r4d-qr")!;
+    expect(qr.getAttribute("data-url")).toBe(url);
+    expect(qr.getAttribute("data-kind")).toBe("read");
+    expect(svg.querySelector("a.r4d-qr-link")?.getAttribute("href")).toBe(url);
+    expect(svg.querySelector("a.r4d-qr-link title")?.textContent).toMatch(/mode lecture/);
+    const n = Number(qr.getAttribute("data-modules"));
+    expect(decode(matrixFromPath(qr.querySelector("path")!.getAttribute("d")!, n))).toBe(url);
+    // QR en bas à droite du graphique (dans le cartouche)
+    const box = svg.querySelector(".r4d-cartouche-box")!;
+    expect(Number(qr.getAttribute("x"))).toBeGreaterThan(Number(box.getAttribute("x")));
+    expect(Number(box.getAttribute("x")) + Number(box.getAttribute("width"))).toBeGreaterThan(1200 * 0.8);
+    // lisible : ≥ 1,2 px par module dès le PNG 1× (images PowerPoint en 3×)
+    expect(Number(qr.getAttribute("width")) / (n + 2 * QR_QUIET)).toBeGreaterThanOrEqual(1.2);
+    // sans lien imposé : QR d'empreinte
+    expect(draw(BAR).svg.querySelector("svg.r4d-qr")?.getAttribute("data-kind")).toBe("verify");
+  });
   it("sans provenance (aucune empreinte) : cartouche sans QR ni ligne « Données »", () => {
     const { svg } = draw({ ...BAR, provenance: null });
     expect(svg.querySelector(".r4d-cartouche-date")).toBeTruthy();
