@@ -9,10 +9,10 @@
 import type { DrillSpec, DrillView, NarrativeRole } from "../spec";
 import type { Dataset } from "../data/table";
 import { columnOf } from "../data/table";
-import { buildDrillModel, drillInto, drillView, guessDrillDate, guessDrillMeasure, guessPersonField, guessRegionField, initDrill, rootGrain } from "../data/drill";
+import { buildDrillModel, drillDefaultView, drillInto, drillTo, drillView, guessDrillDate, guessDrillMeasure, guessLevels, guessNature, guessPersonField, guessRegionField, guessVersion, initDrill, rootGrain, versionPair } from "../data/drill";
 import { drillStory, type DrillStory } from "./drillStory";
 
-export type ScenarioRoleId = "date" | "mesure" | "region" | "commercial" | "version" | "ligne" | "nature";
+export type ScenarioRoleId = "date" | "mesure" | "region" | "commercial" | "version" | "ligne" | "nature" | "compte";
 
 export interface ScenarioRole {
   id: ScenarioRoleId;
@@ -28,10 +28,14 @@ export type ScenarioOp =
   | { op: "root" }
   /** Zoom sur la période qui décroche (la plus forte baisse vs sa référence). */
   | { op: "zoomStandout" }
-  /** Change de vue (carte, historique, détail) selon la colonne d'un rôle. */
-  | { op: "view"; view: DrillView; by: ScenarioRoleId }
+  /** Change de vue (carte, historique, détail) selon la colonne d'un rôle ; `reset` : depuis la vue de départ. */
+  | { op: "view"; view: DrillView; by: ScenarioRoleId; reset?: boolean }
   /** Focalise la catégorie qui explique l'écart (région, commercial…). */
-  | { op: "focusStandout" };
+  | { op: "focusStandout" }
+  /** Cascade : descend dans le plus fort facteur positif (+1) ou négatif (−1) ; `reset` : depuis la cascade de départ. */
+  | { op: "focusImpact"; sign: 1 | -1; reset?: boolean }
+  /** Tableau croisé : X (« @month », « @quarter » ou rôle), séries (rôle, « @version » ou rien), mesure et graphique. */
+  | { op: "pivot"; x: "@month" | "@quarter" | ScenarioRoleId; series: ScenarioRoleId | "@version" | null; agg: "sum" | "mean" | "count" | "delta"; chart: "bar" | "line" };
 
 export interface ScenarioStep {
   /** Identifiant stable de l'étape (sert à l'identifiant stable du snapshot). */
@@ -42,6 +46,8 @@ export interface ScenarioStep {
   role: NarrativeRole;
   /** Commentaire ajouté au récit calculé ; {clé} remplacé par les faits mesurés (étape ignorée si une clé manque). */
   note?: string;
+  /** Étape sautée (au lieu d'arrêter le scénario) si elle n'a pas de sens sur ces données (rôle facultatif absent…). */
+  optional?: boolean;
 }
 
 export interface Scenario {
@@ -87,7 +93,35 @@ export const SCENARIO_DIRCOM: Scenario = {
   sampleId: "demo-pipeline",
 };
 
-export const SCENARIOS: Scenario[] = [SCENARIO_DIRCOM];
+export const SCENARIO_DAF: Scenario = {
+  id: "daf",
+  persona: "Directeur financier",
+  label: "Scénario Directeur financier",
+  description: "Marge : cascade Réel → Budget par ligne métier → revenus et coûts par compte → mois → carte → tableau croisé.",
+  storyTitle: "Budget 2026 vs réel 2025 — revue financière",
+  measureLabel: "Marge contributive",
+  roles: [
+    { id: "date", label: "Mois", type: "date", required: true, help: "Mois (ou date) de chaque montant" },
+    { id: "mesure", label: "Montant", type: "number", required: true },
+    { id: "version", label: "Version (Réel / Budget)", type: "category", required: true, help: "Réel 2025, Budget 2026… : le plus ancien réel est comparé au budget le plus récent" },
+    { id: "ligne", label: "Ligne métier", type: "category", required: true, help: "Premier niveau de la cascade (Cloud, Services…)" },
+    { id: "compte", label: "Compte", type: "category", required: true, help: "Second niveau (sous-compte, poste)" },
+    { id: "nature", label: "Nature (Revenus / Coûts)", type: "category", required: false, help: "Les coûts sont soustraits ; vide : montants additionnés" },
+    { id: "region", label: "Région", type: "category", required: false, help: "Facultatif : étape carte" },
+  ],
+  steps: [
+    { id: "01-cascade", name: "Cascade réel → budget", op: { op: "root" }, role: "context" },
+    { id: "02-hausse", name: "Facteur en hausse", op: { op: "focusImpact", sign: 1 }, role: "revelation" },
+    { id: "03-hausse-mois", name: "Compte en hausse, par mois", op: { op: "focusImpact", sign: 1 }, role: "revelation" },
+    { id: "04-baisse", name: "Facteur en baisse", op: { op: "focusImpact", sign: -1, reset: true }, role: "tension" },
+    { id: "05-baisse-mois", name: "Compte en baisse, par mois", op: { op: "focusImpact", sign: -1 }, role: "tension" },
+    { id: "06-carte", name: "Répartir dans l'espace", op: { op: "view", view: "map", by: "region", reset: true }, role: "revelation", optional: true },
+    { id: "07-tableau-croise", name: "Tableau croisé par trimestre", op: { op: "pivot", x: "@quarter", series: "ligne", agg: "delta", chart: "bar" }, role: "recommendation" },
+  ],
+  sampleId: "demo-finance",
+};
+
+export const SCENARIOS: Scenario[] = [SCENARIO_DIRCOM, SCENARIO_DAF];
 
 export function scenarioById(id: string | null | undefined): Scenario | undefined {
   return SCENARIOS.find((s) => s.id === id);
@@ -101,7 +135,12 @@ export function guessBinding(sc: Scenario, ds: Dataset): RoleBinding {
     else if (r.id === "mesure") out.mesure = guessDrillMeasure(ds);
     else if (r.id === "region") out.region = guessRegionField(ds);
     else if (r.id === "commercial") out.commercial = guessPersonField(ds);
-    else out[r.id] = null;
+    else if (r.id === "version") out.version = guessVersion(ds)?.field ?? null;
+    else if (r.id === "nature") out.nature = guessNature(ds);
+    else if (r.id === "ligne" || r.id === "compte") {
+      const lv = guessLevels(ds, { version: out.version ?? guessVersion(ds)?.field ?? null, nature: guessNature(ds), date: guessDrillDate(ds) });
+      out[r.id] = (r.id === "ligne" ? lv[0] : lv[1]) ?? null;
+    } else (out as Record<string, string | null>)[r.id] = null;
   }
   return out;
 }
@@ -144,7 +183,22 @@ export function applyOp(op: ScenarioOp, d: DrillSpec, ds: Dataset, b: RoleBindin
   if (op.op === "view") {
     const col = b[op.by];
     if (!col || !columnOf(ds, col)) return null;
-    return drillView(d, op.view, col);
+    return drillView(op.reset ? drillTo(d, 0, root) : d, op.view, col);
+  }
+  if (op.op === "pivot") {
+    const x = op.x.startsWith("@") ? op.x : b[op.x as ScenarioRoleId] ?? null;
+    const series = op.series === "@version" || op.series == null ? op.series : b[op.series] ?? null;
+    if (!x) return null;
+    return { ...d, view: "pivot", pivot: { x, series, agg: op.agg, chart: op.chart } };
+  }
+  if (op.op === "focusImpact") {
+    let base = op.reset ? drillTo(d, 0, root) : d;
+    if (base.view !== "bridge") base = { ...base, ...drillDefaultView(base, root) };
+    const { model: bm } = buildDrillModel({ drill: base, transform: NO_TRANSFORM }, ds);
+    if (!bm || bm.view !== "bridge") return null;
+    const i = op.sign > 0 ? bm.topPos : bm.topNeg;
+    if (i == null) return null;
+    return drillInto(base, { kind: "cat", field: bm.field, value: bm.items[i]!.key }, root);
   }
   const { model } = buildDrillModel({ drill: d, transform: NO_TRANSFORM }, ds);
   if (!model) return null;
@@ -161,10 +215,13 @@ export function applyOp(op: ScenarioOp, d: DrillSpec, ds: Dataset, b: RoleBindin
 
 /** Déroule le scénario sur un jeu de données ; s'arrête à la première étape impossible (avec la raison). */
 export function runScenario(sc: Scenario, ds: Dataset, b: RoleBinding): { frames: ScenarioFrame[]; stoppedAt: ScenarioStep | null } {
-  let d: DrillSpec = initDrill(ds, { date: b.date ?? undefined, measure: b.mesure ?? null, label: sc.measureLabel, by: b.region ?? b.commercial ?? null });
+  const vp = b.version ? versionPair(ds, b.version) : null;
+  const versions = vp ? { version: b.version!, from: vp.from, to: vp.to, nature: b.nature ?? null, levels: [b.ligne, b.compte].filter((x): x is string => !!x && !!columnOf(ds, x)) } : {};
+  let d: DrillSpec = initDrill(ds, { date: b.date ?? undefined, measure: b.mesure ?? null, label: sc.measureLabel, by: b.region ?? b.commercial ?? null, ...versions });
   const frames: ScenarioFrame[] = [];
   for (const step of sc.steps) {
     const next = applyOp(step.op, d, ds, b);
+    if (!next && step.optional) continue;
     if (!next) return { frames, stoppedAt: step };
     d = next;
     const story = drillStory({ drill: d, transform: NO_TRANSFORM }, ds);

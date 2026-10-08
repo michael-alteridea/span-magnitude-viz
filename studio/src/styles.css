@@ -493,6 +493,10 @@ tr.in-series .mw-row-btn { color: #fff; font-weight: 700; }
 .drill-suggest { border-style: dashed; border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .drill-snap { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
 .drill-views { display: flex; gap: 6px; flex-wrap: wrap; }
+.pivot-panel { padding: 6px 8px; border-radius: 10px; background: rgba(63, 167, 196, .07); border: 1px dashed var(--line-2); }
+.pivot-field { display: inline-flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pivot-field .drill-select { text-transform: none; letter-spacing: 0; min-width: 120px; }
+.pivot-scope { font-size: 12px; color: var(--muted); margin-left: auto; }
 .drill-select { min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); font: inherit; font-size: 14px; }
 .drill-guide { font-size: 13px; color: var(--muted); padding: 2px 4px 0; }
 .r4d-drill-hit { -webkit-tap-highlight-color: transparent; }

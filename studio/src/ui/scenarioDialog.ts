@@ -6,6 +6,7 @@
 import type { Store } from "../state";
 import { SCENARIOS, guessBinding, missingRoles, scenarioById, type RoleBinding, type Scenario } from "../story/scenarios";
 import { sampleById } from "../data/samples";
+import { versionPair } from "../data/drill";
 import { h, svgIcon, ICONS } from "./dom";
 
 export interface ScenarioDialogActions {
@@ -97,7 +98,9 @@ export class ScenarioDialog {
           this.binding = { ...this.binding, [r.id]: sel.value || null };
           this.render();
         });
-        return h("label", { class: `sc-role${missing.includes(r) ? " missing" : ""}` }, h("span", null, r.label, r.required ? " *" : ""), sel, r.help ? h("small", null, r.help) : null);
+        const vp = r.id === "version" && ds && this.binding.version ? versionPair(ds, this.binding.version) : null;
+        const help = vp ? `Comparaison : ${vp.from} → ${vp.to}` : r.help;
+        return h("label", { class: `sc-role${missing.includes(r) ? " missing" : ""}` }, h("span", null, r.label, r.required ? " *" : ""), sel, help ? h("small", { "data-testid": vp ? "scenario-version-pair" : null }, help) : null);
       })
     );
     const steps = h("ol", { class: "sc-steps" }, ...sc.steps.map((s) => h("li", null, s.name)));

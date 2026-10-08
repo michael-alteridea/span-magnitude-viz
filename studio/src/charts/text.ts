@@ -18,7 +18,8 @@ export function measure(text: string, sizePx: number, family: string, weight = 4
 
 /** Coupe un texte en lignes de largeur max ; tronque avec « … » au-delà de maxLines. */
 export function wrap(text: string, maxWidth: number, sizePx: number, family: string, weight = 400, maxLines = 2): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
+  // Espaces insécables (« 3,6 M€ », « 12 % ») conservées : pas de coupure entre un nombre et son unité
+  const words = text.split(/[ \t\r\n]+/).filter(Boolean);
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {

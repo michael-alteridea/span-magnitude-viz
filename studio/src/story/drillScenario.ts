@@ -10,7 +10,7 @@ export function applySuggestion(d: DrillSpec, ds: Dataset, transform: { calculat
   if (!s) return null;
   const root = d.date ? rootGrain(ds, d.date) : d.grain;
   if (s.target) return drillInto(d, s.target, root);
-  if (s.view) return drillView(d, s.view, s.by ?? d.by);
+  if (s.view) return { ...drillView(d, s.view, s.by ?? d.by), ...(s.pivot ? { pivot: { ...d.pivot, ...s.pivot } } : {}) };
   return null;
 }
 

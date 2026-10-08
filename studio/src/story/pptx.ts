@@ -1,7 +1,7 @@
 /**
  * Export PowerPoint de l'histoire (pptxgenjs, chargé à la demande) :
  * couverture bleu pétrole (logo Tell4D), sommaire, puis une diapositive par snapshot — rôle, titre d'action,
- * sous-titre IBCS, graphique PNG 2× (avec sa signature), commentaires, filet d'accent.
+ * sous-titre IBCS, graphique PNG 3× (avec sa signature), commentaires, filet d'accent.
  * Module sans DOM : les images sont fournies par l'appelant (testable sous Node).
  */
 import type { ChartSpec } from "../spec";
@@ -34,6 +34,11 @@ const SLIDE_H = 7.5;
 const hex = (c: string) => c.replace("#", "").slice(0, 6).toUpperCase();
 
 /** Cartouche « label qualité » d'une diapositive (couverture, sommaire). */
+/** Typographie française : espace insécable avant « : ; ! ? » et entre un nombre et son unité (pas de retour à la ligne). */
+function frSpaces(t: string): string {
+  return t.replace(/ ([:;!?»])/g, "\u00a0$1").replace(/« /g, "«\u00a0").replace(/(\d) (k€|M€|€|%)/g, "$1\u00a0$2");
+}
+
 function cartouche(slide: any, opts: { dark: boolean; date: string; source?: string }) {
   const x = SLIDE_W - 4.1;
   const y = SLIDE_H - 0.78;
@@ -139,7 +144,7 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   slide.background = { color: bg };
   slide.addShape("rect", { x: 0.5, y: 0.42, w: 0.6, h: 0.07, fill: { color: accent }, line: { color: accent } });
   slide.addText(`${ROLE_LABELS[s.role].toUpperCase()} · ${i + 1}/${total - 2}`, { x: 1.25, y: 0.3, w: 6, h: 0.3, fontFace: FONT, fontSize: 10, bold: true, color: accent, charSpacing: 1, margin: 0 });
-  slide.addText(s.title || s.name, { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink" });
+  slide.addText(frSpaces(s.title || s.name), { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink" });
   if (s.subtitle) slide.addText(s.subtitle, { x: 0.5, y: 1.55, w: 12.3, h: 0.4, fontFace: FONT, fontSize: 13, color: muted, margin: 0, fit: "shrink" });
   const comments = s.comments.filter((c) => c.trim());
   const norme = !!(spec as Partial<ChartSpec>)?.norme?.enabled;
@@ -180,8 +185,8 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   if (comments.length) {
     slide.addText("À RETENIR", { x: 9.0, y: 2.1, w: 3.8, h: 0.35, fontFace: FONT, fontSize: 11, bold: true, color: accent, charSpacing: 1.5, margin: 0 });
     slide.addText(
-      comments.map((c) => ({ text: c, options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
-      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 14, color: text, valign: "top", margin: 0, fit: "shrink" }
+      comments.map((c) => ({ text: frSpaces(c), options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
+      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 15, color: text, valign: "top", margin: 0, fit: "shrink" }
     );
   }
   slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 } });

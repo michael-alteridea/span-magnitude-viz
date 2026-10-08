@@ -13,7 +13,14 @@ import {
   grainLabel,
   guessPersonField,
   guessRegionField,
+  isCostLabel,
+  levelsOf,
   type BreakdownModel,
+  type BridgeItem,
+  type BridgeModel,
+  type CompareModel,
+  type PivotModel,
+  type PivotSeries,
   type DrillCtx,
   type DrillModel,
   type DrillTarget,
@@ -25,6 +32,8 @@ import { capitalize, formatAmount, formatInt, formatNumber, formatPct, formatSig
 
 export interface DrillSuggestion {
   label: string;
+  /** Réglages du tableau croisé (vue « pivot »). */
+  pivot?: Partial<DrillSpec["pivot"]>;
   /** Étape à ajouter (zoom / focus) ou vue à ouvrir. */
   target?: DrillTarget;
   view?: DrillSpec["view"];
@@ -48,7 +57,7 @@ const MONTHS_LONG = ["janvier", "février", "mars", "avril", "mai", "juin", "jui
 
 /** Unité des montants : monétaire si la colonne le dit. */
 export function isMoney(ctx: DrillCtx): boolean {
-  return !!ctx.measure && /montant|amount|€|eur|chiffre|\bca\b|revenu|pipeline|vente|budget|co[uû]t/i.test(ctx.measure.name + " " + ctx.spec.label);
+  return !!ctx.measure && /montant|amount|€|eur|chiffre|\bca\b|revenu|pipeline|vente|budget|co[uû]t|marge/i.test(ctx.measure.name + " " + ctx.spec.label);
 }
 
 export interface Fmt {
@@ -67,9 +76,17 @@ export function fmtOf(ctx: DrillCtx): Fmt {
   const item = /opportunit/i.test(cols) ? { sg: "opportunité", pl: "opportunités", f: true } : /affaire|deal/i.test(cols) ? { sg: "affaire", pl: "affaires", f: true } : /commande|order/i.test(cols) ? { sg: "commande", pl: "commandes", f: true } : { sg: "ligne", pl: "lignes", f: true };
   const measure = ctx.spec.label.trim() || (ctx.measure ? measureLabel(ctx.measure.name).replace(/_/g, " ").replace(/\beur\b/i, "").trim() : `nombre ${item.pl.startsWith("o") || item.pl.startsWith("a") ? "d'" : "de "}${item.pl}`);
   const created = /cr[ée]a|creat/i.test(ctx.date.name);
+  // Comparaison de versions : montants en M€ à une décimale (18,1 M€ → 17,7 M€)
+  const m1 = (a: number) => {
+    const t = formatNumber(Math.round(a * 10) / 10, 1);
+    return /,/.test(t) ? t : `${t},0`;
+  };
+  // ≥ 1 M€, ou dixième de M€ « rond » (0,5 M€) : en M€ ; sinon en k€ (450 k€)
+  const inM = (a: number) => a >= 0.95e6 || (a >= 1e5 && Math.abs(a / 1e5 - Math.round(a / 1e5)) < 0.005);
+  const amt = (x: number) => (ctx.ver && inM(Math.abs(x)) ? `${x < 0 ? MINUS : ""}${m1(Math.abs(x) / 1e6)}${NBSP}M€` : formatAmount(x));
   return {
-    v: (x) => (ctx.measure ? (money ? formatAmount(x) : formatNumber(x, Math.abs(x) >= 100 ? 0 : 1)) : formatInt(x)),
-    sv: (x) => (ctx.measure ? (money ? formatSignedAmount(x) : (x > 0 ? "+" : x < 0 ? MINUS : "") + formatNumber(Math.abs(x), 1)) : (x > 0 ? "+" : x < 0 ? MINUS : "") + formatInt(Math.abs(x))),
+    v: (x) => (ctx.measure ? (money ? amt(x) : formatNumber(x, Math.abs(x) >= 100 ? 0 : 1)) : formatInt(x)),
+    sv: (x) => (ctx.measure ? (money ? (x > 0 ? "+" : "") + amt(x) : (x > 0 ? "+" : x < 0 ? MINUS : "") + formatNumber(Math.abs(x), 1)) : (x > 0 ? "+" : x < 0 ? MINUS : "") + formatInt(Math.abs(x))),
     n: (x) => formatInt(x),
     item,
     measure: measure.charAt(0).toLocaleLowerCase("fr-FR") + measure.slice(1),
@@ -98,6 +115,12 @@ const VIEW_LABEL = (d: DrillSpec, m: DrillModel, byNoun: string): string => {
       return `historique par ${byNoun}`;
     case "breakdown":
       return `par ${byNoun}`;
+    case "bridge":
+      return `cascade par ${nounOf(m.field).sg}`;
+    case "compare":
+      return "par mois";
+    case "pivot":
+      return `tableau croisé par ${m.xIsTime ? m.xLabel : nounOf(m.x).sg}${m.seriesField && m.seriesField !== "@version" ? ` et ${nounOf(m.seriesField).sg}` : ""}`;
   }
   void d;
   return "";
@@ -306,15 +329,24 @@ export function drillStory(spec: Pick<ChartSpec, "drill" | "transform">, ds: Dat
     case "history":
       core = historyStory(model, ctx, f);
       break;
+    case "bridge":
+      core = bridgeStory(model, ctx, f);
+      break;
+    case "compare":
+      core = compareStory(model, ctx, f);
+      break;
+    case "pivot":
+      core = pivotStory(model, ctx, f);
+      break;
     default:
-      core = breakdownStory(model, ctx, f, ctx.eff);
+      core = ctx.ver ? versionBreakdownStory(model, ctx, f) : breakdownStory(model, ctx, f, ctx.eff);
   }
   const viewLabel = VIEW_LABEL(d, model, byNoun);
   const path = drillPathLabels(d);
   const unit = isMoney(ctx) ? " en €" : "";
-  const where = path.length > 1 ? path.slice(1).join(" › ") : spanLabel(ctx);
-  const scope = `${f.Measure}${unit} · ${where} · ${viewLabel}`;
-  return { ...core, title: core.title.replace(/\s+/g, " ").trim(), scope, viewLabel, path, suggestion: suggest(model, ctx, d, ds) };
+  const where = path.length > 1 ? path.slice(1).join(" › ") : ctx.ver ? "" : spanLabel(ctx);
+  const scope = ctx.ver ? [`${f.Measure}${unit}`, `${ctx.fromLabel} → ${ctx.toLabel}`, where, viewLabel].filter(Boolean).join(" · ") : `${f.Measure}${unit} · ${where} · ${viewLabel}`;
+  return { ...core, title: core.title.replace(/[ \t\r\n]+/g, " ").trim(), scope, viewLabel, path, suggestion: suggest(model, ctx, d, ds) };
 }
 
 /** Piste suivante (bouton « Suggestion » de la barre d'exploration et scénario démo). */
@@ -322,6 +354,20 @@ function suggest(m: DrillModel, ctx: DrillCtx, d: DrillSpec, ds: Dataset): Drill
   const region = guessRegionField(ctx.eff);
   const person = guessPersonField(ctx.eff);
   const usedCats = new Set(ctx.cats.map((c) => c.field));
+  if (ctx.ver) {
+    if (m.view === "bridge") {
+      const pick = [m.topNeg, m.topPos].filter((i): i is number => i != null).sort((a, b) => Math.abs(m.items[b]!.value) - Math.abs(m.items[a]!.value))[0];
+      if (pick == null) return null;
+      const it = m.items[pick]!;
+      return { label: `Détailler ${it.key}`, target: { kind: "cat", field: m.field, value: it.key } };
+    }
+    if (m.view === "compare") {
+      if (region && !usedCats.has(region)) return { label: "Répartir dans l'espace", view: "map", by: region };
+      return { label: "Tableau croisé", view: "pivot", pivot: { x: "@quarter", series: levelsOf(d, ctx.eff)[0] ?? null, agg: "delta", chart: "bar" } };
+    }
+    if (m.view === "map" || m.view === "breakdown") return { label: "Tableau croisé par trimestre", view: "pivot", pivot: { x: "@quarter", series: levelsOf(d, ctx.eff).find((x) => !usedCats.has(x)) ?? null, agg: "delta", chart: "bar" } };
+    return null;
+  }
   if (m.view === "periods") {
     if (m.focus != null && m.focusKind === "standout") {
       const b = m.bars[m.focus]!;
@@ -343,4 +389,167 @@ function suggest(m: DrillModel, ctx: DrillCtx, d: DrillSpec, ds: Dataset): Drill
   void addGrain;
   void columnOf;
   return null;
+}
+
+/* ------------------------------------------------------------------ versions (réel → budget) */
+
+/** « 2025 » pour « Réel 2025 » (sinon le libellé complet). */
+function yearOf(label: string): string {
+  return label.match(/(19|20)\d{2}/)?.[0] ?? label;
+}
+
+/** « de coûts d'hébergement » (compte dominant nommé « Coûts … ») ou « de coûts ». */
+function costPhrase(items: BridgeItem[], costDelta: number): string {
+  const costs = items.filter((it) => it.kind === "delta" && Math.abs(it.cost) > 0);
+  const top = costs.sort((a, b) => Math.abs(b.cost) - Math.abs(a.cost))[0];
+  if (top && Math.abs(costDelta) > 0 && top.cost / costDelta >= 0.8 && /^co[uû]ts?\s/i.test(top.key)) return `de ${top.key.charAt(0).toLocaleLowerCase("fr-FR")}${top.key.slice(1)}`;
+  return "de coûts";
+}
+
+function bridgeStory(m: BridgeModel, ctx: DrillCtx, f: Fmt): Omit<DrillStory, "scope" | "viewLabel" | "path" | "suggestion"> {
+  const scope = ctx.cats.map((c) => c.value).join(" · ");
+  const vs = yearOf(m.fromLabel);
+  const pos = m.topPos != null ? m.items[m.topPos]! : null;
+  const neg = m.topNeg != null ? m.items[m.topNeg]! : null;
+  const deltas = m.items.filter((it) => it.kind === "delta");
+  const facts: Record<string, string | number> = { delta: m.delta, start: m.start, end: m.end, top_pos: pos?.key ?? "", top_neg: neg?.key ?? "" };
+  const comments: string[] = [];
+  const split = (it: BridgeItem) => (ctx.cost ? `, dont ${f.sv(it.rev)} de revenus et ${f.sv(it.cost)} de coûts` : "");
+  if (m.groupField && m.revDelta != null && m.costDelta != null) {
+    // Un facteur (ligne métier) détaillé par compte : revenus puis coûts
+    const who = scope || f.Measure;
+    const title = `${who} : ${f.sv(m.delta)} vs ${vs}, dont ${f.sv(m.revDelta)} de revenus et ${f.sv(m.costDelta)} ${costPhrase(deltas, m.costDelta)}`;
+    const revs = deltas.filter((it) => !isCostLabel(it.group)).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    const costs = deltas.filter((it) => isCostLabel(it.group)).sort((a, b) => Math.abs(b.cost) - Math.abs(a.cost));
+    const r0 = revs[0];
+    if (r0 && Math.abs(r0.value) > 0) comments.push(`${r0.key} : ${f.sv(r0.value)}${m.revDelta && Math.sign(m.revDelta) === Math.sign(r0.value) && Math.abs(r0.value) <= Math.abs(m.revDelta) * 1.001 ? `, ${formatPct(r0.value / m.revDelta)} de ${m.revDelta > 0 ? "la hausse" : "la baisse"} des revenus` : ""}.`);
+    const c0 = costs[0];
+    if (c0 && Math.abs(c0.cost) > 0) comments.push(`${c0.key} : ${f.sv(c0.cost)} de coûts${m.costDelta && Math.sign(m.costDelta) === Math.sign(c0.cost) && Math.abs(c0.cost) <= Math.abs(m.costDelta) * 1.001 ? ` (${formatPct(c0.cost / m.costDelta)} de ${m.costDelta > 0 ? "la hausse" : "la baisse"} des coûts)` : ""}.`);
+    comments.push(`${capitalize(f.measure)} ${scope ? `${scope} ` : ""}: ${f.v(m.start)} (${m.fromLabel}) → ${f.v(m.end)} (${m.toLabel}), ${pct(m.delta / (Math.abs(m.start) || 1))}.`);
+    Object.assign(facts, { rev: m.revDelta, cost: m.costDelta });
+    return { title, comments: comments.slice(0, 3), role: m.delta >= 0 ? "revelation" : "tension", facts };
+  }
+  const who = scope ? `${scope} · ` : "";
+  let title: string;
+  if (pos && neg && m.delta < 0 && Math.abs(neg.value) > pos.value) title = `${who}${m.toLabel} : ${f.sv(m.delta)} vs ${m.fromLabel} — ${neg.key} (${f.sv(neg.value)}) efface la hausse de ${pos.key} (${f.sv(pos.value)})`;
+  else if (pos && m.delta >= 0) title = `${who}${m.toLabel} : ${f.sv(m.delta)} vs ${m.fromLabel}, porté par ${pos.key} (${f.sv(pos.value)})${neg ? ` malgré ${neg.key} (${f.sv(neg.value)})` : ""}`;
+  else if (neg) title = `${who}${m.toLabel} : ${f.sv(m.delta)} vs ${m.fromLabel}, ${neg.key} pèse le plus (${f.sv(neg.value)})`;
+  else title = `${who}${m.toLabel} : ${f.sv(m.delta)} vs ${m.fromLabel}`;
+  if (pos) comments.push(`${pos.key} : ${f.sv(pos.value)} vs ${vs}${split(pos)}.`);
+  if (neg) comments.push(`${neg.key} : ${f.sv(neg.value)} vs ${vs}${split(neg)}.`);
+  const rest = deltas.filter((it) => it !== pos && it !== neg);
+  if (rest.length) comments.push(`${rest.length === 1 ? "Autre facteur" : "Autres facteurs"} : ${rest.slice(0, 4).map((it) => `${it.key} ${f.sv(it.value)}`).join(", ")}.`);
+  return { title, comments: comments.slice(0, 3), role: m.delta < 0 ? "context" : "context", facts };
+}
+
+const MONTHS_CAP = MONTHS_LONG.map((x) => capitalize(x));
+
+function compareStory(m: CompareModel, ctx: DrillCtx, f: Fmt): Omit<DrillStory, "scope" | "viewLabel" | "path" | "suggestion"> {
+  const name = ctx.cats.length ? ctx.cats[ctx.cats.length - 1]!.value! : f.Measure;
+  const comments: string[] = [];
+  const r = m.fromTotal ? m.delta / Math.abs(m.fromTotal) : 0;
+  const dl = m.months.map((x) => x.delta ?? 0);
+  const facts: Record<string, string | number> = { delta: m.delta, h1: m.h1, h2: m.h2, break: m.breakAt != null ? MONTHS_LONG[m.breakAt]! : "" };
+  let title: string;
+  let role: NarrativeRole = "revelation";
+  const kind = m.costOnly ? " de coûts" : "";
+  if (m.breakAt != null && m.delta < 0 !== m.costOnly) {
+    const after = dl.slice(m.breakAt);
+    const avg = after.reduce((a, b) => a + b, 0) / after.length;
+    title = `${name} : ${f.sv(m.delta)}${kind} au ${m.toLabel}, rupture à partir de ${MONTHS_LONG[m.breakAt]} (${f.sv(avg)} par mois)`;
+    role = "tension";
+  } else if (m.delta !== 0 && Math.abs(m.h2) / (Math.abs(m.h1) + Math.abs(m.h2) || 1) >= 0.6 && Math.sign(m.h2) === Math.sign(m.delta)) {
+    title = `${name} : ${f.sv(m.delta)}${kind} au ${m.toLabel}, dont ${formatPct(m.h2 / m.delta)} au second semestre`;
+  } else title = `${name} : ${f.sv(m.delta)}${kind} au ${m.toLabel} vs ${m.fromLabel} (${pct(r)})`;
+  comments.push(`${m.fromLabel} : ${f.v(m.fromTotal)} ; ${m.toLabel} : ${f.v(m.toTotal)} (${pct(r)}).`);
+  if (m.breakAt != null) {
+    const before = dl.slice(0, m.breakAt);
+    const after = dl.slice(m.breakAt);
+    const avgB = before.reduce((a, b) => a + b, 0) / before.length;
+    const avgA = after.reduce((a, b) => a + b, 0) / after.length;
+    const span = m.breakAt === 1 ? MONTHS_CAP[0] : `${MONTHS_CAP[0]}–${MONTHS_LONG[m.breakAt - 1]}`;
+    comments.push(Math.abs(avgB) < Math.abs(avgA) * 0.1 ? `${span} au niveau de ${yearOf(m.fromLabel)}, puis ${f.sv(avgA)} par mois de ${MONTHS_LONG[m.breakAt]} à décembre.` : `${span} : ${f.sv(avgB)} par mois vs ${yearOf(m.fromLabel)}, puis ${f.sv(avgA)} par mois de ${MONTHS_LONG[m.breakAt]} à décembre.`);
+    if (m.delta < 0 && !m.costOnly) comments.push(`Piste : contrat perdu ou non renouvelé fin ${MONTHS_LONG[m.breakAt - 1]} ? À confirmer avec le contrôle de gestion.`);
+    else if (m.delta > 0 && !m.costOnly) comments.push(`Piste : la hausse repose sur des contrats attendus à partir de ${MONTHS_LONG[m.breakAt]} : à sécuriser.`);
+  } else {
+    comments.push(`1er semestre : ${f.sv(m.h1)} ; 2nd semestre : ${f.sv(m.h2)}.`);
+  }
+  return { title, comments: comments.slice(0, 3), role, facts };
+}
+
+function pivotStory(m: PivotModel, ctx: DrillCtx, f: Fmt): Omit<DrillStory, "scope" | "viewLabel" | "path" | "suggestion"> {
+  const comments: string[] = [];
+  const facts: Record<string, string | number> = {};
+  const xs = m.xIsTime ? m.xLabel : nounOf(m.x).sg;
+  if (m.isDelta && m.series.length > 1) {
+    const sorted = [...m.series].sort((a, b) => b.total - a.total);
+    const pos = sorted[0]!.total > 0 ? sorted[0]! : null;
+    const neg = sorted[sorted.length - 1]!.total < 0 ? sorted[sorted.length - 1]! : null;
+    const half = Math.floor(m.keys.length / 2);
+    const late = (se: PivotSeries) => se.values.slice(half).reduce<number>((a, v) => a + (v ?? 0), 0);
+    const parts: string[] = [];
+    if (pos) {
+      const share = pos.total ? late(pos) / pos.total : 0;
+      parts.push(share >= 0.6 && m.xIsTime ? `${pos.key} ${f.sv(pos.total)} (${formatPct(share)} sur ${m.keys[half]}–${m.keys[m.keys.length - 1]})` : `${pos.key} ${f.sv(pos.total)}`);
+    }
+    if (neg) {
+      const k = neg.values.findIndex((v) => (v ?? 0) < 0 && Math.abs(v ?? 0) >= Math.abs(neg.total) * 0.05);
+      parts.push(m.xIsTime && k >= 0 ? `${neg.key} ${f.sv(neg.total)} dès ${m.keys[k]}` : `${neg.key} ${f.sv(neg.total)}`);
+    }
+    const title = parts.length ? `Écart par ${xs} : ${parts.join(", ")}` : `Écart ${ctx.toLabel} vs ${ctx.fromLabel} par ${xs}`;
+    for (const se of [pos, neg].filter(Boolean) as PivotSeries[]) comments.push(`${se.key} : ${m.keys.map((k, i) => `${k} ${f.sv(se.values[i] ?? 0)}`).join(", ")}.`);
+    const others = m.series.filter((se) => se !== pos && se !== neg);
+    if (others.length) comments.push(`${others.length === 1 ? "Autre" : "Autres"} : ${others.slice(0, 4).map((se) => `${se.key} ${f.sv(se.total)}`).join(", ")}.`);
+    return { title, comments: comments.slice(0, 3), role: "revelation", facts };
+  }
+  const tot = m.series.map((se) => se.total);
+  const keyTot = m.keys.map((_, i) => m.series.reduce((a, se) => a + (se.values[i] ?? 0), 0));
+  let bi = 0;
+  keyTot.forEach((v, i) => Math.abs(v) > Math.abs(keyTot[bi]!) && (bi = i));
+  if (m.seriesField === "@version" && m.series.length === 2) {
+    const [a, b] = m.series;
+    const diffs = m.keys.map((k, i) => ({ k, v: (b!.values[i] ?? 0) - (a!.values[i] ?? 0) })).sort((x, y) => Math.abs(y.v) - Math.abs(x.v));
+    const title = `${b!.key} vs ${a!.key} par ${xs} : ${diffs.slice(0, 2).map((x) => `${x.k} ${f.sv(x.v)}`).join(", ")}`;
+    comments.push(`${a!.key} : ${f.v(a!.total)} ; ${b!.key} : ${f.v(b!.total)} (${f.sv(b!.total - a!.total)}).`);
+    return { title, comments, role: "revelation", facts };
+  }
+  const label = m.isDelta ? `Écart ${ctx.toLabel} vs ${ctx.fromLabel}` : f.Measure;
+  const title = m.isDelta ? `${label} par ${xs} : ${m.keys[bi]} pèse le plus (${f.sv(keyTot[bi]!)})` : m.xIsTime ? `${label} par ${xs}` : `${m.keys[bi]} en tête : ${f.v(keyTot[bi]!)}`;
+  if (m.seriesField === "@version" && m.series.length === 2) {
+    const [a, b] = m.series;
+    comments.push(`${a!.key} : ${f.v(a!.total)} ; ${b!.key} : ${f.v(b!.total)} (${f.sv(b!.total - a!.total)}).`);
+  } else comments.push(`Total : ${f.v(tot.reduce((x, y) => x + y, 0))}${m.versionNote ? ` (${m.versionNote})` : ""}.`);
+  return { title, comments, role: "revelation", facts };
+}
+
+function versionBreakdownStory(m: BreakdownModel, ctx: DrillCtx, f: Fmt): Omit<DrillStory, "scope" | "viewLabel" | "path" | "suggestion"> {
+  const noun = nounOf(m.field);
+  const comments: string[] = [];
+  const s = m.standout != null ? m.stats[m.standout]! : null;
+  if (!s || m.refTotal == null || m.delta == null) return { title: `${f.Measure} par ${noun.sg}`, comments: [], role: "revelation", facts: {} };
+  const d = s.delta ?? 0;
+  const r = s.ref ? d / Math.abs(s.ref) : 0;
+  const others = m.stats.filter((x) => x !== s);
+  const othersUp = others.every((x) => (x.delta ?? 0) >= 0);
+  const othersDown = others.every((x) => (x.delta ?? 0) <= 0);
+  const name = capitalize(le2(s.key));
+  let title: string;
+  if (d < 0 && othersUp && others.length) title = `${name} : ${f.sv(d)} (${pct(r)}), seul${noun.f ? "e" : ""} ${noun.sg} en recul au ${m.periodLabel}`;
+  else if (d > 0 && othersDown && others.length) title = `${name} : ${f.sv(d)} (${pct(r)}), seul${noun.f ? "e" : ""} ${noun.sg} en hausse au ${m.periodLabel}`;
+  else title = `${name} pèse le plus dans l'écart : ${f.sv(d)} (${pct(r)})`;
+  comments.push(`${s.key} : ${f.v(s.ref ?? 0)} (${m.refLabel}) → ${f.v(s.value)} (${m.periodLabel}).`);
+  // Ce qui explique l'écart de la catégorie : premier niveau de la cascade
+  const lvl = levelsOf(ctx.spec, ctx.eff).find((x) => x !== m.field && !ctx.cats.some((c) => c.field === x));
+  if (lvl && ctx.ver) {
+    const by = new Map<string, number>();
+    ctx.rows.forEach((row, i) => {
+      if (String(row[m.field] ?? "") !== s.key) return;
+      const k = String(row[lvl] ?? "");
+      by.set(k, (by.get(k) ?? 0) + (ctx.ver![i] === 1 ? ctx.vs[i]! : -ctx.vs[i]!));
+    });
+    const top = [...by].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 2);
+    if (top.length) comments.push(`${s.key}, par ${nounOf(lvl).sg} : ${top.map(([k, v]) => `${k} ${f.sv(v)}`).join(", ")}.`);
+  }
+  if (others.length) comments.push(`${others.length === 1 ? `L'autre ${noun.sg}` : `Les ${others.length} autres ${noun.pl}`} : ${f.sv(others.reduce((a, x) => a + (x.delta ?? 0), 0))} au total (${others.slice(0, 4).map((x) => `${x.key} ${f.sv(x.delta ?? 0)}`).join(", ")}).`);
+  return { title, comments: comments.slice(0, 3), role: "revelation", facts: { standout: s.key, delta: d } };
 }

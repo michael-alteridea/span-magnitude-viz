@@ -3,6 +3,7 @@
  * de la V1 (8 octobre 2026) : réel jusqu'à septembre 2026, prévisions jusqu'à fin 2026.
  */
 import type { ChartSpecInput } from "../spec";
+import { demoFinanceRows } from "./demoFinance";
 import { demoPipelineRows } from "./demoPipeline";
 
 export const SAMPLE_TODAY = "2026-10-08";
@@ -414,6 +415,19 @@ export const SAMPLES: Sample[] = [
       axes: { y: { unit: "eur", decimals: 0 } },
       mode: { kind: "dynamic", buildIn: true, buildInMs: 1100 },
       style: { source: "Source : CRM de démonstration (données fictives) · extrait du 8 oct. 2026", background: "light" },
+    },
+  },
+  {
+    id: "demo-finance",
+    name: "Démo : réel vs budget",
+    description: "Réel 2025 vs Budget 2026 fictifs · 5 lignes métier, 21 comptes, 5 régions FR·BE, par mois · 2 520 lignes · Scénario Directeur financier",
+    rows: () => demoFinanceRows() as unknown as Record<string, unknown>[],
+    spec: {
+      type: "drill",
+      drill: { date: "mois", measure: "montant_eur", label: "Marge contributive", version: "version", from: "Réel 2025", to: "Budget 2026", nature: "nature", levels: ["ligne_metier", "compte"], by: "ligne_metier", view: "bridge", grain: "quarter", path: [], pivot: { x: "@quarter", series: "ligne_metier", agg: "delta", chart: "bar" } },
+      axes: { y: { unit: "eur", decimals: 0 } },
+      mode: { kind: "dynamic", buildIn: true, buildInMs: 1100 },
+      style: { source: "Source : contrôle de gestion de démonstration (données fictives) · budget 2026 du 8 oct. 2026", background: "light" },
     },
   },
 ];

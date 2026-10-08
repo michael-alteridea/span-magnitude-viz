@@ -161,6 +161,24 @@ export interface DrillCtx {
   /** Dernière étape « période » du chemin. */
   period: DrillStep | null;
   cats: DrillStep[];
+  /** Mode versions (Réel 2025 → Budget 2026) : 0 = version « from », 1 = « to » ; null hors de ce mode. */
+  ver: Int8Array | null;
+  /** Ligne de coûts (colonne nature) : montant soustrait dans `vs`. */
+  cost: Uint8Array | null;
+  fromLabel: string;
+  toLabel: string;
+  version: Column | null;
+  nature: Column | null;
+}
+
+/** Comparaison de versions active (colonne + deux valeurs distinctes). */
+export function isVersionMode(d: Pick<DrillSpec, "version" | "from" | "to">): boolean {
+  return !!(d.version && d.from && d.to && d.from !== d.to);
+}
+
+/** Libellé « coût » (charges, dépenses…) : montant soustrait du résultat. */
+export function isCostLabel(v: unknown): boolean {
+  return typeof v === "string" && /co[uû]t|charge|d[ée]pense|cost|expense|achat/i.test(v);
 }
 
 export function drillCtx(spec: Pick<ChartSpec, "drill" | "transform">, ds: Dataset | null): { ctx: DrillCtx | null; error: string | null } {
@@ -182,15 +200,25 @@ export function drillCtx(spec: Pick<ChartSpec, "drill" | "transform">, ds: Datas
   if (!Number.isFinite(minT)) return { ctx: null, error: `Aucune date exploitable dans « ${date.name} ».` };
   const cats = d.path.filter((s) => s.kind === "cat" && s.field && s.value != null);
   const period = [...d.path].reverse().find((s) => s.kind === "period" && s.start != null && s.grain) ?? null;
-  const rows = eff.rows.filter((r) => typeof r[date.name] === "number" && cats.every((c) => String(r[c.field!] ?? "") === c.value));
+  const version = isVersionMode(d) ? columnOf(eff, d.version) ?? null : null;
+  const nature = d.nature ? columnOf(eff, d.nature) ?? null : null;
+  if (isVersionMode(d) && !version) return { ctx: null, error: `Colonne de versions « ${d.version} » introuvable.` };
+  const rows = eff.rows.filter((r) => typeof r[date.name] === "number" && cats.every((c) => String(r[c.field!] ?? "") === c.value) && (!version || r[version.name] === d.from || r[version.name] === d.to));
+  if (version && !rows.some((r) => r[version.name] === d.from)) return { ctx: null, error: `Aucune ligne « ${d.from} » dans « ${version.name} ».` };
   const ts = new Float64Array(rows.length);
   const vs = new Float64Array(rows.length);
+  const ver = version ? new Int8Array(rows.length) : null;
+  const cost = nature ? new Uint8Array(rows.length) : null;
   rows.forEach((r, i) => {
     ts[i] = r[date.name] as number;
     const v = measure ? r[measure.name] : 1;
-    vs[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
+    const x = typeof v === "number" && Number.isFinite(v) ? v : 0;
+    const c = nature ? isCostLabel(r[nature.name]) : false;
+    if (cost) cost[i] = c ? 1 : 0;
+    vs[i] = c && measure ? -x : x;
+    if (ver) ver[i] = r[version!.name] === d.to ? 1 : 0;
   });
-  return { ctx: { spec: d, date, measure, eff, rows, ts, vs, minT, maxT, period, cats }, error: null };
+  return { ctx: { spec: d, date, measure, eff, rows, ts, vs, minT, maxT, period, cats, ver, cost, fromLabel: d.from ?? "", toLabel: d.to ?? "", version, nature }, error: null };
 }
 
 /** Somme (ou nombre) sur [a, b[ ; `pred` filtre en plus les lignes. */
@@ -311,6 +339,8 @@ export interface BreakdownModel {
   share: number | null;
   /** Carte : valeurs non reconnues comme régions. */
   unmatched: string[];
+  /** Comparaison de versions : valeur = version « to », référence = version « from ». */
+  versions?: boolean;
 }
 
 export interface HistorySeries {
@@ -339,7 +369,93 @@ export interface HistoryModel {
   seasonal: { month: number; ratio: number; keys: number[] } | null;
 }
 
-export type DrillModel = PeriodsModel | MonthModel | BreakdownModel | HistoryModel;
+export interface BridgeItem {
+  key: string;
+  kind: "start" | "delta" | "subtotal" | "end";
+  label: string;
+  /** Facteur : impact signé sur le résultat ; total / sous-total : niveau. */
+  value: number;
+  /** Cumul avant et après l'élément (dessin des marches). */
+  y0: number;
+  y1: number;
+  group: string | null;
+  /** Facteur : valeur nette de chaque version. */
+  from: number;
+  to: number;
+  /** Facteur : écart de revenus et écart de coûts (hausse de coûts > 0), si une colonne nature est définie. */
+  rev: number;
+  cost: number;
+}
+
+export interface BridgeModel {
+  view: "bridge";
+  field: string;
+  groupField: string | null;
+  items: BridgeItem[];
+  fromLabel: string;
+  toLabel: string;
+  start: number;
+  end: number;
+  delta: number;
+  revDelta: number | null;
+  costDelta: number | null;
+  /** Index (dans items) du plus fort facteur positif / négatif. */
+  topPos: number | null;
+  topNeg: number | null;
+  /** Un clic sur un facteur descend d'un niveau (niveau suivant ou mois). */
+  drillable: boolean;
+}
+
+export interface CompareMonth {
+  key: number;
+  tick: string;
+  label: string;
+  from: number | null;
+  to: number | null;
+  delta: number | null;
+}
+
+export interface CompareModel {
+  view: "compare";
+  months: CompareMonth[];
+  fromLabel: string;
+  toLabel: string;
+  fromTotal: number;
+  toTotal: number;
+  delta: number;
+  /** Coûts seuls : montants positifs, une hausse est défavorable. */
+  costOnly: boolean;
+  /** Écart du 1er et du 2nd semestre. */
+  h1: number;
+  h2: number;
+  /** Rupture : premier mois d'un écart durable (contrat perdu, nouveaux contrats…). */
+  breakAt: number | null;
+}
+
+export interface PivotSeries {
+  key: string;
+  values: (number | null)[];
+  total: number;
+}
+
+export interface PivotModel {
+  view: "pivot";
+  chart: "bar" | "line";
+  x: string;
+  xLabel: string;
+  xIsTime: boolean;
+  keys: string[];
+  /** Valeur de catégorie cliquable (null : axe de temps). */
+  catValues: (string | null)[];
+  series: PivotSeries[];
+  seriesField: string | null;
+  agg: "sum" | "mean" | "count" | "delta";
+  isDelta: boolean;
+  /** Version retenue quand la mesure ne compare pas les versions. */
+  versionNote: string | null;
+}
+
+export type DrillModel = PeriodsModel | MonthModel | BreakdownModel | HistoryModel | BridgeModel | CompareModel | PivotModel;
 
 function bucketsOf(ctx: DrillCtx, g: DrillGrain, from?: number, to?: number): number[] {
   const out: number[] = [];
@@ -680,6 +796,310 @@ function historyModel(ctx: DrillCtx, field: string): HistoryModel {
   return { view: "history", field, grain: g, keys, ticks: keys.map((kk) => tickLabel(kk, g)), partial, series, focus, max, standout, refLabel, seasonal };
 }
 
+/* ------------------------------------------------------------------ versions (réel → budget) */
+
+const MONTHS_TICK = MONTHS_SHORT;
+
+/** Hiérarchie de la cascade : niveaux déclarés, sinon devinés (ligne métier → compte). */
+export function levelsOf(d: DrillSpec, ds: Dataset): string[] {
+  const lv = d.levels.filter((f) => columnOf(ds, f));
+  return lv.length ? lv : guessLevels(ds, d);
+}
+
+/** Champ de la cascade courante : `by` s'il n'est pas déjà filtré, sinon le premier niveau libre. */
+function bridgeField(ctx: DrillCtx): string | null {
+  const used = new Set(ctx.cats.map((c) => c.field));
+  const d = ctx.spec;
+  if (d.by && columnOf(ctx.eff, d.by) && !used.has(d.by) && d.by !== d.version && d.by !== d.nature) return d.by;
+  return levelsOf(d, ctx.eff).find((f) => !used.has(f)) ?? null;
+}
+
+function versionSums(ctx: DrillCtx, keyOf: (r: Row, i: number) => string | null) {
+  const out = new Map<string, { from: number; to: number; revF: number; revT: number; costF: number; costT: number; nF: number; nT: number }>();
+  for (let i = 0; i < ctx.rows.length; i++) {
+    const k = keyOf(ctx.rows[i]!, i);
+    if (k == null) continue;
+    let e = out.get(k);
+    if (!e) out.set(k, (e = { from: 0, to: 0, revF: 0, revT: 0, costF: 0, costT: 0, nF: 0, nT: 0 }));
+    const v = ctx.vs[i]!;
+    const isCost = ctx.cost?.[i] === 1;
+    if (ctx.ver![i] === 1) {
+      e.to += v;
+      e.nT++;
+      if (isCost) e.costT -= v;
+      else e.revT += v;
+    } else {
+      e.from += v;
+      e.nF++;
+      if (isCost) e.costF -= v;
+      else e.revF += v;
+    }
+  }
+  return out;
+}
+
+function bridgeModel(ctx: DrillCtx, field: string): BridgeModel {
+  const d = ctx.spec;
+  const sums = versionSums(ctx, (r) => catValue(r, field));
+  // Groupes (Revenus / Coûts) quand chaque facteur relève d'une seule nature
+  let groupOf: Map<string, string> | null = null;
+  const used = new Set(ctx.cats.map((c) => c.field));
+  if (ctx.nature && !used.has(ctx.nature.name)) {
+    const g = new Map<string, Set<string>>();
+    for (const r of ctx.rows) {
+      const k = catValue(r, field);
+      let set = g.get(k);
+      if (!set) g.set(k, (set = new Set()));
+      set.add(String(r[ctx.nature.name] ?? ""));
+    }
+    if ([...g.values()].every((x) => x.size === 1) && new Set([...g.values()].map((x) => [...x][0])).size > 1) groupOf = new Map([...g].map(([k, v]) => [k, [...v][0]!]));
+  }
+  let deltas = [...sums].map(([key, e]) => ({ key, e, delta: e.to - e.from, group: groupOf?.get(key) ?? null }));
+  const byImpact = (a: { delta: number; key: string }, b: { delta: number; key: string }) => Math.abs(b.delta) - Math.abs(a.delta) || a.key.localeCompare(b.key, "fr");
+  if (d.sortByImpact) deltas.sort(byImpact);
+  else deltas.sort((a, b) => a.key.localeCompare(b.key, "fr"));
+  if (deltas.length > 12) {
+    const keep = deltas.slice(0, 11);
+    const rest = deltas.slice(11);
+    const e = { from: 0, to: 0, revF: 0, revT: 0, costF: 0, costT: 0, nF: 0, nT: 0 };
+    for (const x of rest) for (const k of Object.keys(e) as (keyof typeof e)[]) e[k] += x.e[k];
+    deltas = [...keep, { key: `Autres (${rest.length})`, e, delta: e.to - e.from, group: null }];
+  }
+  const groups: (string | null)[] = groupOf ? [...new Set(deltas.map((x) => x.group))].sort((a, b) => Number(isCostLabel(a)) - Number(isCostLabel(b))) : [null];
+  const start = [...sums.values()].reduce((a, e) => a + e.from, 0);
+  const end = [...sums.values()].reduce((a, e) => a + e.to, 0);
+  const scope = ctx.cats.map((c) => c.value).join(" · ");
+  const items: BridgeItem[] = [];
+  const base = { group: null, from: 0, to: 0, rev: 0, cost: 0 };
+  items.push({ ...base, key: "__start", kind: "start", label: scope ? `${scope} · ${ctx.fromLabel}` : ctx.fromLabel, value: start, y0: 0, y1: start });
+  let run = start;
+  groups.forEach((gname, gi) => {
+    for (const x of deltas.filter((y) => y.group === gname)) {
+      items.push({ key: x.key, kind: "delta", label: x.key, value: x.delta, y0: run, y1: run + x.delta, group: gname, from: x.e.from, to: x.e.to, rev: x.e.revT - x.e.revF, cost: x.e.costT - x.e.costF });
+      run += x.delta;
+    }
+    if (gname && gi < groups.length - 1) items.push({ ...base, key: `__sub-${gi}`, kind: "subtotal", label: `Sous-total ${gname.toLocaleLowerCase("fr-FR")}`, value: run, y0: 0, y1: run, group: gname });
+  });
+  items.push({ ...base, key: "__end", kind: "end", label: scope ? `${scope} · ${ctx.toLabel}` : ctx.toLabel, value: end, y0: 0, y1: end });
+  let topPos: number | null = null;
+  let topNeg: number | null = null;
+  items.forEach((it, i) => {
+    if (it.kind !== "delta" || it.key.startsWith("Autres (")) return;
+    if (it.value > 0 && (topPos == null || it.value > items[topPos]!.value)) topPos = i;
+    if (it.value < 0 && (topNeg == null || it.value < items[topNeg]!.value)) topNeg = i;
+  });
+  const rev = ctx.cost ? [...sums.values()].reduce((a, e) => a + e.revT - e.revF, 0) : null;
+  const cst = ctx.cost ? [...sums.values()].reduce((a, e) => a + e.costT - e.costF, 0) : null;
+  return { view: "bridge", field, groupField: groupOf ? ctx.nature!.name : null, items, fromLabel: ctx.fromLabel, toLabel: ctx.toLabel, start, end, delta: end - start, revDelta: rev, costDelta: cst, topPos, topNeg, drillable: true };
+}
+
+function compareModel(ctx: DrillCtx): CompareModel {
+  const sums = versionSums(ctx, (_r, i) => String(new Date(ctx.ts[i]!).getUTCMonth()));
+  const allCost = !!ctx.cost && ctx.rows.length > 0 && ctx.cost.every((c) => c === 1);
+  const sign = allCost ? -1 : 1;
+  const months: CompareMonth[] = Array.from({ length: 12 }, (_, m) => {
+    const e = sums.get(String(m));
+    const from = e && e.nF ? e.from * sign : null;
+    const to = e && e.nT ? e.to * sign : null;
+    return { key: m, tick: MONTHS_TICK[m]!, label: MONTHS_LONG[m]!, from, to, delta: from != null && to != null ? to - from : null };
+  });
+  const fromTotal = months.reduce((a, x) => a + (x.from ?? 0), 0);
+  const toTotal = months.reduce((a, x) => a + (x.to ?? 0), 0);
+  const dl = months.map((x) => x.delta ?? 0);
+  const h1 = dl.slice(0, 6).reduce((a, b) => a + b, 0);
+  const h2 = dl.slice(6).reduce((a, b) => a + b, 0);
+  // Rupture : saut d'écart le plus net, suivi d'écarts de même signe nettement plus forts qu'avant
+  let breakAt: number | null = null;
+  let best = 0;
+  for (let k = 1; k < 12; k++) {
+    const jump = Math.abs(dl[k]! - dl[k - 1]!);
+    const after = dl.slice(k);
+    const before = dl.slice(0, k);
+    const sameSign = after.every((x) => Math.sign(x) === Math.sign(dl[k]!) && x !== 0);
+    const mA = after.reduce((a, b) => a + Math.abs(b), 0) / after.length;
+    const mB = before.reduce((a, b) => a + Math.abs(b), 0) / before.length;
+    const scale = Math.max(1e-9, Math.abs(fromTotal) / 12);
+    if (sameSign && mA > 2 * mB && mA > 0.15 * scale && jump > best) {
+      best = jump;
+      breakAt = k;
+    }
+  }
+  return { view: "compare", months, fromLabel: ctx.fromLabel, toLabel: ctx.toLabel, fromTotal, toTotal, delta: toTotal - fromTotal, costOnly: allCost, h1, h2, breakAt };
+}
+
+/** Carte / détail en mode versions : valeur = version « to », référence = version « from ». */
+function versionBreakdown(ctx: DrillCtx, field: string, view: "breakdown" | "map"): BreakdownModel {
+  const sums = versionSums(ctx, (r) => catValue(r, field));
+  let list: CatStat[] = [...sums].map(([key, e]) => ({ key, value: e.to, count: e.nT, ref: e.from, refCount: e.nF, delta: e.to - e.from, next: null }));
+  list.sort((a, b) => (b.ref ?? 0) - (a.ref ?? 0) || b.value - a.value);
+  if (view === "breakdown" && list.length > 14) {
+    const keep = list.slice(0, 13);
+    const rest = list.slice(13);
+    const o: CatStat = { key: `Autres (${rest.length})`, value: 0, count: 0, ref: 0, refCount: 0, delta: 0, next: null };
+    for (const x of rest) (o.value += x.value), (o.count += x.count), (o.ref! += x.ref ?? 0), (o.refCount! += x.refCount ?? 0);
+    o.delta = o.value - (o.ref ?? 0);
+    list = [...keep, o];
+  }
+  const unmatched: string[] = [];
+  if (view === "map")
+    for (const x of list) {
+      x.nuts = regionNuts(x.key);
+      if (!x.nuts) unmatched.push(x.key);
+    }
+  const total = list.reduce((a, x) => a + x.value, 0);
+  const refTotal = list.reduce((a, x) => a + (x.ref ?? 0), 0);
+  const delta = total - refTotal;
+  let standout: number | null = null;
+  let best = 0;
+  const sign = Math.sign(delta) || -1;
+  list.forEach((x, i) => {
+    const dd = (x.delta ?? 0) * sign;
+    if (dd > best) (best = dd), (standout = i);
+  });
+  // Écart total faible : la catégorie qui pèse le plus (en valeur absolue)
+  if (standout == null) list.forEach((x, i) => Math.abs(x.delta ?? 0) > best && ((best = Math.abs(x.delta ?? 0)), (standout = i)));
+  return {
+    view,
+    field,
+    stats: list,
+    total,
+    count: list.reduce((a, x) => a + x.count, 0),
+    refTotal,
+    refCount: list.reduce((a, x) => a + (x.refCount ?? 0), 0),
+    delta,
+    periodLabel: ctx.toLabel,
+    refLabel: ctx.fromLabel,
+    nextLabel: null,
+    standout,
+    share: standout != null && delta ? (list[standout]!.delta ?? 0) / delta : null,
+    unmatched,
+    versions: true,
+  };
+}
+
+const QUARTER_TICK = ["T1", "T2", "T3", "T4"];
+
+/** Tableau croisé : X × séries, somme / moyenne / nombre / écart entre versions. */
+function pivotModel(ctx: DrillCtx): PivotModel | null {
+  const d = ctx.spec;
+  const pv = d.pivot;
+  const x = pv.x ?? (ctx.ver ? bridgeField(ctx) : null) ?? "@month";
+  const isTime = x.startsWith("@");
+  if (!isTime && !columnOf(ctx.eff, x)) return null;
+  const vm = !!ctx.ver;
+  const isDelta = pv.agg === "delta" && vm;
+  const agg = pv.agg === "delta" && !vm ? "sum" : pv.agg;
+  let seriesField = pv.series && (pv.series === "@version" ? vm : columnOf(ctx.eff, pv.series)) && pv.series !== x ? pv.series : null;
+  if (vm && !isDelta && !seriesField) seriesField = "@version";
+  const onlyTo = vm && !isDelta && seriesField !== "@version";
+  const grain: DrillGrain = x === "@quarter" ? "quarter" : x === "@year" ? "year" : "month";
+  const xKey = (r: Row, i: number): string => {
+    if (!isTime) return catValue(r, x);
+    const t = ctx.ts[i]!;
+    if (vm) return grain === "quarter" ? `q${Math.floor(new Date(t).getUTCMonth() / 3)}` : grain === "year" ? "y" : `m${String(new Date(t).getUTCMonth()).padStart(2, "0")}`;
+    return String(floorGrain(t, grain));
+  };
+  const sKey = (r: Row, i: number): string => (seriesField === "@version" ? (ctx.ver![i] === 1 ? ctx.toLabel : ctx.fromLabel) : seriesField ? catValue(r, seriesField) : "__total");
+  const cells = new Map<string, Map<string, { v: number; n: number }>>();
+  const xTotals = new Map<string, number>();
+  const sTotals = new Map<string, number>();
+  for (let i = 0; i < ctx.rows.length; i++) {
+    if (onlyTo && ctx.ver![i] !== 1) continue;
+    const r = ctx.rows[i]!;
+    const xk = xKey(r, i);
+    const sk = sKey(r, i);
+    const v = isDelta ? (ctx.ver![i] === 1 ? ctx.vs[i]! : -ctx.vs[i]!) : ctx.vs[i]!;
+    let row = cells.get(sk);
+    if (!row) cells.set(sk, (row = new Map()));
+    const c = row.get(xk) ?? { v: 0, n: 0 };
+    c.v += v;
+    c.n++;
+    row.set(xk, c);
+    xTotals.set(xk, (xTotals.get(xk) ?? 0) + v);
+    sTotals.set(sk, (sTotals.get(sk) ?? 0) + v);
+  }
+  let keys = [...xTotals.keys()];
+  if (isTime) keys.sort((a, b) => (vm ? a.localeCompare(b) : Number(a) - Number(b)));
+  else keys.sort((a, b) => Math.abs(xTotals.get(b)!) - Math.abs(xTotals.get(a)!));
+  if (!isTime && keys.length > 12) keys = keys.slice(0, 12);
+  const labelOf = (k: string): string => {
+    if (!isTime) return k;
+    if (vm) return k === "y" ? `${ctx.fromLabel} → ${ctx.toLabel}` : k.startsWith("q") ? QUARTER_TICK[Number(k.slice(1))]! : MONTHS_TICK[Number(k.slice(1))]!;
+    const t = tickLabel(Number(k), grain);
+    return grain === "year" ? t.tick : `${t.tick} ${t.year.slice(-2)}`;
+  };
+  let sk = [...sTotals.keys()];
+  if (seriesField === "@version") sk.sort((a) => (a === ctx.fromLabel ? -1 : 1));
+  else sk.sort((a, b) => Math.abs(sTotals.get(b)!) - Math.abs(sTotals.get(a)!));
+  if (sk.length > 8) sk = sk.slice(0, 8);
+  const series: PivotSeries[] = sk.map((s) => {
+    const row = cells.get(s)!;
+    const values = keys.map((k) => {
+      const c = row.get(k);
+      if (!c) return isDelta ? 0 : null;
+      return agg === "mean" ? c.v / c.n : agg === "count" ? c.n : c.v;
+    });
+    return { key: s === "__total" ? (isDelta ? `Écart ${ctx.toLabel} vs ${ctx.fromLabel}` : d.label || ctx.measure?.name || "Total") : s, values, total: values.reduce<number>((a, v) => a + (v ?? 0), 0) };
+  });
+  const xLabel = x === "@month" ? "mois" : x === "@quarter" ? "trimestre" : x === "@year" ? "année" : x;
+  return { view: "pivot", chart: pv.chart === "line" ? "line" : "bar", x, xLabel, xIsTime: isTime, keys: keys.map(labelOf), catValues: keys.map((k) => (isTime ? null : k)), series, seriesField: seriesField === "@version" ? "@version" : seriesField, agg: isDelta ? "delta" : agg, isDelta, versionNote: onlyTo ? ctx.toLabel : null };
+}
+
+/* ------------------------------------------------------------------ colonnes (finance) */
+
+/** Colonne de versions (Réel / Budget / Prévision / N-1) et ses deux valeurs à comparer. */
+export function guessVersion(ds: Dataset): { field: string; from: string; to: string } | null {
+  for (const c of ds.columns) {
+    if (c.type !== "category" && c.type !== "text") continue;
+    if (c.cardinality < 2 || c.cardinality > 8) continue;
+    const p = versionPair(ds, c.name, true);
+    if (p) return { field: c.name, ...p };
+  }
+  return null;
+}
+
+/** Les deux valeurs à comparer d'une colonne de versions : le réel le plus récent → le budget (ou la prévision) le plus récent. */
+export function versionPair(ds: Dataset, field: string, strict = false): { from: string; to: string } | null {
+  const c = columnOf(ds, field);
+  if (!c) return null;
+  const vals = [...new Set(ds.rows.map((r) => r[c.name]).filter((v): v is string => typeof v === "string" && v !== ""))];
+  const yr = (v: string) => Number(v.match(/(19|20)\d{2}/)?.[0] ?? 0);
+  const actual = vals.filter((v) => /r[ée]el|r[ée]alis|actual|\bN-1\b/i.test(v)).sort((a, b) => yr(a) - yr(b));
+  const plan = vals.filter((v) => /budget|pr[ée]vision|forecast|plan|objectif/i.test(v)).sort((a, b) => yr(b) - yr(a));
+  if (actual.length && plan.length) {
+    if (strict && !/version|sc[ée]nario|type|donn/i.test(norm(c.name)) && vals.length > 4) return null;
+    return { from: actual[actual.length - 1]!, to: plan[0]! };
+  }
+  if (strict || vals.length < 2) return null;
+  // Sans libellé reconnu : ordre chronologique des années, sinon alphabétique
+  const sorted = [...vals].sort((a, b) => yr(a) - yr(b) || a.localeCompare(b, "fr"));
+  return { from: sorted[0]!, to: sorted[sorted.length - 1]! };
+}
+
+/** Colonne « Revenus / Coûts ». */
+export function guessNature(ds: Dataset): string | null {
+  const c = ds.columns.find((x) => {
+    if (x.type !== "category" && x.type !== "text") return false;
+    if (x.cardinality < 2 || x.cardinality > 6) return false;
+    const vals = new Set(ds.rows.map((r) => r[x.name]));
+    return [...vals].some(isCostLabel) && [...vals].some((v) => typeof v === "string" && /revenu|produit|recette|vente|chiffre|income|revenue/i.test(v));
+  });
+  return c?.name ?? null;
+}
+
+/** Niveaux de la cascade : ligne métier (ou segment, activité…) puis compte (ou poste…). */
+export function guessLevels(ds: Dataset, d?: Partial<DrillSpec>): string[] {
+  const skip = new Set([d?.version, d?.nature, d?.date].filter(Boolean) as string[]);
+  const cands = ds.columns.filter((c) => (c.type === "category" || (c.type === "text" && c.cardinality <= 60)) && c.cardinality >= 2 && c.cardinality <= 60 && !c.idLike && !skip.has(c.name) && !/version|sc[ée]nario/i.test(c.name));
+  const vals = (c: Column) => new Set(ds.rows.map((r) => r[c.name]));
+  const notGeo = cands.filter((c) => !/r[ée]gion|pays|country|entit|soci[ée]t|ville|site/i.test(norm(c.name)) && regionCoverage(vals(c)).share < 0.6 && !(vals(c).size <= 6 && [...vals(c)].some(isCostLabel)));
+  const line = notGeo.find((c) => /ligne|metier|activit|segment|business|\bbu\b|division|famille|produit|offre/.test(norm(c.name)));
+  const acct = notGeo.find((c) => c !== line && /compte|poste|rubrique|account|libell|sous|item|article/.test(norm(c.name)));
+  const out = [line, acct].filter(Boolean).map((c) => c!.name);
+  if (out.length) return out;
+  return [...notGeo].sort((a, b) => a.cardinality - b.cardinality).slice(0, 2).map((c) => c.name);
+}
+
 /** Modèle de la vue courante. */
 export function buildDrillModel(spec: Pick<ChartSpec, "drill" | "transform">, ds: Dataset | null): { model: DrillModel | null; ctx: DrillCtx | null; error: string | null } {
   const { ctx, error } = drillCtx(spec, ds);
@@ -687,6 +1107,31 @@ export function buildDrillModel(spec: Pick<ChartSpec, "drill" | "transform">, ds
   const d = spec.drill;
   const by = d.by && columnOf(ctx.eff, d.by) ? d.by : null;
   let model: DrillModel | null = null;
+  if (ctx.ver) {
+    // Comparaison de versions : cascade, mois, carte / détail (écart par catégorie), tableau croisé
+    const view = d.view === "periods" || d.view === "month" || d.view === "history" ? "compare" : d.view;
+    if (view === "bridge") {
+      const field = bridgeField(ctx);
+      if (!field) return { model: null, ctx, error: "Cascade : choisissez une colonne de facteurs (ligne métier, compte…)." };
+      model = bridgeModel(ctx, field);
+    } else if (view === "compare") model = compareModel(ctx);
+    else if (view === "pivot") {
+      const pm = pivotModel(ctx);
+      if (!pm) return { model: null, ctx, error: "Tableau croisé : choisissez l'axe X." };
+      model = pm;
+    } else {
+      if (!by) return { model: null, ctx, error: "Choisissez une colonne à détailler." };
+      model = versionBreakdown(ctx, by, view);
+      if (view === "map" && (model as BreakdownModel).stats.every((x) => !x.nuts)) return { model: null, ctx, error: `Carte : aucune valeur de « ${by} » n'est reconnue comme région FR · BE.` };
+    }
+    return { model, ctx, error: null };
+  }
+  if (d.view === "pivot") {
+    const pm = pivotModel(ctx);
+    if (!pm) return { model: null, ctx, error: "Tableau croisé : choisissez l'axe X." };
+    return { model: pm, ctx, error: null };
+  }
+  if (d.view === "bridge" || d.view === "compare") return { model: null, ctx, error: "Cascade : définissez deux versions à comparer (colonne version, de… à…)." };
   switch (d.view) {
     case "month":
       model = monthModel(ctx);
@@ -729,7 +1174,7 @@ export function rootGrain(ds: Dataset, date: string): DrillGrain {
 export function initDrill(ds: Dataset, prev?: Partial<DrillSpec>): DrillSpec {
   const date = prev?.date && columnOf(ds, prev.date)?.type === "date" ? prev.date : guessDrillDate(ds);
   const measure = prev?.measure && columnOf(ds, prev.measure)?.type === "number" ? prev.measure : guessDrillMeasure(ds);
-  return {
+  const base: DrillSpec = {
     date,
     measure,
     label: prev?.label ?? "",
@@ -738,15 +1183,33 @@ export function initDrill(ds: Dataset, prev?: Partial<DrillSpec>): DrillSpec {
     grain: date ? rootGrain(ds, date) : "month",
     by: guessRegionField(ds) ?? guessPersonField(ds),
     compare: prev?.compare ?? 3,
-    version: prev?.version ?? null,
-    from: prev?.from ?? null,
-    to: prev?.to ?? null,
+    version: null,
+    from: null,
+    to: null,
     sortByImpact: prev?.sortByImpact ?? true,
+    nature: null,
+    levels: [],
+    pivot: { x: null, series: null, agg: "sum", chart: "bar", ...(prev?.pivot ?? {}) },
   };
+  // Comparaison de versions (Réel → Budget) : cascade par ligne métier
+  const keep = prev?.version && prev.from && prev.to && columnOf(ds, prev.version) && ds.rows.some((r) => r[prev.version!] === prev.from) && ds.rows.some((r) => r[prev.version!] === prev.to);
+  const gv = keep ? { field: prev!.version!, from: prev!.from!, to: prev!.to! } : guessVersion(ds);
+  if (!gv) return base;
+  const nature = prev?.nature && columnOf(ds, prev.nature) ? prev.nature : guessNature(ds);
+  const d0: DrillSpec = { ...base, version: gv.field, from: gv.from, to: gv.to, nature, pivot: { ...base.pivot, agg: prev?.pivot?.agg ?? "delta" } };
+  const lv = (prev?.levels ?? []).filter((f) => columnOf(ds, f));
+  const levels = lv.length ? lv : guessLevels(ds, d0);
+  return { ...d0, levels, view: "bridge", by: levels[0] ?? null };
 }
 
 /** Vue par défaut quand le chemin se termine par `last`. */
-function defaultViewFor(d: DrillSpec, path: DrillStep[], root: DrillGrain): Pick<DrillSpec, "view" | "grain"> {
+function defaultViewFor(d: DrillSpec, path: DrillStep[], root: DrillGrain): Pick<DrillSpec, "view" | "grain"> & Partial<Pick<DrillSpec, "by">> {
+  if (isVersionMode(d)) {
+    // Cascade du niveau suivant (ligne métier → compte), puis les mois
+    const used = new Set(path.filter((x) => x.kind === "cat").map((x) => x.field));
+    const next = d.levels.find((f) => !used.has(f));
+    return next ? { view: "bridge", grain: d.grain, by: next } : { view: "compare", grain: d.grain };
+  }
   const last = path[path.length - 1];
   const P = [...path].reverse().find((s) => s.kind === "period");
   if (!last) return { view: "periods", grain: root };
@@ -806,6 +1269,6 @@ export function drillPathLabels(d: DrillSpec): string[] {
 }
 
 /** Vue « temps » par défaut du niveau courant (barres du grain plus fin, ou mois jour par jour). */
-export function drillDefaultView(d: DrillSpec, root: DrillGrain): Pick<DrillSpec, "view" | "grain"> {
+export function drillDefaultView(d: DrillSpec, root: DrillGrain): Pick<DrillSpec, "view" | "grain"> & Partial<Pick<DrillSpec, "by">> {
   return defaultViewFor(d, d.path, root);
 }

@@ -126,7 +126,7 @@ const DAY = 86400000;
 /** Jours fériés communs FR · BE (aucune création ces jours-là). */
 const HOLIDAYS = ["01-01", "05-01", "08-15", "11-01", "11-11", "12-25"];
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

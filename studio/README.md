@@ -228,6 +228,29 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   `node studio/scripts/demo-scenario.mjs --out <dossier>` produit les PNG des snapshots et le PowerPoint du scénario.
 - Barre d'exploration et fenêtres : cibles tactiles ≥ 44 px (iPad).
 
+## Cascade budget vs réel, tableau croisé et Scénario Directeur financier (étape finance)
+
+- **Mode versions** (`drill.version`, `from`, `to`) : dès qu'une colonne contient deux versions (Réel 2025 / Budget 2026,
+  réel / budget / prévision…), l'exploration compare la version d'arrivée à la version de départ. Avec une colonne
+  `nature` (revenus / coûts), les coûts comptent en négatif : la mesure devient une marge.
+- **Cascade** (vue `bridge`) : départ → un écart par facteur (ligne métier, puis compte) → arrivée ; marches reliées,
+  libellés signés, rouge / vert pour les écarts uniquement. Au niveau des comptes : revenus puis coûts avec un
+  **sous-total revenus** et des accolades REVENUS / COÛTS. Au-delà de 12 facteurs : « Autres (n) ».
+  Clic sur une marche → niveau suivant (`drill.levels`, devinés : ligne métier puis compte), puis **mois**.
+- **Par mois** (vue `compare`) : 12 mois alignés, version de départ en gris et d'arrivée en pétrole, panneau d'écart,
+  repère « à partir de <mois> » quand l'écart change durablement (rupture), totaux et semestres à droite.
+- **Carte** et **Détailler par…** en mode versions : écart par région / catégorie (« +x · y % »).
+- **Tableau croisé** (vue `pivot`, `drill.pivot`) : petit panneau X (mois, trimestre, année ou colonne), séries,
+  mesure (somme, moyenne, nombre, écart) et graphique (barres, courbes, cascade, carte) ; les filtres du fil d'Ariane
+  s'appliquent. Les barres groupées n'étiquettent que les séries principales quand la place manque.
+- **Scénario Directeur financier** (`SCENARIO_DAF`) : rôles date, mesure, version, ligne, compte (obligatoires), nature,
+  région (facultatifs) ; 7 étapes : cascade, plus forte hausse, ses mois, plus forte baisse, ses mois, carte
+  (facultative), tableau croisé par trimestre. Démo : exemple « Démo : réel vs budget » et
+  `public/demo/finance-reel-2025-budget-2026.csv` (dictionnaire : `public/demo/LISEZMOI-finance-reel-2025-budget-2026.md`),
+  générés par `npx vite-node --config vitest.config.ts studio/scripts/make-demo-finance.ts`.
+  `node studio/scripts/demo-scenario.mjs --scenario daf --out <dossier> --pptx <nom>` produit PNG et PowerPoint.
+- **PowerPoint lisible** : les graphiques des snapshots sont rendus en PNG à 3× et les commentaires en 15 pt.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |

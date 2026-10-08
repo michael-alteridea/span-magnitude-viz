@@ -1168,13 +1168,13 @@ try {
     check("démo : CSV importé (1 975 lignes, montants et dates reconnus)", imp.rows === 1975 && imp.montant === "number" && imp.date === "date" && typeof imp.proba === "number", JSON.stringify(imp));
     await page.evaluate(() => window.r4d.pickType("drill"));
     await sleep(500);
-    const fromCsv = await page.evaluate(() => ({ bar: !document.querySelector("[data-testid=drill-bar]").hidden, title: window.r4d.getSpec().style.title, d: window.r4d.drill() }));
+    const fromCsv = await page.evaluate(() => ({ bar: !document.querySelector("[data-testid=drill-bar]").hidden, title: window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "), d: window.r4d.drill() }));
     check("démo : exploration sur le CSV importé (rôles devinés, T2 2026 en recul)", fromCsv.bar && fromCsv.d.date === "date_creation" && fromCsv.d.measure === "montant_eur" && /T2 2026 : seul trimestre en recul/.test(fromCsv.title), fromCsv.title);
 
     // Exemple intégré « Démo : pipeline commercial » : clics réels
     await page.evaluate(() => window.r4d.loadSample("demo-pipeline"));
     await sleep(700);
-    const t = async () => page.evaluate(() => window.r4d.getSpec().style.title);
+    const t = async () => page.evaluate(() => window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "));
     const crumbs = async () => page.$$eval("[data-testid=drill-crumbs] button", (b) => b.map((x) => x.textContent));
     const clickSvg = async (sel) => {
       await page.evaluate(() => window.r4d.seek(1));
@@ -1266,6 +1266,103 @@ try {
     const st2 = await page.evaluate(() => window.r4d.story().snapshots.map((s) => s.step));
     check("scénario pas à pas : « Suggestion » puis 📸 → snapshot de l'étape 2", JSON.stringify(st2) === JSON.stringify(["02-mois"]), st2.join(","));
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "32-pas-a-pas.png") });
+  }
+
+  /* 15. Cascade budget vs réel + tableau croisé + Scénario Directeur financier (démo finance fictive) */
+  {
+    const csvRes = await page.evaluate(async () => {
+      const r = await fetch("demo/finance-reel-2025-budget-2026.csv");
+      return { status: r.status, text: r.ok ? await r.text() : "" };
+    });
+    const csvLines = csvRes.text.trim().split("\n");
+    check("finance : CSV servi (demo/finance-reel-2025-budget-2026.csv)", csvRes.status === 200 && csvLines.length === 2521 && csvLines[0].startsWith("version;mois;"), `${csvRes.status} · ${csvLines.length} lignes`);
+    await page.evaluate((t) => window.r4d.importText(t), csvRes.text);
+    await sleep(500);
+    await page.evaluate(() => window.r4d.pickType("drill"));
+    await sleep(500);
+    const fromCsv = await page.evaluate(() => ({ title: window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "), d: window.r4d.drill() }));
+    check("finance : CSV importé → cascade devinée (version, nature, niveaux)", fromCsv.d.view === "bridge" && fromCsv.d.version === "version" && fromCsv.d.nature === "nature" && fromCsv.d.levels.join(",") === "ligne_metier,compte" && /^Budget 2026 : −0,4 M€ vs Réel 2025/.test(fromCsv.title), fromCsv.title);
+
+    await page.evaluate(() => window.r4d.loadSample("demo-finance"));
+    await sleep(700);
+    const t = async () => page.evaluate(() => window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "));
+    const crumbs = async () => page.$$eval("[data-testid=drill-crumbs] button", (b) => b.map((x) => x.textContent));
+    const clickSvg = async (sel) => {
+      await page.evaluate(() => window.r4d.seek(1));
+      const el = await page.$(`[data-testid=chart-svg] ${sel}`);
+      if (!el) throw new Error("élément introuvable : " + sel);
+      await el.click();
+      await sleep(450);
+      await page.evaluate(() => window.r4d.seek(1));
+    };
+    const items = await page.$$eval("[data-testid=chart-svg] .r4d-drill-bridge-item", (els) => els.map((e) => e.getAttribute("data-key")));
+    check("finance : cascade Réel 2025 → 5 lignes métier → Budget 2026", items.length === 7 && /^Budget 2026 : −0,4 M€ vs Réel 2025 — SN\/Legacy \(−3,0 M€\) efface la hausse de Cloud \(\+2,1 M€\)/.test(await t()), `${items.length} · ${await t()}`);
+    if (SHOTS) await shotStage("33-cascade.png");
+    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Cloud"]');
+    const sub = await page.$$("[data-testid=chart-svg] .r4d-drill-bridge-subtotal");
+    check("finance : clic sur Cloud → comptes, revenus puis coûts (sous-total)", sub.length === 1 && /^Cloud : \+2,1 M€ vs 2025, dont \+2,6 M€ de revenus et \+0,5 M€ de coûts d'hébergement/.test(await t()) && JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "Cloud"]), await t());
+    if (SHOTS) await shotStage("34-cascade-cloud.png");
+    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Abonnements SaaS"]');
+    check("finance : clic sur Abonnements SaaS → mois (75 % au second semestre)", (await page.evaluate(() => window.r4d.drill().view)) === "compare" && /^Abonnements SaaS : \+2,0 M€ au Budget 2026, dont 75 % au second semestre/.test(await t()), await t());
+    if (SHOTS) await shotStage("35-cascade-mois.png");
+    await domClick("[data-testid=drill-back]");
+    await sleep(400);
+    check("finance : retour (←) → cascade Cloud", (await page.evaluate(() => window.r4d.drill().view)) === "bridge" && /^Cloud :/.test(await t()), await t());
+    await domClick("[data-testid=drill-crumb-0]");
+    await sleep(400);
+    await domClick("[data-testid=drill-view-map]");
+    await sleep(500);
+    await page.evaluate(() => window.r4d.seek(1));
+    const map = await page.evaluate(() => ({ n: document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-region").length, km: document.querySelector("[data-testid=chart-svg] .r4d-scalebar")?.getAttribute("data-km") }));
+    check("finance : carte des écarts (IDF seule en recul, échelle)", map.n === 5 && Number(map.km) > 0 && /^L'Île-de-France : −2,1 M€ \(−28 %\)/.test(await t()), `${map.n} · ${await t()}`);
+    if (SHOTS) await shotStage("36-cascade-carte.png");
+    await domClick("[data-testid=drill-view-pivot]");
+    await sleep(500);
+    const pv = await page.evaluate(() => ({
+      panel: !!document.querySelector("[data-testid=pivot-panel]")?.offsetParent,
+      sel: ["x", "series", "agg", "chart"].map((k) => document.querySelector(`[data-testid=pivot-${k}]`)?.value),
+      keys: document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-pivot-key").length,
+    }));
+    check("tableau croisé : panneau compact (X, séries, mesure, graphique) · écart par trimestre", pv.panel && pv.sel.join(",") === "@quarter,ligne_metier,delta,bar" && pv.keys === 4 && /^Écart par trimestre : Cloud \+2,1 M€ \(75 % sur T3–T4\), SN\/Legacy −3,0 M€ dès T1/.test(await t()), JSON.stringify(pv) + " " + (await t()));
+    if (SHOTS) await shotStage("37-tableau-croise.png");
+    await page.select("[data-testid=pivot-x]", "region");
+    await sleep(500);
+    const pv2 = await page.evaluate(() => document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-pivot-key").length);
+    check("tableau croisé : X = région → 5 colonnes", pv2 === 5, `${pv2} · ${await t()}`);
+    await page.select("[data-testid=pivot-series]", "");
+    await sleep(400);
+    await page.select("[data-testid=pivot-agg]", "sum");
+    await sleep(500);
+    const pv3 = await page.evaluate(() => ({ series: document.querySelector("[data-testid=pivot-series]")?.value, title: window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " ") }));
+    check("tableau croisé : mesure « somme » → Réel 2025 et Budget 2026 côte à côte", /Budget 2026 vs Réel 2025|Réel 2025/.test(pv3.title), JSON.stringify(pv3));
+
+    // Scénario Directeur financier : rôles + lancement automatique
+    await domClick("[data-testid=scenario-open]");
+    await sleep(300);
+    await domClick("[data-testid=scenario-daf]");
+    await sleep(300);
+    const roles = await page.evaluate(() => [...document.querySelectorAll("[data-testid^=scenario-role-]")].map((s) => `${s.getAttribute("data-testid").slice(14)}=${s.value}`));
+    const pair = await page.$eval("[data-testid=scenario-version-pair]", (e) => e.textContent).catch(() => "");
+    check("scénario DAF : rôles associés (date, mesure, version, ligne, compte, nature, région)", roles.join(",") === "date=mois,mesure=montant_eur,version=version,ligne=ligne_metier,compte=compte,nature=nature,region=region" && /Réel 2025 → Budget 2026/.test(pair), roles.join(", ") + " · " + pair);
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "38-scenario-directeur-financier.png") });
+    await domClick("[data-testid=scenario-run]");
+    await page.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
+    await page.evaluate(() => window.r4d.film().close());
+    const story = await page.evaluate(() => window.r4d.story());
+    const ids = story.snapshots.map((s) => s.id);
+    check("scénario DAF : 7 snapshots (ids stables, commentaires)", story.snapshots.length === 7 && ids.every((id) => /^daf-0\d-/.test(id)) && story.snapshots.every((s) => s.comments.length >= 2 && s.svg) && story.title === "Budget 2026 vs réel 2025 — revue financière", ids.join(" "));
+    const b64 = await page.evaluate(() => window.r4d.pptxBase64());
+    const slides = new Set(Buffer.from(b64, "base64").toString("latin1").match(/ppt\/slides\/slide\d+\.xml/g) ?? []).size;
+    check("scénario DAF : PowerPoint 9 diapositives", slides === 9, `${slides} diapositives`);
+    await page.evaluate(() => window.r4d.scenario("daf", false));
+    await sleep(500);
+    const guide = await page.$eval("[data-testid=drill-guide]", (e) => e.textContent).catch(() => "");
+    check("scénario DAF pas à pas : guidage (étape 1/7)", /Scénario Directeur financier · étape 1\/7/.test(guide), guide);
+    const chipTxt = await page.$eval("[data-testid=drill-suggest]", (e) => e.textContent).catch(() => "");
+    await domClick("[data-testid=drill-suggest]");
+    await sleep(500);
+    check("scénario DAF pas à pas : bouton « Étape 2 : Facteur en hausse » → Cloud", /^Étape 2 : Facteur en hausse/.test(chipTxt) && /^Cloud : \+2,1 M€/.test(await t()), chipTxt + " · " + (await t()));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "39-pas-a-pas-finance.png") });
   }
 
   /* ------------------------------------------------ captures de documentation */

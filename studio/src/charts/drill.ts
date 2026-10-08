@@ -6,11 +6,11 @@
  */
 import { geoDistance, geoMercator, geoPath, scaleBand, scaleLinear, type GeoPermissibleObjects } from "d3";
 import { europeCountryBorders, europeLayer } from "span-magnitude-viz/geo/europe";
-import type { BreakdownModel, DrillCtx, DrillModel, HistoryModel, MonthModel, PeriodsModel } from "../data/drill";
+import type { BreakdownModel, BridgeItem, BridgeModel, CompareModel, DrillCtx, DrillModel, HistoryModel, MonthModel, PeriodsModel, PivotModel } from "../data/drill";
 import { grainLabel } from "../data/drill";
 import { VARIANCE_NEG, VARIANCE_POS, normeInk } from "../theme";
 import { stagger, type DrawCtx, type G, type PlotRect } from "./context";
-import { ellipsize, measure } from "./text";
+import { ellipsize, measure, wrap } from "./text";
 import { fmtOf, type Fmt } from "../story/drillStory";
 import { formatInt, formatSignedPct, NBSP } from "../story/fr";
 import { hatchPattern } from "./norme";
@@ -73,6 +73,26 @@ export function drillLegend(m: DrillModel | null, ctx: DrawCtx): { label: string
             { label: m.refLabel, color: ink.ghost, shape: "dash" as const },
           ]
         : [];
+    case "bridge":
+      return [
+        { label: m.fromLabel, color: GREY_TOTAL(ctx), shape: "square" },
+        ...(m.groupField ? [{ label: "Sous-total", color: ink.soft, shape: "square" as const }] : []),
+        { label: m.toLabel, color: ink.strong, shape: "square" },
+        { label: "Hausse", color: ink.pos, shape: "square" },
+        { label: "Baisse", color: ink.neg, shape: "square" },
+      ];
+    case "compare":
+      return [
+        { label: m.fromLabel, color: ctx.spec.norme.enabled ? normeInk(ctx.theme).py : GREY_TOTAL(ctx), shape: "square" },
+        { label: m.toLabel, color: ctx.spec.norme.enabled ? normeInk(ctx.theme).ac : ink.strong, shape: ctx.spec.norme.enabled ? "outline" : "square" },
+        { label: "Écart favorable", color: ink.pos, shape: "square" },
+        { label: "Écart défavorable", color: ink.neg, shape: "square" },
+      ];
+    case "pivot": {
+      if (m.isDelta && m.series.length === 1) return [{ label: "Hausse", color: ink.pos, shape: "square" }, { label: "Baisse", color: ink.neg, shape: "square" }];
+      const cols = pivotColors(ctx, m);
+      return m.series.length > 1 ? m.series.map((se, i) => ({ label: se.key, color: cols[i]!, shape: m.chart === "line" ? ("line" as const) : ("square" as const) })) : [];
+    }
     default:
       return [];
   }
@@ -85,6 +105,9 @@ export function drawDrill(root: G, rect: PlotRect, ctx: DrawCtx, m: DrillModel, 
   else if (m.view === "month") drawMonth(g, rect, ctx, m, f);
   else if (m.view === "map") drawMap(g, rect, ctx, m, f);
   else if (m.view === "history") drawHistory(g, rect, ctx, m, f);
+  else if (m.view === "bridge") drawBridge(g, rect, ctx, m, f);
+  else if (m.view === "compare") drawCompare(g, rect, ctx, m, f);
+  else if (m.view === "pivot") drawPivot(g, rect, ctx, m, f);
   else drawBreakdown(g, rect, ctx, m, f);
 }
 
@@ -366,7 +389,10 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
         { t: st.key, fs: 14 * s, w: 700, fill: ink.text },
         { t: f.v(st.value), fs: 15 * s, w: 700, fill: ink.text },
       ];
-      if (rr != null) lines.push({ t: pctTxt(rr), fs: 14 * s, w: 700, fill: varColor(ink, rr) });
+      if (m.versions && st.ref != null && st.ref !== 0) {
+        const rv = (st.value - st.ref) / Math.abs(st.ref);
+        lines.push({ t: `${f.sv(st.value - st.ref)} · ${pctTxt(rv)}`, fs: 13.5 * s, w: 700, fill: varColor(ink, rv) });
+      } else if (rr != null) lines.push({ t: pctTxt(rr), fs: 14 * s, w: 700, fill: varColor(ink, rr) });
       const bw = Math.max(...lines.map((l) => measure(l.t, l.fs, font, l.w))) + 16 * s;
       const bh = lines.length * 17 * s + 10 * s;
       let bx = it.c[0] - bw / 2;
@@ -510,12 +536,15 @@ function drawBreakdown(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fm
   const right = 250 * s;
   const x0 = r.x + labelW;
   const max = Math.max(1e-9, ...m.stats.map((st) => Math.max(st.value, st.ref ?? 0)));
-  const x = scaleLinear().domain([0, max * 1.04]).range([x0, r.x + r.w - right]);
+  const min = Math.min(0, ...m.stats.map((st) => Math.min(st.value, st.ref ?? 0)));
+  const xr = scaleLinear().domain([min * 1.04, max * 1.04]).range([x0, r.x + r.w - right]);
+  const x = (v: number) => xr(v);
+  const xz = xr(0);
   const top = r.y + 14 * s + Math.max(0, (r.h - 14 * s - rowH * n) / 2) * 0.5;
-  g.append("line").attr("x1", x0).attr("x2", x0).attr("y1", top).attr("y2", top + rowH * n).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
+  g.append("line").attr("x1", xz).attr("x2", xz).attr("y1", top).attr("y2", top + rowH * n).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
   const hasRef = m.refTotal != null;
   if (hasRef) {
-    g.append("text").attr("x", r.x + r.w - right + 16 * s).attr("y", top - 6 * s).attr("font-size", 11 * s).attr("fill", theme.faint).text(`écart vs ${m.refLabel}`);
+    g.append("text").attr("x", r.x + r.w - right + 16 * s).attr("y", top - 6 * s).attr("font-size", 11 * s).attr("fill", theme.faint).text(m.versions ? `écart ${m.periodLabel} vs ${m.refLabel}` : `écart vs ${m.refLabel}`);
   }
   m.stats.forEach((st, i) => {
     const q = stagger(frame.build, i, n);
@@ -525,18 +554,280 @@ function drawBreakdown(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fm
     const gr = g.append("g").attr("class", "r4d-drill-row r4d-drill-hit").attr("data-drill-kind", "cat").attr("data-drill-field", m.field).attr("data-drill-value", st.key).style("cursor", st.key.startsWith("Autres (") ? "default" : "pointer");
     gr.append("rect").attr("x", r.x).attr("y", yc - rowH / 2).attr("width", r.w).attr("height", rowH).attr("fill", isStd ? (theme.dark ? "#16262d" : "#f2f8fa") : "transparent").attr("rx", 6 * s);
     gr.append("text").attr("x", x0 - 10 * s).attr("y", yc).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", 15 * s).attr("font-weight", isStd ? 700 : 500).attr("fill", ink.text).text(ellipsize(st.key, labelW - 14 * s, 15 * s, font, 700));
-    const w = Math.max(0, x(st.value * q) - x0);
-    gr.append("rect").attr("class", "r4d-drill-mark").attr("x", x0).attr("y", yc - bh / 2).attr("width", w).attr("height", bh).attr("rx", 3 * s).attr("fill", isStd ? ink.strong : ink.soft);
-    if (st.ref != null && st.ref > 0) gr.append("rect").attr("class", "r4d-drill-ref").attr("x", x0).attr("y", yc - bh / 2 - 4 * s).attr("width", Math.max(0, x(st.ref) - x0)).attr("height", bh + 8 * s).attr("rx", 3 * s).attr("fill", "none").attr("stroke", ink.ghost).attr("stroke-width", 1.5 * s).attr("stroke-dasharray", `${5 * s} ${3 * s}`).attr("opacity", q);
+    const xv = x(st.value * q);
+    gr.append("rect").attr("class", "r4d-drill-mark").attr("x", Math.min(xz, xv)).attr("y", yc - bh / 2).attr("width", Math.abs(xv - xz)).attr("height", bh).attr("rx", 3 * s).attr("fill", isStd ? ink.strong : ink.soft);
+    if (st.ref != null && st.ref !== 0) gr.append("rect").attr("class", "r4d-drill-ref").attr("x", Math.min(xz, x(st.ref))).attr("y", yc - bh / 2 - 4 * s).attr("width", Math.abs(x(st.ref) - xz)).attr("height", bh + 8 * s).attr("rx", 3 * s).attr("fill", "none").attr("stroke", ink.ghost).attr("stroke-width", 1.5 * s).attr("stroke-dasharray", `${5 * s} ${3 * s}`).attr("opacity", q);
     if (q > 0.6) {
-      const end = Math.max(x(st.value), st.ref != null ? x(st.ref) : 0);
+      const end = Math.max(x(st.value), st.ref != null ? x(st.ref) : xz, xz);
       gr.append("text").attr("x", end + 8 * s).attr("y", yc).attr("dy", "0.35em").attr("font-size", 14 * s).attr("font-weight", 700).attr("fill", ink.text).text(f.v(st.value));
-      const cntTxt = st.refCount != null ? `${formatInt(st.count)} ${st.count < 2 ? f.item.sg : f.item.pl} (moy. ${formatInt(Math.round(st.refCount))})` : `${formatInt(st.count)} ${st.count < 2 ? f.item.sg : f.item.pl}`;
-      if (hasRef && st.ref != null && st.ref > 0) {
-        const rr = st.value / st.ref - 1;
+      const cntTxt = m.versions ? `${m.refLabel} : ${f.v(st.ref ?? 0)}` : st.refCount != null ? `${formatInt(st.count)} ${st.count < 2 ? f.item.sg : f.item.pl} (moy. ${formatInt(Math.round(st.refCount))})` : `${formatInt(st.count)} ${st.count < 2 ? f.item.sg : f.item.pl}`;
+      if (hasRef && st.ref != null && (st.ref > 0 || (m.versions && st.ref !== 0))) {
+        const rr = m.versions ? (st.value - st.ref) / Math.abs(st.ref) : st.value / st.ref - 1;
         gr.append("text").attr("class", "r4d-drill-delta").attr("x", r.x + r.w - right + 16 * s).attr("y", yc - 7 * s).attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", varColor(ink, rr)).text(`${f.sv(st.value - st.ref)} · ${pctTxt(rr)}`);
         gr.append("text").attr("x", r.x + r.w - right + 16 * s).attr("y", yc + 12 * s).attr("font-size", 12 * s).attr("fill", ink.muted).text(cntTxt);
       } else gr.append("text").attr("x", r.x + r.w - right + 16 * s).attr("y", yc).attr("dy", "0.35em").attr("font-size", 12.5 * s).attr("fill", ink.muted).text(cntTxt);
     }
   });
+}
+
+/* ------------------------------------------------------------------ cascade (réel → budget) */
+
+const GREY_TOTAL = (ctx: DrawCtx) => (ctx.spec.norme.enabled ? normeInk(ctx.theme).py : ctx.theme.dark ? "#6b7780" : "#9AA6AD");
+
+function drawBridge(g: G, r: PlotRect, ctx: DrawCtx, m: BridgeModel, f: Fmt) {
+  const { s, frame, font, theme } = ctx;
+  const ink = inkOf(ctx);
+  const n = m.items.length;
+  const grouped = !!m.groupField;
+  const lineH = 15 * s;
+  const tickH = 3 * lineH + 10 * s + (grouped ? 30 * s : 0);
+  const top = 30 * s;
+  const plotH = r.h - tickH - top;
+  const lo = Math.min(0, ...m.items.map((it) => Math.min(it.y0, it.y1)));
+  const hi = Math.max(1e-9, ...m.items.map((it) => Math.max(it.y0, it.y1)));
+  const y = scaleLinear().domain([lo, hi * 1.1]).range([r.y + top + plotH, r.y + top]);
+  const x = scaleBand<number>().domain(m.items.map((_, i) => i)).range([r.x, r.x + r.w]).paddingInner(0.3).paddingOuter(0.1);
+  const bw = x.bandwidth();
+  const base = y(0);
+  g.append("line").attr("x1", r.x).attr("x2", r.x + r.w).attr("y1", base).attr("y2", base).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
+  const fs = Math.min(15 * s, Math.max(11 * s, bw * 0.17));
+  const totalFill = (it: BridgeItem) => (it.kind === "start" ? GREY_TOTAL(ctx) : it.kind === "subtotal" ? ink.soft : ink.strong);
+  const small = (v: number) => Math.abs(v) < Math.abs(m.start || 1) * 0.0005;
+  m.items.forEach((it, i) => {
+    const p = stagger(frame.build, i, n, 0.55);
+    const x0 = x(i)!;
+    const isDelta = it.kind === "delta";
+    const clickable = isDelta && !it.key.startsWith("Autres (");
+    const gi = g
+      .append("g")
+      .attr("class", `r4d-drill-bridge-item r4d-drill-bridge-${it.kind}${clickable ? " r4d-drill-hit" : ""}`)
+      .attr("data-key", it.key)
+      .attr("data-drill-kind", clickable ? "cat" : null)
+      .attr("data-drill-field", clickable ? m.field : null)
+      .attr("data-drill-value", clickable ? it.key : null)
+      .style("cursor", clickable ? "pointer" : "default");
+    if (clickable) gi.append("rect").attr("class", "r4d-drill-hitbox").attr("x", x0 - (x.step() - bw) / 2).attr("y", r.y).attr("width", x.step()).attr("height", r.h).attr("fill", "transparent");
+    let ya: number;
+    let yb: number;
+    let fill: string;
+    if (isDelta) {
+      const v1 = it.y0 + (it.y1 - it.y0) * p;
+      ya = y(Math.max(it.y0, v1));
+      yb = y(Math.min(it.y0, v1));
+      fill = small(it.value) ? ink.muted : it.value > 0 ? ink.pos : ink.neg;
+    } else {
+      ya = y(Math.max(0, it.value * p));
+      yb = y(Math.min(0, it.value * p));
+      fill = totalFill(it);
+    }
+    gi.append("rect").attr("class", "r4d-drill-mark").attr("x", x0).attr("y", ya).attr("width", bw).attr("height", Math.max(isDelta ? 1.5 * s : 0, yb - ya)).attr("rx", Math.min(3 * s, bw / 8)).attr("fill", fill);
+    // libellé signé (facteurs) ou niveau (totaux)
+    if (p > 0.7) {
+      const op = Math.min(1, (p - 0.7) / 0.3);
+      const txt = isDelta ? f.sv(it.value) : f.v(it.value);
+      const below = isDelta && it.value < 0;
+      const yl = below ? yb + fs + 4 * s : ya - 7 * s;
+      gi.append("text").attr("class", isDelta ? "r4d-drill-delta" : null).attr("x", x0 + bw / 2).attr("y", yl).attr("text-anchor", "middle").attr("font-size", fs).attr("font-weight", 700).attr("fill", isDelta ? (small(it.value) ? ink.muted : it.value > 0 ? ink.pos : ink.neg) : ink.text).attr("fill-opacity", op).text(txt);
+    }
+    // catégorie (2 à 3 lignes)
+    const lines = wrap(it.label, x.step() - 6 * s, 12.5 * s, font, isDelta ? 500 : 700, 3);
+    lines.forEach((ln, k) => gi.append("text").attr("x", x0 + bw / 2).attr("y", base + 18 * s + k * lineH).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", isDelta ? 500 : 700).attr("fill", isDelta ? ink.text : ink.text).text(ln));
+  });
+  // connecteurs : du haut (ou du bas) de chaque marche au départ de la suivante
+  if (frame.build > 0.4) {
+    const op = Math.min(1, (frame.build - 0.4) / 0.4);
+    const gc = g.append("g").attr("class", "r4d-drill-connectors").attr("opacity", op).attr("pointer-events", "none");
+    for (let i = 0; i < n - 1; i++) {
+      const lvl = m.items[i]!.y1;
+      const xa = x(i)! + bw;
+      const xb = x(i + 1)!;
+      gc.append("line").attr("x1", xa).attr("x2", xb).attr("y1", y(lvl)).attr("y2", y(lvl)).attr("stroke", theme.dark ? "#71717a" : "#8a9399").attr("stroke-width", 1 * s).attr("stroke-dasharray", `${3 * s} ${2 * s}`);
+    }
+  }
+  // groupes (Revenus / Coûts) : accolade sous les libellés
+  if (grouped) {
+    const gy = base + 18 * s + 3 * lineH + 4 * s;
+    const groups = [...new Set(m.items.filter((it) => it.kind === "delta").map((it) => it.group))];
+    for (const gname of groups) {
+      const idx = m.items.map((it, i) => (it.kind === "delta" && it.group === gname ? i : -1)).filter((i) => i >= 0);
+      if (!idx.length || !gname) continue;
+      const xa = x(idx[0]!)!;
+      const xb = x(idx[idx.length - 1]!)! + bw;
+      g.append("path").attr("d", `M${xa},${gy}v${5 * s}H${xb}v${-5 * s}`).attr("fill", "none").attr("stroke", ink.muted).attr("stroke-width", 1.2 * s);
+      g.append("text").attr("x", (xa + xb) / 2).attr("y", gy + 22 * s).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", 700).attr("fill", ink.muted).attr("letter-spacing", 0.6 * s).text(gname.toLocaleUpperCase("fr-FR"));
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ mois : version vs version + écarts */
+
+function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) {
+  let r = r0;
+  const { s, frame, theme } = ctx;
+  const ink = inkOf(ctx);
+  const right = 150 * s;
+  const gut = 52 * s;
+  r = { ...r, x: r.x + gut, w: r.w - gut };
+  const W = r.w - right;
+  const tickH = 22 * s;
+  const varH = Math.max(90 * s, (r.h - tickH) * 0.34);
+  const gap = 18 * s;
+  const mainH = r.h - tickH - varH - gap;
+  const x = scaleBand<number>().domain(m.months.map((x0) => x0.key)).range([r.x, r.x + W]).paddingInner(0.22).paddingOuter(0.06);
+  const bw = x.bandwidth();
+  const max = Math.max(1e-9, ...m.months.map((x0) => Math.max(x0.from ?? 0, x0.to ?? 0)));
+  const y = scaleLinear().domain([0, max * 1.08]).range([r.y + mainH, r.y + 8 * s]);
+  const norme = ctx.spec.norme.enabled;
+  const fromFill = norme ? normeInk(theme).py : GREY_TOTAL(ctx);
+  const toFill = ink.strong;
+  g.append("line").attr("x1", r.x).attr("x2", r.x + W).attr("y1", y(0)).attr("y2", y(0)).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
+  for (const t of y.ticks(4)) {
+    if (!t) continue;
+    g.append("line").attr("x1", r.x).attr("x2", r.x + W).attr("y1", y(t)).attr("y2", y(t)).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+    g.append("text").attr("x", r.x - 8 * s).attr("y", y(t)).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", 11.5 * s).attr("fill", theme.faint).text(compact(t, { ...f, sv: f.v }));
+  }
+  const dmax = Math.max(0, ...m.months.map((x0) => x0.delta ?? 0));
+  const dmin = Math.min(0, ...m.months.map((x0) => x0.delta ?? 0));
+  const span = Math.max(1e-9, dmax - dmin);
+  const vy0 = r.y + mainH + tickH + gap + 14 * s;
+  const yv = scaleLinear().domain([dmin - (dmin < 0 ? span * 0.28 : 0), dmax + (dmax > 0 ? span * 0.28 : 0)]).range([vy0 + varH - 14 * s, vy0]);
+  const good = (d: number) => (m.costOnly ? d < 0 : d > 0);
+  const tiny = (d: number) => Math.abs(d) < Math.abs(m.fromTotal / 12) * 0.03;
+  m.months.forEach((mo, i) => {
+    const p = stagger(frame.build, i, 12, 0.5);
+    const x0 = x(mo.key)!;
+    const half = bw * 0.5;
+    if (mo.from != null) g.append("rect").attr("class", "r4d-drill-ref").attr("x", x0).attr("y", y(mo.from * p)).attr("width", half - 1 * s).attr("height", Math.max(0, y(0) - y(mo.from * p))).attr("fill", fromFill).attr("rx", 2 * s);
+    if (mo.to != null) {
+      const rc = g.append("rect").attr("class", "r4d-drill-mark").attr("x", x0 + half + 1 * s).attr("y", y(mo.to * p)).attr("width", half - 1 * s).attr("height", Math.max(0, y(0) - y(mo.to * p))).attr("rx", 2 * s);
+      if (norme) rc.attr("fill", theme.bg).attr("stroke", normeInk(theme).ac).attr("stroke-width", 1.4 * s);
+      else rc.attr("fill", toFill);
+    }
+    g.append("text").attr("x", x0 + bw / 2).attr("y", y(0) + 16 * s).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", m.breakAt === i ? 700 : 400).attr("fill", m.breakAt === i ? ink.text : ink.muted).text(mo.tick);
+    // écart du mois
+    if (mo.delta != null) {
+      const d = mo.delta * p;
+      const col = tiny(mo.delta) ? ink.muted : good(mo.delta) ? ink.pos : ink.neg;
+      g.append("rect").attr("class", "r4d-drill-var").attr("x", x0 + bw * 0.12).attr("y", Math.min(yv(0), yv(d))).attr("width", bw * 0.76).attr("height", Math.max(1 * s, Math.abs(yv(d) - yv(0)))).attr("fill", col).attr("rx", 2 * s);
+      if (p > 0.8) {
+        const below = mo.delta < 0;
+        g.append("text").attr("x", x0 + bw / 2).attr("y", below ? yv(d) + 14 * s : yv(d) - 5 * s).attr("text-anchor", "middle").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", col).text(compact(mo.delta, f));
+      }
+    }
+  });
+  g.append("line").attr("x1", r.x).attr("x2", r.x + W).attr("y1", yv(0)).attr("y2", yv(0)).attr("stroke", theme.axis).attr("stroke-width", 1 * s);
+  g.append("text").attr("x", r.x).attr("y", vy0 - 10 * s).attr("font-size", 12 * s).attr("font-weight", 700).attr("fill", ink.muted).text(`Écart ${m.toLabel} vs ${m.fromLabel}${m.costOnly ? " (coûts : une hausse est défavorable)" : ""}`);
+  // rupture
+  if (m.breakAt != null && frame.build > 0.85) {
+    const xb = x(m.breakAt)! - (x.step() - bw) / 2;
+    g.append("line").attr("class", "r4d-drill-break").attr("x1", xb).attr("x2", xb).attr("y1", r.y + 4 * s).attr("y2", vy0 + varH).attr("stroke", ink.text).attr("stroke-width", 1.4 * s).attr("stroke-dasharray", `${5 * s} ${3 * s}`);
+    g.append("text").attr("x", xb + 6 * s).attr("y", r.y + 14 * s).attr("font-size", 12.5 * s).attr("font-weight", 700).attr("fill", ink.text).text(`à partir de ${MONTH_LONG[m.breakAt]!.toLocaleLowerCase("fr-FR")}`);
+  }
+  // totaux à droite
+  if (frame.build > 0.6) {
+    const tx = r.x + W + 22 * s;
+    const op = Math.min(1, (frame.build - 0.6) / 0.3);
+    const gt = g.append("g").attr("opacity", op);
+    const rr = m.fromTotal ? m.delta / Math.abs(m.fromTotal) : 0;
+    const col = Math.abs(rr) < 0.005 ? ink.muted : good(m.delta) ? ink.pos : ink.neg;
+    const rows: [string, string, string, number][] = [
+      [m.fromLabel, f.v(m.fromTotal), ink.muted, 400],
+      [m.toLabel, f.v(m.toTotal), ink.text, 700],
+      ["Écart", `${f.sv(m.delta)}`, col, 700],
+      ["", pctTxt(rr), col, 700],
+      ["1er semestre", f.sv(m.h1), ink.muted, 400],
+      ["2nd semestre", f.sv(m.h2), ink.muted, 400],
+    ];
+    let yy = r.y + 24 * s;
+    rows.forEach(([a, b, c, w], k) => {
+      if (k === 4) yy += 14 * s;
+      if (a) gt.append("text").attr("x", tx).attr("y", yy).attr("font-size", 12 * s).attr("fill", ink.muted).text(a);
+      gt.append("text").attr("x", tx).attr("y", yy + (a ? 19 * s : 0)).attr("font-size", 17 * s).attr("font-weight", w).attr("fill", c).text(b);
+      yy += a ? 46 * s : 26 * s;
+    });
+  }
+}
+
+/** Montant court pour les petites étiquettes (+55 k€, −0,4 M€). */
+function compact(v: number, f: Fmt): string {
+  return f.sv(v).replace(/(\d)[\u202f\u00a0 ](\d{3})(?!\d)/g, "$1$2");
+}
+
+/* ------------------------------------------------------------------ tableau croisé */
+
+function pivotColors(ctx: DrawCtx, m: PivotModel): string[] {
+  const ink = inkOf(ctx);
+  if (m.seriesField === "@version") return [GREY_TOTAL(ctx), ink.strong];
+  if (m.series.length === 1) return [ink.strong];
+  return m.series.map((_, i) => ctx.colors[i % ctx.colors.length]!);
+}
+
+function drawPivot(g: G, r: PlotRect, ctx: DrawCtx, m: PivotModel, f: Fmt) {
+  const { s, frame, font, theme } = ctx;
+  const ink = inkOf(ctx);
+  const cols = pivotColors(ctx, m);
+  const lineH = 14 * s;
+  const tickH = (m.xIsTime ? 1 : 2) * lineH + 14 * s;
+  const top = 18 * s;
+  const plotH = r.h - tickH - top;
+  const vals = m.series.flatMap((x) => x.values.filter((v): v is number => v != null));
+  const lo = Math.min(0, ...vals);
+  const hi = Math.max(0, ...vals, 1e-9);
+  const pad = (hi - lo) * 0.12;
+  const y = scaleLinear().domain([lo < 0 ? lo - pad : 0, hi > 0 ? hi + pad : 0]).range([r.y + top + plotH, r.y + top]);
+  // Marge gauche : graduations alignées à droite, hors des barres
+  const gx = 56 * s;
+  const x = scaleBand<number>().domain(m.keys.map((_, i) => i)).range([r.x + gx, r.x + r.w]).paddingInner(m.chart === "line" ? 0 : 0.25).paddingOuter(m.chart === "line" ? 0.3 : 0.08);
+  const bw = x.bandwidth();
+  const y0 = y(0);
+  for (const t of y.ticks(4)) {
+    if (!t) continue;
+    g.append("line").attr("x1", r.x + gx).attr("x2", r.x + r.w).attr("y1", y(t)).attr("y2", y(t)).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
+    g.append("text").attr("x", r.x + gx - 6 * s).attr("y", y(t) + 4 * s).attr("text-anchor", "end").attr("font-size", 11.5 * s).attr("fill", theme.faint).text(compact(t, f));
+  }
+  const ns = m.series.length;
+  const totalBars = ns * m.keys.length;
+  const labels = m.chart === "bar" && totalBars <= 28;
+  // Étiquettes de valeur : toutes si les barres sont assez larges, sinon les 2 séries qui pèsent le plus
+  const subW = (x.bandwidth() / Math.max(1, ns)) * 0.88;
+  const labelled = new Set(subW >= 44 * s ? m.series.map((se) => se.key) : [...m.series].sort((a, b) => Math.abs(b.total) - Math.abs(a.total)).slice(0, 2).map((se) => se.key));
+  const tickY = r.y + top + plotH + 18 * s;
+  m.keys.forEach((k, i) => {
+    const x0 = x(i)!;
+    const cat = m.catValues[i];
+    const gk = g.append("g").attr("class", `r4d-drill-pivot-key${cat ? " r4d-drill-hit" : ""}`).attr("data-drill-kind", cat && !cat.startsWith("Autres (") ? "cat" : null).attr("data-drill-field", cat ? m.x : null).attr("data-drill-value", cat).style("cursor", cat ? "pointer" : "default");
+    if (cat) gk.append("rect").attr("class", "r4d-drill-hitbox").attr("x", x0 - (x.step() - bw) / 2).attr("y", r.y).attr("width", x.step()).attr("height", r.h).attr("fill", "transparent");
+    const lines = m.xIsTime ? [k] : wrap(k, x.step() - 4 * s, 12 * s, font, 500, 2);
+    lines.forEach((ln, j) => gk.append("text").attr("x", x0 + bw / 2).attr("y", tickY + j * lineH).attr("text-anchor", "middle").attr("font-size", 12 * s).attr("fill", ink.text).text(ln));
+    if (m.chart !== "bar") return;
+    const sub = bw / ns;
+    m.series.forEach((se, j) => {
+      const v = se.values[i];
+      if (v == null) return;
+      const p = stagger(frame.build, i * ns + j, totalBars, 0.5);
+      const vv = v * p;
+      const fill = m.isDelta && ns === 1 ? (Math.abs(v) < 1e-9 ? ink.muted : v > 0 ? ink.pos : ink.neg) : cols[j]!;
+      gk.append("rect").attr("class", "r4d-drill-mark").attr("x", x0 + j * sub + sub * 0.06).attr("y", Math.min(y(vv), y0)).attr("width", sub * 0.88).attr("height", Math.max(0, Math.abs(y(vv) - y0))).attr("rx", Math.min(2.5 * s, sub / 6)).attr("fill", fill);
+      if (labels && p > 0.8 && sub > 22 * s && labelled.has(se.key)) {
+        const fsz = Math.min(12.5 * s, Math.max(10.5 * s, sub * 0.24));
+        gk.append("text").attr("x", x0 + j * sub + sub / 2).attr("y", v < 0 ? y(vv) + fsz + 3 * s : y(vv) - 5 * s).attr("text-anchor", "middle").attr("font-size", fsz).attr("font-weight", 600).attr("fill", m.isDelta && ns === 1 ? fill : ink.text).text(compact(v, m.isDelta ? f : { ...f, sv: f.v }));
+      }
+    });
+  });
+  g.append("line").attr("x1", r.x + gx).attr("x2", r.x + r.w).attr("y1", y0).attr("y2", y0).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
+  if (m.chart === "line") {
+    const upto = Math.max(1, Math.round(m.keys.length * Math.min(1, frame.build * 1.1)));
+    m.series.forEach((se, j) => {
+      let d = "";
+      se.values.forEach((v, i) => {
+        if (v == null || i >= upto) return;
+        d += `${d ? "L" : "M"}${(x(i)! + bw / 2).toFixed(1)},${y(v).toFixed(1)}`;
+      });
+      g.append("path").attr("class", "r4d-drill-mark").attr("d", d).attr("fill", "none").attr("stroke", cols[j]!).attr("stroke-width", 3 * s).attr("stroke-linejoin", "round");
+      se.values.forEach((v, i) => v != null && i < upto && g.append("circle").attr("cx", x(i)! + bw / 2).attr("cy", y(v)).attr("r", 3.5 * s).attr("fill", cols[j]!));
+      const li = Math.min(upto, se.values.length) - 1;
+      const lv = se.values[li];
+      if (frame.build > 0.9 && lv != null && ns <= 6) haloText(g, x(li)! + bw / 2 + 8 * s, y(lv) + 4 * s, f.v(lv), 12.5 * s, cols[j]!, ink, { anchor: "start", weight: 700 });
+    });
+  }
 }

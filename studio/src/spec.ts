@@ -329,7 +329,7 @@ export type ProvenanceSpec = z.infer<typeof provenanceSchema>;
  */
 export const DRILL_GRAINS = ["week", "month", "quarter", "year"] as const;
 export type DrillGrain = (typeof DRILL_GRAINS)[number];
-export const DRILL_VIEWS = ["periods", "month", "map", "history", "breakdown", "bridge"] as const;
+export const DRILL_VIEWS = ["periods", "month", "map", "history", "breakdown", "bridge", "compare", "pivot"] as const;
 export type DrillView = (typeof DRILL_VIEWS)[number];
 export const drillStepSchema = z.object({
   kind: z.enum(["period", "cat"]),
@@ -364,6 +364,21 @@ export const drillSchema = z.object({
   to: z.string().max(120).nullable().default(null),
   /** Cascade : tri des facteurs par impact, sous-totaux par groupe. */
   sortByImpact: z.boolean().default(true),
+  /** Colonne « Revenus / Coûts » : les coûts sont soustraits (résultat = revenus − coûts) ; null = mesure telle quelle. */
+  nature: field,
+  /** Hiérarchie de la cascade (ligne métier → compte…) : un clic sur un facteur descend d'un niveau. */
+  levels: z.array(z.string().min(1).max(120)).max(4).default([]),
+  /** « Tableau croisé » (vue « pivot ») : axe X, séries, mesure et graphique. */
+  pivot: z
+    .object({
+      /** Colonne, ou « @month » / « @quarter » / « @year » (pas de temps de la colonne date). */
+      x: z.string().max(120).nullable().default(null),
+      /** Colonne de séries, « @version » (une série par version) ou null. */
+      series: z.string().max(120).nullable().default(null),
+      agg: z.enum(["sum", "mean", "count", "delta"]).default("sum"),
+      chart: z.enum(["bar", "line", "bridge", "map"]).default("bar"),
+    })
+    .default({}),
 });
 export type DrillSpec = z.infer<typeof drillSchema>;
 

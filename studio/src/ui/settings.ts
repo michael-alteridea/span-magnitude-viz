@@ -244,7 +244,11 @@ export class SettingsPanel {
       enc.push(this.row("Mesure", this.select("drill.measure", this.colOpts(cols, num), true), "Vide : nombre de lignes"));
       enc.push(this.row("Nom de la mesure", this.text("drill.label", "ex. Pipeline créé", 60)));
       enc.push(this.row("Répartir / détailler par", this.select("drill.by", this.colOpts(cols, (c) => c.type === "category" || (c.type === "text" && c.cardinality <= 60)), true), "Région → carte ; commercial, produit… → barres"));
-      enc.push(this.row("Référence : moyenne des", this.number("drill.compare", { min: 1, max: 12, step: 1 }), "périodes précédentes"));
+      enc.push(this.row("Version (Réel / Budget…)", this.select("drill.version", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Vide : exploration temporelle simple"));
+      enc.push(this.row("De (référence)", this.text("drill.from", "Réel 2025", 40)));
+      enc.push(this.row("À (comparé)", this.text("drill.to", "Budget 2026", 40)));
+      enc.push(this.row("Nature (Revenus / Coûts)", this.select("drill.nature", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Les coûts sont soustraits"));
+      enc.push(this.row("Référence : moyenne des", this.number("drill.compare", { min: 1, max: 12, step: 1 }), "périodes précédentes (hors comparaison de versions)"));
       enc.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → mois), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
     } else if (isVariance(t)) {
       enc.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true)));

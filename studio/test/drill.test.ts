@@ -119,7 +119,7 @@ describe("Scénario Directeur commercial", () => {
   it("7 étapes, titres affirmatifs et commentaires chiffrés", () => {
     expect(missingRoles(SCENARIO_DIRCOM, ds, b)).toEqual([]);
     expect(run.stoppedAt).toBeNull();
-    const titles = run.frames.map((f) => f.story!.title);
+    const titles = run.frames.map((f) => f.story!.title.replace(/[\u00a0\u202f]/g, " "));
     expect(titles[0]).toBe("T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse");
     expect(titles[1]).toMatch(/^Juin 2026 décroche : 1,3 M€, −22 % vs la moyenne mars–mai 2026$/);
     expect(titles[2]).toMatch(/^Juin 2026 : l'écart se creuse tout au long du mois/);

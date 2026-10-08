@@ -464,7 +464,7 @@ async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
     const ds = parsed && (same || note) ? datasetFor(s) : null;
     if (parsed && ds && (same || note)) {
       const svg = await renderScaled(parsed, ds, same ? info!.max : null, note);
-      const blob = await svgToPngBlob(svg, s.width, s.height, 2);
+      const blob = await svgToPngBlob(svg, s.width, s.height, 3);
       return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
     }
   } catch (e) {
@@ -473,7 +473,7 @@ async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
   try {
     if (s.svg) {
       const svg = await embedFontsInto(s.svg, spec.style.font);
-      const blob = await svgToPngBlob(svg, s.width, s.height, 2);
+      const blob = await svgToPngBlob(svg, s.width, s.height, 3);
       return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
     }
   } catch {
@@ -587,6 +587,15 @@ function guideText(): string | null {
   return `${guide.sc.label} · étape ${k + 1}/${n} : ${guide.frames[k]!.step.name}${taken.has(guide.frames[k]!.step.id) ? " ✓" : " — 📸 Snapshot"}${next ? ` · ensuite : ${next.step.name}` : " · puis ▶ Film"}`;
 }
 
+/** Pas à pas : étape suivante (bouton de piste de la barre d'exploration). */
+function guideNext(): { label: string; drill: ChartSpec["drill"] } | null {
+  if (!guide || store.state.spec.type !== "drill") return null;
+  const cur = JSON.stringify(store.state.spec.drill);
+  const k = guide.frames.findIndex((x) => JSON.stringify(x.drill) === cur);
+  const next = k >= 0 ? guide.frames[k + 1] : null;
+  return next ? { label: `Étape ${k + 2} : ${next.step.name}`, drill: next.drill } : null;
+}
+
 /** Spec d'une étape de scénario (textes recalculés, style courant conservé). */
 function scenarioSpec(drill: ChartSpec["drill"]): ChartSpec {
   const cur = store.state.spec;
@@ -609,6 +618,7 @@ async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean):
     return;
   }
   guide = { sc, binding, frames: run.frames, dataKey: dataKey() };
+  drillBar.closePivot();
   store.setStory({ title: sc.storyTitle, snapshots: [], sameScale: false });
   if (run.stoppedAt) toast(`Étape « ${run.stoppedAt.name} » sans objet sur ces données : scénario arrêté à ${run.frames.length} étape(s).`, "info", 6000);
   if (!auto) {
@@ -838,7 +848,7 @@ const settings = new SettingsPanel(store);
 const explorer = new Explorer(store, storyContext, openInsight);
 const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0) });
 const film = new StoryFilm((s) => datasetFor(s));
-const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText() });
+const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText(), guideNext: () => guideNext() });
 preview.onDrill = (el) => onDrillClick(el);
 const scenarioDialog = new ScenarioDialog(store, { loadSample: (id) => loadSample(id), start: (sc, b, auto) => void startScenario(sc, b, auto) });
 preview.onEditText = (field, value) => {
