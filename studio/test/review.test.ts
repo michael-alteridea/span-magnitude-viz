@@ -147,7 +147,7 @@ describe("interactions (copies, sans effet de bord)", () => {
     r = setCurrent(r, 99, NOW);
     expect(r.meeting.current).toBe(6);
     r = addItem(r, { id: "d1", snapId: r.snapshots[0]!.id, kind: "decision", text: "Budget validé", owner: "cv", due: null, by: "sl", at: NOW }, NOW);
-    r = addItem(r, { id: "a1", snapId: r.snapshots[2]!.id, kind: "action", text: "Chiffrer le risque SaaS", owner: "pr", due: "2026-10-23", by: "sl", at: NOW }, NOW);
+    r = addItem(r, { id: "a1", snapId: r.snapshots[2]!.id, kind: "action", text: "Chiffrer le risque abonnements", owner: "pr", due: "2026-10-23", by: "sl", at: NOW }, NOW);
     expect(addItem(r, { snapId: "x", kind: "action", text: " ", owner: null, due: null, by: "sl", at: NOW }, NOW)).toBe(r);
     r = endMeeting(r, "2026-10-09T14:52:00Z");
     expect(r.status).toBe("terminee");
@@ -156,7 +156,7 @@ describe("interactions (copies, sans effet de bord)", () => {
     expect(rep.kpis.actions).toBe(1);
     expect(rep.sections[2]!.actions.map((a) => a.id)).toEqual(["a1"]);
     const slide = reportSlideComments(r, r.snapshots[2]!);
-    expect(slide.some((c) => /Action : Chiffrer le risque SaaS/.test(c))).toBe(true);
+    expect(slide.some((c) => /Action : Chiffrer le risque abonnements/.test(c))).toBe(true);
     expect(removeItem(r, "a1", NOW).items.map((x) => x.id)).toEqual(["d1"]);
     // reprise d'une réunion terminée : on garde le début et la lecture d'avant
     const again = startMeeting(r, "2026-10-10T09:00:00Z");

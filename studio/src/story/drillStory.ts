@@ -398,7 +398,7 @@ function yearOf(label: string): string {
   return label.match(/(19|20)\d{2}/)?.[0] ?? label;
 }
 
-/** « de coûts d'hébergement » (compte dominant nommé « Coûts … ») ou « de coûts ». */
+/** « de coûts d'infrastructure » (compte dominant nommé « Coûts … ») ou « de coûts ». */
 function costPhrase(items: BridgeItem[], costDelta: number): string {
   const costs = items.filter((it) => it.kind === "delta" && Math.abs(it.cost) > 0);
   const top = costs.sort((a, b) => Math.abs(b.cost) - Math.abs(a.cost))[0];

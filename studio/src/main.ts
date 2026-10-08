@@ -2,6 +2,7 @@
  * Datanime · Studio (moteur Reporting 4D) — point d'entrée.
  * Trois zones : Données | Aperçu | Réglages. Tout le rendu est en SVG (D3).
  */
+import { armDrillZoom, setZoomEnabled, setZoomSlowdown } from "./ui/drillZoom";
 import "./styles.css";
 import { Store } from "./state";
 import { chartSize, isSpecial, parseSpec, studioFileSchema, type ChartSpec, type ChartType } from "./spec";
@@ -860,12 +861,14 @@ function onDrillClick(el: Element): void {
     const start = Number(el.getAttribute("data-drill-key"));
     const grain = el.getAttribute("data-drill-grain") as DrillGrain;
     if (!Number.isFinite(start)) return;
+    armDrillZoom();
     store.set("drill", drillInto(d, { kind: "period", start, grain }, drillRoot()));
   } else if (kind === "cat") {
     const field = el.getAttribute("data-drill-field") ?? "";
     const value = el.getAttribute("data-drill-value") ?? "";
     if (!field || !value || /^Autres \(/.test(value)) return;
     if (d.path.some((p) => p.kind === "cat" && p.field === field && p.value === value)) return;
+    armDrillZoom();
     store.set("drill", drillInto(d, { kind: "cat", field, value }, drillRoot()));
   }
 }
@@ -1362,6 +1365,11 @@ const api = {
   provenance: () => store.state.provenance,
   currentSvg: () => preview.currentSvg(),
   seek: (p: number) => preview.seek(p),
+  /** Transition « zoom dans la marque » : activation et ralenti (captures à mi-transition). */
+  drillZoom: (on: boolean, slowdown = 1) => {
+    setZoomEnabled(on);
+    setZoomSlowdown(slowdown);
+  },
   explore: () => explorer.open(),
   mapping: () => mappingWindow,
   reshape: () => reopenMapping(),

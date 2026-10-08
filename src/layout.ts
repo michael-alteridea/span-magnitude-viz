@@ -119,11 +119,11 @@ export function computeLayout(
     const barY =
       side === 1 ? yBase - barHeight - (i % 5) * 1.5 : yBase + (i % 5) * 1.5;
 
-    // Point: span midpoint on x; vertical jitter forms a loose cloud (geo map deferred)
+    // Point: span midpoint on x; vertical jitter forms a loose scatter (geo map deferred)
     const cx = (x0 + x1) / 2;
-    const cloudJitter =
+    const scatterJitter =
       ((hashId(mark.id + ":pt") % 1000) / 1000 - 0.5) * innerHeight * 0.42;
-    const cy = yBase - cloudJitter * side;
+    const cy = yBase - scatterJitter * side;
     const pointR =
       pointStyle === "stroke" ? fixedPointR : pointRadiusScale(mark.magnitude);
     const pointStroke =

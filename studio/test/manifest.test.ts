@@ -61,11 +61,11 @@ describe("adresses du manifeste", () => {
     expect(VERIFY_URL).toBe(`${PLATFORM_URL}verifier.html`);
     expect(indexUrl()).toBe("https://alteridea-dashboard.web.app/reporting/publie/index.json");
     expect(manifestUrl("demo-dircom")).toBe("https://alteridea-dashboard.web.app/reporting/publie/demo-dircom/manifeste.json");
-    expect(imageUrl("norvia-budget-2026", "daf-05-baisse-mois-14j5oil", "png")).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-14j5oil.png");
+    expect(imageUrl("norvia-budget-2026", "daf-05-baisse-mois-1051jsm", "png")).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-1051jsm.png");
     // 1.1 : adresse versionnée par l'empreinte du snapshot (12 premiers caractères), nom de fichier inchangé
-    const v = imageUrl("norvia-budget-2026", "daf-05-baisse-mois-14j5oil", "png", PLATFORM_URL, "3e82fc50fa44e17e93562b50");
-    expect(v).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-14j5oil.png?v=3e82fc50fa44");
-    expect(imageFileOf(v)).toBe("daf-05-baisse-mois-14j5oil.png");
+    const v = imageUrl("norvia-budget-2026", "daf-05-baisse-mois-1051jsm", "png", PLATFORM_URL, "3e82fc50fa44e17e93562b50");
+    expect(v).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-1051jsm.png?v=3e82fc50fa44");
+    expect(imageFileOf(v)).toBe("daf-05-baisse-mois-1051jsm.png");
     expect(CONTRACT_REVISION).toBe("1.1");
     // futur domaine : une seule base à changer
     expect(manifestUrl("demo-daf", "https://datanime.io/")).toBe("https://datanime.io/publie/demo-daf/manifeste.json");

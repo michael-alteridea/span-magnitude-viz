@@ -100,6 +100,8 @@ const stageInfo = () =>
   }));
 async function shotStage(name) {
   if (!SHOTS) return;
+  // pointeur hors du graphique : pas d'infobulle résiduelle sur les captures
+  await page.mouse.move(1, 1);
   await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 2 });
   await sleep(300);
   await (await page.$(".stage")).screenshot({ path: join(shotsDir, name) });
@@ -1177,6 +1179,7 @@ try {
     const t = async () => page.evaluate(() => window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "));
     const crumbs = async () => page.$$eval("[data-testid=drill-crumbs] button", (b) => b.map((x) => x.textContent));
     const clickSvg = async (sel) => {
+      await page.waitForFunction(() => !document.querySelector("[data-testid=chart-svg]")?.hasAttribute("data-zoom"), { timeout: 8000 }).catch(() => {});
       await page.evaluate(() => window.r4d.seek(1));
       const el = await page.$(`[data-testid=chart-svg] ${sel}`);
       if (!el) throw new Error("élément introuvable : " + sel);
@@ -1220,6 +1223,66 @@ try {
     await sleep(300);
     check("démo : fil d'Ariane → retour au T2 2026", JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "T2 2026"]) && /Juin 2026 décroche/.test(await t()));
 
+    // Transition « zoom dans la marque » (ralentie ×6 pour l'observer) : descente puis remontée
+    {
+      const zs = () =>
+        page.evaluate(() => {
+          const svg = document.querySelector("[data-testid=chart-svg]");
+          const root = [...svg.children].find((c) => c.tagName === "g" && !c.classList.contains("r4d-zoom-layer"));
+          const faded = [...root.children].filter((c) => !c.classList.contains("r4d-bg")).map((c) => Number(c.style.opacity || 1));
+          const mark = svg.querySelector(".r4d-zoom-layer .r4d-zoom-mark");
+          const veil = svg.querySelector(".r4d-zoom-layer .r4d-zoom-veil");
+          const sc = /scale\(([\d.]+) ([\d.]+)\)/.exec(mark?.getAttribute("transform") ?? "");
+          return {
+            zoom: svg.getAttribute("data-zoom"),
+            minOpacity: Math.min(...faded),
+            scale: sc ? Math.max(Number(sc[1]), Number(sc[2])) : 0,
+            veil: veil ? Number(veil.getAttribute("fill-opacity")) : null,
+            inert: mark ? !mark.hasAttribute("data-drill-kind") && !mark.querySelector("[data-drill-kind]") : null,
+            drillMarksInLayer: svg.querySelectorAll(".r4d-zoom-layer .r4d-drill-mark, .r4d-zoom-layer [data-drill-kind]").length,
+          };
+        });
+      const zoomGone = () => page.waitForFunction(() => !document.querySelector("[data-testid=chart-svg]").hasAttribute("data-zoom"), { timeout: 10000 }).catch(() => {});
+      await page.evaluate(() => {
+        window.r4d.seek(1);
+        window.r4d.drillZoom(true, 6);
+      });
+      await (await page.$('[data-testid=chart-svg] .r4d-drill-bar[data-focus="1"]')).click();
+      await page.mouse.move(2, 2);
+      await sleep(1300);
+      const dive = await zs();
+      check("zoom : descente — la barre cliquée grandit vers toute la zone du graphique, le reste s'efface (copie inerte)", dive.zoom === "in" && dive.scale > 1.3 && dive.minOpacity < 0.7 && dive.inert === true && dive.drillMarksInLayer === 0, JSON.stringify(dive));
+      if (SHOTS) await (await page.$(".stage")).screenshot({ path: join(shotsDir, "66-zoom-descente-mi-parcours.png") });
+      await page.waitForFunction(() => document.querySelector("[data-testid=chart-svg]").getAttribute("data-zoom") === "emerge", { timeout: 6000 }).catch(() => {});
+      await sleep(400);
+      const em = await zs();
+      check("zoom : l'enfant (jour par jour) émerge de l'empreinte du parent (voile qui se dissout)", em.zoom === "emerge" && em.veil > 0 && em.veil < 0.92 && (await crumbs()).length === 3, JSON.stringify(em));
+      await zoomGone();
+      const end = await zs();
+      check("zoom : fin de transition — calque retiré, opacités rétablies", end.zoom === null && end.minOpacity === 1 && end.veil === null && end.scale === 0, JSON.stringify(end));
+      // remontée par le fil d'Ariane : l'enfant se replie dans un voile, puis la barre de juin rétrécit jusqu'à sa place
+      await domClick("[data-testid=drill-crumb-1]");
+      await sleep(1300);
+      const fold = await zs();
+      await page.waitForFunction(() => document.querySelector("[data-testid=chart-svg]").getAttribute("data-zoom") === "out", { timeout: 6000 }).catch(() => {});
+      await sleep(1000);
+      const out = await zs();
+      check("zoom : remontée (fil d'Ariane) — repli dans un voile puis la marque parente rétrécit à sa place", fold.zoom === "fold" && fold.veil > 0.2 && out.zoom === "out" && out.scale > 1.05 && out.minOpacity < 1, JSON.stringify({ fold, out }));
+      if (SHOTS) await (await page.$(".stage")).screenshot({ path: join(shotsDir, "67-zoom-remontee-mi-parcours.png") });
+      await zoomGone();
+      check("zoom : remontée terminée → T2 2026 par mois", JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "T2 2026"]) && /Juin 2026 décroche/.test(await t()) && (await zs()).minOpacity === 1);
+      // prefers-reduced-motion : aucune animation
+      await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+      await (await page.$('[data-testid=chart-svg] .r4d-drill-bar[data-focus="1"]')).click();
+      await sleep(150);
+      const rm = await zs();
+      check("zoom : prefers-reduced-motion → changement immédiat, sans calque", rm.zoom === null && rm.scale === 0 && (await crumbs()).length === 3, JSON.stringify(rm));
+      await domClick("[data-testid=drill-crumb-1]");
+      await sleep(300);
+      await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
+      await page.evaluate(() => window.r4d.drillZoom(true, 1));
+    }
+
     // Scénario en un clic (fenêtre « Scénarios »)
     await domClick("[data-testid=scenario-open]");
     await sleep(300);
@@ -1245,6 +1308,39 @@ try {
     await page.keyboard.press("Escape");
     await sleep(200);
     check("film : Échap ferme", !(await page.evaluate(() => window.r4d.film().isOpen)));
+    // Film : aucune mise en page qui saute — colonne « À retenir » réservée dès la première image
+    const lay = () =>
+      page.evaluate(() => {
+        const svg = document.querySelector("[data-testid=film-svg]");
+        const xs = [...svg.querySelectorAll(".r4d-drill-bar .r4d-drill-hitbox")].map((r) => Math.round(Number(r.getAttribute("x"))));
+        return { line: svg.querySelector(".r4d-comments line")?.getAttribute("x1") ?? null, n: svg.querySelectorAll(".r4d-comment").length, xs: xs.join(",") };
+      });
+    await page.evaluate(() => window.r4d.film().open(window.r4d.story().snapshots, 0));
+    await sleep(80);
+    const j0 = await lay();
+    await page.evaluate(() => window.r4d.film().finishNow());
+    await sleep(300);
+    const j1 = await lay();
+    check("film : pas de saut — colonne « À retenir » et barres à leur place finale dès la première image", j0.n === 0 && !!j0.line && j0.line === j1.line && j0.xs === j1.xs && j0.xs.length > 0 && j1.n >= 2, JSON.stringify({ j0, j1 }));
+    await page.evaluate(() => window.r4d.film().close());
+    // Film : diapositive parent → enfant (juin 2026 → jour par jour) en « zoom dans la marque »
+    await page.evaluate(() => {
+      window.r4d.drillZoom(true, 4);
+      window.r4d.film().open(window.r4d.story().snapshots, 1);
+    });
+    await sleep(400);
+    await page.evaluate(() => window.r4d.film().finishNow());
+    await sleep(300);
+    await domClick("[data-testid=film-next]");
+    await sleep(900);
+    const fz = await page.evaluate(() => ({ z: document.querySelector("[data-testid=film-svg]").getAttribute("data-zoom"), mark: !!document.querySelector("[data-testid=film-svg] .r4d-zoom-mark") }));
+    await page.waitForFunction(() => document.querySelector("[data-testid=film-svg]").getAttribute("data-zoom") === "emerge", { timeout: 6000 }).catch(() => {});
+    const fe = await page.evaluate(() => ({ z: document.querySelector("[data-testid=film-svg]").getAttribute("data-zoom"), counter: document.querySelector("[data-testid=film-counter]").textContent }));
+    check("film : diapositive enfant → zoom dans la barre parente puis émergence", fz.z === "in" && fz.mark && fe.z === "emerge" && fe.counter === "3 / 7", JSON.stringify({ fz, fe }));
+    await page.evaluate(() => {
+      window.r4d.film().close();
+      window.r4d.drillZoom(true, 1);
+    });
     // Rejouer le scénario : mêmes identifiants (partage futur par QR)
     await page.evaluate(() => window.r4d.scenario("dircom", true));
     await page.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
@@ -1289,6 +1385,7 @@ try {
     const t = async () => page.evaluate(() => window.r4d.getSpec().style.title.replace(/[\u00a0\u202f]/g, " "));
     const crumbs = async () => page.$$eval("[data-testid=drill-crumbs] button", (b) => b.map((x) => x.textContent));
     const clickSvg = async (sel) => {
+      await page.waitForFunction(() => !document.querySelector("[data-testid=chart-svg]")?.hasAttribute("data-zoom"), { timeout: 8000 }).catch(() => {});
       await page.evaluate(() => window.r4d.seek(1));
       const el = await page.$(`[data-testid=chart-svg] ${sel}`);
       if (!el) throw new Error("élément introuvable : " + sel);
@@ -1297,18 +1394,18 @@ try {
       await page.evaluate(() => window.r4d.seek(1));
     };
     const items = await page.$$eval("[data-testid=chart-svg] .r4d-drill-bridge-item", (els) => els.map((e) => e.getAttribute("data-key")));
-    check("finance : cascade Réel 2025 → 5 lignes métier → Budget 2026", items.length === 7 && /^Budget 2026 : −0,4 M€ vs Réel 2025 — SN\/Legacy \(−3,0 M€\) efface la hausse de Cloud \(\+2,1 M€\)/.test(await t()), `${items.length} · ${await t()}`);
+    check("finance : cascade Réel 2025 → 5 lignes métier → Budget 2026", items.length === 7 && /^Budget 2026 : −0,4 M€ vs Réel 2025 — Équipements \(−3,0 M€\) efface la hausse de Plateforme \(\+2,1 M€\)/.test(await t()), `${items.length} · ${await t()}`);
     if (SHOTS) await shotStage("33-cascade.png");
-    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Cloud"]');
+    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Plateforme"]');
     const sub = await page.$$("[data-testid=chart-svg] .r4d-drill-bridge-subtotal");
-    check("finance : clic sur Cloud → comptes, revenus puis coûts (sous-total)", sub.length === 1 && /^Cloud : \+2,1 M€ vs 2025, dont \+2,6 M€ de revenus et \+0,5 M€ de coûts d'hébergement/.test(await t()) && JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "Cloud"]), await t());
-    if (SHOTS) await shotStage("34-cascade-cloud.png");
-    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Abonnements SaaS"]');
-    check("finance : clic sur Abonnements SaaS → mois (75 % au second semestre)", (await page.evaluate(() => window.r4d.drill().view)) === "compare" && /^Abonnements SaaS : \+2,0 M€ au Budget 2026, dont 75 % au second semestre/.test(await t()), await t());
+    check("finance : clic sur Plateforme → comptes, revenus puis coûts (sous-total)", sub.length === 1 && /^Plateforme : \+2,1 M€ vs 2025, dont \+2,6 M€ de revenus et \+0,5 M€ de coûts d'infrastructure/.test(await t()) && JSON.stringify(await crumbs()) === JSON.stringify(["Tout", "Plateforme"]), await t());
+    if (SHOTS) await shotStage("34-cascade-plateforme.png");
+    await clickSvg('.r4d-drill-bridge-item[data-drill-value="Abonnements annuels"]');
+    check("finance : clic sur Abonnements annuels → mois (75 % au second semestre)", (await page.evaluate(() => window.r4d.drill().view)) === "compare" && /^Abonnements annuels : \+2,0 M€ au Budget 2026, dont 75 % au second semestre/.test(await t()), await t());
     if (SHOTS) await shotStage("35-cascade-mois.png");
     await domClick("[data-testid=drill-back]");
     await sleep(400);
-    check("finance : retour (←) → cascade Cloud", (await page.evaluate(() => window.r4d.drill().view)) === "bridge" && /^Cloud :/.test(await t()), await t());
+    check("finance : retour (←) → cascade Plateforme", (await page.evaluate(() => window.r4d.drill().view)) === "bridge" && /^Plateforme :/.test(await t()), await t());
     await domClick("[data-testid=drill-crumb-0]");
     await sleep(400);
     await domClick("[data-testid=drill-view-map]");
@@ -1324,7 +1421,7 @@ try {
       sel: ["x", "series", "agg", "chart"].map((k) => document.querySelector(`[data-testid=pivot-${k}]`)?.value),
       keys: document.querySelectorAll("[data-testid=chart-svg] .r4d-drill-pivot-key").length,
     }));
-    check("tableau croisé : panneau compact (X, séries, mesure, graphique) · écart par trimestre", pv.panel && pv.sel.join(",") === "@quarter,ligne_metier,delta,bar" && pv.keys === 4 && /^Écart par trimestre : Cloud \+2,1 M€ \(75 % sur T3–T4\), SN\/Legacy −3,0 M€ dès T1/.test(await t()), JSON.stringify(pv) + " " + (await t()));
+    check("tableau croisé : panneau compact (X, séries, mesure, graphique) · écart par trimestre", pv.panel && pv.sel.join(",") === "@quarter,ligne_metier,delta,bar" && pv.keys === 4 && /^Écart par trimestre : Plateforme \+2,1 M€ \(75 % sur T3–T4\), Équipements −3,0 M€ dès T1/.test(await t()), JSON.stringify(pv) + " " + (await t()));
     if (SHOTS) await shotStage("37-tableau-croise.png");
     await page.select("[data-testid=pivot-x]", "region");
     await sleep(500);
@@ -1362,7 +1459,7 @@ try {
     const chipTxt = await page.$eval("[data-testid=drill-suggest]", (e) => e.textContent).catch(() => "");
     await domClick("[data-testid=drill-suggest]");
     await sleep(500);
-    check("scénario DAF pas à pas : bouton « Étape 2 : Facteur en hausse » → Cloud", /^Étape 2 : Facteur en hausse/.test(chipTxt) && /^Cloud : \+2,1 M€/.test(await t()), chipTxt + " · " + (await t()));
+    check("scénario DAF pas à pas : bouton « Étape 2 : Facteur en hausse » → Plateforme", /^Étape 2 : Facteur en hausse/.test(chipTxt) && /^Plateforme : \+2,1 M€/.test(await t()), chipTxt + " · " + (await t()));
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "39-pas-a-pas-finance.png") });
   }
 
@@ -1495,7 +1592,7 @@ try {
     check("mode réunion : séance démarrée (« En réunion »), « Vu en direct » (6), file de questions", m0.status === "en-reunion" && m0.live === 6 && m0.queue >= 2, JSON.stringify(m0));
     await page.evaluate(() => {
       const i = document.querySelector("[data-testid=rv-item-text]");
-      i.value = "Budget SN/Legacy validé tel quel ; revue à fin T1";
+      i.value = "Budget Équipements validé tel quel ; revue à fin T1";
     });
     await domClick("[data-testid=rv-item-add]");
     await sleep(300);
@@ -1512,7 +1609,7 @@ try {
       const r = window.r4d.reviewStorage().get(id);
       return { items: r.items.map((x) => `${x.kind}:${x.text.slice(0, 30)}:${x.due ?? ""}`), inAction: r.comments.filter((c) => c.status === "en-action").length };
     }, F);
-    check("mode réunion : décision ajoutée, question passée en action (texte prérempli, échéance)", m1.items.length === 2 && m1.items[0].startsWith("decision:Budget SN/Legacy") && m1.items[1].startsWith("action:") && m1.items[1].endsWith("2026-10-23") && m1.inAction === 1 && pre.due && pre.text.length > 10, JSON.stringify(m1));
+    check("mode réunion : décision ajoutée, question passée en action (texte prérempli, échéance)", m1.items.length === 2 && m1.items[0].startsWith("decision:Budget Équipements") && m1.items[1].startsWith("action:") && m1.items[1].endsWith("2026-10-23") && m1.inAction === 1 && pre.due && pre.text.length > 10, JSON.stringify(m1));
     await page.evaluate(() => (document.querySelector(".rv-scroll-keep").scrollTop = 330));
     await shot("47-reunion.png");
     await domClick("[data-testid=rv-end]");
@@ -1625,6 +1722,28 @@ try {
     await press("r", 120);
     const rp = await rd.evaluate(() => ({ playing: window.r4d.reader().isPlaying, labels: document.querySelectorAll("[data-testid=reader-svg] .r4d-comment").length }));
     check("mode lecture : pause (espace) fige l'animation, reprise, « Rejouer » (R)", !pa.playing && frozen === frozen2 && pl.playing && rp.playing, JSON.stringify({ pa: pa.playing, pl: pl.playing, frozen: frozen === frozen2 }));
+    // transition parent ↔ enfant en mode lecture : → descente (T2 2026 → juin), ← remontée
+    await rd.evaluate(() => {
+      window.r4d.reader().finishNow();
+      window.r4d.drillZoom(true, 4);
+    });
+    await sleep(300);
+    const rdZoom = () => rd.evaluate(() => document.querySelector("[data-testid=reader-svg]").getAttribute("data-zoom"));
+    const rdZoomGone = () => rd.waitForFunction(() => !document.querySelector("[data-testid=reader-svg]").hasAttribute("data-zoom"), { timeout: 10000 }).catch(() => {});
+    await rd.keyboard.press("ArrowRight");
+    await sleep(800);
+    const rz1 = await rdZoom();
+    if (SHOTS) await rd.screenshot({ path: join(shotsDir, "68-lecture-zoom-descente.png") });
+    await rdZoomGone();
+    await rd.keyboard.press("ArrowLeft");
+    await sleep(800);
+    const rz2 = await rdZoom();
+    await rd.waitForFunction(() => document.querySelector("[data-testid=reader-svg]").getAttribute("data-zoom") === "out", { timeout: 6000 }).catch(() => {});
+    const rz3 = await rdZoom();
+    await rdZoomGone();
+    const rzEnd = await rs();
+    check("mode lecture : → descente « zoom dans la marque », ← remontée (repli puis la barre rétrécit)", rz1 === "in" && rz2 === "fold" && rz3 === "out" && rzEnd.counter === "2 / 7", JSON.stringify({ rz1, rz2, rz3, c: rzEnd.counter }));
+    await rd.evaluate(() => window.r4d.drillZoom(true, 1));
     // boutons, points, zones de toucher
     await rd.evaluate(() => document.querySelectorAll("[data-testid=reader-dots] .film-dot")[4].click());
     await sleep(900);
@@ -1997,8 +2116,8 @@ try {
     await page.evaluate(() => window.r4d.loadSample("demo-finance"));
     await sleep(800);
     await page.evaluate(() => window.r4d.seek(1));
-    const cf = await hoverTip(page, '[data-testid=chart-svg] .r4d-drill-bridge-item[data-drill-value="Cloud"] .r4d-drill-mark');
-    check("cascade : marche Cloud → impact signé, Réel 2025 / Budget 2026, poids dans les écarts, hausse des coûts en rouge, « détailler par … »", /^Cloud \| Impact sur le résultat \| \+2,1 M€/.test(cf.text ?? "") && /Réel 2025/.test(cf.text) && /Budget 2026/.test(cf.text) && /Poids dans les écarts \| \d/.test(cf.text) && /dont coûts \| −0,5 M€/.test(cf.text) && cf.tones?.includes("tone-neg") && /Cliquer pour détailler par/.test(cf.text), JSON.stringify(cf));
+    const cf = await hoverTip(page, '[data-testid=chart-svg] .r4d-drill-bridge-item[data-drill-value="Plateforme"] .r4d-drill-mark');
+    check("cascade : marche Plateforme → impact signé, Réel 2025 / Budget 2026, poids dans les écarts, hausse des coûts en rouge, « détailler par … »", /^Plateforme \| Impact sur le résultat \| \+2,1 M€/.test(cf.text ?? "") && /Réel 2025/.test(cf.text) && /Budget 2026/.test(cf.text) && /Poids dans les écarts \| \d/.test(cf.text) && /dont coûts \| −0,5 M€/.test(cf.text) && cf.tones?.includes("tone-neg") && /Cliquer pour détailler par/.test(cf.text), JSON.stringify(cf));
     if (SHOTS) await shotOn(page, "62-infobulle-cascade.png");
     const end = await hoverTip(page, ".r4d-drill-bridge-end .r4d-drill-mark");
     check("cascade : total d'arrivée → écart vs Réel 2025 (−2,2 % : stable sous ±3 %, gris)", /Point d'arrivée/.test(end.text ?? "") && /vs Réel 2025 \| −0,4 M€ · −2,2 %/.test(end.text) && end.tones?.includes("tone-neutral"), JSON.stringify(end));

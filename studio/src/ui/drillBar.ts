@@ -3,6 +3,7 @@
  * vues Temps / Répartir dans l'espace / Historique, « Détailler par… », piste suggérée et snapshot.
  * Cibles tactiles ≥ 44 px (iPad).
  */
+import { armDrillZoom } from "./drillZoom";
 import type { Store } from "../state";
 import type { DrillSpec, DrillView } from "../spec";
 import { columnOf } from "../data/table";
@@ -68,7 +69,7 @@ export class DrillBar {
           "li",
           null,
           i ? h("span", { class: "drill-sep", "aria-hidden": "true" }, "›") : null,
-          h("button", { class: `drill-crumb${last ? " current" : ""}`, type: "button", "data-testid": `drill-crumb-${i}`, "aria-current": last ? "page" : null, disabled: last && d.view === defaultViewFor(d, this.root0()).view, onclick: () => this.set(drillTo(d, i, this.root0())) }, l)
+          h("button", { class: `drill-crumb${last ? " current" : ""}`, type: "button", "data-testid": `drill-crumb-${i}`, "aria-current": last ? "page" : null, disabled: last && d.view === defaultViewFor(d, this.root0()).view, onclick: () => (armDrillZoom(), this.set(drillTo(d, i, this.root0()))) }, l)
         );
       })
     );
@@ -181,7 +182,10 @@ export class DrillBar {
     const def = defaultViewFor(d, this.root0());
     // Vue « carte / historique / détail » : retour à la vue temps du même niveau, sinon niveau précédent
     if (d.view !== def.view || (d.view === "periods" && d.grain !== def.grain) || (def.by !== undefined && d.by !== def.by)) this.set({ ...d, ...def });
-    else if (d.path.length) this.set(drillTo(d, d.path.length - 1, this.root0()));
+    else if (d.path.length) {
+      armDrillZoom();
+      this.set(drillTo(d, d.path.length - 1, this.root0()));
+    }
   }
 
   suggest(): void {

@@ -89,7 +89,7 @@ export function markProgress(
   return u * u * u * (u * (u * 6 - 15) + 10);
 }
 
-/** Fraction of timeline where finale cloud reappears (PersistenceMode `"finale"`). */
+/** Fraction of timeline where finale scatter reappears (PersistenceMode `"finale"`). */
 export const FINALE_START = 0.92;
 
 /**
@@ -115,7 +115,7 @@ export function persistenceFactor(
     return s * s * (3 - 2 * s);
   }
 
-  // Ephemeral (and finale before cloud): fade after each reveal window
+  // Ephemeral (and finale before scatter): fade after each reveal window
   const fadeDur = 0.055;
   if (t < e.t1) return 1;
   const fadeT = (t - e.t1) / fadeDur;
@@ -124,7 +124,7 @@ export function persistenceFactor(
 }
 
 /**
- * Effective draw progress for sizing/dash, boosting to full size during finale cloud.
+ * Effective draw progress for sizing/dash, boosting to full size during finale scatter.
  */
 export function effectiveDrawProgress(
   schedule: RevealSchedule,

@@ -465,7 +465,7 @@
     },
     {
       "id": "OPP-0025",
-      "label": "Cloud Namur 25",
+      "label": "Plateforme Namur 25",
       "span": {
         "start": "2025-12-19",
         "end": "2026-01-06"
@@ -503,7 +503,7 @@
     },
     {
       "id": "OPP-0027",
-      "label": "Cloud Ghent 27",
+      "label": "Plateforme Ghent 27",
       "span": {
         "start": "2025-05-17",
         "end": "2025-10-19"
@@ -674,7 +674,7 @@
     },
     {
       "id": "OPP-0036",
-      "label": "Cloud Ghent 36",
+      "label": "Plateforme Ghent 36",
       "span": {
         "start": "2024-03-06",
         "end": "2025-06-03"
@@ -1206,7 +1206,7 @@
     },
     {
       "id": "OPP-0064",
-      "label": "Cloud Nord 64",
+      "label": "Plateforme Nord 64",
       "span": {
         "start": "2025-07-18",
         "end": "2025-09-06"
@@ -1358,7 +1358,7 @@
     },
     {
       "id": "OPP-0072",
-      "label": "Cloud Namur 72",
+      "label": "Plateforme Namur 72",
       "span": {
         "start": "2024-07-13",
         "end": "2025-02-24"
@@ -1624,7 +1624,7 @@
     },
     {
       "id": "OPP-0086",
-      "label": "Cloud Bordeaux 86",
+      "label": "Plateforme Bordeaux 86",
       "span": {
         "start": "2025-12-23",
         "end": "2026-09-19"
@@ -1776,7 +1776,7 @@
     },
     {
       "id": "OPP-0094",
-      "label": "Cloud Acme 94",
+      "label": "Plateforme Acme 94",
       "span": {
         "start": "2023-12-24",
         "end": "2024-08-19"
@@ -2555,7 +2555,7 @@
     },
     {
       "id": "OPP-0135",
-      "label": "Cloud Nord 135",
+      "label": "Plateforme Nord 135",
       "span": {
         "start": "2024-01-18",
         "end": "2026-11-13"
@@ -2593,7 +2593,7 @@
     },
     {
       "id": "OPP-0137",
-      "label": "Cloud Paris 137",
+      "label": "Plateforme Paris 137",
       "span": {
         "start": "2024-12-23",
         "end": "2026-09-27"
@@ -2631,7 +2631,7 @@
     },
     {
       "id": "OPP-0139",
-      "label": "Cloud Lyon 139",
+      "label": "Plateforme Lyon 139",
       "span": {
         "start": "2025-01-31",
         "end": "2026-05-14"
@@ -2954,7 +2954,7 @@
     },
     {
       "id": "OPP-0156",
-      "label": "Cloud Paris 156",
+      "label": "Plateforme Paris 156",
       "span": {
         "start": "2023-04-03",
         "end": "2023-07-05"
@@ -3030,7 +3030,7 @@
     },
     {
       "id": "OPP-0160",
-      "label": "Cloud Marseille 160",
+      "label": "Plateforme Marseille 160",
       "span": {
         "start": "2023-02-08",
         "end": "2025-08-13"
@@ -3125,7 +3125,7 @@
     },
     {
       "id": "OPP-0165",
-      "label": "Cloud Paris 165",
+      "label": "Plateforme Paris 165",
       "span": {
         "start": "2024-05-11",
         "end": "2024-07-15"
@@ -3163,7 +3163,7 @@
     },
     {
       "id": "OPP-0167",
-      "label": "Cloud Marseille 167",
+      "label": "Plateforme Marseille 167",
       "span": {
         "start": "2026-03-21",
         "end": "2026-06-02"
@@ -3220,7 +3220,7 @@
     },
     {
       "id": "OPP-0170",
-      "label": "Cloud Liège 170",
+      "label": "Plateforme Liège 170",
       "span": {
         "start": "2024-01-31",
         "end": "2024-05-13"
@@ -3353,7 +3353,7 @@
     },
     {
       "id": "OPP-0177",
-      "label": "Cloud Antwerp 177",
+      "label": "Plateforme Antwerp 177",
       "span": {
         "start": "2023-05-30",
         "end": "2023-07-06"
@@ -3372,7 +3372,7 @@
     },
     {
       "id": "OPP-0178",
-      "label": "Cloud Lille 178",
+      "label": "Plateforme Lille 178",
       "span": {
         "start": "2026-08-15",
         "end": "2026-09-24"
@@ -3619,7 +3619,7 @@
     },
     {
       "id": "OPP-0191",
-      "label": "Cloud Charleroi 191",
+      "label": "Plateforme Charleroi 191",
       "span": {
         "start": "2024-11-22",
         "end": "2025-04-16"
@@ -3999,7 +3999,7 @@
     },
     {
       "id": "OPP-0211",
-      "label": "Cloud Lille 211",
+      "label": "Plateforme Lille 211",
       "span": {
         "start": "2024-08-19",
         "end": "2026-08-12"
@@ -4113,7 +4113,7 @@
     },
     {
       "id": "OPP-0217",
-      "label": "Cloud Toulouse 217",
+      "label": "Plateforme Toulouse 217",
       "span": {
         "start": "2023-08-12",
         "end": "2023-11-18"
@@ -4189,7 +4189,7 @@
     },
     {
       "id": "OPP-0221",
-      "label": "Cloud Ghent 221",
+      "label": "Plateforme Ghent 221",
       "span": {
         "start": "2026-04-23",
         "end": "2026-05-28"
@@ -4474,7 +4474,7 @@
     },
     {
       "id": "OPP-0236",
-      "label": "Cloud Namur 236",
+      "label": "Plateforme Namur 236",
       "span": {
         "start": "2023-09-28",
         "end": "2024-06-12"
@@ -4626,7 +4626,7 @@
     },
     {
       "id": "OPP-0244",
-      "label": "Cloud Antwerp 244",
+      "label": "Plateforme Antwerp 244",
       "span": {
         "start": "2025-06-14",
         "end": "2026-02-27"
@@ -4797,7 +4797,7 @@
     },
     {
       "id": "OPP-0253",
-      "label": "Cloud Nantes 253",
+      "label": "Plateforme Nantes 253",
       "span": {
         "start": "2025-02-01",
         "end": "2025-10-07"
@@ -4854,7 +4854,7 @@
     },
     {
       "id": "OPP-0256",
-      "label": "Cloud Lyon 256",
+      "label": "Plateforme Lyon 256",
       "span": {
         "start": "2023-09-03",
         "end": "2024-03-20"
@@ -5101,7 +5101,7 @@
     },
     {
       "id": "OPP-0269",
-      "label": "Cloud Lyon 269",
+      "label": "Plateforme Lyon 269",
       "span": {
         "start": "2023-11-19",
         "end": "2026-05-15"
@@ -5272,7 +5272,7 @@
     },
     {
       "id": "OPP-0278",
-      "label": "Cloud Lyon 278",
+      "label": "Plateforme Lyon 278",
       "span": {
         "start": "2023-04-22",
         "end": "2025-05-13"
@@ -5728,7 +5728,7 @@
     },
     {
       "id": "OPP-0302",
-      "label": "Cloud Bruxelles 302",
+      "label": "Plateforme Bruxelles 302",
       "span": {
         "start": "2024-09-03",
         "end": "2025-04-16"
@@ -5994,7 +5994,7 @@
     },
     {
       "id": "OPP-0316",
-      "label": "Cloud Charleroi 316",
+      "label": "Plateforme Charleroi 316",
       "span": {
         "start": "2023-07-10",
         "end": "2025-08-25"
@@ -6070,7 +6070,7 @@
     },
     {
       "id": "OPP-0320",
-      "label": "Cloud Ghent 320",
+      "label": "Plateforme Ghent 320",
       "span": {
         "start": "2026-08-06",
         "end": "2026-09-13"
@@ -6241,7 +6241,7 @@
     },
     {
       "id": "OPP-0329",
-      "label": "Cloud Paris 329",
+      "label": "Plateforme Paris 329",
       "span": {
         "start": "2026-05-14",
         "end": "2026-08-18"
@@ -6697,7 +6697,7 @@
     },
     {
       "id": "OPP-0353",
-      "label": "Cloud Marseille 353",
+      "label": "Plateforme Marseille 353",
       "span": {
         "start": "2025-08-05",
         "end": "2026-04-04"
@@ -6754,7 +6754,7 @@
     },
     {
       "id": "OPP-0356",
-      "label": "Cloud Bordeaux 356",
+      "label": "Plateforme Bordeaux 356",
       "span": {
         "start": "2024-08-18",
         "end": "2024-11-08"
@@ -6925,7 +6925,7 @@
     },
     {
       "id": "OPP-0365",
-      "label": "Cloud Marseille 365",
+      "label": "Plateforme Marseille 365",
       "span": {
         "start": "2026-04-24",
         "end": "2026-05-25"
@@ -7115,7 +7115,7 @@
     },
     {
       "id": "OPP-0375",
-      "label": "Cloud Paris 375",
+      "label": "Plateforme Paris 375",
       "span": {
         "start": "2025-11-27",
         "end": "2026-05-06"
@@ -7286,7 +7286,7 @@
     },
     {
       "id": "OPP-0384",
-      "label": "Cloud Ghent 384",
+      "label": "Plateforme Ghent 384",
       "span": {
         "start": "2025-03-25",
         "end": "2025-11-21"
@@ -7438,7 +7438,7 @@
     },
     {
       "id": "OPP-0392",
-      "label": "Cloud Marseille 392",
+      "label": "Plateforme Marseille 392",
       "span": {
         "start": "2026-07-17",
         "end": "2026-09-06"
@@ -7799,7 +7799,7 @@
     },
     {
       "id": "OPP-0411",
-      "label": "Cloud Acme 411",
+      "label": "Plateforme Acme 411",
       "span": {
         "start": "2023-09-15",
         "end": "2026-06-24"
@@ -8141,7 +8141,7 @@
     },
     {
       "id": "OPP-0429",
-      "label": "Cloud Liège 429",
+      "label": "Plateforme Liège 429",
       "span": {
         "start": "2023-09-28",
         "end": "2025-08-30"
@@ -8388,7 +8388,7 @@
     },
     {
       "id": "OPP-0442",
-      "label": "Cloud Bruxelles 442",
+      "label": "Plateforme Bruxelles 442",
       "span": {
         "start": "2025-05-30",
         "end": "2025-11-08"
@@ -8407,7 +8407,7 @@
     },
     {
       "id": "OPP-0443",
-      "label": "Cloud Bordeaux 443",
+      "label": "Plateforme Bordeaux 443",
       "span": {
         "start": "2023-03-02",
         "end": "2023-08-26"
@@ -8597,7 +8597,7 @@
     },
     {
       "id": "OPP-0453",
-      "label": "Cloud Antwerp 453",
+      "label": "Plateforme Antwerp 453",
       "span": {
         "start": "2023-11-04",
         "end": "2024-02-09"
@@ -9072,7 +9072,7 @@
     },
     {
       "id": "OPP-0478",
-      "label": "Cloud Lyon 478",
+      "label": "Plateforme Lyon 478",
       "span": {
         "start": "2023-08-08",
         "end": "2025-06-19"
@@ -9205,7 +9205,7 @@
     },
     {
       "id": "OPP-0485",
-      "label": "Cloud Bruxelles 485",
+      "label": "Plateforme Bruxelles 485",
       "span": {
         "start": "2025-06-10",
         "end": "2026-01-26"
@@ -9376,7 +9376,7 @@
     },
     {
       "id": "OPP-0494",
-      "label": "Cloud Nord 494",
+      "label": "Plateforme Nord 494",
       "span": {
         "start": "2023-12-26",
         "end": "2025-06-27"

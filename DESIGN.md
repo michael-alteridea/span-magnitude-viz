@@ -110,12 +110,12 @@ Render surfaces: three stacked <canvas> layers
 |------|--------|-------------|----------|
 | `arc` | Chord length on baseline; Bézier/elliptical bulge | Stroke width (and/or opacity) | Emotional “life/path” storytelling (Periscopic-like) |
 | `bar` | Horizontal bar from x0→x1 | Bar height | Analytic clarity, YoY comparison |
-| `point` | Dot at span midpoint (x); vertical jitter cloud | Radius or stroke ∝ magnitude | Dense event clouds; prep for geo map |
+| `point` | Dot at span midpoint (x); vertical jitter scatter | Radius or stroke ∝ magnitude | Dense event scatters; prep for geo map |
 | `lane` | Bar in a packed lane (y = packed row) | Stroke/fill thickness or lane height | Dense portfolios without overlap |
 
 **Default for v1 demo:** `arc` + optional `bar` / `point` toggle. Lane packing is v1.1.
 
-**Persistence modes** (runtime option, not schema): `keep` (default) · `ephemeral` (fade after reveal) · `finale` (ephemeral during film, then all reappear as cloud).
+**Persistence modes** (runtime option, not schema): `keep` (default) · `ephemeral` (fade after reveal) · `finale` (ephemeral during film, then all reappear as a scatter).
 
 **Map view (`viewMode: "map"`):** France départements + Belgium provinces SVG basemap (IGN ADMIN EXPRESS, NGI-IGN AdminVector) (D3 `geoMercator`). Marks project from `meta.lat`/`meta.lon` or FR/BE `meta.postal` via offline lookup (city overrides → département/province centroids). Same film reveal schedule; optional Alteridea-red choropleth + soft heatmap at finale. Mapping UI columns: Latitude, Longitude, Code postal.
 
@@ -124,7 +124,7 @@ Render surfaces: three stacked <canvas> layers
 ```
 x-axis:  continuous domain over span units (dates or numbers)
 y-axis:  (arc) shared baseline with vertical bulge; (bar) magnitude scale
-         OR packed lanes (lane mode); (point) jittered cloud around baseline
+         OR packed lanes (lane mode); (point) jittered scatter around baseline
 color:   ordinal on `group`
 ```
 

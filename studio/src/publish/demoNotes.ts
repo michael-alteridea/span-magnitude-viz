@@ -10,9 +10,9 @@ export const DEMO_ANIMATOR_NOTES: Record<string, Record<string, string>> = {
     "dircom-07-commerciaux": "Proposition à valider en séance : un relais désigné pour chaque absence de plus de deux semaines.",
   },
   "demo-daf": {
-    "daf-01-cascade": "Commencer par SN/Legacy : c'est l'écart qui pèse le plus sur le budget.",
-    "daf-03-hausse-mois": "Demander aux ventes la liste des contrats Cloud attendus à partir de juillet.",
-    "daf-05-baisse-mois": "Le contrôle de gestion confirme d'ici au prochain comité si le contrat de maintenance est perdu.",
+    "daf-01-cascade": "Commencer par Équipements : c'est l'écart qui pèse le plus sur le budget.",
+    "daf-03-hausse-mois": "Demander aux ventes la liste des contrats Plateforme attendus à partir de juillet.",
+    "daf-05-baisse-mois": "Le contrôle de gestion confirme d'ici au prochain comité si le contrat distributeur est perdu.",
   },
 };
 

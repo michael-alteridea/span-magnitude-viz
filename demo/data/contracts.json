@@ -66,7 +66,7 @@
     },
     {
       "id": "ctr-022",
-      "label": "Acme Cloud \u2014 Support",
+      "label": "Acme Plateforme \u2014 Support",
       "span": {
         "start": "2020-03-16",
         "end": "2022-03-16"
@@ -76,7 +76,7 @@
       "cohort": "2020",
       "group": "Support",
       "meta": {
-        "vendor": "Acme Cloud",
+        "vendor": "Acme Plateforme",
         "renewal": "one-shot"
       }
     },
@@ -98,7 +98,7 @@
     },
     {
       "id": "ctr-035",
-      "label": "Acme Cloud \u2014 Services",
+      "label": "Acme Plateforme \u2014 Services",
       "span": {
         "start": "2020-07-04",
         "end": "2022-07-04"
@@ -108,7 +108,7 @@
       "cohort": "2020",
       "group": "Services",
       "meta": {
-        "vendor": "Acme Cloud",
+        "vendor": "Acme Plateforme",
         "renewal": "auto"
       }
     },
@@ -210,7 +210,7 @@
     },
     {
       "id": "ctr-007",
-      "label": "Acme Cloud \u2014 Services",
+      "label": "Acme Plateforme \u2014 Services",
       "span": {
         "start": "2021-04-10",
         "end": "2022-10-10"
@@ -220,7 +220,7 @@
       "cohort": "2021",
       "group": "Services",
       "meta": {
-        "vendor": "Acme Cloud",
+        "vendor": "Acme Plateforme",
         "renewal": "auto"
       }
     },
@@ -290,7 +290,7 @@
     },
     {
       "id": "ctr-041",
-      "label": "Acme Cloud \u2014 License",
+      "label": "Acme Plateforme \u2014 License",
       "span": {
         "start": "2021-08-28",
         "end": "2023-02-28"
@@ -300,7 +300,7 @@
       "cohort": "2021",
       "group": "License",
       "meta": {
-        "vendor": "Acme Cloud",
+        "vendor": "Acme Plateforme",
         "renewal": "one-shot"
       }
     },
@@ -370,7 +370,7 @@
     },
     {
       "id": "ctr-001",
-      "label": "Acme Cloud \u2014 License",
+      "label": "Acme Plateforme \u2014 License",
       "span": {
         "start": "2021-12-27",
         "end": "2023-06-27"
@@ -380,7 +380,7 @@
       "cohort": "2021",
       "group": "License",
       "meta": {
-        "vendor": "Acme Cloud",
+        "vendor": "Acme Plateforme",
         "renewal": "one-shot"
       }
     },

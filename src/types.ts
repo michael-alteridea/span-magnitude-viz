@@ -113,7 +113,7 @@ export interface VizOptions {
    * Post-reveal persistence. Default `"keep"`.
    * - `keep` — marks stay after reveal
    * - `ephemeral` — fade out after each mark’s reveal window
-   * - `finale` — ephemeral during the film, then all reappear at the end as a cloud
+   * - `finale` — ephemeral during the film, then all reappear at the end as a scatter
    */
   persistence?: PersistenceMode;
   /**

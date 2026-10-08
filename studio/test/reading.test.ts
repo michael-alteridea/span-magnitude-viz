@@ -53,7 +53,7 @@ describe("liens du mode lecture", () => {
     // chaque snapshot renvoie vers sa démo (QR universel)
     for (const s of d!.snapshots) expect(readingStoryIdFor(s)).toBe("demo-dircom");
     const f = await demoReadingStory("demo-daf");
-    expect(f!.snapshots.map((s) => s.id).every((id) => /^daf-\d\d-.+-14j5oil$/.test(id))).toBe(true);
+    expect(f!.snapshots.map((s) => s.id).every((id) => /^daf-\d\d-.+-1051jsm$/.test(id))).toBe(true);
     expect(await demoReadingStory("inconnue")).toBeNull();
     expect(DEMO_STORIES.map((x) => x.id)).toEqual(["demo-dircom", "demo-daf"]);
   });

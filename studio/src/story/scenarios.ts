@@ -104,7 +104,7 @@ export const SCENARIO_DAF: Scenario = {
     { id: "date", label: "Mois", type: "date", required: true, help: "Mois (ou date) de chaque montant" },
     { id: "mesure", label: "Montant", type: "number", required: true },
     { id: "version", label: "Version (Réel / Budget)", type: "category", required: true, help: "Réel 2025, Budget 2026… : le plus ancien réel est comparé au budget le plus récent" },
-    { id: "ligne", label: "Ligne métier", type: "category", required: true, help: "Premier niveau de la cascade (Cloud, Services…)" },
+    { id: "ligne", label: "Ligne métier", type: "category", required: true, help: "Premier niveau de la cascade (Plateforme, Services…)" },
     { id: "compte", label: "Compte", type: "category", required: true, help: "Second niveau (sous-compte, poste)" },
     { id: "nature", label: "Nature (Revenus / Coûts)", type: "category", required: false, help: "Les coûts sont soustraits ; vide : montants additionnés" },
     { id: "region", label: "Région", type: "category", required: false, help: "Facultatif : étape carte" },

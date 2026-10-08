@@ -100,10 +100,10 @@ describe("infobulles sur les marques", () => {
   });
   it("cascade (démo finance) : marches avec versions, part de l'écart et indication « détailler par »", () => {
     const svg = draw("demo-finance");
-    const cloud = parseTip(svg.querySelector('.r4d-drill-bridge-item[data-key="Cloud"]')!.getAttribute(TIP_ATTR))!;
-    expect(norm(cloud.v!)).toBe("+2,1 M€");
-    expect(cloud.rows!.map((r) => r.k)).toEqual(expect.arrayContaining(["Réel 2025", "Budget 2026", "Poids dans les écarts"]));
-    expect(cloud.h).toMatch(/^Cliquer pour détailler par /);
+    const plateforme = parseTip(svg.querySelector('.r4d-drill-bridge-item[data-key="Plateforme"]')!.getAttribute(TIP_ATTR))!;
+    expect(norm(plateforme.v!)).toBe("+2,1 M€");
+    expect(plateforme.rows!.map((r) => r.k)).toEqual(expect.arrayContaining(["Réel 2025", "Budget 2026", "Poids dans les écarts"]));
+    expect(plateforme.h).toMatch(/^Cliquer pour détailler par /);
     const n = svg.querySelectorAll(".r4d-drill-bridge-item[data-tip]").length;
     expect(n).toBe(svg.querySelectorAll(".r4d-drill-bridge-item").length);
   });

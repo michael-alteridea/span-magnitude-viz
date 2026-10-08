@@ -8,8 +8,10 @@
  *   (tiers gauche = précédent), balayage (iPad, téléphone), flèches, points de progression, pause / rejouer,
  *   lien profond par diapositive, format adapté à l'écran (portrait).
  */
+import { clearZoom, diveIn, dominantFill, easeOut, emergeMs, foldOut, markForStep, paintCollapse, paintVeil, pathDelta, reducedMotion, zoomEnabled } from "./drillZoom";
+import type { PlotRect } from "../charts/context";
 import { ChartTooltip } from "./tooltip";
-import { parseSpec, type ChartSpec } from "../spec";
+import { parseSpec, type ChartSpec, type DrillStep } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
 import type { Snapshot } from "../story/snapshots";
@@ -19,7 +21,6 @@ import { h, svgIcon, ICONS } from "./dom";
 const BUILD_MS = 1300;
 const COMMENT_MS = 1100;
 const HOLD_MS = 2600;
-const ZOOM_MS = 520;
 const SWIPE_PX = 50;
 
 const REPLAY_ICON = `<path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -73,6 +74,12 @@ export class StoryFilm {
   private onResize = () => this.resized();
   private resizeTimer = 0;
   private lastSize = "";
+  /** Zone du graphique du dernier rendu (transition « zoom dans la marque »). */
+  private plot: PlotRect | null = null;
+  private fx: { kind: "emerge"; fill: string; t0: number; ms: number } | { kind: "collapse"; step: DrillStep; t0: number; ms: number } | null = null;
+  /** Jeton d'annulation des transitions (fermeture, navigation rapide). */
+  private seq = 0;
+  private finishPending = false;
 
   constructor(private datasetFor: (s: Snapshot) => Dataset | null, private o: FilmOptions = {}) {
     const tid = o.reading ? "reader" : "film";
@@ -219,6 +226,8 @@ export class StoryFilm {
     if (!this.snaps.length) return;
     if (this.playing) {
       this.setPlaying(false);
+      // pause pendant une transition « zoom dans la marque » : la diapositive suivante s'affichera complète, figée
+      if (this.busy) this.finishPending = true;
       this.pausedAt = performance.now() - this.t0;
       cancelAnimationFrame(this.raf);
       clearTimeout(this.timer);
@@ -260,53 +269,57 @@ export class StoryFilm {
   }
 
   private stop(): void {
+    this.seq++;
+    this.busy = false;
     cancelAnimationFrame(this.raf);
     clearTimeout(this.timer);
     this.loop = null;
   }
 
-  /** Cible du zoom : élément du graphique courant correspondant à la nouvelle étape du chemin. */
-  private zoomTarget(from: Snapshot, to: Snapshot): Element | null {
+  /** Étape d'exploration qui relie deux diapositives parent / enfant (descente ou remontée), sinon null. */
+  private drillDelta(from: Snapshot, to: Snapshot): { dir: "in" | "out"; step: DrillStep } | null {
     const a = from.spec as Partial<ChartSpec>;
     const b = to.spec as Partial<ChartSpec>;
     if (a?.type !== "drill" || b?.type !== "drill" || !a.drill || !b.drill) return null;
-    const pa = a.drill.path;
-    const pb = b.drill.path;
-    if (pb.length !== pa.length + 1 || !pa.every((s, k) => JSON.stringify(s) === JSON.stringify(pb[k]))) return null;
-    const step = pb[pb.length - 1]!;
-    if (step.kind === "period") return this.svg.querySelector(`[data-drill-key="${step.start}"] .r4d-drill-mark`);
-    return [...this.svg.querySelectorAll(`[data-drill-kind="cat"]`)].find((el) => el.getAttribute("data-drill-value") === step.value) ?? null;
+    return pathDelta(a.drill.path, b.drill.path);
   }
 
   private go(k: number, forward: boolean, first = false): void {
     this.stop();
     const from = first ? undefined : this.snaps[this.i];
     const to = this.snaps[k]!;
-    const target = forward && from ? this.zoomTarget(from, to) : null;
+    const delta = from && from !== to ? this.drillDelta(from, to) : null;
+    void forward;
     this.i = k;
     // en lecture, changer de diapositive relance l'animation ; le film garde son état lecture / pause (avance auto)
     if (this.o.reading) this.setPlaying(true);
     this.pausedAt = null;
     [...this.dots.children].forEach((d, j) => d.classList.toggle("on", j === k));
-    if (target) {
-      // zoom dans l'élément cliqué, puis construction de l'étape suivante
-      const vb = this.svg.viewBox.baseVal;
-      const bb = (target as SVGGraphicsElement).getBBox();
-      const cx = bb.x + bb.width / 2;
-      const cy = bb.y + bb.height / 2;
-      const kx = Math.min(4, vb.width / Math.max(40, bb.width * 2.2));
+    this.svg.style.transition = "none";
+    this.svg.style.opacity = "1";
+    const plot = this.plot;
+    if (delta && plot && zoomEnabled()) {
+      // « zoom dans la marque » : descente (la marque remplit le graphique, l'enfant en émerge) ou remontée
+      const seq = this.seq;
       this.busy = true;
-      this.svg.style.transformOrigin = `${(cx / vb.width) * 100}% ${(cy / vb.height) * 100}%`;
-      this.svg.style.transition = `transform ${ZOOM_MS}ms cubic-bezier(.5,0,.75,0), opacity ${ZOOM_MS}ms ease-in`;
-      this.svg.style.transform = `scale(${kx})`;
-      this.svg.style.opacity = "0";
-      this.timer = window.setTimeout(() => {
-        this.svg.style.transition = "none";
-        this.svg.style.transform = "";
+      void (async () => {
+        if (delta.dir === "in") {
+          const el = markForStep(this.svg, delta.step);
+          const fill = el ? await diveIn(this.svg, el, plot) : dominantFill(this.svg);
+          this.fx = { kind: "emerge", fill, t0: 0, ms: emergeMs() };
+        } else {
+          await foldOut(this.svg, plot, dominantFill(this.svg));
+          this.fx = { kind: "collapse", step: delta.step, t0: 0, ms: emergeMs() };
+        }
+        if (seq !== this.seq) return;
         this.busy = false;
-        this.show(to);
-        this.svg.style.opacity = "1";
-      }, ZOOM_MS);
+        this.show(to, delta.dir === "out");
+      })();
+      return;
+    }
+    this.fx = null;
+    if (!from || from === to) {
+      this.show(to);
       return;
     }
     this.svg.style.transition = "opacity 260ms ease";
@@ -314,9 +327,26 @@ export class StoryFilm {
     this.busy = true;
     this.timer = window.setTimeout(() => {
       this.busy = false;
+      this.svg.style.transition = "none";
       this.show(to);
       this.svg.style.opacity = "1";
-    }, from && from !== to ? 260 : 0);
+    }, reducedMotion() ? 0 : 260);
+  }
+
+  /** Phase 2 de la transition, peinte par-dessus chaque image : voile d'émergence ou marque parente qui rétrécit. */
+  private paintFx(): void {
+    const fx = this.fx;
+    const plot = this.plot;
+    if (!fx || !plot) return;
+    if (!fx.t0) fx.t0 = performance.now();
+    const t = Math.min(1, (performance.now() - fx.t0) / fx.ms);
+    if (t >= 1) {
+      this.fx = null;
+      clearZoom(this.svg);
+      return;
+    }
+    if (fx.kind === "emerge") paintVeil(this.svg, plot, fx.fill, 0.92 * (1 - easeOut(t)), "emerge");
+    else paintCollapse(this.svg, markForStep(this.svg, fx.step), plot, t);
   }
 
   /** Spec affichée : titre, sous-titre et commentaires du snapshot ; format adapté à l'écran en mode lecture. */
@@ -335,7 +365,8 @@ export class StoryFilm {
     return { spec: { ...base, style, story: { ...base.story, comments: s.comments, showComments: true } }, boost };
   }
 
-  private show(s: Snapshot): void {
+  /** `built` : graphique d'emblée complet (remontée : la marque d'origine doit être à sa place). */
+  private show(s: Snapshot, built = false): void {
     const k = this.i;
     this.counter.textContent = `${k + 1} / ${this.snaps.length}`;
     this.role.textContent = ROLE_LABELS[s.role].toUpperCase();
@@ -348,6 +379,9 @@ export class StoryFilm {
     this.redraw = null;
     if (!parsed.ok || !ds) {
       // repli : rendu conservé
+      this.plot = null;
+      this.fx = null;
+      this.finishPending = false;
       this.svg.removeAttribute("viewBox");
       this.svg.innerHTML = "";
       const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
@@ -368,28 +402,35 @@ export class StoryFilm {
     const draw = (t: number) => {
       const build = Math.min(1, t / BUILD_MS);
       const shown = Math.max(0, Math.min(all.length, Math.floor((t - BUILD_MS * 0.7) / COMMENT_MS) + 1));
-      renderChart(this.svg, { ...spec, story: { ...spec.story, comments: all.slice(0, shown) } }, ds, cache, { build, timePos: null }, { now, textBoost: boost });
+      const res = renderChart(this.svg, { ...spec, story: { ...spec.story, comments: all.slice(0, shown) } }, ds, cache, { build, timePos: null }, { now, textBoost: boost, commentsAll: all });
       this.svg.removeAttribute("width");
       this.svg.removeAttribute("height");
+      this.plot = res.plot;
+      this.paintFx();
     };
     this.redraw = () => {
       ({ spec, boost } = this.specOf(s, parsed.spec));
       cache = prepareCache(spec, ds, null, -1);
       draw(this.pausedAt ?? performance.now() - this.t0);
     };
-    this.t0 = performance.now();
+    const done = this.finishPending;
+    this.finishPending = false;
+    this.t0 = done ? performance.now() - total : performance.now() - (built ? BUILD_MS : 0);
+    if (done) this.fx = null;
     this.pausedAt = null;
     const frame = () => {
       const t = this.pausedAt ?? performance.now() - this.t0;
       draw(t);
       if (this.pausedAt !== null) return;
-      if (t < total) this.raf = requestAnimationFrame(frame);
+      if (t < total || this.fx) this.raf = requestAnimationFrame(frame);
       else {
         this.loop = null;
         this.schedule();
       }
     };
     this.loop = frame;
+    // mis en pause pendant la transition : image finale, figée
+    if (done && !this.playing) this.pausedAt = total;
     frame();
   }
 
@@ -421,6 +462,9 @@ export class StoryFilm {
 
   /** Tests : avance immédiate à la fin de l'animation courante. */
   finishNow(): void {
+    // transition « zoom dans la marque » en cours : la diapositive suivante s'affichera d'emblée complète
+    if (this.busy) this.finishPending = true;
+    this.fx = null;
     this.t0 = -1e9;
     if (this.pausedAt !== null) {
       this.pausedAt = 1e9;

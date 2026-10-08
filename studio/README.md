@@ -220,8 +220,16 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   **▶ Lancer le scénario** (snapshots de chaque étape puis film) ou **Pas à pas** (vous cliquez ; la barre d'exploration
   indique l'étape et la suivante). Les démos intégrées sont des instances : « Scénario Directeur commercial ».
   Chaque snapshot de scénario a un **identifiant stable** (scénario + étape + empreinte des données), pour un futur partage.
+- **Transition « zoom dans la marque »** (`ui/drillZoom.ts`) : à la descente, la marque cliquée (barre, région, panneau,
+  ligne, marche de cascade) grandit jusqu'à remplir la zone du graphique pendant que le reste s'efface, puis le graphique
+  enfant émerge de son empreinte (voile de la couleur du parent qui se dissout) ; à la remontée (fil d'Ariane, retour),
+  l'enfant se replie dans ce voile qui rétrécit jusqu'à la marque d'origine. ~800 ms, courbes adoucies ; aucune animation
+  avec `prefers-reduced-motion`. Même transition dans l'aperçu, le film et le mode lecture (diapositives parent ↔ enfant).
+- **Pas de saut de mise en page** : film et mode lecture mettent en page la colonne (ou le bandeau) « À retenir » pour
+  toutes ses puces dès la première image (`commentsAll`) ; le graphique est d'emblée à sa taille finale.
 - **Film** (bandeau Histoire → ▶ Film) : rejoue les snapshots en plein écran, construction animée, zoom dans la barre ou la
-  région cliquée quand l'étape suivante prolonge le chemin, commentaires révélés un à un ; ←/→, espace, Échap, toucher = suivant.
+  région quand l'étape suivante prolonge le chemin (et retour inverse), commentaires révélés un à un ; ←/→, espace, Échap,
+  toucher = suivant.
 - **Démo fictive** : exemple « Démo : pipeline commercial » et `public/demo/pipeline-commercial-2026.csv`
   (dictionnaire : `public/demo/LISEZMOI-pipeline-commercial-2026.md`), générés par
   `npx vite-node --config vitest.config.ts studio/scripts/make-demo-pipeline.ts`.
@@ -281,7 +289,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 ## Mode lecture et export Morph (étape lecture)
 
 - **Mode lecture** (`#/lire/<histoire>/<snapshot>`) : une diapositive plein écran par snapshot, construction animée du
-  graphique (révélation 4D du film, zoom quand l'étape prolonge le chemin d'exploration), titre d'action, commentaires
+  graphique (révélation 4D du film, zoom dans la marque quand l'étape prolonge ou remonte le chemin d'exploration), titre d'action, commentaires
   « À retenir » qui apparaissent un à un, cartouche. Navigation : toucher / clic (tiers gauche = précédent), **balayage**
   (iPad, iPhone), ←/→ (et ↑/↓, Page préc. / suiv.), Début / Fin, points de progression, **Pause** (espace : fige
   l'animation), **Rejouer** (R), Échap. Format portrait sur téléphone et tablette en portrait, cibles tactiles ≥ 44 px.
@@ -294,7 +302,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   `<id de revue>` = revue (les revues Norvia de démonstration existent sur tout appareil) : ces liens-là restent sur
   l'appareil qui les a créés (stockage local) ; ailleurs, un message l'explique et propose les démos.
   Exemples : `https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap`,
-  `https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois-14j5oil`.
+  `https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois-1051jsm`.
 - **PowerPoint** : le QR du cartouche de chaque graphique (bas droite) et le lien de l'image / du pied de page
   (« Mode lecture › ») ouvrent la diapositive en mode lecture ; le lien natif « Vérifier l'empreinte des données » reste
   dans le pied de page.

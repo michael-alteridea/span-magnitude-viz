@@ -4,7 +4,8 @@
  */
 import { ChartTooltip } from "./tooltip";
 import type { Store, ChangeKind } from "../state";
-import { chartSize, isSpecial } from "../spec";
+import { chartSize, isSpecial, type DrillStep } from "../spec";
+import { clearZoom, consumeDrillZoom, diveIn, dominantFill, easeOut, emergeMs, foldOut, markForStep, paintCollapse, paintVeil, pathDelta, zoomEnabled } from "./drillZoom";
 import { fourDActive, prepareCache, renderChart, type PrepCache, type RenderResult } from "../charts/render";
 import { effectiveDataset } from "../data/transform";
 import type { Frame, PlotRect } from "../charts/context";
@@ -44,6 +45,12 @@ export class Preview {
   private t = 0;
   private raf = 0;
   private lastTs = 0;
+  /** Transition de descente / remontée en cours (phase 2, peinte après chaque rendu). */
+  private zoomFx: { kind: "emerge"; fill: string; t0: number; ms: number } | { kind: "collapse"; step: DrillStep; t0: number; ms: number } | null = null;
+  private zoomPump = 0;
+  /** Phase 1 en cours : le rendu courant (parent ou enfant) est figé. */
+  private holdDraw = false;
+  private prevDrill: { path: DrillStep[]; ds: number } | null = null;
   private speed = 1;
   private scrubbing = false;
   /** Écouteurs externes (ex. bouton d'export vidéo). */
@@ -127,6 +134,7 @@ export class Preview {
 
   /** Appelé à chaque changement du store. */
   async update(kinds: Set<ChangeKind>): Promise<void> {
+    await this.zoomPhaseOne();
     const { spec, ds, dsVersion } = this.store.state;
     await ensureFont(spec.style.font);
     this.stage.style.setProperty("--chart-font", fontStack(spec.style.font));
@@ -139,7 +147,9 @@ export class Preview {
     const restartNeeded = rk !== this.restartKey;
     this.restartKey = rk;
     if (restartNeeded && this.mode !== "none" && this.mode !== "special") {
-      this.restart(true);
+      // remontée : le parent apparaît complet pour que sa marque d'origine soit à sa place
+      if (this.zoomFx?.kind === "collapse") this.seek(1);
+      else this.restart(true);
       return;
     }
     if (this.mode === "none") this.stop();
@@ -148,10 +158,12 @@ export class Preview {
   }
 
   private draw(): void {
+    if (this.holdDraw) return;
     const { spec, ds } = this.store.state;
     const p = this.mode === "none" ? 1 : Math.min(1, this.t / this.duration());
     const frame = this.frameAt(this.mode === "special" ? 1 : p);
     this.last = renderChart(this.svg, spec, ds, this.cache!, frame);
+    this.paintZoomFx();
     this.fit();
     this.syncSpecial();
     if (this.mode !== "special") {
@@ -161,6 +173,60 @@ export class Preview {
     const warn = [...(this.last.prepared.warnings ?? [])];
     this.status.textContent = warn.join(" · ");
     this.status.classList.toggle("hidden", !warn.length);
+  }
+
+  /* ------------------------------------------- transition « zoom dans la marque » */
+
+  private zoomT(fx: { t0: number; ms: number }): number {
+    if (!fx.t0) fx.t0 = performance.now();
+    return Math.min(1, (performance.now() - fx.t0) / fx.ms);
+  }
+
+  /** Superpose l'étape courante de la transition (voile d'émergence ou marque qui rétrécit) au rendu. */
+  private paintZoomFx(): void {
+    const fx = this.zoomFx;
+    const plot = this.last?.plot;
+    if (!fx || !plot) return;
+    const t = this.zoomT(fx);
+    if (t >= 1) {
+      this.zoomFx = null;
+      clearZoom(this.svg);
+      return;
+    }
+    if (fx.kind === "emerge") paintVeil(this.svg, plot, fx.fill, 0.92 * (1 - easeOut(t)), "emerge");
+    else paintCollapse(this.svg, markForStep(this.svg, fx.step), plot, t);
+    // lecteur à l'arrêt : seul le calque de zoom est repeint (le graphique n'est pas re-rendu, les clics restent valides)
+    if (!this.playing && !this.zoomPump)
+      this.zoomPump = requestAnimationFrame(() => {
+        this.zoomPump = 0;
+        if (!this.playing) this.paintZoomFx();
+      });
+  }
+
+  /** Descente ou remontée d'un niveau d'exploration déclenchée par l'utilisateur : phase 1 sur le rendu actuel. */
+  private async zoomPhaseOne(): Promise<void> {
+    const { spec, dsVersion } = this.store.state;
+    const path = spec.type === "drill" ? spec.drill.path : null;
+    const prev = this.prevDrill;
+    this.prevDrill = path ? { path, ds: dsVersion } : null;
+    const armed = consumeDrillZoom();
+    const plot = this.last?.plot;
+    if (!armed || !path || !prev || prev.ds !== dsVersion || !plot || !zoomEnabled() || this.holdDraw) return;
+    const delta = pathDelta(prev.path, path);
+    if (!delta) return;
+    this.holdDraw = true;
+    try {
+      if (delta.dir === "in") {
+        const el = markForStep(this.svg, delta.step);
+        const fill = el ? await diveIn(this.svg, el, plot) : dominantFill(this.svg);
+        this.zoomFx = { kind: "emerge", fill, t0: 0, ms: emergeMs() };
+      } else {
+        await foldOut(this.svg, plot, dominantFill(this.svg));
+        this.zoomFx = { kind: "collapse", step: delta.step, t0: 0, ms: emergeMs() };
+      }
+    } finally {
+      this.holdDraw = false;
+    }
   }
 
   private fit(): void {

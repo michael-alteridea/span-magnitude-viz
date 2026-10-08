@@ -259,7 +259,7 @@ function businessReviewRows(): Record<string, unknown>[] {
   const r = rng(77);
   const products: [string, number, number, number][] = [
     // ligne, part du CA 2025, croissance réelle 2026, croissance budgétée 2026
-    ["Solutions cloud", 0.3, 0.24, 0.2],
+    ["Solutions en ligne", 0.3, 0.24, 0.2],
     ["Licences", 0.26, -0.06, 0.02],
     ["Services pro", 0.27, 0.05, 0.06],
     ["Maintenance", 0.17, 0.03, 0.03],

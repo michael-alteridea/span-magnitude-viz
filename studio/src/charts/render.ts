@@ -320,6 +320,12 @@ export interface RenderOptions {
   textBoost?: number;
   /** QR du cartouche pointant vers ce lien (mode lecture) au lieu de la vérification de l'empreinte. */
   qrUrl?: string | null;
+  /**
+   * Toutes les puces « À retenir » qui apparaîtront (film, mode lecture) : la colonne ou le bandeau est
+   * mis en page pour elles dès la première image, alors que `spec.story.comments` n'en contient encore
+   * qu'une partie — le graphique est d'emblée à sa taille finale, sans saut.
+   */
+  commentsAll?: string[];
 }
 
 /**
@@ -377,9 +383,16 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     y += lines.length * ss * 1.3 + 4 * s;
   }
 
-  // ---- commentaires « À retenir » : colonne à droite en paysage, bandeau en bas sinon
-  const comments = texts && spec.story.showComments ? spec.story.comments.map((c) => c.trim()).filter(Boolean).slice(0, 3) : [];
-  const sideComments = comments.length > 0 && W / H >= 1.3;
+  // ---- commentaires « À retenir » : colonne à droite en paysage, bandeau en bas sinon.
+  // La place est réservée dès qu'on sait qu'il y aura des commentaires (`showComments` +
+  // `commentsAll` / commentaires non vides) : le graphique ne saute plus quand les puces
+  // apparaissent (film, mode lecture, snapshots).
+  const clean = (l: string[]) => (texts && spec.story.showComments ? l.map((c) => c.trim()).filter(Boolean).slice(0, 3) : []);
+  const comments = clean(spec.story.comments);
+  // mise en page calculée sur les commentaires à venir : colonne / bandeau et retours à la ligne identiques à chaque image
+  const planned = opts.commentsAll ? clean(opts.commentsAll) : comments;
+  const layoutComments = planned.length >= comments.length ? planned : comments;
+  const sideComments = layoutComments.length > 0 && W / H >= 1.3;
   const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
 
   // ---- pied : cartouche Datanime (logo, lien, dates, source, empreinte, QR d'empreinte des données)
@@ -407,7 +420,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
 
   let contentW = innerW;
   const gCom = root.append("g").attr("class", "r4d-comments");
-  if (comments.length) {
+  if (sideComments || layoutComments.length) {
     const head = "À RETENIR";
     const hs = 12 * s;
     if (sideComments) {
@@ -416,25 +429,28 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
       const colBottom = H - pad - footH - colFootH;
       let cy = y + 16 * s;
       gCom.append("line").attr("x1", x0 - 16 * s).attr("x2", x0 - 16 * s).attr("y1", y + 6 * s).attr("y2", colFootH ? colBottom - 4 * s : H - pad - footH).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
-      gCom.append("text").attr("class", "r4d-comments-head").attr("x", x0).attr("y", cy).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
-      cy += 22 * s;
-      const maxH = colBottom - cy;
-      const maxLines = Math.max(2, Math.floor(maxH / comments.length / (fs * 1.35)) - 1);
-      comments.forEach((c, i) => {
-        const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
-        const lines = wrap(c, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
-        g.append("rect").attr("x", x0).attr("y", cy + fs * 0.32 - 3.5 * s).attr("width", 7 * s).attr("height", 7 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
-        lines.forEach((l, k) => g.append("text").attr("x", x0 + 16 * s).attr("y", cy + fs * 0.32 + k * fs * 1.35).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
-        cy += lines.length * fs * 1.35 + 14 * s;
-      });
+      if (comments.length) {
+        gCom.append("text").attr("class", "r4d-comments-head").attr("x", x0).attr("y", cy).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
+        cy += 22 * s;
+        const maxH = colBottom - cy;
+        const maxLines = Math.max(2, Math.floor(maxH / Math.max(1, layoutComments.length) / (fs * 1.35)) - 1);
+        comments.forEach((c, i) => {
+          const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
+          const lines = wrap(c, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
+          g.append("rect").attr("x", x0).attr("y", cy + fs * 0.32 - 3.5 * s).attr("width", 7 * s).attr("height", 7 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
+          lines.forEach((l, k) => g.append("text").attr("x", x0 + 16 * s).attr("y", cy + fs * 0.32 + k * fs * 1.35).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
+          cy += lines.length * fs * 1.35 + 14 * s;
+        });
+      }
       contentW = innerW - colW - 32 * s;
     } else {
       const fs = 14 * s;
       const blocks = comments.map((c) => wrap(c, innerW - 16 * s, fs, font, 400, 2));
-      const bh = 20 * s + blocks.reduce((a, b) => a + b.length * fs * 1.3 + 8 * s, 0);
+      const plannedBlocks = layoutComments.map((c) => wrap(c, innerW - 16 * s, fs, font, 400, 2));
+      const bh = 20 * s + plannedBlocks.reduce((a, b) => a + b.length * fs * 1.3 + 8 * s, 0);
       let cy = H - pad - footH - bh + 4 * s;
       gCom.append("line").attr("x1", pad).attr("x2", W - pad).attr("y1", cy - 6 * s).attr("y2", cy - 6 * s).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
-      gCom.append("text").attr("class", "r4d-comments-head").attr("x", pad).attr("y", cy + hs * 0.6).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
+      if (comments.length) gCom.append("text").attr("class", "r4d-comments-head").attr("x", pad).attr("y", cy + hs * 0.6).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
       cy += 20 * s;
       blocks.forEach((lines, i) => {
         const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
