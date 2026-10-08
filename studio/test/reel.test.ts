@@ -178,8 +178,8 @@ describe("annotation de barre mise en avant (Reel et Studio)", () => {
   it("taux en % : pas de « part du total » ; montants : part affichée", async () => {
     const { focusTexts } = await import("../src/charts/barDeco");
     const fmt = (v: number) => `${v.toLocaleString("fr-FR")} %`;
-    expect(focusTexts("Suède", 65.4, [65.4, 53, 48.2], 0, fmt, { title: "", note: "" }, false).title).toBe("Suède : 65,4 %");
-    expect(focusTexts("Équipe", 50, [50, 30, 20], 0, (v) => `${v} k€`, { title: "", note: "" }).title).toBe("Équipe : 50 k€ (50 % du total)");
+    expect(focusTexts("Suède", 65.4, [65.4, 53, 48.2], 0, fmt, { title: "", note: "" }, false).title).toBe(`Suède\u00a0: ${fmt(65.4)}`);
+    expect(focusTexts("Équipe", 50, [50, 30, 20], 0, (v) => `${v} k€`, { title: "", note: "" }).title).toBe("Équipe\u00a0: 50 k€ (50\u00a0% du total)");
   });
   it("barres horizontales : l'annotation va à hauteur des barres les plus courtes, au plus près de la mise en avant", async () => {
     const { calloutWindow } = await import("../src/charts/cartesian");
@@ -204,5 +204,29 @@ describe("WebM (repli MediaRecorder) : durée dans l'en-tête", () => {
     expect(new DataView(h.buffer, h.byteOffset + d + 3, 8).getFloat64(0)).toBe(24400);
     const again = new Uint8Array([...h, ...buf.subarray(fix.cut)]);
     expect(webmWithDuration(again, 24400)).toBeNull();
+  });
+});
+
+describe("Reel : rythme Calme / Normal / Nerveux", () => {
+  it("le rythme allonge (ou resserre) les durées, le comptage et les transitions ; « Nerveux » par défaut", async () => {
+    const { timingsFor, REEL_RHYTHMS, DEFAULT_RHYTHM, autoSceneDuration, T } = await import("../src/reel/plan");
+    expect(DEFAULT_RHYTHM).toBe("nerveux");
+    expect(Object.values(REEL_RHYTHMS).map((r) => r.label)).toEqual(["Calme", "Normal", "Nerveux"]);
+    const n = timingsFor("nerveux");
+    const c = timingsFor("calme");
+    expect(n.numberTo).toBe(T.numberTo);
+    expect(c.numberTo - c.numberFrom).toBeGreaterThan((n.numberTo - n.numberFrom) * 1.3);
+    expect(c.fadeOut).toBeGreaterThan(n.fadeOut);
+    expect(timingsFor("normal").chartTo).toBeGreaterThan(n.chartTo);
+    const sc = { title: "La Suède en tête de l'UE", caption: "Part des renouvelables", number: "65 %", marks: 10 };
+    expect(autoSceneDuration(sc, "calme")).toBeGreaterThan(autoSceneDuration(sc, "normal"));
+    expect(autoSceneDuration(sc, "normal")).toBeGreaterThan(autoSceneDuration(sc, "nerveux"));
+    const snaps = reelExampleSnapshots(new Date("2026-10-08T10:00:00Z"));
+    const mk = (rhythm: "calme" | "nerveux") => defaultPlan(snaps, { format: "9x16", links: snaps.map(() => ({ linkIn: null, linkOut: null })), licence: "CC BY 4.0", generatedAt: "x", rhythm });
+    const pc = mk("calme");
+    const pn = mk("nerveux");
+    expect(pc.rhythm).toBe("calme");
+    expect(totalDuration(pc)).toBeGreaterThan(totalDuration(pn));
+    for (const p of [pc, pn]) expect(totalDuration(p)).toBeGreaterThanOrEqual(REEL_MIN_S), expect(totalDuration(p)).toBeLessThanOrEqual(REEL_MAX_S);
   });
 });

@@ -10,7 +10,8 @@ import { prepareCache, renderChart, type PrepCache } from "../charts/render";
 import type { PlotRect } from "../charts/context";
 import type { Snapshot } from "../story/snapshots";
 import { clearZoom, dominantFill, easeOut, markFill, markForStep, markShape, paintCollapse, paintDive, paintFold, paintVeil, pathDelta } from "../ui/drillZoom";
-import { T, type DrillLink, type ReelScene } from "./plan";
+import { T as T0, type DrillLink, type ReelScene, type Timings } from "./plan";
+import { focusDelta } from "../charts/focus";
 import { REEL_COLORS } from "./compose";
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -31,7 +32,8 @@ export function drillLinkOf(a: Snapshot | undefined, b: Snapshot | undefined): {
 
 /** Liens d'exploration de chaque scène (avec la précédente et la suivante). */
 export function drillLinks(snaps: Snapshot[]): { linkIn: DrillLink; linkOut: DrillLink }[] {
-  return snaps.map((s, i) => ({ linkIn: drillLinkOf(snaps[i - 1], s)?.dir ?? null, linkOut: drillLinkOf(s, snaps[i + 1])?.dir ?? null }));
+  const link = (a: Snapshot | undefined, b: Snapshot | undefined): DrillLink => drillLinkOf(a, b)?.dir ?? (a && b && focusDelta(a.spec, b.spec) === "in" ? "focus" : null);
+  return snaps.map((s, i) => ({ linkIn: link(snaps[i - 1], s), linkOut: link(s, snaps[i + 1]) }));
 }
 
 interface Prepared {
@@ -51,7 +53,8 @@ export class ReelCharts {
 
   constructor(
     private items: ReelItem[],
-    private scenes: () => ReelScene[]
+    private scenes: () => ReelScene[],
+    private timing: () => Timings = () => ({ ...T0 })
   ) {
     this.host = document.createElement("div");
     this.host.setAttribute("aria-hidden", "true");
@@ -86,7 +89,9 @@ export class ReelCharts {
         story: { ...base.story, comments: [], showComments: false },
       };
       const cache = prepareCache(spec, it.ds, null, -1);
-      const boost = textPx / 13 / (Math.sqrt(W * h) / 900);
+      // secteurs et arcs : étiquettes extérieures nombreuses → textes un peu moins agrandis, le graphique garde de la place
+      const radial = base.type === "pie" || base.type === "donut" || base.type === "radialBar";
+      const boost = (textPx / 13 / (Math.sqrt(W * h) / 900)) * (radial ? 0.72 : 1);
       const p: Prepared = { key, spec, cache, boost, vb: null };
       // cadrage : boîte englobante du contenu une fois construit (identique pour toutes les images de la scène)
       this.draw(i, p, 1);
@@ -107,10 +112,10 @@ export class ReelCharts {
     return p;
   }
 
-  private draw(i: number, p: Prepared, build: number): PlotRect {
+  private draw(i: number, p: Prepared, build: number, focus?: number): PlotRect {
     clearZoom(this.svg);
     const it = this.items[i]!;
-    const res = renderChart(this.svg, p.spec, it.ds, p.cache, { build, timePos: null }, { bare: true, textBoost: p.boost, now: it.snap.generatedAt ? new Date(it.snap.generatedAt) : new Date() });
+    const res = renderChart(this.svg, p.spec, it.ds, p.cache, { build, timePos: null, ...(focus !== undefined ? { focus } : {}) }, { bare: true, textBoost: p.boost, now: it.snap.generatedAt ? new Date(it.snap.generatedAt) : new Date() });
     return res.plot;
   }
 
@@ -135,12 +140,16 @@ export class ReelCharts {
     const it = this.items[i];
     const sc = this.scenes()[i];
     if (!it || !sc) return "";
-    const p = this.prepared(i, box.w, box.h, box.textPx);
+    const T = this.timing();
+    // scène « avant mise en avant » : rendue avec le cadrage de la suivante, mise en avant à 0 (coupe sans saut)
+    const src = sc.linkOut === "focus" && sc.linkIn !== "focus" && this.items[i + 1]?.ds ? i + 1 : i;
+    const p = this.prepared(src, box.w, box.h, box.textPx);
     if (!p) return this.fallback(it.snap, box);
     // descente vers la scène suivante : la scène parente reste construite pendant le zoom
-    const build = sc.linkIn === "out" ? 1 : Math.max(0, Math.min(1, (t - (sc.linkIn === "in" ? 0 : T.chartFrom)) / (T.chartTo - T.chartFrom)));
+    const build = sc.linkIn === "out" || sc.linkIn === "focus" ? 1 : Math.max(0, Math.min(1, (t - (sc.linkIn === "in" ? 0 : T.chartFrom)) / (T.chartTo - T.chartFrom)));
+    const focus = src !== i ? 0 : sc.linkIn === "focus" ? Math.max(0, Math.min(1, (t - T.focusFrom) / T.focus)) : undefined;
     const fill = sc.linkIn === "in" && t < T.emerge ? this.parentFill(i, box.w, box.h, box.textPx) : null;
-    const plot = this.draw(i, p, build);
+    const plot = this.draw(src, p, build, focus);
     const tail = t - (dur - T.dive);
     if (sc.linkOut === "in" && tail > 0) {
       const link = drillLinkOf(it.snap, this.items[i + 1]?.snap);

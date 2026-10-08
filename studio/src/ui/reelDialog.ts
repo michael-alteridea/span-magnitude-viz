@@ -12,7 +12,7 @@ import { generatedOn } from "../story/fr";
 import { ReelCharts, drillLinks, type ReelItem } from "../reel/charts";
 import { ReelComposer } from "../reel/compose";
 import { encodeReel, reelCapabilities, type EncodeResult } from "../reel/encode";
-import { autoSceneDuration, fitDurations, fmtS, frameCount, REEL_FORMATS, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, reelProblems, SCENE_MAX_S, SCENE_MIN_S, totalDuration, type ReelFormatKey, type ReelPlan, type ReelScene } from "../reel/plan";
+import { autoSceneDuration, DEFAULT_RHYTHM, fitDurations, fmtS, frameCount, REEL_FORMATS, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, REEL_RHYTHMS, reelProblems, SCENE_MAX_S, SCENE_MIN_S, timingsFor, totalDuration, type ReelFormatKey, type ReelPlan, type ReelRhythm, type ReelScene } from "../reel/plan";
 import { defaultPlan } from "../reel/scenes";
 
 export interface ReelSource {
@@ -33,6 +33,10 @@ export class ReelDialog {
   private src: ReelSource | null = null;
   private selected: boolean[] = [];
   private format: ReelFormatKey = "9x16";
+  private rhythm: ReelRhythm = DEFAULT_RHYTHM;
+  private downOnBackdrop = false;
+  /** Ordre de lecture des snapshots (indices dans `src.items`) ; réordonnable par glisser-déposer. */
+  private order: number[] = [];
   private edits = new Map<string, Edit>();
   private source = "";
   private licence = "";
@@ -65,7 +69,9 @@ export class ReelDialog {
   };
 
   constructor() {
-    this.root = h("div", { class: "rv-overlay cad-overlay reel-overlay", hidden: true, "data-testid": "reel-dialog", onclick: (e: Event) => e.target === this.root && !this.abort && this.close() });
+    // fermeture par clic sur le fond : seulement si le geste a commencé sur le fond (pas en fin de glisser-déposer)
+    this.root = h("div", { class: "rv-overlay cad-overlay reel-overlay", hidden: true, "data-testid": "reel-dialog", onclick: (e: Event) => e.target === this.root && this.downOnBackdrop && !this.abort && this.close() });
+    this.root.addEventListener("pointerdown", (e) => (this.downOnBackdrop = e.target === this.root));
   }
 
   get isOpen(): boolean {
@@ -84,6 +90,8 @@ export class ReelDialog {
     this.close();
     this.src = src;
     this.selected = src.items.map((_, i) => i < REEL_MAX_SCENES);
+    this.order = src.items.map((_, i) => i);
+    this.rhythm = DEFAULT_RHYTHM;
     this.edits.clear();
     this.licence = src.licence;
     this.source = "";
@@ -126,7 +134,30 @@ export class ReelDialog {
   }
 
   private chosen(): ReelItem[] {
-    return (this.src?.items ?? []).filter((_, i) => this.selected[i]);
+    const items = this.src?.items ?? [];
+    return this.order.filter((i) => this.selected[i]).map((i) => items[i]!);
+  }
+
+  /** Déplace un snapshot dans l'ordre de lecture (indices dans `src.items`). */
+  private moveOrder(fromItem: number, toItem: number): void {
+    const a = this.order.indexOf(fromItem);
+    const b = this.order.indexOf(toItem);
+    if (a < 0 || b < 0 || a === b) return;
+    const next = [...this.order];
+    next.splice(a, 1);
+    next.splice(b, 0, fromItem);
+    this.order = next;
+    this.rebuild();
+    this.seek(0);
+  }
+
+  private shiftSelected(item: number, dir: -1 | 1): void {
+    const sel = this.order.filter((i) => this.selected[i]);
+    const k = sel.indexOf(item);
+    if (k < 0) return;
+    const j = k + dir;
+    if (j < 0 || j >= sel.length) return;
+    this.moveOrder(item, sel[j]!);
   }
 
   /** Recalcule le plan (sélection, format, retouches) ; `resetDur` : durées automatiques. */
@@ -135,7 +166,7 @@ export class ReelDialog {
     const items = this.chosen().slice(0, REEL_MAX_SCENES + 5);
     const snaps = items.map((i) => i.snap);
     const now = src.now ?? new Date();
-    const base = defaultPlan(snaps, { format: this.format, links: drillLinks(snaps), licence: this.licence, generatedAt: generatedOn(now), storyTitle: src.title });
+    const base = defaultPlan(snaps, { format: this.format, links: drillLinks(snaps), licence: this.licence, generatedAt: generatedOn(now), storyTitle: src.title, rhythm: this.rhythm });
     if (!this.source) this.source = base.source;
     base.source = this.source;
     base.licence = this.licence;
@@ -151,7 +182,7 @@ export class ReelDialog {
     for (const sc of base.scenes) sc.duration = this.edits.get(sc.id)?.duration ?? sc.duration;
     this.plan = base;
     this.charts?.dispose();
-    this.charts = new ReelCharts(items, () => this.plan?.scenes ?? []);
+    this.charts = new ReelCharts(items, () => this.plan?.scenes ?? [], () => timingsFor(this.plan?.rhythm));
     this.composer = new ReelComposer(base, { fontCss: "", chart: (i, t, d, box) => this.charts!.frame(i, t, d, box) });
     this.renderScenes();
     this.refreshMeta();
@@ -239,6 +270,26 @@ export class ReelDialog {
             { class: "reel-right" },
             h("h4", null, "FORMAT"),
             h("div", { class: "reel-fmts", role: "group", "aria-label": "Format" }, ...fmtBtns),
+            h("h4", null, "RYTHME"),
+            h(
+              "div",
+              { class: "reel-rhythms", role: "group", "aria-label": "Rythme" },
+              ...(["nerveux", "normal", "calme"] as ReelRhythm[]).map((k) =>
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: `reel-rhythm${k === this.rhythm ? " on" : ""}`,
+                    "data-rhythm": k,
+                    "data-testid": `reel-rhythm-${k}`,
+                    "aria-pressed": k === this.rhythm ? "true" : "false",
+                    title: REEL_RHYTHMS[k].hint,
+                    onclick: () => this.setRhythm(k),
+                  },
+                  REEL_RHYTHMS[k].label
+                )
+              )
+            ),
             h("div", { class: "reel-h" }, h("h4", null, "SCÈNES"), this.totalLbl, h("button", { type: "button", class: "btn btn-small btn-ghost", "data-testid": "reel-auto", title: "Durées calculées d'après le contenu", onclick: () => this.autoDurations() }, "Durées auto")),
             warn,
             this.sceneList,
@@ -261,7 +312,9 @@ export class ReelDialog {
     const src = this.src!;
     const plan = this.plan!;
     const byId = new Map(plan.scenes.map((s, k) => [s.id, { s, k }]));
-    const rows = src.items.map((it, i) => {
+    const selOrder = this.order.filter((i) => this.selected[i]);
+    const rows = this.order.map((i) => {
+      const it = src.items[i]!;
       const on = this.selected[i]!;
       const sc = byId.get(it.snap.id)?.s;
       const box = h("input", { type: "checkbox", "data-testid": "reel-pick", "aria-label": `Inclure « ${it.snap.title || it.snap.name} »` }) as HTMLInputElement;
@@ -271,8 +324,12 @@ export class ReelDialog {
         this.rebuild();
         this.seek(0);
       });
-      const head = h("label", { class: "reel-scene-head" }, box, h("span", { class: "reel-num" }, sc ? String((byId.get(it.snap.id)?.k ?? 0) + 1) : "–"), h("span", { class: "reel-scene-name", title: it.snap.title || it.snap.name }, it.snap.title || it.snap.name));
-      if (!sc) return h("div", { class: "reel-scene off", "data-scene-id": it.snap.id }, head);
+      const sk = selOrder.indexOf(i);
+      const up = h("button", { type: "button", class: "icon-btn reel-move", "data-testid": "reel-move-up", title: "Monter la scène", "aria-label": "Monter la scène", disabled: !on || sk <= 0, html: svgIcon(ICONS.up, 14), onclick: () => this.shiftSelected(i, -1) });
+      const down = h("button", { type: "button", class: "icon-btn reel-move", "data-testid": "reel-move-down", title: "Descendre la scène", "aria-label": "Descendre la scène", disabled: !on || sk < 0 || sk >= selOrder.length - 1, html: svgIcon(ICONS.down, 14), onclick: () => this.shiftSelected(i, 1) });
+      const grip = h("span", { class: "reel-grip", "aria-hidden": "true", title: "Glisser pour réordonner", html: svgIcon(ICONS.grip, 14) });
+      const head = h("div", { class: "reel-scene-head" }, on ? grip : h("span", { class: "reel-grip-spacer" }), h("label", { class: "reel-scene-check" }, box, h("span", { class: "reel-num" }, sc ? String((byId.get(it.snap.id)?.k ?? 0) + 1) : "–"), h("span", { class: "reel-scene-name", title: it.snap.title || it.snap.name }, it.snap.title || it.snap.name)), h("span", { class: "reel-moves" }, up, down));
+      if (!sc) return h("div", { class: "reel-scene off", "data-scene-id": it.snap.id, "data-item": String(i) }, head);
       const edit = (key: "title" | "number" | "caption", inp: HTMLInputElement) =>
         inp.addEventListener("input", () => {
           const e = this.edits.get(sc.id) ?? {};
@@ -299,14 +356,81 @@ export class ReelDialog {
         sc.duration = v;
         this.retext();
       });
-      const link = sc.linkIn === "in" ? "zoom dans la marque depuis la scène précédente" : sc.linkIn === "out" ? "remontée depuis la scène précédente" : "";
-      return h(
+      const link = sc.linkIn === "in" ? "zoom dans la marque depuis la scène précédente" : sc.linkIn === "out" ? "remontée depuis la scène précédente" : sc.linkIn === "focus" ? "mise en avant animée depuis la scène précédente" : "";
+      const card = h(
         "div",
-        { class: "reel-scene", "data-scene-id": it.snap.id },
+        { class: "reel-scene", "data-scene-id": it.snap.id, "data-item": String(i), "data-testid": "reel-scene" },
         head,
         h("div", { class: "reel-fields" }, h("label", { class: "reel-f wide" }, h("span", null, "Titre"), title), h("label", { class: "reel-f" }, h("span", null, "Chiffre clé"), num), h("label", { class: "reel-f" }, h("span", null, "Durée (s)"), dur), h("label", { class: "reel-f wide" }, h("span", null, "Légende"), cap)),
         link ? h("p", { class: "rv-hint reel-link-note" }, `Transition : ${link}.`) : null
       );
+      // glisser-déposer depuis la poignée (Pointer Events : souris, doigt sur iPad, stylet)
+      let dragPtr: { id: number; x: number; y: number; timer: number } | null = null;
+      const scroller = (): HTMLElement | null => {
+        for (let el: HTMLElement | null = this.sceneList; el && el !== this.root; el = el.parentElement) {
+          const oy = getComputedStyle(el).overflowY;
+          if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 1) return el;
+        }
+        return null;
+      };
+      const markTarget = () => {
+        if (!dragPtr) return;
+        let under = document.elementFromPoint(dragPtr.x, dragPtr.y)?.closest<HTMLElement>(".reel-scene") ?? null;
+        if (!under) {
+          // hors des cartes (au-dessus ou au-dessous de la liste) : carte la plus proche verticalement
+          const lr = this.sceneList.getBoundingClientRect();
+          if (dragPtr.x >= lr.left && dragPtr.x <= lr.right) {
+            let best = Infinity;
+            for (const el of this.sceneList.querySelectorAll<HTMLElement>(".reel-scene")) {
+              const r = el.getBoundingClientRect();
+              const d = dragPtr.y < r.top ? r.top - dragPtr.y : dragPtr.y > r.bottom ? dragPtr.y - r.bottom : 0;
+              if (d < best) {
+                best = d;
+                under = el;
+              }
+            }
+          }
+        }
+        for (const el of this.sceneList.querySelectorAll(".drop-target")) el.classList.remove("drop-target");
+        if (under && under !== card) under.classList.add("drop-target");
+      };
+      grip.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        card.classList.add("dragging");
+        e.preventDefault();
+        // défilement automatique de la liste quand le doigt approche d'un bord
+        const timer = window.setInterval(() => {
+          const sc = scroller();
+          if (!dragPtr || !sc) return;
+          const r = sc.getBoundingClientRect();
+          const edge = 56;
+          const dy = dragPtr.y > r.bottom - edge ? Math.min(18, dragPtr.y - (r.bottom - edge)) : dragPtr.y < r.top + edge ? -Math.min(18, r.top + edge - dragPtr.y) : 0;
+          if (dy) {
+            sc.scrollTop += dy;
+            markTarget();
+          }
+        }, 30);
+        dragPtr = { id: e.pointerId, x: e.clientX, y: e.clientY, timer };
+      });
+      grip.addEventListener("pointermove", (e) => {
+        if (!dragPtr || dragPtr.id !== e.pointerId) return;
+        dragPtr.x = e.clientX;
+        dragPtr.y = e.clientY;
+        markTarget();
+      });
+      const endPtr = (e: PointerEvent) => {
+        if (!dragPtr || dragPtr.id !== e.pointerId) return;
+        window.clearInterval(dragPtr.timer);
+        const target = this.sceneList.querySelector<HTMLElement>(".drop-target") ?? document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>(".reel-scene");
+        const to = target ? Number(target.dataset.item) : NaN;
+        for (const el of this.sceneList.querySelectorAll(".drop-target, .dragging")) el.classList.remove("drop-target", "dragging");
+        dragPtr = null;
+        if (e.type === "pointerup" && Number.isFinite(to) && to !== i) this.moveOrder(i, to);
+      };
+      grip.addEventListener("pointerup", endPtr);
+      grip.addEventListener("pointercancel", endPtr);
+      return card;
     });
     this.sceneList.replaceChildren(...rows);
   }
@@ -314,7 +438,7 @@ export class ReelDialog {
   private autoDurations(): void {
     for (const e of this.edits.values()) delete e.duration;
     const plan = this.plan!;
-    const auto = fitDurations(plan.scenes.map((sc) => autoSceneDuration({ title: sc.title, number: sc.number, caption: sc.caption })));
+    const auto = fitDurations(plan.scenes.map((sc) => autoSceneDuration({ title: sc.title, number: sc.number, caption: sc.caption }, this.rhythm)));
     plan.scenes.forEach((sc, k) => (sc.duration = auto[k]!));
     this.renderScenes();
     this.retext();
@@ -348,6 +472,18 @@ export class ReelDialog {
     const t = this.t;
     this.rebuild();
     this.seek(Math.min(t, totalDuration(this.plan!)));
+  }
+
+  private setRhythm(k: ReelRhythm): void {
+    if (this.abort || this.rhythm === k) return;
+    this.rhythm = k;
+    for (const b of this.root.querySelectorAll<HTMLElement>(".reel-rhythm")) {
+      b.classList.toggle("on", b.dataset.rhythm === k);
+      b.setAttribute("aria-pressed", b.dataset.rhythm === k ? "true" : "false");
+    }
+    // les durées non saisies à la main suivent le nouveau rythme
+    this.rebuild(true);
+    this.seek(0);
   }
 
   private layoutStage(): void {

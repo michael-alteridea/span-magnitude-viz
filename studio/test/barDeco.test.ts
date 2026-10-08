@@ -106,7 +106,7 @@ describe("barres racontées : barDeco, pictogrammes, annotation", () => {
     const vals = [47, 14, 12, 9, 8, 6];
     const t = focusTexts("Julie M.", 47, vals, 0, (v) => String(Math.round(v)), { title: "", note: "" });
     expect(t.avg).toBeCloseTo(9.8, 5);
-    expect(t.title).toBe("Julie M. : 47 (49 % du total)");
+    expect(t.title).toBe("Julie M.\u00a0: 47 (49\u00a0% du total)");
     expect(t.note).toBe("4,8 fois la moyenne des autres (10)");
     const u = focusTexts("Julie M.", 47, vals, 0, String, { title: "Absente", note: "Pas de relais" });
     expect([u.title, u.note]).toEqual(["Absente", "Pas de relais"]);

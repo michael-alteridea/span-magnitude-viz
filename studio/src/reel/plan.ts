@@ -45,16 +45,38 @@ export const END_CARD_S = 3;
 
 /** Animation d'une scène (secondes depuis son début). */
 export const T = {
-  textIn: 0.45,
-  numberFrom: 0.3,
-  numberTo: 1.5,
-  chartFrom: 0.45,
-  chartTo: 2.0,
-  fadeOut: 0.3,
+  /* rythme resserré (proche du film d'accueil) : entrées courtes, comptage rapide, coupes franches */
+  textIn: 0.32,
+  numberFrom: 0.15,
+  numberTo: 1.05,
+  chartFrom: 0.2,
+  chartTo: 1.35,
+  fadeOut: 0.2,
+  /** Fondu d'entrée du graphique (hors liaison). */
+  chartFade: 0.2,
+  /** Mise en avant (scène dupliquée « mise en avant ») : grisé, part tirée, halo et bulle. */
+  focusFrom: 0.15,
+  focus: 0.9,
   /** Transition « zoom dans la marque » (exploration parent → enfant), fin de la scène parente / début de l'enfant. */
   dive: 0.5,
   emerge: 0.5,
 } as const;
+
+/** Rythme du Reel : multiplie les durées de scène, la vitesse du comptage et la longueur des transitions. */
+export type ReelRhythm = "calme" | "normal" | "nerveux";
+export const REEL_RHYTHMS: Record<ReelRhythm, { label: string; k: number; hint: string }> = {
+  calme: { label: "Calme", k: 1.45, hint: "Scènes plus longues, chiffres qui comptent lentement, fondus doux" },
+  normal: { label: "Normal", k: 1.2, hint: "Rythme posé, pour un public qui découvre le sujet" },
+  nerveux: { label: "Nerveux", k: 1, hint: "Proche du film d'accueil : comptage rapide, coupes franches" },
+};
+export const DEFAULT_RHYTHM: ReelRhythm = "nerveux";
+export type Timings = { -readonly [K in keyof typeof T]: number };
+
+/** Minutage des animations pour un rythme donné. */
+export function timingsFor(r: ReelRhythm | undefined = DEFAULT_RHYTHM): Timings {
+  const k = REEL_RHYTHMS[r]?.k ?? 1;
+  return Object.fromEntries(Object.entries(T).map(([n, v]) => [n, Math.round(v * k * 1000) / 1000])) as Timings;
+}
 
 /* ------------------------------------------------------------------ chiffre clé */
 
@@ -160,11 +182,12 @@ export interface SceneTextInput {
 }
 
 /** Durée automatique d'une scène (s) : construction du graphique + temps de lecture. */
-export function autoSceneDuration(s: SceneTextInput): number {
+export function autoSceneDuration(s: SceneTextInput, rhythm: ReelRhythm = DEFAULT_RHYTHM): number {
+  const k = REEL_RHYTHMS[rhythm]?.k ?? 1;
   const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
-  // construction du graphique (~2 s) + lecture du titre (≈ 4,5 mots / s) + survol de la légende + chiffre clé
-  const d = 2.4 + words(s.title) * 0.22 + words(s.caption) * 0.08 + (s.number ? 0.4 : 0) + Math.min(0.8, (s.marks ?? 6) / 20);
-  return round1(Math.max(3.5, Math.min(7, d)));
+  // construction du graphique (~1,4 s) + lecture du titre (≈ 5 mots / s) + survol de la légende + chiffre clé
+  const d = 1.6 + words(s.title) * 0.2 + words(s.caption) * 0.06 + (s.number ? 0.3 : 0) + Math.min(0.6, (s.marks ?? 6) / 24);
+  return round1(Math.max(2.8 * k, Math.min(Math.min(SCENE_MAX_S, 5.2 * k), d * k)));
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
@@ -188,7 +211,8 @@ export function fitDurations(durs: number[], endS = END_CARD_S, min = REEL_MIN_S
 
 /* ------------------------------------------------------------------ plan */
 
-export type DrillLink = "in" | "out" | null;
+/** Liaison avec la scène voisine : descente / remontée d'exploration, ou « focus » (même graphique, mise en avant ajoutée). */
+export type DrillLink = "in" | "out" | "focus" | null;
 
 export interface ReelScene {
   /** Identifiant du snapshot d'origine. */
@@ -215,6 +239,8 @@ export interface ReelPlan {
   licence: string;
   /** Date de génération (cartouche). */
   generatedAt: string;
+  /** Rythme (durées, comptage, transitions) ; « nerveux » par défaut. */
+  rhythm?: ReelRhythm;
 }
 
 export function totalDuration(p: Pick<ReelPlan, "scenes" | "endDuration">): number {

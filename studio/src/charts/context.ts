@@ -13,6 +13,8 @@ export interface Frame {
   build: number;
   /** Position 4D en pas (continue), null = pas d'animation temporelle. */
   timePos: number | null;
+  /** Mise en avant (étape L) : 0 = graphique simple, 1 = mis en avant (défaut). Animée entre deux snapshots. */
+  focus?: number;
 }
 
 export interface PlotRect {

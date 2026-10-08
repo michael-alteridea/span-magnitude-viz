@@ -440,6 +440,18 @@ body.rv-open .app > :not(.rv-space):not(.cad-overlay) { display: none !important
 .reel-fmt-ic { display: block; border: 2px solid currentColor; border-radius: 3px; }
 .reel-fmt.on .reel-fmt-ic { border-color: var(--accent); }
 .reel-fmt-ic.f-9x16 { width: 15px; height: 26px; } .reel-fmt-ic.f-1x1 { width: 22px; height: 22px; } .reel-fmt-ic.f-16x9 { width: 32px; height: 18px; }
+.reel-rhythms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 14px; }
+.reel-rhythm { height: 36px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); color: var(--muted); cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; }
+.reel-rhythm:hover { color: var(--text); border-color: var(--accent); }
+.reel-rhythm.on { color: var(--text); border-color: var(--accent); background: rgba(63, 167, 196, .12); }
+.reel-scene.dragging { opacity: .55; }
+.reel-scene.drop-target { outline: 2px dashed var(--accent); outline-offset: 1px; }
+.reel-grip, .reel-grip-spacer { width: 22px; height: 28px; display: grid; place-items: center; color: var(--muted); flex: none; touch-action: none; cursor: grab; }
+.reel-grip-spacer { visibility: hidden; pointer-events: none; }
+.reel-scene-check { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; cursor: pointer; }
+.reel-moves { display: flex; gap: 2px; flex: none; }
+.reel-move { width: 28px; height: 28px; }
+.reel-move:disabled { opacity: .35; }
 .reel-h { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .reel-h h4 { margin: 0; }
 .reel-total { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }

@@ -22,6 +22,8 @@ export interface StoryActions {
   cadencer?(): void;
   /** « Créer un Reel » (mini-film réseaux sociaux ; exemple public si l'histoire est vide). */
   reel?(): void;
+  /** « Dupliquer et mettre en avant » : copie juste après, mise en avant active, choix de l'élément ouvert. */
+  duplicateFocus?(s: Snapshot): void;
 }
 
 const MORPH_PREF = "datanime:pptx-morph";
@@ -155,8 +157,11 @@ export class StoryStrip {
     const role = h("select", { class: `story-role role-${s.role}`, title: "Rôle dans le récit", "data-testid": "story-card-role" }, ...NARRATIVE_ROLES.map((r) => h("option", { value: r, selected: r === s.role }, ROLE_LABELS[r])));
     role.addEventListener("change", () => this.patch(s.id, { role: role.value as NarrativeRole }));
     const del = h("button", { class: "icon-btn story-del", title: "Supprimer", "data-testid": "story-card-delete", html: svgIcon(ICONS.trash, 15), onclick: () => this.store.setStory({ ...this.store.state.story, snapshots: this.store.state.story.snapshots.filter((x) => x.id !== s.id) }) });
+    const dup = this.actions.duplicateFocus
+      ? h("button", { class: "icon-btn story-focus", title: "Dupliquer et mettre en avant : copie juste après ce snapshot, un élément en avant et son commentaire (transition animée)", "aria-label": "Dupliquer et mettre en avant", "data-testid": "story-card-focus", html: svgIcon(ICONS.focus, 15), onclick: () => this.actions.duplicateFocus?.(s) })
+      : null;
     const thumb = h("button", { class: "story-thumb", title: "Recharger ce graphique dans l'éditeur", "data-testid": "story-card-open", onclick: () => this.actions.open(s) }, s.thumb ? h("img", { src: s.thumb, alt: s.title, draggable: "false" }) : h("span", { class: "muted" }, s.title.slice(0, 60)));
-    const card = h("article", { class: "story-card", draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i) }, h("span", { class: "story-num" }, String(i + 1)), thumb, scale ? this.scaleBadge(scale, same) : null, h("div", { class: "story-card-foot" }, role, del), name);
+    const card = h("article", { class: "story-card", draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i) }, h("span", { class: "story-num" }, String(i + 1)), thumb, scale ? this.scaleBadge(scale, same) : null, h("div", { class: "story-card-foot" }, role, dup, del), name);
     card.addEventListener("dragstart", (e) => {
       this.dragFrom = i;
       card.classList.add("dragging");

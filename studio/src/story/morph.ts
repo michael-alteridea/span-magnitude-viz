@@ -22,6 +22,20 @@ export interface NativeMark {
   opacity: number;
   stroke: string | null;
   dash: boolean;
+  /** Forme native (rectangle par défaut) : part de secteur, arc épais (donut, arcs radiaux) ou disque (points). */
+  shape?: "rect" | "pie" | "blockArc" | "ellipse";
+  /** Angles PowerPoint (degrés, 0 à 3 h, sens horaire) des parts et arcs. */
+  angles?: [number, number];
+  /** Épaisseur de l'arc rapportée au rayon (0–1, blockArc). */
+  thickness?: number;
+  /** Largeur du contour (pt) ; 1 par défaut. */
+  lineWidth?: number;
+}
+
+/** Angles d3 (degrés depuis midi, sens horaire) → angles PowerPoint (depuis 3 h, sens horaire), dans [0, 360). */
+export function pptAngle(d3deg: number): number {
+  const a = (((d3deg - 90) % 360) + 360) % 360;
+  return Math.round(a * 1000) / 1000;
 }
 
 export interface NativeSlide {

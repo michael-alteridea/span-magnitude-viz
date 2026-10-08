@@ -75,7 +75,8 @@ export function focusTexts(
   const avg = others.length ? others.reduce((a, b) => a + b, 0) / others.length : null;
   const total = values.filter(Number.isFinite).reduce((a, b) => a + b, 0);
   const pct = additive && total > 0 && value >= 0 ? Math.round((value / total) * 100) : null;
-  const title = user.title.trim() || `${label} : ${fmt(value)}${pct != null ? ` (${pct} % du total)` : ""}`;
+  // espace insécable avant « : » (typographie française : jamais de deux-points en début de ligne)
+  const title = user.title.trim() || `${label}\u00a0: ${fmt(value)}${pct != null ? ` (${pct}\u00a0% du total)` : ""}`;
   let note = user.note.trim();
   if (!note && avg != null && avg !== 0) {
     const r = value / avg;

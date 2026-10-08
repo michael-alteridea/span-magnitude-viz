@@ -17,9 +17,12 @@ import { prepareCache, renderChart } from "../charts/render";
 import type { Snapshot } from "../story/snapshots";
 import { ROLE_LABELS } from "../story/snapshots";
 import { h, svgIcon, ICONS } from "./dom";
+import { focusDelta } from "../charts/focus";
 
 const BUILD_MS = 1300;
 const COMMENT_MS = 1100;
+/** Transition « mise en avant » (étape L) : grisé, part tirée, halo et bulle. */
+const FOCUS_MS = 1000;
 const HOLD_MS = 2600;
 const SWIPE_PX = 50;
 
@@ -322,6 +325,12 @@ export class StoryFilm {
       this.show(to);
       return;
     }
+    // même graphique, seule la mise en avant change : pas de fondu, le grisé et la bulle s'animent
+    const fdir = focusDelta(from.spec, to.spec);
+    if (fdir && !reducedMotion()) {
+      this.show(to, true, { dir: fdir, from: from.spec });
+      return;
+    }
     this.svg.style.transition = "opacity 260ms ease";
     this.svg.style.opacity = "0";
     this.busy = true;
@@ -366,7 +375,7 @@ export class StoryFilm {
   }
 
   /** `built` : graphique d'emblée complet (remontée : la marque d'origine doit être à sa place). */
-  private show(s: Snapshot, built = false): void {
+  private show(s: Snapshot, built = false, focusFx: { dir: "in" | "out"; from: unknown } | null = null): void {
     const k = this.i;
     this.counter.textContent = `${k + 1} / ${this.snaps.length}`;
     this.role.textContent = ROLE_LABELS[s.role].toUpperCase();
@@ -395,14 +404,24 @@ export class StoryFilm {
       return;
     }
     let { spec, boost } = this.specOf(s, parsed.spec);
+    // sortie de mise en avant : le graphique part de l'état mis en avant du snapshot précédent
+    const outFocus = focusFx?.dir === "out" ? (focusFx.from as Partial<ChartSpec>)?.style?.focus : undefined;
+    const withFocus = (sp: ChartSpec): ChartSpec => (outFocus ? { ...sp, style: { ...sp.style, focus: outFocus } } : sp);
     let cache = prepareCache(spec, ds, null, -1);
     const all = spec.story.comments;
-    const total = BUILD_MS + all.length * COMMENT_MS;
+    const fms = focusFx ? FOCUS_MS : 0;
+    const total = BUILD_MS + fms + all.length * COMMENT_MS;
+    this.svg.toggleAttribute("data-focus-anim", !!focusFx);
     const now = s.generatedAt ? new Date(s.generatedAt) : new Date();
     const draw = (t: number) => {
       const build = Math.min(1, t / BUILD_MS);
-      const shown = Math.max(0, Math.min(all.length, Math.floor((t - BUILD_MS * 0.7) / COMMENT_MS) + 1));
-      const res = renderChart(this.svg, { ...spec, story: { ...spec.story, comments: all.slice(0, shown) } }, ds, cache, { build, timePos: null }, { now, textBoost: boost, commentsAll: all });
+      const shown = Math.max(0, Math.min(all.length, Math.floor((t - BUILD_MS * 0.7 - fms * 0.6) / COMMENT_MS) + 1));
+      const fp = focusFx ? Math.max(0, Math.min(1, (t - BUILD_MS) / FOCUS_MS)) : 1;
+      const out = focusFx?.dir === "out" && fp < 1;
+      const sp = out ? withFocus(spec) : spec;
+      const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
+      const res = renderChart(this.svg, { ...sp, story: { ...sp.story, comments: all.slice(0, shown) } }, ds, cache, { build, timePos: null, ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all });
+      this.svg.setAttribute("data-focus-progress", focusFx ? fp.toFixed(2) : "1");
       this.svg.removeAttribute("width");
       this.svg.removeAttribute("height");
       this.plot = res.plot;

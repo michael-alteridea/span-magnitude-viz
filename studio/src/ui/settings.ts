@@ -33,6 +33,8 @@ import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
 import { iconFor, iconSvg } from "../charts/icons";
 import { iconPickLabel, openIconPicker } from "./iconPicker";
+import { focusInfo, type FocusInfo } from "./focusUi";
+import { FOCUS_LABELS } from "../charts/focus";
 import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
@@ -47,6 +49,8 @@ export interface PanelActions {
   exportWebm: (btn: HTMLButtonElement) => void;
   exportPptx: (btn: HTMLButtonElement) => void;
   snapshots: () => number;
+  /** Mise en avant : le prochain toucher sur une marque du graphique la choisit. */
+  pickFocus?: () => void;
 }
 
 interface Sec {
@@ -131,6 +135,7 @@ export class SettingsPanel {
       spec.style.barCap,
       spec.style.barCap === "icon" || spec.style.barCap === "picto" ? spec.style.capIcons : null,
       !!spec.style.focus.key,
+      spec.type === "drill" ? [spec.drill.view, spec.drill.by, spec.drill.path.length] : null,
       ds?.columns.map((c) => c.type),
     ]);
     if (key !== this.key) {
@@ -683,7 +688,8 @@ export class SettingsPanel {
       this.check("story.showComments", "Afficher sur le graphique", undefined, "commentaires à retenir"),
     ];
     const more: Kid[] = [];
-    if ((spec.type === "bar" || spec.type === "barH") && !spec.norme.enabled) more.push(this.focusGroup(spec));
+    const fi = focusInfo(spec, this.store.state.ds);
+    if (fi.kind) more.push(this.focusGroup(spec, fi));
     more.push(this.row("Source / note", this.text("style.source", "Source : …", 300), undefined, "source note pied"));
     if (spec.norme.enabled) {
       more.push(this.row("Entité (qui)", this.text("norme.entity", "ex. Norvia SA (sinon : nom de l'organisation)", 80), "Alimente le sous-titre de la norme", "norme sous-titre"));
@@ -914,17 +920,29 @@ export class SettingsPanel {
     return this.group("icones", "Icône par catégorie", ...rows, h("p", { class: "muted small" }, "En gris : icône automatique, choisie d'après le nom (dictionnaire français / anglais) ; pas de correspondance → pas d'icône. ", h("a", { href: "licences/phosphor-icons-MIT.txt", target: "_blank", rel: "noopener", "data-licence": "phosphor" }, "Icônes Phosphor (licence MIT)"), "."));
   }
 
-  /** Mise en avant d'une barre (mode focus) : les autres en gris, annotation reliée, moyenne des autres. */
-  private focusGroup(spec: ChartSpec): HTMLElement {
-    const cats = this.categories(spec, 40);
+  /**
+   * Mise en avant (étapes I et L) : barre, part, arc, point, série ou région ; les autres en gris, annotation reliée.
+   * « Choisir sur le graphique » : le prochain toucher sur une marque la met en avant.
+   */
+  private focusGroup(spec: ChartSpec, fi: FocusInfo): HTMLElement {
+    const lab = FOCUS_LABELS[fi.kind!];
     const on = !!spec.style.focus.key;
+    const cur = spec.style.focus.key;
+    const choices = [...fi.choices];
+    if (cur && cur !== "@max" && !choices.includes(cur)) choices.unshift(cur);
+    const pick = h(
+      "button",
+      { type: "button", class: "btn btn-small focus-pick-btn", "data-testid": "focus-pick", title: "Touchez ensuite l'élément du graphique à mettre en avant", onclick: () => this.actions?.pickFocus?.() },
+      "Choisir sur le graphique"
+    );
     return this.group(
       "focus",
       "Mise en avant",
-      this.row("Barre mise en avant", this.select("style.focus.key", [["@max", "La plus grande (auto)"], ...cats.map((c) => [c, c] as Opt)], true), "Les autres barres passent en gris", "focus mise en avant barre annotée annotation"),
-      on && this.row("Titre de l'annotation", this.text("style.focus.title", "Calculé : valeur et part du total", 120), undefined, "annotation focus titre bulle"),
-      on && this.row("Texte de l'annotation", this.text("style.focus.note", "Calculé : comparaison à la moyenne des autres", 200), undefined, "annotation focus note bulle"),
-      on && this.check("style.focus.average", "Ligne « Moyenne des autres »", undefined, "moyenne focus")
+      this.row(lab.row, this.select("style.focus.key", [["@max", lab.auto], ...choices.slice(0, 200).map((c) => [c, c] as Opt)], true), lab.hint, "focus mise en avant barre part point série région annotée annotation"),
+      h("div", { class: "field focus-pick-row" }, pick, h("span", { class: "muted small" }, "ou touchez directement une marque quand la mise en avant est active")),
+      on && this.row("Titre de l'annotation", this.text("style.focus.title", fi.kind === "bar" || fi.kind === "slice" || fi.kind === "region" ? "Calculé : valeur et part du total" : "Calculé : nom et valeur", 120), undefined, "annotation focus titre bulle"),
+      on && this.row("Texte de l'annotation", this.text("style.focus.note", "Calculé : comparaison à la moyenne des autres", 200), undefined, "annotation focus note bulle commentaire"),
+      on && fi.kind === "bar" && this.check("style.focus.average", "Ligne « Moyenne des autres »", undefined, "moyenne focus")
     );
   }
 

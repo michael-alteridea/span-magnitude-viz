@@ -56,6 +56,8 @@ import type { DrillGrain } from "./spec";
 import { columnOf } from "./data/table";
 import { runScenario, scenarioSnapshotId, snapshotIndexOf, type RoleBinding, type Scenario } from "./story/scenarios";
 import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
+import { focusInfo } from "./ui/focusUi";
+import { sameExceptFocus } from "./charts/focus";
 
 const store = new Store();
 const preview = new Preview(store);
@@ -344,6 +346,10 @@ interface SnapOpts {
   scenario?: string | null;
   step?: string | null;
   quiet?: boolean;
+  /** Insertion à cet index (copie « Dupliquer et mettre en avant ») au lieu d'ajouter en fin. */
+  insertAt?: number;
+  name?: string;
+  role?: Snapshot["role"];
 }
 
 async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
@@ -352,7 +358,7 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
     toast("Chargez des données avant de prendre un snapshot.", "info");
     return null;
   }
-  const guided = !opts.id ? guideMatch() : null;
+  const guided = !opts.id && opts.insertAt == null ? guideMatch() : null;
   if (guided) opts = { ...opts, ...guided };
   const replace = opts.id ? story.snapshots.findIndex((x) => x.id === opts.id) : -1;
   if (replace < 0 && story.snapshots.length >= MAX_SNAPSHOTS) {
@@ -367,7 +373,7 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
   const kind = spec.story.kind ?? n?.kind ?? null;
   const snap: Snapshot = {
     id: opts.id ?? newSnapshotId(),
-    name: spec.style.title || `Snapshot ${story.snapshots.length + 1}`,
+    name: opts.name ?? (spec.style.title || `Snapshot ${story.snapshots.length + 1}`),
     createdAt: new Date().toISOString(),
     spec: structuredClone(spec),
     svg,
@@ -379,7 +385,7 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
     comments: spec.story.comments.filter((c) => c.trim()),
     source: spec.style.source,
     kind,
-    role: n?.role ?? roleForKind(kind),
+    role: opts.role ?? n?.role ?? roleForKind(kind),
     sampleId,
     dataName: ds.name,
     generatedAt: new Date().toISOString(),
@@ -389,6 +395,7 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
   };
   const list = [...store.state.story.snapshots];
   if (replace >= 0) list[replace] = snap;
+  else if (opts.insertAt != null) list.splice(Math.max(0, Math.min(list.length, opts.insertAt)), 0, snap);
   else list.push(snap);
   store.setStory({ ...store.state.story, snapshots: list });
   store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
@@ -406,6 +413,82 @@ function openSnapshot(s: Snapshot): void {
   }
   const errs = store.setSpec(s.spec);
   if (errs.length) toast(errs.join(" ; "), "error");
+}
+
+/* ---- mise en avant (étape L) : choix au toucher et « Dupliquer et mettre en avant » */
+
+let focusPicking = false;
+/** Copie mise en avant en cours d'édition : ses réglages de mise en avant suivent l'éditeur. */
+let focusCopy: { id: string; base: unknown } | null = null;
+let focusSyncTimer = 0;
+
+function startFocusPick(): void {
+  if (!focusInfo(store.state.spec, store.state.ds).kind) {
+    toast("Ce graphique n'a pas d'élément à mettre en avant.", "info");
+    return;
+  }
+  focusPicking = true;
+  preview.setFocusPicking(true, stopFocusPick);
+}
+
+function stopFocusPick(): void {
+  focusPicking = false;
+  preview.setFocusPicking(false);
+}
+
+/** Toucher d'une marque : en mode choix (ou mise en avant déjà active hors exploration), elle devient la marque mise en avant. */
+function onFocusTap(key: string): boolean {
+  const spec = store.state.spec;
+  if (!key) return false;
+  if (!focusPicking && (!spec.style.focus.key || spec.type === "drill")) return false;
+  stopFocusPick();
+  if (spec.style.focus.key !== key) store.set("style.focus.key", key);
+  settings.reveal({ section: "recit", paths: ["style.focus.key"], group: "focus" });
+  window.setTimeout(() => {
+    const note = document.querySelector<HTMLInputElement>('[data-path="style.focus.note"]');
+    if (note && !matchMedia("(pointer: coarse)").matches) note.focus({ preventScroll: true });
+  }, 60);
+  return true;
+}
+
+/** Duplique le snapshot juste après lui-même, mise en avant active, et ouvre le choix de l'élément. */
+async function duplicateAndFocus(s: Snapshot): Promise<void> {
+  const i = store.state.story.snapshots.findIndex((x) => x.id === s.id);
+  if (i < 0) return;
+  openSnapshot(s);
+  await settle();
+  const fi = focusInfo(store.state.spec, store.state.ds);
+  if (!fi.kind) {
+    toast("Ce type de graphique n'a pas de mise en avant (barres d'une seule série, secteurs, arcs, points, courbes ou carte).", "info", 4200);
+    return;
+  }
+  if (!store.state.spec.style.focus.key) store.set("style.focus.key", "@max");
+  await settle();
+  const copy = await takeSnapshot({ insertAt: i + 1, name: `${s.name} · mise en avant`, role: s.role, quiet: true });
+  if (!copy) return;
+  focusCopy = { id: copy.id, base: s.spec };
+  startFocusPick();
+  toast("Copie ajoutée juste après : touchez l'élément à mettre en avant, puis écrivez le commentaire.", "ok", 3200);
+}
+
+/** Les retouches de mise en avant (élément, titre, texte) sont reportées sur la copie tant que le graphique reste le même. */
+function syncFocusCopy(): void {
+  if (!focusCopy) return;
+  const spec = store.state.spec;
+  if (!sameExceptFocus(focusCopy.base, spec) || !store.state.story.snapshots.some((x) => x.id === focusCopy!.id)) {
+    focusCopy = null;
+    return;
+  }
+  const cur = store.state.story.snapshots.find((x) => x.id === focusCopy!.id)!;
+  const cs = cur.spec as typeof spec;
+  if (JSON.stringify(cs.style.focus) === JSON.stringify(spec.style.focus) && cs.style.title === spec.style.title && cs.style.subtitle === spec.style.subtitle && JSON.stringify(cs.story) === JSON.stringify(spec.story)) return;
+  window.clearTimeout(focusSyncTimer);
+  const id = focusCopy.id;
+  focusSyncTimer = window.setTimeout(() => {
+    void settle().then(() => {
+      if (focusCopy?.id === id) void takeSnapshot({ id, name: cur.name, role: cur.role, scenario: cur.scenario, step: cur.step, quiet: true });
+    });
+  }, 450);
 }
 
 /* ---- échelles communes (IBCS) : graphiques de même mesure dans l'histoire */
@@ -1232,9 +1315,10 @@ const settings = new SettingsPanel(store, {
   exportWebm: (b) => void exportWebm(b),
   exportPptx: (b) => void exportPptx(b),
   snapshots: () => store.state.story.snapshots.length,
+  pickFocus: () => startFocusPick(),
 });
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID), reel: () => void openReel(LOCAL_STORY_ID) });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, duplicateFocus: (s) => void duplicateAndFocus(s), exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID), reel: () => void openReel(LOCAL_STORY_ID) });
 const reelDialog = new ReelDialog();
 const cadencer = new CadencerDialog({ download: (id) => downloadManifest(id), copy: (text, label) => void copyText(text, label) });
 const film = new StoryFilm((s) => datasetFor(s));
@@ -1334,6 +1418,7 @@ async function route(hash: string): Promise<void> {
 }
 const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText(), guideNext: () => guideNext() });
 preview.onDrill = (el) => onDrillClick(el);
+preview.onFocusPick = (key) => onFocusTap(key);
 // Toucher / cliquer un élément du graphique : ouvre la section du panneau et met le réglage en avant
 preview.onPick = (el) => {
   const t = chartTarget(el, store.state.spec.type, store.state.spec.norme.enabled);
@@ -1397,6 +1482,8 @@ store.subscribe((kinds) => {
   storyStrip.update();
   drillBar.update();
   if (kinds.size === 1 && kinds.has("story")) return;
+  syncFocusCopy();
+  if (focusPicking && !focusInfo(store.state.spec, store.state.ds).kind) stopFocusPick();
   gallery.update();
   dataPanel.update();
   settings.update();
@@ -1467,6 +1554,8 @@ const api = {
   drill: () => store.state.spec.drill,
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
+  duplicateFocus: (i: number) => duplicateAndFocus(store.state.story.snapshots[i]!),
+  focusPicking: () => focusPicking,
   pptxBase64: async (o: PptxBuildOptions = {}) => (await buildStoryPptx("base64", store.state.story, { storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, ...o })) as string,
   reader: () => reader,
   read: (storyId: string, snapId: string | null = null) => startReading(storyId, snapId),

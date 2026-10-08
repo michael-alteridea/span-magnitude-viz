@@ -9,7 +9,7 @@ import { chartSize } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
 import { composeSvg, svgToPngBlob, blobToDataUrl } from "../export";
-import { cssColorHex, markName, uniqueNames, zoomName, type NativeMark, type NativeSlide } from "./morph";
+import { cssColorHex, markName, pptAngle, uniqueNames, zoomName, type NativeMark, type NativeSlide } from "./morph";
 
 type DrillStep = ChartSpec["drill"]["path"][number];
 
@@ -116,6 +116,80 @@ async function renderStage(inp: NativeInput, build: number, stage: NativeSlide["
       const name = el === zoomEl && inp.zoomOut ? zoomName(inp.zoomOut.index) : markName(kind, keys, idx);
       const dash = !!cs.strokeDasharray && cs.strokeDasharray !== "none";
       found.push({ el, mark: { name, x: x0 / W, y: y0 / H, w: (x1 - x0) / W, h: (y1 - y0) / H, fill, opacity: Math.max(0, Math.min(1, opacityOf(el, svg))), stroke: fill ? null : stroke, dash } });
+    }
+    // parts, arcs et points (étape L) : formes natives pour que Morph anime la mise en avant (part tirée, gris, halo)
+    const project = (el: SVGGraphicsElement, x: number, y: number) => {
+      const m = toSvg && el.getScreenCTM() ? toSvg.multiply(el.getScreenCTM()!) : null;
+      return m ? { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f } : { x, y };
+    };
+    const typ = inp.spec.type;
+    if (typ === "pie" || typ === "donut" || typ === "radialBar") {
+      const kind = typ === "radialBar" ? "arc" : "part";
+      for (const node of svg.querySelectorAll(".r4d-marks path[data-slice]")) {
+        const el = node as SVGGraphicsElement;
+        const [a0, a1, inner, R] = (el.getAttribute("data-slice") ?? "").split(" ").map(Number) as [number, number, number, number];
+        if (![a0, a1, inner, R].every(Number.isFinite) || R <= 0 || a1 - a0 < 0.05) continue;
+        const cs = getComputedStyle(el);
+        const fill = cssColorHex(cs.fill);
+        if (!fill) continue;
+        const p0 = project(el, -R, -R);
+        const p1 = project(el, R, R);
+        const full = a1 - a0 >= 359.5;
+        const key = el.getAttribute("data-focus-key") ?? "";
+        found.push({
+          el,
+          mark: {
+            name: markName(kind, [key], 0),
+            x: Math.min(p0.x, p1.x) / W,
+            y: Math.min(p0.y, p1.y) / H,
+            w: Math.abs(p1.x - p0.x) / W,
+            h: Math.abs(p1.y - p0.y) / H,
+            fill,
+            opacity: Math.max(0, Math.min(1, opacityOf(el, svg))),
+            stroke: null,
+            dash: false,
+            shape: inner > 0 ? "blockArc" : full ? "ellipse" : "pie",
+            ...(full && inner <= 0 ? {} : { angles: full ? [pptAngle(0), pptAngle(359.9)] : [pptAngle(a0), pptAngle(a1)] }),
+            ...(inner > 0 ? { thickness: Math.max(0.01, Math.min(1, (R - inner) / R)) } : {}),
+          },
+        });
+      }
+    }
+    if (typ === "scatter") {
+      for (const node of svg.querySelectorAll(".r4d-marks circle[data-focus-key], .r4d-focus-halo circle")) {
+        const el = node as SVGGraphicsElement;
+        const cs = getComputedStyle(el);
+        const fill = cssColorHex(cs.fill);
+        if (!fill) continue;
+        const r = Number(el.getAttribute("r"));
+        const cx = Number(el.getAttribute("cx"));
+        const cy = Number(el.getAttribute("cy"));
+        if (!(r > 0)) continue;
+        const p0 = project(el, cx - r, cy - r);
+        const p1 = project(el, cx + r, cy + r);
+        const halo = !!el.closest(".r4d-focus-halo");
+        const key = halo ? "halo" : (el.getAttribute("data-focus-key") ?? "");
+        const base = `point|${key}`;
+        const idx = counts.get(base) ?? 0;
+        counts.set(base, idx + 1);
+        const stroke = halo ? cssColorHex(cs.stroke) : null;
+        found.push({
+          el,
+          mark: {
+            name: markName(halo ? "halo" : "point", [key], idx),
+            x: Math.min(p0.x, p1.x) / W,
+            y: Math.min(p0.y, p1.y) / H,
+            w: Math.abs(p1.x - p0.x) / W,
+            h: Math.abs(p1.y - p0.y) / H,
+            fill,
+            opacity: Math.max(0, Math.min(1, opacityOf(el, svg))),
+            stroke,
+            dash: false,
+            shape: "ellipse",
+            ...(halo ? { lineWidth: 1.5 } : {}),
+          },
+        });
+      }
     }
     for (const f of found) f.el.setAttribute("visibility", "hidden");
     const marks = found.map((f) => f.mark);

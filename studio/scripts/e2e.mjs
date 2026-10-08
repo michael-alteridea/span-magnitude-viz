@@ -300,7 +300,381 @@ async function e2eReel() {
     await frameAt(26);
     await (await rp.$("[data-testid=reel-stage]")).screenshot({ path: join(shotsDir, "87-reel-carte-de-fin.png") });
   }
+  await rp.evaluate(() => window.r4d.reelDialog().close());
+  await rp.evaluate(() => window.r4d.reel("exemple"));
+  await rp.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  await rp.click("[data-testid=reel-format-9x16]");
+  await sleep(300);
+
+  // rythme : Nerveux par défaut ; Calme allonge les scènes et ralentit le comptage
+  const rhy = async () => rp.evaluate(() => { const p = window.r4d.reelDialog().currentPlan; return { rhythm: p.rhythm, total: p.scenes.reduce((a, s) => a + s.duration, 0) + p.endDuration, durs: p.scenes.map((s) => s.duration), on: document.querySelector(".reel-rhythm.on")?.getAttribute("data-rhythm"), labels: [...document.querySelectorAll(".reel-rhythm")].map((b) => b.textContent).join("/") }; });
+  const r0 = await rhy();
+  const n0 = (await frameAt(0.7)).num;
+  await rp.click("[data-testid=reel-rhythm-calme]");
+  await sleep(300);
+  const r1 = await rhy();
+  const n1 = (await frameAt(0.7)).num;
+  const val = (t) => Number(String(t ?? "").replace(/[^0-9,]/g, "").replace(",", "."));
+  check("Reel : rythme « Nerveux » par défaut ; « Calme » allonge les scènes et ralentit le comptage", r0.rhythm === "nerveux" && r0.on === "nerveux" && r0.labels === "Nerveux/Normal/Calme" && r1.rhythm === "calme" && r1.on === "calme" && r1.total > r0.total && r1.total <= 30 && val(n1) < val(n0), JSON.stringify({ r0, r1, n0, n1 }));
+  if (SHOTS) {
+    await frameAt(1.2);
+    await rp.screenshot({ path: join(shotsDir, "101-reel-rythme.png") });
+  }
+  await rp.click("[data-testid=reel-rhythm-nerveux]");
+  await sleep(300);
+
+  // ordre des scènes : boutons ↑ / ↓ (accessibles) et glisser-déposer depuis la poignée (souris et toucher)
+  const ids = () => rp.evaluate(() => window.r4d.reelDialog().currentPlan.scenes.map((s) => s.id));
+  const o0 = await ids();
+  const ups = await rp.evaluate(() => [...document.querySelectorAll("[data-testid=reel-move-up]")].map((b) => b.disabled));
+  await rp.evaluate(() => document.querySelectorAll("[data-testid=reel-move-down]")[0].click());
+  await sleep(300);
+  const o1 = await ids();
+  check("Reel : « Descendre la scène » échange les scènes 1 et 2 (premier « Monter » désactivé)", o1[0] === o0[1] && o1[1] === o0[0] && o1.slice(2).join() === o0.slice(2).join() && ups[0] === true && ups[1] === false, JSON.stringify({ o0, o1, ups }));
+  await rp.evaluate(() => document.querySelectorAll("[data-testid=reel-move-up]")[1].click());
+  await sleep(300);
+  const o2 = await ids();
+  const dragTo = async (from, to, touch) => {
+    await rp.evaluate((from) => document.querySelectorAll("[data-testid=reel-scene]")[from].scrollIntoView({ block: "center" }), from);
+    await sleep(150);
+    const pts = await rp.evaluate((from, to) => { const g = document.querySelectorAll("[data-testid=reel-scene]")[from].querySelector(".reel-grip").getBoundingClientRect(); const t = document.querySelectorAll("[data-testid=reel-scene]")[to].getBoundingClientRect(); return { x: g.x + g.width / 2, y: g.y + g.height / 2, tx: t.x + t.width / 2, ty: Math.max(t.y + 12, Math.min(t.bottom - 12, from < to ? t.y + 40 : t.bottom - 40)) }; }, from, to);
+    if (touch) {
+      await rp.touchscreen.touchStart(pts.x, pts.y);
+      for (let k = 1; k <= 6; k++) await rp.touchscreen.touchMove(pts.x + ((pts.tx - pts.x) * k) / 6, pts.y + ((pts.ty - pts.y) * k) / 6);
+      await rp.touchscreen.touchEnd();
+    } else {
+      await rp.mouse.move(pts.x, pts.y);
+      await rp.mouse.down();
+      for (let k = 1; k <= 6; k++) await rp.mouse.move(pts.x + ((pts.tx - pts.x) * k) / 6, pts.y + ((pts.ty - pts.y) * k) / 6);
+      await rp.mouse.up();
+    }
+    await sleep(350);
+    return pts;
+  };
+  const d1 = await dragTo(0, 1, false);
+  const o3 = await ids();
+  check("Reel : glisser la scène 1 sur la 2 depuis sa poignée (souris) → nouvel ordre", o2.join() === o0.join() && o3[0] === o0[1] && o3[1] === o0[0] && o3.slice(2).join() === o0.slice(2).join(), JSON.stringify({ o2, o3, d1 }));
+  // défilement automatique : maintenir le doigt près du bord bas fait défiler la liste jusqu'aux scènes cachées
+  await rp.evaluate(() => document.querySelectorAll("[data-testid=reel-scene]")[0].scrollIntoView({ block: "start" }));
+  await sleep(150);
+  const as = await rp.evaluate(() => { const g = document.querySelectorAll("[data-testid=reel-scene]")[0].querySelector(".reel-grip").getBoundingClientRect(); const r = document.querySelector(".reel-right").getBoundingClientRect(); return { x: g.x + g.width / 2, y: g.y + g.height / 2, bot: Math.min(r.bottom, innerHeight) - 16 }; });
+  await rp.mouse.move(as.x, as.y);
+  await rp.mouse.down();
+  for (let k = 1; k <= 5; k++) await rp.mouse.move(as.x, as.y + ((as.bot - as.y) * k) / 5);
+  await sleep(900);
+  const scr = await rp.evaluate(() => ({ st: document.querySelector(".reel-right").scrollTop, tgt: document.querySelector(".drop-target")?.dataset.item ?? null }));
+  await rp.mouse.up();
+  await sleep(350);
+  const o3b = await ids();
+  const still = await rp.evaluate(() => window.r4d.reelDialog().isOpen);
+  check("Reel : glisser vers le bas de la liste la fait défiler (scène déposée plus loin), la fenêtre reste ouverte", o3b.indexOf(o3[0]) >= 2 && still, JSON.stringify({ o3, o3b, as, scr, still }));
+  // remise dans l'ordre d'origine (flèches)
+  for (let guard = 0; guard < 6 && (await ids()).join() !== o0.join(); guard++) {
+    const cur = await ids();
+    const k = cur.findIndex((id, j) => id !== o0[j]);
+    const want = cur.indexOf(o0[k]);
+    await rp.evaluate((want) => document.querySelectorAll("[data-testid=reel-move-up]")[want].click(), want);
+    await sleep(250);
+  }
+  // iPad : écran tactile (puppeteer recharge la page pour activer le toucher) → Reel rouvert
+  await rp.setViewport({ width: 1024, height: 768, hasTouch: true, isMobile: false });
+  await rp.waitForFunction(() => !!window.r4d, { timeout: 15000 });
+  await rp.evaluate(() => (window.r4d.reelDialog().isOpen ? null : window.r4d.reel("exemple")));
+  await rp.waitForSelector("[data-testid=reel-scene]", { timeout: 15000 });
+  await sleep(400);
+  const o3c = await ids();
+  const dbgOpen = await rp.evaluate(() => ({ open: window.r4d.reelDialog().isOpen, list: !!document.querySelector("[data-testid=reel-scenes]") }));
+  await dragTo(1, 0, true);
+  const o4 = await ids();
+  const ipad = await rp.evaluate(() => { const d = document.querySelector("[data-testid=reel-dialog] .rv-dialog") ?? document.querySelector("[data-testid=reel-dialog]").firstElementChild; const r = d.getBoundingClientRect(); const mv = [...document.querySelectorAll("[data-testid=reel-move-down], .reel-rhythm")].every((b) => { const q = b.getBoundingClientRect(); return q.right <= r.right + 1 && q.left >= r.left - 1; }); return { over: document.documentElement.scrollWidth - innerWidth, mv, h: Math.min(...[...document.querySelectorAll(".reel-rhythm")].map((b) => b.getBoundingClientRect().height)) }; });
+  check("Reel iPad 1024 px : glisser au doigt depuis la poignée réordonne ; rythme et flèches visibles sans débordement", o3c.join() === o0.join() && o4[0] === o0[1] && o4[1] === o0[0] && ipad.over <= 0 && ipad.mv && ipad.h >= 32, JSON.stringify({ o3c, o4, ipad, dbgOpen }));
+  if (SHOTS) {
+    await rp.evaluate(() => document.querySelector("[data-testid=reel-scenes]").scrollIntoView({ block: "center" }));
+    await rp.screenshot({ path: join(shotsDir, "102-reel-ordre-des-scenes-ipad.png") });
+  }
+  check("Reel : aucune erreur console", rpErr.length === 0, rpErr.slice(0, 3).join(" | "));
   await rp.close();
+}
+
+/* Mise en avant généralisée (étape L) : parts, arcs, points, courbes, carte ; toucher pour choisir ; « Dupliquer et mettre en avant » ; film, Reel, PowerPoint Morph ; iPad */
+async function e2eFocus() {
+  const fctx = await browser.createBrowserContext();
+  const fp = await fctx.newPage();
+  const fpErr = [];
+  fp.on("pageerror", (e) => fpErr.push(String(e)));
+  fp.on("console", (m) => m.type() === "error" && fpErr.push(m.text()));
+  await fp.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 2 : 1 });
+  await fp.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await fp.waitForSelector("[data-testid=chart-svg] .r4d-marks");
+  const settleF = async () => {
+    await fp.evaluate(() => window.r4d.settle());
+    await fp.evaluate(() => window.r4d.seek(1));
+    await sleep(120);
+  };
+  const shot = async (name) => {
+    if (!SHOTS) return;
+    await fp.mouse.move(1, 1);
+    await sleep(250);
+    await (await fp.$(".stage")).screenshot({ path: join(shotsDir, name) });
+  };
+  // toucher au milieu d'une part (le centre de sa boîte peut tomber dans le trou du donut ou sur une voisine)
+  const tapSlice = async (key) => {
+    const pt = await fp.evaluate((k) => {
+      const el = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path[data-slice]")].find((e) => e.getAttribute("data-focus-key") === k);
+      if (!el) return null;
+      const [a0, a1, inner, R] = el.getAttribute("data-slice").split(" ").map(Number);
+      const m = ((a0 + a1) / 2) * (Math.PI / 180);
+      const r = (inner + R) / 2;
+      const p = new DOMPoint(Math.sin(m) * r, -Math.cos(m) * r).matrixTransform(el.getScreenCTM());
+      return { x: p.x, y: p.y };
+    }, key);
+    if (!pt) throw new Error("part introuvable : " + key);
+    await fp.mouse.click(pt.x, pt.y);
+  };
+  const GREY = ["#c4c4c8", "#4a4a52", "#d4d8db", "#3a3f45"];
+  const info = () =>
+    fp.evaluate((GREY) => {
+      const svg = document.querySelector("[data-testid=chart-svg]");
+      const r = svg.getBoundingClientRect();
+      const co = svg.querySelector(".r4d-callout");
+      const cb = co?.getBoundingClientRect();
+      const isGrey = (c) => !!c && (GREY.includes(c.toLowerCase()) || /^#([0-9a-f]{2})\1\1$/i.test(c) || (() => { const m = c.match(/^#(..)(..)(..)$/); if (!m) return false; const [a, b, d] = m.slice(1).map((x) => parseInt(x, 16)); return Math.max(a, b, d) - Math.min(a, b, d) < 40; })());
+      const keyed = [...svg.querySelectorAll(".r4d-marks [data-focus-key], .r4d-marks[data-focus-key]")];
+      return {
+        slice: svg.querySelectorAll(".r4d-focus-slice").length,
+        arc: svg.querySelectorAll(".r4d-focus-arc").length,
+        point: svg.querySelectorAll(".r4d-focus-point").length,
+        halo: svg.querySelectorAll(".r4d-focus-halo").length,
+        series: svg.querySelectorAll(".r4d-focus-series").length,
+        region: svg.querySelectorAll(".r4d-focus-region").length,
+        callout: co?.textContent ?? "",
+        link: !!svg.querySelector(".r4d-callout-link"),
+        inside: !!cb && cb.left >= r.left - 1 && cb.right <= r.right + 1 && cb.top >= r.top - 1 && cb.bottom <= r.bottom + 1,
+        greyFills: [...svg.querySelectorAll("[data-focus-key]")].filter((e) => e.tagName !== "g" && isGrey(e.getAttribute("fill"))).length,
+        keyed: keyed.length,
+        scalebar: !!svg.querySelector(".r4d-scalebar"),
+        cart: !!svg.querySelector(".r4d-cartouche"),
+      };
+    }, GREY);
+  const panelFocus = () =>
+    fp.evaluate(() => {
+      const sel = document.querySelector('[data-testid=settings-panel] select[data-path="style.focus.key"]');
+      const row = sel?.closest(".field, .row, label")?.textContent ?? "";
+      return { here: !!sel, value: sel?.value ?? null, n: sel ? sel.options.length : 0, row, pick: !!document.querySelector("[data-testid=focus-pick]"), avg: !!document.querySelector('[data-path="style.focus.average"]') };
+    });
+
+  // ---- donut / camembert / arcs radiaux
+  await fp.evaluate(() => window.r4d.loadSample("canaux"));
+  await settleF();
+  const plain = await info();
+  await fp.evaluate(() => window.r4d.set("style.focus.key", "@max"));
+  await fp.evaluate(() => window.r4d.set("style.focus.note", "Le premier poste du budget"));
+  await settleF();
+  const dn = await info();
+  const pf = await panelFocus();
+  check("mise en avant donut : part détachée, autres parts en gris, bulle reliée dans le cadre ; sans mise en avant rien ne change", plain.slice === 0 && !plain.callout && dn.slice === 1 && dn.greyFills >= 5 && dn.link && dn.inside && /Le premier poste du budget/.test(dn.callout), JSON.stringify({ plain, dn }));
+  check("Récit › Mise en avant pour un donut : « Part mise en avant », choix des parts, « Choisir sur le graphique », pas de moyenne", pf.here && /Part mise en avant/.test(pf.row) && pf.n >= 7 && pf.pick && !pf.avg, JSON.stringify(pf));
+  await shot("88-mise-en-avant-donut.png");
+  for (const [type, cls, name] of [["pie", "slice", "89-mise-en-avant-camembert.png"], ["radialBar", "arc", "90-mise-en-avant-arcs.png"]]) {
+    await fp.evaluate((t) => window.r4d.setSpec({ type: t }), type);
+    await settleF();
+    const x = await info();
+    check(`mise en avant ${type} : ${cls} en couleur, autres en gris, bulle reliée`, x[cls] === 1 && x.greyFills >= 4 && x.link && x.inside, JSON.stringify(x));
+    await shot(name);
+  }
+  // nuage de points
+  await fp.evaluate(() => window.r4d.setSpec({ type: "scatter", encoding: { ...window.r4d.getSpec().encoding, x: "Leads", y: ["Budget 2026 (€)"], label: "Canal", series: null } }));
+  await fp.evaluate(() => window.r4d.set("style.focus.note", ""));
+  await settleF();
+  const sc = await info();
+  const spf = await panelFocus();
+  check("mise en avant nuage de points : halo, point en avant, autres estompés, étiquette et bulle", sc.point === 1 && sc.halo === 1 && sc.link && sc.inside && /Point mis en avant/.test(spf.row), JSON.stringify({ sc, spf }));
+  await shot("91-mise-en-avant-points.png");
+  // courbes : une série (plusieurs séries), un point (une seule série)
+  await fp.evaluate(() => window.r4d.loadSample("ventes"));
+  await settleF();
+  await fp.evaluate(() => window.r4d.setSpec({ type: "line", mode: { ...window.r4d.getSpec().mode, kind: "static" }, encoding: { ...window.r4d.getSpec().encoding, x: "Mois", y: ["Chiffre d'affaires (€)"], series: "Région", time: null } }));
+  await fp.evaluate(() => window.r4d.set("style.focus.key", "@max"));
+  await settleF();
+  const ln = await info();
+  const lpf = await panelFocus();
+  check("mise en avant courbes : une série en couleur (plus épaisse), les autres en gris, bulle au dernier point", ln.series >= 1 && ln.link && ln.inside && /Série mise en avant/.test(lpf.row), JSON.stringify({ ln, lpf }));
+  await shot("92-mise-en-avant-series.png");
+  await fp.evaluate(() => window.r4d.setSpec({ type: "area", encoding: { ...window.r4d.getSpec().encoding, series: null } }));
+  await settleF();
+  const ar = await info();
+  check("mise en avant aire (une série) : point en avant avec halo et bulle", ar.halo === 1 && ar.link && ar.inside, JSON.stringify(ar));
+  await shot("93-mise-en-avant-point-de-courbe.png");
+  // barres : même interface
+  await fp.evaluate(() => window.r4d.loadSample("dossiers"));
+  await settleF();
+  const bpf = await panelFocus();
+  check("barres : même groupe « Mise en avant » (bouton de choix, moyenne des autres)", bpf.here && bpf.pick && bpf.avg && /Barre mise en avant/.test(bpf.row), JSON.stringify(bpf));
+  await shot("94-mise-en-avant-barre.png");
+
+  // ---- toucher pour choisir
+  await fp.evaluate(() => window.r4d.loadSample("canaux"));
+  await settleF();
+  await fp.evaluate(() => window.r4d.panel().open?.("recit"));
+  await fp.evaluate(() => document.querySelector("[data-testid=focus-pick]")?.click());
+  await sleep(150);
+  const hint = await fp.evaluate(() => ({ here: !!document.querySelector("[data-testid=focus-pick-hint]"), txt: document.querySelector("[data-testid=focus-pick-hint]")?.textContent ?? "", picking: window.r4d.focusPicking() }));
+  const target = await fp.evaluate(() => [...document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path[data-focus-key]")].map((e) => e.getAttribute("data-focus-key"))[2]);
+  await tapSlice(target);
+  await settleF();
+  const picked = await fp.evaluate(() => ({ key: window.r4d.getSpec().style.focus.key, hint: !!document.querySelector("[data-testid=focus-pick-hint]"), picking: window.r4d.focusPicking(), note: !!document.querySelector('[data-path="style.focus.note"]') }));
+  const pinfo = await info();
+  check("toucher pour choisir : bandeau « Touchez l'élément… », le toucher met la part en avant, champ de commentaire prêt", hint.here && hint.picking && /Touchez l'élément/.test(hint.txt) && picked.key === target && !picked.hint && !picked.picking && picked.note && pinfo.slice === 1, JSON.stringify({ hint, target, picked }));
+  // mise en avant active : un toucher sur une autre part la remplace
+  const other = await fp.evaluate((t) => [...document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path[data-focus-key]")].map((e) => e.getAttribute("data-focus-key")).find((k) => k !== t), target);
+  await tapSlice(other);
+  await settleF();
+  check("mise en avant active : toucher une autre part la met en avant", (await fp.evaluate(() => window.r4d.getSpec().style.focus.key)) === other);
+
+  // ---- « Dupliquer et mettre en avant »
+  await fp.evaluate(() => window.r4d.set("style.focus.key", null));
+  await fp.evaluate(() => window.r4d.set("style.title", "Budget 2026 par canal"));
+  await settleF();
+  await fp.evaluate(() => window.r4d.snapshot());
+  await fp.evaluate(() => window.r4d.setSpec({ type: "bar" }));
+  await settleF();
+  await fp.evaluate(() => window.r4d.snapshot());
+  await fp.evaluate(() => window.r4d.setSpec({ type: "radialBar" }));
+  await settleF();
+  await fp.evaluate(() => window.r4d.snapshot());
+  await sleep(300);
+  const before = await fp.evaluate(() => window.r4d.story().snapshots.map((s) => s.id));
+  const btnInfo = await fp.evaluate(() => { const b = document.querySelectorAll("[data-testid=story-card-focus]"); return { n: b.length, label: b[0]?.getAttribute("aria-label"), title: b[0]?.title ?? "" }; });
+  await fp.evaluate(() => document.querySelectorAll("[data-testid=story-card-focus]")[0].click());
+  await fp.waitForFunction((n) => window.r4d.story().snapshots.length === n + 1, { timeout: 10000 }, before.length).catch(() => {});
+  await sleep(400);
+  const dup = await fp.evaluate(() => {
+    const ss = window.r4d.story().snapshots;
+    return { ids: ss.map((s) => s.id), names: ss.map((s) => s.name), key1: ss[1].spec.style.focus.key, key0: ss[0].spec.style.focus.key, picking: window.r4d.focusPicking(), hint: !!document.querySelector("[data-testid=focus-pick-hint]"), cards: document.querySelectorAll("[data-testid=story-card]").length };
+  });
+  check("« Dupliquer et mettre en avant » : bouton par carte, copie insérée juste après, mise en avant active, choix ouvert", btnInfo.n === before.length && btnInfo.label === "Dupliquer et mettre en avant" && dup.ids.length === before.length + 1 && dup.ids[0] === before[0] && dup.ids[2] === before[1] && !before.includes(dup.ids[1]) && dup.key0 === null && dup.key1 === "@max" && dup.picking && dup.hint && /mise en avant/.test(dup.names[1]) && dup.cards === before.length + 1, JSON.stringify({ btnInfo, before, dup }));
+  if (SHOTS) {
+    await fp.mouse.move(1, 1);
+    await sleep(1900);
+    await fp.screenshot({ path: join(shotsDir, "96-dupliquer-et-mettre-en-avant.png") });
+  }
+  const tgt2 = await fp.evaluate(() => [...document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path[data-focus-key]")].map((e) => e.getAttribute("data-focus-key"))[1]);
+  await tapSlice(tgt2);
+  await settleF();
+  await fp.evaluate(() => { const i = document.querySelector('[data-path="style.focus.note"]'); i.value = "Le canal qui porte la croissance"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); });
+  await sleep(1400);
+  await fp.evaluate(() => window.r4d.settle());
+  const synced = await fp.evaluate(() => { const s = window.r4d.story().snapshots[1]; return { key: s.spec.style.focus.key, note: s.spec.style.focus.note, n: window.r4d.story().snapshots.length, orig: window.r4d.story().snapshots[0].spec.style.focus.key }; });
+  check("copie mise en avant : le toucher et le commentaire sont reportés sur la copie (l'original reste neutre)", synced.key === tgt2 && synced.note === "Le canal qui porte la croissance" && synced.n === before.length + 1 && synced.orig === null, JSON.stringify({ tgt2, synced }));
+  if (SHOTS) await shot("95-mise-en-avant-commentee.png");
+
+  // ---- film : neutre → mis en avant, sans fondu, mise en avant animée
+  await fp.evaluate(() => window.r4d.film().open(window.r4d.story().snapshots, 0));
+  await sleep(1800);
+  await fp.evaluate(() => window.r4d.film().next());
+  await sleep(160);
+  const fa = await fp.evaluate(() => { const s = document.querySelector("[data-testid=film-svg]"); return { anim: s?.hasAttribute("data-focus-anim"), p: Number(s?.getAttribute("data-focus-progress")), slice: !!s?.querySelector(".r4d-focus-slice"), op: getComputedStyle(s).opacity }; });
+  if (SHOTS) await fp.screenshot({ path: join(shotsDir, "97-film-transition-mise-en-avant.png") });
+  await sleep(1300);
+  const fb = await fp.evaluate(() => { const s = document.querySelector("[data-testid=film-svg]"); return { p: Number(s?.getAttribute("data-focus-progress")), slice: !!s?.querySelector(".r4d-focus-slice"), callout: s?.querySelector(".r4d-callout")?.textContent ?? "" }; });
+  check("film : snapshot neutre → copie mise en avant sans fondu, grisé / part tirée / bulle animés", fa.anim && fa.p < 0.6 && fa.op === "1" && fb.p === 1 && fb.slice && /porte la croissance/.test(fb.callout), JSON.stringify({ fa, fb }));
+  await fp.evaluate(() => window.r4d.film().close());
+
+  // ---- PowerPoint Morph : parts natives appariées entre la diapositive neutre et la mise en avant
+  const JSZip = createRequire(join(repo, "package.json"))("jszip");
+  const m64 = await fp.evaluate(() => window.r4d.pptxBase64({ morph: true, build: false }));
+  const mz = await JSZip.loadAsync(Buffer.from(m64, "base64"));
+  const sl = Object.keys(mz.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+  const xs = await Promise.all(sl.map((x) => mz.file(x).async("string")));
+  const withParts = xs.map((x, i) => ({ i, n: (x.match(/name="!!part:/g) ?? []).length, arcs: (x.match(/name="!!arc:/g) ?? []).length, block: (x.match(/prst="blockArc"/g) ?? []).length, morph: x.includes("p159:morph") })).filter((s) => s.n || s.arcs);
+  const nm = (x) => [...x.matchAll(/name="(!!part:[^"]+)"/g)].map((m) => m[1]).sort().join("|");
+  const pair = withParts.length >= 2 && nm(xs[withParts[0].i]) === nm(xs[withParts[1].i]);
+  const off = (x, name) => { const m = x.match(new RegExp(`name="${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?<a:off x="(\\d+)" y="(\\d+)"`)); return m ? `${m[1]},${m[2]}` : null; };
+  const fname = withParts.length >= 2 ? [...xs[withParts[1].i].matchAll(/name="(!!part:[^"]+)"/g)].map((m) => m[1]).find((n) => n.includes(tgt2.replace(/[\s"<>&]+/g, "_"))) : null;
+  const moved = fname ? off(xs[withParts[0].i], fname) !== off(xs[withParts[1].i], fname) : false;
+  check("PowerPoint Morph : parts du donut en formes natives (blockArc) nommées « !!part: », appariées entre neutre et mise en avant, part tirée déplacée", withParts.length >= 2 && withParts[0].block > 3 && withParts[1].morph && pair && moved, JSON.stringify({ withParts, pair, fname, moved }));
+
+  // ---- Reel : scène dupliquée liée (« focus »), graphique sans fondu, mise en avant animée
+  await fp.evaluate(() => window.r4d.reel());
+  await fp.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  await sleep(300);
+  const rv = await fp.evaluate(async () => {
+    const d = window.r4d.reelDialog();
+    d.setPlaying(false);
+    const p = d.currentPlan;
+    const links = p.scenes.map((s) => `${s.linkIn ?? "-"}/${s.linkOut ?? "-"}`);
+    const t1 = p.scenes[0].duration;
+    const at = async (t) => { d.seek(t); await new Promise((r) => requestAnimationFrame(r)); const f = document.querySelector("[data-testid=reel-frame]"); const co = f.querySelector(".reel-chart .r4d-callout"); return { slice: !!f.querySelector(".reel-chart .r4d-focus-slice"), co: co ? Number(co.getAttribute("opacity") ?? 1) : 0 }; };
+    return { links, a: await at(t1 + 0.05), b: await at(t1 + 1.6), dur: p.scenes.map((s) => s.duration) };
+  });
+  check("Reel : liaison « focus » entre la scène neutre et sa copie, mise en avant animée (bulle qui apparaît)", rv.links[0] === "-/focus" && rv.links[1] === "focus/-" && rv.b.slice && rv.b.co > 0.9 && rv.a.co < rv.b.co, JSON.stringify(rv));
+  if (SHOTS) {
+    await fp.evaluate(async (t) => { const d = window.r4d.reelDialog(); d.seek(t); await new Promise((r) => requestAnimationFrame(r)); }, rv.dur[0] + 1.8);
+    await (await fp.$("[data-testid=reel-stage]")).screenshot({ path: join(shotsDir, "98-reel-mise-en-avant.png") });
+  }
+  await fp.keyboard.press("Escape");
+  await sleep(300);
+
+  // ---- carte : région en couleur, reste en gris, bulle, barre d'échelle visible
+  await fp.evaluate(() => window.r4d.scenario("dircom", true));
+  await fp.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
+  await fp.evaluate(() => window.r4d.film().close());
+  await fp.evaluate(() => window.r4d.openSnapshot(window.r4d.story().snapshots.find((s) => /carte/.test(s.id))));
+  await settleF();
+  await fp.evaluate(() => window.r4d.set("style.focus.key", "Wallonie"));
+  await settleF();
+  const mp = await fp.evaluate(() => {
+    const svg = document.querySelector("[data-testid=chart-svg]");
+    const sb = svg.querySelector(".r4d-scalebar")?.getBoundingClientRect();
+    const cb = svg.querySelector(".r4d-callout")?.getBoundingClientRect();
+    const ov = sb && cb ? Math.max(0, Math.min(sb.right, cb.right) - Math.max(sb.left, cb.left)) * Math.max(0, Math.min(sb.bottom, cb.bottom) - Math.max(sb.top, cb.top)) : -1;
+    return { region: svg.querySelector(".r4d-focus-region")?.getAttribute("data-focus-key"), n: svg.querySelectorAll(".r4d-drill-region").length, outline: !!svg.querySelector(".r4d-focus-outline"), km: svg.querySelector(".r4d-scalebar")?.getAttribute("data-km"), sbVis: !!sb && sb.width > 0, ov, callout: svg.querySelector(".r4d-callout")?.textContent ?? "" };
+  });
+  const mpf = await panelFocus();
+  check("mise en avant carte : Wallonie en couleur, autres régions en gris, contour, bulle reliée sans masquer l'échelle en km", mp.region === "Wallonie" && mp.n === 5 && mp.outline && Number(mp.km) > 0 && mp.sbVis && mp.ov === 0 && /Wallonie/.test(mp.callout) && /Région mise en avant/.test(mpf.row), JSON.stringify({ mp, mpf }));
+  await shot("99-mise-en-avant-carte.png");
+
+  // ---- iPad (1024 et 1366 px) : groupe « Mise en avant » sans débordement
+  await fp.evaluate(() => window.r4d.loadSample("canaux"));
+  await fp.evaluate(() => window.r4d.set("style.focus.key", "@max"));
+  for (const [w, h] of [[1024, 768], [1366, 1024]]) {
+    await fp.setViewport({ width: w, height: h, deviceScaleFactor: SHOTS ? 2 : 1, isMobile: false, hasTouch: true });
+    await settleF();
+    await fp.evaluate(() => window.r4d.panel().reveal({ section: "recit", paths: ["style.focus.key"], group: "focus" }));
+    await sleep(300);
+    const ip = await fp.evaluate(() => {
+      const sel = document.querySelector('[data-testid=settings-panel] select[data-path="style.focus.key"]');
+      const grp = sel?.closest("details, .group, section") ?? sel?.parentElement;
+      const panel = document.querySelector("[data-testid=settings-panel]");
+      const pr = panel.getBoundingClientRect();
+      const btn = document.querySelector("[data-testid=focus-pick]")?.getBoundingClientRect();
+      return { sel: !!sel, over: grp ? grp.scrollWidth - grp.clientWidth : -1, page: document.documentElement.scrollWidth - window.innerWidth, btnIn: !!btn && btn.right <= pr.right + 1 && btn.left >= pr.left - 1, btnH: btn?.height ?? 0 };
+    });
+    await fp.evaluate(() => document.querySelector("[data-testid=focus-pick]")?.click());
+    await sleep(150);
+    const hb = await fp.evaluate(() => { const h = document.querySelector("[data-testid=focus-pick-hint]")?.getBoundingClientRect(); const s = document.querySelector(".stage-wrap").getBoundingClientRect(); return h ? h.left >= s.left - 1 && h.right <= s.right + 1 : false; });
+    check(`iPad ${w} px : « Mise en avant » sans débordement, bouton de choix dans le panneau, bandeau dans la zone du graphique`, ip.sel && ip.over <= 1 && ip.page <= 0 && ip.btnIn && hb, JSON.stringify({ ...ip, hb }));
+    if (SHOTS && w === 1024) await fp.screenshot({ path: join(shotsDir, "100-ipad-mise-en-avant.png") });
+    await fp.evaluate(() => document.querySelector("[data-testid=focus-pick-cancel]")?.click());
+  }
+  check("mise en avant : aucune erreur console", fpErr.length === 0, fpErr.slice(0, 3).join(" | "));
+  const words = await fp.evaluate(() => document.body.innerText);
+  check("mise en avant : aucun mot interdit dans l'interface", !/certifi|conforme|authenticit|preuve/i.test(words));
+  await fctx.close();
+}
+
+if (process.argv.includes("--focus")) {
+  try {
+    await e2eFocus();
+  } catch (e) {
+    failures++;
+    results.push("✗ exception : " + (e?.stack ?? e));
+  }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--reel")) {
@@ -2500,6 +2874,9 @@ try {
 
   /* 20. Reel (phase K) : voir e2eReel() */
   await e2eReel();
+
+  /* 21. Mise en avant généralisée (étape L) : voir e2eFocus() */
+  await e2eFocus();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

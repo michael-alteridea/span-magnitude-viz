@@ -7,7 +7,7 @@
 import { PLATFORM_HOST, PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
 import { qrMatrix, qrPath } from "../qr";
 import { measure, wrap, ellipsize } from "../charts/text";
-import { countUpText, locate, parseKeyNumber, REEL_FORMATS, sceneLayout, T, type KeyNumber, type ReelPlan, type SceneLayout } from "./plan";
+import { countUpText, locate, parseKeyNumber, REEL_FORMATS, sceneLayout, timingsFor, type KeyNumber, type ReelPlan, type SceneLayout } from "./plan";
 
 export const REEL_TITLE_FONT = "'R4D Poppins', 'R4D Inter', system-ui, sans-serif";
 export const REEL_TEXT_FONT = "'R4D Inter', system-ui, sans-serif";
@@ -117,12 +117,13 @@ export class ReelComposer {
     const st = this.sceneText(i);
     const { lay } = st;
     // textes : entrée (montée + fondu), sortie (fondu) ; la première scène entre aussi depuis le noir
+    const T = timingsFor(this.plan.rhythm);
     const tin = easeOut(t / T.textIn);
     const tout = 1 - clamp01((t - (dur - T.fadeOut)) / T.fadeOut);
     const textA = Math.min(tin, tout);
     const rise = (1 - tin) * 26;
     // graphique : fondu entrant / sortant, sauf liaison d'exploration (le zoom fait la transition)
-    const chartIn = sc.linkIn ? 1 : clamp01(t / 0.35);
+    const chartIn = sc.linkIn ? 1 : clamp01(t / T.chartFade);
     const chartOut = sc.linkOut ? 1 : tout;
     let out = `<g class="reel-scene" data-scene="${i}">`;
     out += `<g class="reel-texts" opacity="${f2(textA)}" transform="translate(0 ${f2(rise)})">`;
@@ -134,7 +135,7 @@ export class ReelComposer {
     if (lay.number && st.number) {
       const p = clamp01((t - T.numberFrom) / (T.numberTo - T.numberFrom));
       const txt = Number.isFinite(st.number.value) ? countUpText(st.number, p) : st.number.text;
-      const nA = clamp01((t - T.numberFrom + 0.15) / 0.3);
+      const nA = clamp01((t - T.numberFrom + 0.1) / 0.2);
       out += `<text class="reel-number" x="${lay.number.x}" y="${f2(lay.number.y)}" font-family="${REEL_TITLE_FONT}" font-size="${lay.number.fs}" font-weight="800" letter-spacing="-2" fill="${REEL_COLORS.accent}" opacity="${f2(nA)}">${esc(txt)}</text>`;
     }
     if (lay.caption)

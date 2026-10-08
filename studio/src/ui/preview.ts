@@ -90,6 +90,17 @@ export class Preview {
     new ChartTooltip(this.specialHost, { adoptTitles: ".smv-map-region", yieldTo: "[data-id]", hints: false });
     // Exploration guidée : clic (ou toucher) sur une barre, une région, une ligne → zoom / focus
     this.svg.addEventListener("click", (e) => {
+      // mise en avant (étape L) : choix d'une marque au toucher (avant l'exploration)
+      // les textes posés sur une marque (pourcentage d'une part, étiquette) laissent passer le toucher vers elle
+      const fe =
+        (e.target as Element | null)?.closest?.("[data-focus-key]") ??
+        (e.target instanceof SVGTextElement || (e.target as Element | null)?.closest?.("text")
+          ? (document.elementsFromPoint(e.clientX, e.clientY).find((n) => this.svg.contains(n) && n.matches("[data-focus-key]")) ?? null)
+          : null);
+      if (fe && this.onFocusPick?.(fe.getAttribute("data-focus-key") ?? "", fe)) {
+        e.preventDefault();
+        return;
+      }
       const el = (e.target as Element | null)?.closest?.("[data-drill-kind]");
       if (el && this.onDrill) {
         e.preventDefault();
@@ -424,6 +435,24 @@ export class Preview {
   onDrill: ((el: Element) => void) | null = null;
   /** Clic / toucher hors exploration : élément du graphique → réglage correspondant (panneau). */
   onPick: ((el: Element) => void) | null = null;
+  /** Toucher d'une marque « mise en avant possible » : true si le toucher a servi à la choisir. */
+  onFocusPick: ((key: string, el: Element) => boolean) | null = null;
+  private pickHint: HTMLElement | null = null;
+
+  /** Mode « choisir l'élément à mettre en avant » : bandeau d'aide au-dessus du graphique. */
+  setFocusPicking(on: boolean, cancel?: () => void): void {
+    this.root.classList.toggle("focus-picking", on);
+    this.pickHint?.remove();
+    this.pickHint = null;
+    if (!on) return;
+    this.pickHint = h(
+      "div",
+      { class: "focus-pick-hint", "data-testid": "focus-pick-hint", role: "status" },
+      h("span", null, "Touchez l'élément à mettre en avant (barre, part, point, série ou région)"),
+      h("button", { type: "button", class: "btn btn-small btn-ghost", "data-testid": "focus-pick-cancel", onclick: () => cancel?.() }, "Annuler")
+    );
+    this.wrap.prepend(this.pickHint);
+  }
 
   /** Infobulle des marques (souris, toucher, clavier). */
   readonly tooltip: ChartTooltip;

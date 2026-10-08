@@ -33,6 +33,7 @@ import { SCENARIO_NAMES } from "../norme";
 import { normeDecimals, scenarioStyle } from "../norme";
 import { ellipsize, measure, wrap } from "./text";
 import { barDeco, focusTexts, pictoUnit } from "./barDeco";
+import { drawCallout, easeInOut, focusGrey, focusProgress, makeCallout, mixHex, placeCallout, pointKey, resolveFocus, type Rect } from "./focus";
 import { categoryIcon, drawIcon } from "./icons";
 import { VARIANCE_NEG, VARIANCE_POS } from "../theme";
 import { isGood } from "../norme";
@@ -454,13 +455,14 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       .range([0, band.bandwidth()])
       .paddingInner(grouped && nS > 1 ? 0.08 : 0);
     const labels: { x: number; y: number; text: string; anchor: string; inside: boolean; color: string; bold?: boolean }[] = [];
-    const greyFocus = theme.dark ? "#4a4a52" : "#c4c4c8";
+    const greyFocus = focusGrey(theme);
+    const bft = focusK != null ? easeInOut(focusProgress(frame)) : 0;
     const placed: { k: number; c0: number; thick: number; pa: number; pb: number; raw: number; full: boolean; color: string }[] = [];
     const capR = (thick: number) => Math.max(8 * s, Math.min(18 * s, thick * 0.34));
     for (let si = 0; si < (goal ? 1 : nS); si++) {
       const baseColor = colors[si % colors.length]!;
       for (let k = 0; k < nK; k++) {
-        const color = focusK != null && k !== focusK ? greyFocus : baseColor;
+        const color = focusK != null && k !== focusK ? mixHex(baseColor, greyFocus, bft) : baseColor;
         const raw = model.values[si]![k]!;
         if (!Number.isFinite(raw)) continue;
         const f = stagger(build, k, nK) * revealFactor(k);
@@ -491,6 +493,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         r.attr("fill", color).attr("rx", stacked ? 0 : rx);
         if (deco.cap === "picto") r.attr("fill-opacity", 0.1);
         if (focusK === k) r.attr("class", "r4d-focus-bar");
+        if (!grouped && nS === 1) r.attr("data-focus-key", model.labels[k]!);
         if (deco.cap !== "none" || focusK != null) placed.push({ k, c0, thick, pa, pb, raw, full: f >= 1, color });
         if (stacked) r.attr("stroke", theme.bg).attr("stroke-width", Math.max(0.5, 1 * s));
         const st = scn(si);
@@ -562,8 +565,19 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
     if (build >= 1 && reveal == null) clipW = pw + 60 * s;
     g.append("clipPath").attr("id", clipId).append("rect").attr("x", -10 * s).attr("y", -20 * s).attr("width", Math.max(0, clipW + 10 * s)).attr("height", ph + 40 * s);
     gm.attr("clip-path", `url(#${clipId})`);
+    // mise en avant (étape L) : une série (plusieurs séries) ou un point (série unique)
+    const lastOf = (row: number[]) => {
+      for (let k = row.length - 1; k >= 0; k--) if (Number.isFinite(row[k]!)) return k;
+      return -1;
+    };
+    const lkind = norme ? null : nS > 1 ? "series" : "linePoint";
+    const lfk = lkind === "series" ? resolveFocus(spec.style.focus.key, model.series, model.values.map((row) => row[lastOf(row)] ?? NaN)) : lkind === "linePoint" ? resolveFocus(spec.style.focus.key, model.labels, model.values[0] ?? []) : null;
+    const lft = lfk != null ? easeInOut(focusProgress(frame)) : 0;
+    const lgrey = focusGrey(theme);
+    const lboxes: Rect[] = [];
     for (let si = 0; si < nS; si++) {
-      const color = colors[si % colors.length]!;
+      const color0 = colors[si % colors.length]!;
+      const color = lkind === "series" && lfk != null && si !== lfk ? mixHex(color0, lgrey, lft) : color0;
       const pts: [number, number, number][] = [];
       for (let k = 0; k < nK; k++) {
         const raw = model.values[si]![k]!;
@@ -573,7 +587,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       if (!pts.length) continue;
       if (t === "area" || t === "stackedArea") {
         const ar = d3area<[number, number, number]>().x((d) => d[0]).y0((d) => d[1]).y1((d) => d[2]).curve(curve);
-        gm.append("path").attr("d", ar(pts)).attr("fill", color).attr("fill-opacity", stacked ? 0.88 : 0.22);
+        gm.append("path").attr("d", ar(pts)).attr("fill", color).attr("fill-opacity", stacked ? 0.88 : 0.22).attr("data-focus-key", lkind === "series" ? model.series[si]! : null);
       }
       const ln = d3line<[number, number, number]>().x((d) => d[0]).y((d) => d[2]).curve(curve);
       const st = stacked ? null : scn(si);
@@ -581,15 +595,20 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         .attr("d", ln(pts))
         .attr("fill", "none")
         .attr("stroke", stacked ? theme.bg : st ? st.ink : color)
-        .attr("stroke-width", (stacked ? 1.2 : st?.code === "AC" ? 3 : 2.6) * s)
+        .attr("stroke-width", (stacked ? 1.2 : st?.code === "AC" ? 3 : 2.6) * s + (lkind === "series" && si === lfk && !stacked ? 1.2 * s * lft : 0))
         .attr("stroke-linejoin", "round")
         .attr("stroke-linecap", "round");
+      if (lkind === "series") path.attr("data-focus-key", model.series[si]!).attr("class", si === lfk ? "r4d-focus-series" : null);
       if (st) path.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("stroke-dasharray", st.dash ? st.dash.split(" ").map((v) => Number(v) * s).join(" ") : null);
       if (!stacked && pts.length <= 60) {
         model.values[si]!.forEach((raw, k) => {
           if (!Number.isFinite(raw) || (V.log && raw <= 0)) return;
           const st = scn(si);
+          const dimP = lkind === "linePoint" && lfk != null && k !== lfk ? 1 - 0.7 * lft : 1;
+          if (lfk != null) lboxes.push({ x: xc(k) - 6 * s, y: v(raw) - 6 * s, w: 12 * s, h: 12 * s });
           gm.append("circle")
+            .attr("data-focus-key", lkind === "series" ? model.series[si]! : model.labels[k]!)
+            .attr("opacity", dimP < 1 ? dimP : null)
             .attr("cx", xc(k))
             .attr("cy", v(raw))
             .attr("r", 3.4 * s)
@@ -602,8 +621,47 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       if (spec.style.valueLabels && !stacked && pts.length <= 24) {
         model.values[si]!.forEach((raw, k) => {
           if (!Number.isFinite(raw)) return;
-          gm.append("text").attr("x", xc(k)).attr("y", v(raw) - 9 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).text(fmtV(raw));
+          const tv = fmtV(raw);
+          const dimL = lfk != null && ((lkind === "series" && si !== lfk) || (lkind === "linePoint" && k !== lfk)) ? 1 - 0.6 * lft : 1;
+          if (lfk != null) lboxes.push({ x: xc(k) - measure(tv, 11 * s, font, 700) / 2, y: v(raw) - 20 * s, w: measure(tv, 11 * s, font, 700), h: 14 * s });
+          gm.append("text").attr("x", xc(k)).attr("y", v(raw) - 9 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).attr("opacity", dimL < 1 ? dimL : null).text(tv);
         });
+      }
+    }
+    if (lfk != null && lft > 0 && build >= 1 && (reveal == null || reveal >= nK - 1)) {
+      // point d'ancrage : le point choisi (série unique) ou le dernier point de la série choisie
+      const si = lkind === "series" ? lfk : 0;
+      const row = model.values[si]!;
+      const k = lkind === "series" ? lastOf(row) : lfk;
+      const raw = row[k] ?? NaN;
+      if (k >= 0 && Number.isFinite(raw)) {
+        const px = xc(k);
+        const py = stacked ? v(y1[si]![k]!) : v(raw);
+        const accent = theme.dark ? "#3FA7C4" : "#0E6E8C";
+        const halo = 10 * s;
+        if (lkind === "linePoint") {
+          g.append("circle").attr("class", "r4d-focus-halo").attr("pointer-events", "none").attr("cx", px).attr("cy", py).attr("r", halo).attr("fill", accent).attr("fill-opacity", 0.16 * lft).attr("stroke", accent).attr("stroke-width", 2 * s).attr("stroke-opacity", lft);
+        }
+        const fmtA = valueFormatter(yAxis);
+        const additive = (spec.encoding.aggregate === "sum" || spec.encoding.aggregate === "count") && !/%\s*$/.test(fmtA(1));
+        const tx =
+          lkind === "series"
+            ? focusTexts(`${model.series[si]!} (${model.labels[k]!})`, raw, model.values.map((r) => r[k] ?? NaN), si, fmtA, spec.style.focus, additive)
+            : focusTexts(model.labels[k]!, raw, row, k, fmtA, spec.style.focus, false);
+        const call = makeCallout(tx, s, font, Math.min(pw * 0.42, 300 * s));
+        const target = { x: px - halo, y: py - halo, w: 2 * halo, h: 2 * halo };
+        // la bulle évite aussi le tracé de la série mise en avant (points intermédiaires des segments)
+        const yAt = (j: number) => (stacked ? v(y1[si]![j]!) : v(row[j] ?? NaN));
+        const seg: Rect[] = [];
+        for (let j = 0; j + 1 < nK; j++) {
+          const ya = yAt(j);
+          const yb = yAt(j + 1);
+          if (!Number.isFinite(ya) || !Number.isFinite(yb)) continue;
+          for (const f of [0.25, 0.5, 0.75]) seg.push({ x: xc(j) + (xc(j + 1) - xc(j)) * f - 4 * s, y: ya + (yb - ya) * f - 4 * s, w: 8 * s, h: 8 * s });
+        }
+        const box = placeCallout(call, target, { x: 0, y: 0, w: pw, h: ph }, [...lboxes, ...seg], 22 * s);
+        const to = { x: px + Math.sign(box.x + box.w / 2 - px || 1) * halo * 0.7, y: py + Math.sign(box.y + box.h / 2 - py || 1) * halo * 0.7 };
+        drawCallout(g, call, box, to, { theme, s, font }, lft);
       }
     }
     // aires empilées (ou séries trop longues pour des marqueurs) : colonne invisible par catégorie, toutes les séries
@@ -752,6 +810,12 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
   const gm = g.append("g").attr("class", "r4d-marks");
   const order = [...pts.keys()].sort((a, b) => (pts[b]!.size ?? 0) - (pts[a]!.size ?? 0));
   const showLabels = pts.length <= 30 && spec.encoding.label;
+  // mise en avant (étape L) : halo autour du point choisi, les autres s'estompent, libellé + bulle reliée
+  const fk = resolveFocus(spec.style.focus.key, pts.map(pointKey), pts.map((p) => (Y.log && p.y <= 0 ? NaN : p.y)));
+  const ft = fk != null ? easeInOut(focusProgress(frame)) : 0;
+  const dimK = 1 - 0.75 * ft;
+  const boxes: Rect[] = [];
+  let fp: { cx: number; cy: number; r: number; color: string; f: number } | null = null;
   order.forEach((idx, j) => {
     const p = pts[idx]!;
     if (Y.log && p.y <= 0) return;
@@ -762,19 +826,48 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
     const r = (R && p.size != null ? R(Math.max(0, p.size)) : baseR) * Math.min(1, 0.3 + 0.7 * f);
     const cx = xpos(p);
     const cy = Y.scale(p.y) as number;
+    const isF = fk === idx;
+    const dim = fk != null && !isF ? dimK : 1;
+    if (fk != null) boxes.push({ x: cx - r - 2 * s, y: cy - r - 2 * s, w: 2 * r + 4 * s, h: 2 * r + 4 * s });
+    if (isF) fp = { cx, cy, r, color, f };
     gm.append("circle")
+      .attr("class", isF ? "r4d-focus-point" : null)
+      .attr("data-focus-key", pointKey(p))
       .attr("cx", cx)
       .attr("cy", cy)
       .attr("r", r)
       .attr("fill", color)
-      .attr("fill-opacity", 0.78 * f)
+      .attr("fill-opacity", 0.78 * f * dim)
       .attr("stroke", theme.dark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.35)")
-      .attr("stroke-opacity", f)
+      .attr("stroke-opacity", f * dim)
       .attr("stroke-width", 0.8 * s)
       .call((c) => tip(c, { t: p.label || p.series, sub: p.label && model.series.length > 1 ? p.series : undefined, v: fmtY(p.y), rows: tipRows(spec.encoding.x ? { k: spec.encoding.x, v: typeof p.x === "number" ? (model.xKind === "time" ? new Date(p.x).toLocaleDateString("fr-FR") : p.x.toLocaleString("fr-FR")) : p.x } : null, spec.encoding.y[0] ? { k: spec.encoding.y[0], v: fmtY(p.y) } : null, p.size != null && spec.encoding.size ? { k: spec.encoding.size, v: p.size.toLocaleString("fr-FR") } : null) }));
-    if (showLabels && p.label)
-      gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f).text(p.label);
+    if (showLabels && p.label && !(isF && ft > 0)) {
+      gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f * dim).text(p.label);
+      if (fk != null) boxes.push({ x: cx + r + 4 * s, y: cy - 8 * s, w: measure(p.label, 11.5 * s, font), h: 16 * s });
+    }
   });
+  const fpt = fp as { cx: number; cy: number; r: number; color: string; f: number } | null;
+  if (fk != null && fpt && ft > 0) {
+    const p = pts[fk]!;
+    const accent = theme.dark ? "#3FA7C4" : "#0E6E8C";
+    const halo = fpt.r + 7 * s;
+    const gf = g.append("g").attr("class", "r4d-focus-halo").attr("pointer-events", "none");
+    gf.append("circle").attr("cx", fpt.cx).attr("cy", fpt.cy).attr("r", halo).attr("fill", accent).attr("fill-opacity", 0.16 * ft).attr("stroke", accent).attr("stroke-width", 2 * s).attr("stroke-opacity", ft);
+    const name = p.label || p.series || p.key;
+    const lx = fpt.cx + halo + 5 * s;
+    const lw = measure(name, 13 * s, font, 700);
+    const right = lx + lw <= pw;
+    gf.append("text").attr("class", "r4d-focus-label").attr("x", right ? lx : fpt.cx - halo - 5 * s).attr("y", fpt.cy).attr("dy", "0.35em").attr("text-anchor", right ? "start" : "end").attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", ft).text(name);
+    if (fpt.f >= 1) {
+      const lab = { x: right ? lx : fpt.cx - halo - 5 * s - lw, y: fpt.cy - 9 * s, w: lw, h: 18 * s };
+      const call = makeCallout(focusTexts(name, p.y, pts.map((q) => q.y), fk, fmtY, spec.style.focus, false), s, font, Math.min(pw * 0.42, 300 * s));
+      const target = { x: fpt.cx - halo, y: fpt.cy - halo, w: 2 * halo, h: 2 * halo };
+      const box = placeCallout(call, target, { x: 0, y: 0, w: pw, h: ph }, [...boxes, lab], 22 * s);
+      const to = { x: fpt.cx + Math.sign(box.x + box.w / 2 - fpt.cx || 1) * halo * 0.7, y: fpt.cy + Math.sign(box.y + box.h / 2 - fpt.cy || 1) * halo * 0.7 };
+      drawCallout(g, call, box, to, { theme, s, font }, ft);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ barres racontées (étape I) */
@@ -903,10 +996,12 @@ function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
   const co = a.callout;
   if (!co || !fp.full) return;
   const accent = theme.dark ? "#3FA7C4" : "#0E6E8C";
+  const fo = focusProgress(ctx.frame);
+  if (fo <= 0) return;
   if (spec.style.focus.average && co.avg != null && Number.isFinite(co.avg)) {
     // trait derrière les barres (lisible dans les intervalles, jamais sur une étiquette), libellé devant
-    const gl = g.insert("g", ".r4d-marks").attr("class", "r4d-avg r4d-avg-line");
-    const ga = g.append("g").attr("class", "r4d-avg");
+    const gl = g.insert("g", ".r4d-marks").attr("class", "r4d-avg r4d-avg-line").attr("opacity", fo < 1 ? fo : null);
+    const ga = g.append("g").attr("class", "r4d-avg").attr("opacity", fo < 1 ? fo : null);
     const p = v(co.avg);
     const ln = hz ? gl.append("line").attr("x1", p).attr("x2", p).attr("y1", 0).attr("y2", ph) : gl.append("line").attr("x1", 0).attr("x2", pw).attr("y1", p).attr("y2", p);
     ln.attr("stroke", theme.muted).attr("stroke-width", 1.2 * s).attr("stroke-dasharray", `${5 * s} ${4 * s}`);
@@ -920,7 +1015,7 @@ function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
       ga.append("text").attr("x", pw).attr("y", clash ? p + 15 * s : p - 6 * s).attr("text-anchor", "end").attr("font-size", lfs).attr("font-family", font).attr("fill", theme.muted).text(lab);
     }
   }
-  const gc = g.append("g").attr("class", "r4d-callout");
+  const gc = g.append("g").attr("class", "r4d-callout").attr("opacity", fo < 1 ? fo : null);
   const end = at(fp, fp.pb);
   let bx: number;
   let by: number;

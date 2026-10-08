@@ -425,8 +425,16 @@ en 1 clic (aussi par `?reel=exemple`).
 - **Formats** : 9:16 (1080 × 1920, Reels / TikTok / Stories), 1:1 (1080 × 1080), 16:9 (1920 × 1080). Marges de sécurité
   propres à chaque format (en 9:16, 220 px en haut et 400 px en bas restent libres pour l'interface des applications).
 - **Durée** : 15 à 30 s au total, carte de fin comprise (3 s). La durée de chaque scène est calculée d'après la longueur
-  du titre, la présence d'un chiffre clé et le nombre de marques (3,5 à 7 s), puis ajustée pour rester dans les bornes ;
-  chaque durée reste modifiable (2,5 à 8 s), « Durées auto » revient au calcul.
+  du titre, la présence d'un chiffre clé et le nombre de marques (2,8 à 5,2 s au rythme « Nerveux »), puis ajustée pour
+  rester dans les bornes ; chaque durée reste modifiable (2,5 à 8 s), « Durées auto » revient au calcul.
+- **Rythme : Nerveux / Normal / Calme** (Nerveux par défaut, proche du film d'accueil : graphique construit en 1,15 s,
+  chiffre qui compte en 0,9 s, coupes de 0,2 s). Normal et Calme multiplient durées de scène, comptage et transitions
+  par 1,2 et 1,45 ; les durées saisies à la main sont conservées jusqu'à « Durées auto » ou un changement de rythme.
+- **Ordre des scènes** : glisser une scène par sa poignée (souris, doigt sur iPad ou stylet ; la liste défile seule
+  quand on approche de son bord), ou boutons « Monter / Descendre la scène » (clavier, lecteurs d'écran). L'ordre du
+  Reel ne modifie pas l'histoire.
+- **Mise en avant** : un snapshot suivi de sa copie « mise en avant » (même graphique) forme une liaison : pas de fondu,
+  le graphique reste en place et la part se détache, les autres passent en gris, la bulle apparaît (0,9 s).
 - **Scène** : titre court modifiable (Poppins ExtraBold, retour à la ligne équilibré, jamais un chiffre séparé de son
   unité), chiffre clé qui compte (extrait du titre ou du commentaire : « 26,2 % », « ×7,8 », « 4 sur 6 » ; les années
   sont ignorées), graphique redessiné pour l'image (cadré sur son contenu, textes agrandis) avec les animations 4D
@@ -459,7 +467,7 @@ en 1 clic (aussi par `?reel=exemple`).
   - Le MP4 est en plage de couleurs « pleine » (yuvj420p, signalée dans le fichier) : lu correctement par Chrome
     et ffmpeg / VLC ; Instagram, TikTok et LinkedIn réencodent la vidéo de toute façon.
 - **Exemple de vidéo** : `docs/reel-exemple-9x16.mp4` (exporté par l'application elle-même, WebCodecs H.264 High,
-  1080 × 1920, 30 i/s, 24,4 s, 732 images, ≈ 6,0 Mo, image clé toutes les 2 s, `moov` en tête) ; carte de fin :
+  1080 × 1920, 30 i/s, 19,2 s au rythme « Nerveux », 576 images, ≈ 4,4 Mo, image clé toutes les 2 s, `moov` en tête) ; carte de fin :
   `docs/reel-exemple-9x16-fin.png`.
 - **Exemple intégré** : « Énergies renouvelables dans l'UE », données publiques Eurostat (`nrg_ind_ren`, part des
   renouvelables dans la consommation finale brute d'énergie, 2004-2025), **licence CC BY 4.0** (réutilisation commerciale
@@ -470,8 +478,51 @@ en 1 clic (aussi par `?reel=exemple`).
 
 Modules : `src/reel/plan.ts` (formats, durées, chiffre clé, mise en page), `compose.ts` (image SVG en fonction du
 temps), `charts.ts` (graphique redessiné pour l'image, zoom dans la marque), `encode.ts` (MP4 / WebM), `scenes.ts`,
-`example.ts`, `src/ui/reelDialog.ts`. Tests : `test/reel.test.ts`, e2e (création, aperçu, formats, licence vide,
-annulation, export MP4 vérifié par ffprobe : 1080 × 1920, durée attendue).
+`example.ts`, `src/ui/reelDialog.ts`. Tests : `test/reel.test.ts`, e2e (création, aperçu, formats, rythme, ordre des
+scènes à la souris et au doigt, licence vide, annulation, export MP4 vérifié par ffprobe : 1080 × 1920, durée attendue).
+Captures : `docs/shots/84` à `87`, `98`, `101` (rythme), `102` (ordre des scènes, iPad).
+
+## Mise en avant d'un élément (étape L)
+
+La mise en avant des barres (étape I) s'étend à tous les graphiques où un élément se distingue : on met en avant
+**un** élément, les autres passent en gris, une bulle d'annotation reliée par un trait le commente.
+
+| Graphique | Élément | Effet |
+| --- | --- | --- |
+| Barres (une série) | barre | couleur gardée, autres en gris, bulle, « Moyenne des autres » (option) |
+| Camembert, donut | part | la part se détache du centre, autres en gris, bulle à côté (paysage) ou dessous / dessus (portrait, Reel) |
+| Arcs radiaux | arc | arc en couleur, autres en gris, bulle hors du disque et des libellés |
+| Nuage de points | point | halo, autres points estompés, nom en gras, bulle |
+| Courbes, aires (une série) | point | halo sur le point, autres points estompés, bulle |
+| Courbes, aires (plusieurs séries) | série | série en couleur et plus épaisse, autres en gris, bulle au dernier point |
+| Exploration › Carte | région | région en couleur et contour, autres en gris, bulle avec l'écart, **barre d'échelle en km toujours visible** |
+
+- **Choisir** : Récit › Mise en avant (liste des éléments, « La plus grande (auto) »), ou **« Choisir sur le graphique »**
+  puis toucher l'élément (bandeau « Touchez l'élément à mettre en avant », « Annuler »). Une fois la mise en avant
+  active, toucher un autre élément la déplace (hors exploration, où le toucher sert à descendre d'un niveau). Les
+  textes posés sur une marque (pourcentage d'une part) laissent passer le toucher.
+- **Commenter** : « Titre de l'annotation » (calculé par défaut : valeur et part du total) et « Texte de l'annotation »
+  (calculé : comparaison à la moyenne des autres).
+- **Dupliquer et mettre en avant** (icône sur chaque carte de l'histoire) : copie du snapshot insérée juste après lui,
+  mise en avant active (la plus grande valeur), choix de l'élément ouvert. Les retouches (élément, titre, texte) sont
+  reportées sur la copie tant que le graphique reste le même ; l'original reste neutre. L'histoire passe ainsi de la
+  vue d'ensemble à l'élément commenté.
+- **Transition animée** neutre → mis en avant : Film et mode lecture (sans fondu : grisé, part tirée, halo, bulle en
+  1 s), Reel (liaison « focus », voir ci-dessus), PowerPoint Morph (formes natives : parts de donut en arcs épais,
+  parts de camembert en secteurs, arcs radiaux, points et halo du nuage ; noms « !!part:… », « !!arc:… », « !!point:… »
+  identiques d'une diapositive à l'autre, Morph anime la part qui se détache et le passage au gris).
+- **Limites** : la mise en avant des courbes est un point (une série) ou une série (plusieurs séries), pas les deux à
+  la fois. Courbes, aires et carte restent dans l'image de fond en PowerPoint : la transition y est un fondu (pas de
+  forme native). La carte « spéciale » de la bibliothèque (points animés en 4D) n'a pas de mise en avant ; la carte
+  de l'exploration (« Répartir dans l'espace ») l'a. Barres groupées / empilées, cascade et mode norme : pas de mise en
+  avant (plusieurs valeurs par catégorie).
+- **Contrat Cadencer inchangé** : aucune nouvelle propriété de spec, mise en avant vide par défaut ; manifestes publiés,
+  identifiants de snapshots et empreintes identiques.
+
+Modules : `src/charts/focus.ts` (choix, transitions, bulle et placement), `radial.ts`, `cartesian.ts`, `drill.ts`
+(rendus), `src/ui/focusUi.ts`, `settings.ts`, `preview.ts`, `storyStrip.ts`, `storyFilm.ts`, `src/story/morphRender.ts`.
+Tests : `test/focus.test.ts`, e2e `--focus` (chaque type, toucher pour choisir, duplication, film, PowerPoint, Reel,
+carte, iPad 1024 et 1366 px). Captures : `docs/shots/88` à `100`.
 
 ## Architecture (`studio/src`)
 

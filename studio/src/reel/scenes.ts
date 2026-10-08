@@ -1,7 +1,7 @@
 /** Mode « Reel » : scènes par défaut d'après les snapshots d'une histoire (module pur). */
 import type { Snapshot } from "../story/snapshots";
 import { clip } from "../story/fr";
-import { autoSceneDuration, END_CARD_S, extractKeyNumber, fitDurations, shortTitle, type DrillLink, type ReelFormatKey, type ReelPlan, type ReelScene } from "./plan";
+import { autoSceneDuration, DEFAULT_RHYTHM, END_CARD_S, extractKeyNumber, fitDurations, shortTitle, type DrillLink, type ReelFormatKey, type ReelPlan, type ReelRhythm, type ReelScene } from "./plan";
 
 /** Nombre approximatif de marques d'un snapshot (barres, points) d'après son rendu conservé. */
 function marksOf(s: Snapshot): number {
@@ -16,12 +16,12 @@ export function kickerOf(s: Snapshot, storyTitle = ""): string {
   return clip(base.replace(/\s*\([^)]*\)\s*$/, ""), 42);
 }
 
-export function sceneFromSnapshot(s: Snapshot, links: { linkIn: DrillLink; linkOut: DrillLink }, storyTitle = ""): ReelScene {
+export function sceneFromSnapshot(s: Snapshot, links: { linkIn: DrillLink; linkOut: DrillLink }, storyTitle = "", rhythm: ReelRhythm = DEFAULT_RHYTHM): ReelScene {
   const title = shortTitle(s.title || s.name);
   const number = extractKeyNumber(s.title, ...s.comments);
   const caption = clip((s.subtitle || "").replace(/\s+/g, " ").trim(), 110);
   const sc: ReelScene = { id: s.id, kicker: kickerOf(s, storyTitle), title, number, caption, duration: 4, linkIn: links.linkIn, linkOut: links.linkOut };
-  sc.duration = autoSceneDuration({ title, number, caption, marks: marksOf(s) });
+  sc.duration = autoSceneDuration({ title, number, caption, marks: marksOf(s) }, rhythm);
   return sc;
 }
 
@@ -44,10 +44,11 @@ export function sourceOf(snaps: Snapshot[]): string {
 /** Plan par défaut : durées automatiques ajustées pour un total de 15 à 30 s. */
 export function defaultPlan(
   snaps: Snapshot[],
-  o: { format: ReelFormatKey; links: { linkIn: DrillLink; linkOut: DrillLink }[]; licence: string; generatedAt: string; storyTitle?: string; fps?: number }
+  o: { format: ReelFormatKey; links: { linkIn: DrillLink; linkOut: DrillLink }[]; licence: string; generatedAt: string; storyTitle?: string; fps?: number; rhythm?: ReelRhythm }
 ): ReelPlan {
-  const scenes = snaps.map((s, i) => sceneFromSnapshot(s, o.links[i] ?? { linkIn: null, linkOut: null }, o.storyTitle));
+  const rhythm = o.rhythm ?? DEFAULT_RHYTHM;
+  const scenes = snaps.map((s, i) => sceneFromSnapshot(s, o.links[i] ?? { linkIn: null, linkOut: null }, o.storyTitle, rhythm));
   const durs = fitDurations(scenes.map((s) => s.duration));
   scenes.forEach((s, i) => (s.duration = durs[i]!));
-  return { format: o.format, fps: o.fps ?? 30, scenes, endDuration: END_CARD_S, source: sourceOf(snaps), licence: o.licence, generatedAt: o.generatedAt };
+  return { format: o.format, fps: o.fps ?? 30, scenes, endDuration: END_CARD_S, source: sourceOf(snaps), licence: o.licence, generatedAt: o.generatedAt, rhythm };
 }

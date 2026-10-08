@@ -15,6 +15,8 @@ import { fmtOf, type Fmt } from "../story/drillStory";
 import { formatInt, formatSignedPct, NBSP } from "../story/fr";
 import { hatchPattern } from "./norme";
 import { regionByNuts } from "../data/regions";
+import { drawCallout, easeInOut, focusProgress, makeCallout, mixHex, placeCallout, resolveFocus, type Rect } from "./focus";
+import { focusTexts } from "./barDeco";
 import { HINT_ZOOM, hintDetail, rows as tipRows, shareRow, tip, toneOf, toneGood, type TipRow } from "./tip";
 
 const LIGHT = "#3FA7C4";
@@ -421,16 +423,22 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
   const colorOf = (v: number) => mix(lo, hi, Math.pow(Math.max(0, v) / vmax, 0.85));
   const std = m.standout != null ? m.stats[m.standout] : null;
   const p = frame.build;
+  // mise en avant (étape L) : la région choisie garde sa couleur, les autres passent en gris, bulle reliée
+  const fk = resolveFocus(ctx.spec.style.focus.key, matched.map((st) => st.key), matched.map((st) => st.value));
+  const fo = fk != null ? easeInOut(focusProgress(frame)) : 0;
+  const greyR = theme.dark ? "#3a3f45" : "#d4d8db";
   matched.forEach((st, i) => {
     const ft = byId.get(st.nuts!)!;
     const q = stagger(p, i, matched.length);
+    const base = q >= 1 ? colorOf(st.value) : mix(lo, colorOf(st.value), q);
     gm.append("path")
-      .attr("class", "r4d-drill-region r4d-drill-hit")
+      .attr("class", i === fk ? "r4d-drill-region r4d-drill-hit r4d-focus-region" : "r4d-drill-region r4d-drill-hit")
+      .attr("data-focus-key", st.key)
       .attr("data-drill-kind", "cat")
       .attr("data-drill-field", m.field)
       .attr("data-drill-value", st.key)
       .attr("d", path(ft as unknown as GeoPermissibleObjects))
-      .attr("fill", q >= 1 ? colorOf(st.value) : mix(lo, colorOf(st.value), q))
+      .attr("fill", fk != null && i !== fk ? mixHex(base, greyR, fo) : base)
       .attr("stroke", theme.bg)
       .attr("stroke-width", 1.4 * s)
       .style("cursor", "pointer")
@@ -448,6 +456,7 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
   if (borders) gm.append("path").attr("d", path(borders as unknown as GeoPermissibleObjects)).attr("fill", "none").attr("stroke", theme.dark ? "#71717a" : "#8a9399").attr("stroke-width", 1.3 * s).attr("stroke-dasharray", `${4 * s} ${2.5 * s}`);
   if (std && std.nuts && byId.has(std.nuts) && p > 0.6) gm.append("path").attr("class", "r4d-drill-standout").attr("d", path(byId.get(std.nuts)! as unknown as GeoPermissibleObjects)).attr("fill", "none").attr("stroke", ink.text).attr("stroke-width", 3 * s).attr("stroke-linejoin", "round").attr("pointer-events", "none");
   // étiquettes : nom, valeur, écart vs référence ; petites régions → étiquette déportée à droite avec filet
+  const labelBoxes: Rect[] = [];
   if (p > 0.55) {
     const op = Math.min(1, (p - 0.55) / 0.35);
     const gl = g.append("g").attr("class", "r4d-drill-labels").attr("opacity", op).attr("pointer-events", "none");
@@ -460,9 +469,13 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
     });
     items.sort((a, b) => b.area - a.area);
     const matchedRight = path.bounds(fc as GeoPermissibleObjects)[1][0];
+    const fKey = fk != null ? matched[fk]!.key : null;
     for (const it of items) {
       const { st } = it;
       const small = it.area < 5200 * s * s;
+      const isF = st.key === fKey;
+      // mise en avant : l'étiquette de la région choisie laisse la place à la bulle, les autres s'estompent
+      const gi = fKey != null ? gl.append("g").attr("opacity", isF ? Math.max(0, 1 - fo * 1.6) : 1 - 0.55 * fo) : gl;
       const rr = st.ref != null && st.ref > 0 ? st.value / st.ref - 1 : null;
       const lines: { t: string; fs: number; w: number; fill: string }[] = [
         { t: st.key, fs: 14 * s, w: 700, fill: ink.text },
@@ -497,12 +510,13 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
       by = Math.max(mapR.y + 6 * s, Math.min(mapR.y + mapR.h - bh - 6 * s, by));
       bx = Math.max(mapR.x + 6 * s, Math.min(mapR.x + mapR.w - bw - 6 * s, bx));
       placed.push({ x: bx, y: by, w: bw, h: bh });
+      if (!isF) labelBoxes.push({ x: bx, y: by, w: bw, h: bh });
       if (small) {
-        gl.append("line").attr("x1", it.c[0]).attr("y1", it.c[1]).attr("x2", bx).attr("y2", Math.max(by + 8 * s, Math.min(by + bh - 8 * s, it.c[1]))).attr("stroke", ink.text).attr("stroke-width", 1.2 * s);
-        gl.append("circle").attr("cx", it.c[0]).attr("cy", it.c[1]).attr("r", 3 * s).attr("fill", ink.text);
+        gi.append("line").attr("x1", it.c[0]).attr("y1", it.c[1]).attr("x2", bx).attr("y2", Math.max(by + 8 * s, Math.min(by + bh - 8 * s, it.c[1]))).attr("stroke", ink.text).attr("stroke-width", 1.2 * s);
+        gi.append("circle").attr("cx", it.c[0]).attr("cy", it.c[1]).attr("r", 3 * s).attr("fill", ink.text);
       }
-      gl.append("rect").attr("x", bx).attr("y", by).attr("width", bw).attr("height", bh).attr("rx", 6 * s).attr("fill", theme.bg).attr("fill-opacity", 0.9).attr("stroke", st === std ? ink.text : theme.grid).attr("stroke-width", (st === std ? 1.6 : 1) * s);
-      lines.forEach((l, k) => gl.append("text").attr("x", bx + bw / 2).attr("y", by + 5 * s + (k + 0.8) * 17 * s).attr("text-anchor", "middle").attr("font-size", l.fs).attr("font-weight", l.w).attr("fill", l.fill).text(l.t));
+      gi.append("rect").attr("x", bx).attr("y", by).attr("width", bw).attr("height", bh).attr("rx", 6 * s).attr("fill", theme.bg).attr("fill-opacity", 0.9).attr("stroke", st === std ? ink.text : theme.grid).attr("stroke-width", (st === std ? 1.6 : 1) * s);
+      lines.forEach((l, k) => gi.append("text").attr("x", bx + bw / 2).attr("y", by + 5 * s + (k + 0.8) * 17 * s).attr("text-anchor", "middle").attr("font-size", l.fs).attr("font-weight", l.w).attr("fill", l.fill).text(l.t));
     }
   }
   // légende (dégradé) + référence + échelle
@@ -537,6 +551,23 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
     gs.append("rect").attr("x", sbX + sb.px / 2).attr("y", sbY - 4 * s).attr("width", sb.px / 2).attr("height", 5 * s).attr("fill", theme.bg).attr("stroke", ink.text).attr("stroke-width", 1 * s);
     gs.append("text").attr("x", sbX).attr("y", sbY - 9 * s).attr("font-size", 11 * s).attr("fill", ink.text).text("0");
     gs.append("text").attr("x", sbX + sb.px).attr("y", sbY - 9 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("fill", ink.text).text(`${formatInt(sb.km)}${NBSP}km`);
+  }
+  if (fk != null && fo > 0 && p >= 1) {
+    const st = matched[fk]!;
+    const feat = byId.get(st.nuts!)! as unknown as GeoPermissibleObjects;
+    const b = path.bounds(feat);
+    const c = path.centroid(feat);
+    gm.append("path").attr("class", "r4d-focus-outline").attr("d", path(feat)).attr("fill", "none").attr("stroke", ink.text).attr("stroke-width", 2.6 * s).attr("stroke-linejoin", "round").attr("stroke-opacity", fo).attr("pointer-events", "none");
+    const rr = st.ref != null && st.ref > 0 ? st.value / st.ref - 1 : null;
+    const tx = focusTexts(st.key, st.value, matched.map((x) => x.value), fk, f.v, ctx.spec.style.focus, true);
+    if (!ctx.spec.style.focus.note.trim() && rr != null) tx.note = `${pctTxt(rr)} vs ${m.refLabel}${tx.note ? ` · ${tx.note}` : ""}`;
+    const call = makeCallout(tx, s, font, Math.min(mapR.w * 0.4, 300 * s));
+    const target = { x: b[0][0], y: b[0][1], w: b[1][0] - b[0][0], h: b[1][1] - b[0][1] };
+    const small = { x: c[0] - 10 * s, y: c[1] - 10 * s, w: 20 * s, h: 20 * s };
+    const scaleBox = { x: sbX - 6 * s, y: sbY - 22 * s, w: (sb?.px ?? 120 * s) + 52 * s, h: 30 * s };
+    const bounds = { x: mapR.x + 6 * s, y: mapR.y + 6 * s, w: mapR.w - 12 * s, h: mapR.h - 12 * s };
+    const box = placeCallout(call, target.w * target.h > 0.25 * mapR.w * mapR.h ? small : target, bounds, [scaleBox, ...labelBoxes], 18 * s);
+    drawCallout(g, call, box, { x: c[0], y: c[1] }, { theme, s, font }, fo);
   }
   void regionByNuts;
 }

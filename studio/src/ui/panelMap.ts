@@ -93,7 +93,7 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
   const n = spec.story.comments.filter((c) => (c ?? "").trim()).length;
   const titre = s.title.trim() ? `Titre ${spec.story.edited.title ? "modifié" : "calculé"}` : "Sans titre";
   let recit = `${titre} · ${n ? `${n} point${n > 1 ? "s" : ""} à retenir` : "aucun point à retenir"}${n && !spec.story.showComments ? " (masqués)" : ""}`;
-  if ((t === "bar" || t === "barH") && !spec.norme.enabled && s.focus.key) recit += ` · mise en avant : ${s.focus.key === "@max" ? "la plus grande" : s.focus.key}`;
+  if (!spec.norme.enabled && s.focus.key) recit += ` · mise en avant : ${s.focus.key === "@max" ? "la plus grande" : s.focus.key}`;
   /* Style */
   const style = `${BG_LABEL[s.background] ?? s.background} · ${spec.norme.enabled ? "Norme (gris)" : PALETTE_LABELS[s.palette].replace(/\s*\(défaut\)/, "")}`;
   /* Export */

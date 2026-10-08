@@ -221,13 +221,15 @@ function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
     // barres natives (Morph) : mêmes positions que dans le rendu SVG
     for (const m of native?.marks ?? []) {
       const tr = Math.round((1 - Math.max(0, Math.min(1, m.opacity))) * 100);
-      slide.addShape("rect", {
+      slide.addShape((m.shape ?? "rect") as "rect", {
+        ...(m.angles ? { angleRange: m.angles } : {}),
+        ...(m.thickness != null ? { arcThicknessRatio: m.thickness } : {}),
         x: x0 + m.x * w,
         y: y0 + m.y * h,
         w: Math.max(0.002, m.w * w),
         h: Math.max(0.002, m.h * h),
         fill: m.fill ? { color: hex(m.fill), transparency: tr } : { type: "none" },
-        line: m.stroke ? { color: hex(m.stroke), width: 1, dashType: m.dash ? "dash" : "solid", transparency: tr } : { type: "none" },
+        line: m.stroke ? { color: hex(m.stroke), width: m.lineWidth ?? 1, dashType: m.dash ? "dash" : "solid", transparency: tr } : { type: "none" },
         objectName: m.name,
       });
     }
