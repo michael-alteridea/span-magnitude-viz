@@ -37,7 +37,7 @@
 
 | Idée | Priorité | Statut | Source | Note |
 |---|---|---|---|---|
-| **Sélection par touchers successifs** : chaque toucher ajoute un élément mis en avant, sur 3-4 images | P2 | prévu | `NOTES.md` l. 59-71 et l. 100 (phase 6) ; maquettes `mockups/dataset-flow/` (série A) ; audit n° 64 | Après les déploiements 1 et 2 |
+| **Sélection par touchers successifs** : chaque toucher au même endroit descend d'un niveau (page › graphique › barres › une barre › son libellé), cadre pointillé, panneau de droite contextuel | P2 | prévu | `NOTES.md` l. 59-71 et l. 100 (phase 6) ; maquettes `mockups/dataset-flow/` (série A) ; audit n° 64 | Après les déploiements 1 et 2 |
 | **« Forme des points » du nuage** : ronds / une icône / une icône par groupe | P2 | promis (9/10) | audit n° 88 (promesse du 09/10, 00:07) | Après la Séquence |
 | **Versions d'un dataset** : remplacer les données d'un dataset utilisé par N scènes | P2 | prévu | `NOTES.md` l. 99 (phase 5) | Suit les Datasets dérivés |
 | **Export GIF** | P2 | à faire | `studio/README.md` l. 50 et l. 689 (`exportGif()`, même boucle d'images que le WebM) ; audit n° 66 | Entrée de menu grisée « Prévu en V2 » |
