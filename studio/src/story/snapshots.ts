@@ -41,19 +41,22 @@ export type Snapshot = z.infer<typeof snapshotSchema>;
 export const storyStateSchema = z.object({
   title: z.string().max(200).default("Notre histoire en données"),
   snapshots: z.array(snapshotSchema).max(MAX_SNAPSHOTS).default([]),
+  /** Même échelle pour les graphiques de même mesure (diapositives). */
+  sameScale: z.boolean().default(false),
 });
-export type StoryState = z.infer<typeof storyStateSchema>;
+export type StoryState = Omit<z.infer<typeof storyStateSchema>, "sameScale"> & { sameScale?: boolean };
 
 export function emptyStory(): StoryState {
-  return { title: "Notre histoire en données", snapshots: [] };
+  return { title: "Notre histoire en données", snapshots: [], sameScale: false };
 }
 
 /** Lecture tolérante (fichier JSON, localStorage) : ignore les snapshots invalides. */
 export function parseStory(input: unknown): StoryState {
   const base = emptyStory();
   if (!input || typeof input !== "object") return base;
-  const o = input as { title?: unknown; snapshots?: unknown };
+  const o = input as { title?: unknown; snapshots?: unknown; sameScale?: unknown };
   if (typeof o.title === "string" && o.title.trim()) base.title = o.title.slice(0, 200);
+  if (typeof o.sameScale === "boolean") base.sameScale = o.sameScale;
   if (Array.isArray(o.snapshots))
     for (const s of o.snapshots.slice(0, MAX_SNAPSHOTS)) {
       const r = snapshotSchema.safeParse(s);

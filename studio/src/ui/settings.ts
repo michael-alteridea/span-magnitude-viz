@@ -28,6 +28,7 @@ import { guessUnit } from "../format";
 import { effectiveDataset, describeTransform } from "../data/transform";
 import { KIND_LABELS, type InsightKind } from "../story/insights";
 import { PRODUCT_LABEL } from "../brand";
+import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
 
@@ -75,6 +76,10 @@ export class SettingsPanel {
       spec.axes.y.scale,
       spec.transform,
       spec.story.showComments,
+      spec.style.horizontal,
+      spec.variance,
+      spec.norme.enabled,
+      spec.norme.autoSwitch,
       ds?.columns.map((c) => c.type),
     ]);
     if (key === this.key) {
@@ -274,6 +279,7 @@ export class SettingsPanel {
         enc.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true)));
       }
     }
+    if (cols.length && !special && spec.norme.enabled && spec.encoding.y.length) enc.push(this.scenarioRows(spec));
     if (cols.length && !special && !isVariance(t))
       enc.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), "Active la 4D dans « Mode & animation »"));
     out.push(this.section("encodage", "Encodages", ...enc));
@@ -375,6 +381,22 @@ export class SettingsPanel {
       )
     );
 
+    /* ---- Mode norme (inspiré d'IBCS® / de la notation ISO 24896) */
+    const nm: (Node | null)[] = [];
+    nm.push(this.check("norme.enabled", "Activer le mode norme", "Scénarios Réel / N-1 / Budget / Prévision, écarts rouge/vert, unités et échelles communes"));
+    if (spec.norme.enabled) {
+      const upBad = h("input", { type: "checkbox", checked: spec.variance.polarity === "lower", "data-testid": "norme-up-is-bad" });
+      upBad.addEventListener("change", () => this.store.set("variance.polarity", upBad.checked ? "lower" : "higher"));
+      nm.push(h("label", { class: "check" }, upBad, h("span", null, "Hausse = défavorable"), h("small", { class: "hint" }, "Coûts, délais, réclamations : une hausse s'affiche en rouge")));
+      nm.push(this.row("Écarts", this.segmented("variance.show", [["abs", "Absolus (barres)"], ["rel", "Relatifs % (épingles)"]])));
+      nm.push(this.row("Entité (qui)", this.text("norme.entity", "ex. Alteridea SA (sinon : nom de l'organisation)", 80)));
+      nm.push(this.row("Mesure (quoi)", this.text("norme.measure", "ex. Chiffre d’affaires (sinon : nom de colonne)", 80)));
+      nm.push(this.check("norme.autoSwitch", "Orientation automatique", "Temps à l'horizontale (colonnes, lignes), structure à la verticale (barres)"));
+      nm.push(h("p", { class: "muted small" }, "Gris pour les données, pétrole pour l'interface, rouge et vert réservés aux écarts. Camemberts, anneaux et arcs sont remplacés par des barres."));
+    }
+    nm.push(h("p", { class: "muted small", "data-testid": "norme-wording" }, `Notation ${NORME_WORDING_F}. IBCS® est une marque déposée.`));
+    out.push(this.section("norme", "Mode norme", ...nm));
+
     /* ---- Style */
     const st: (Node | null)[] = [];
     st.push(this.row("Fond", this.segmented("style.background", [["dark", "Sombre"], ["light", "Clair"], ["custom", "Perso"]])));
@@ -417,6 +439,26 @@ export class SettingsPanel {
     }
     out.push(this.section("format", "Format", ...fm));
     return out;
+  }
+
+  /** Notation des scénarios par mesure : détection automatique d'après le nom, forçage manuel. */
+  private scenarioRows(spec: ChartSpec): HTMLElement {
+    const opts: Opt[] = [["auto", "Auto"], ...SCENARIO_CODES.map((c) => [c, `${SCENARIO_NAMES[c]} (${c})`] as Opt), ["none", "Aucun (mesure simple)"]];
+    const measures = (isVariance(spec.type) ? spec.encoding.y.slice(0, 2) : spec.encoding.y).filter(Boolean);
+    const rows = measures.map((m) => {
+      const det = detectScenario(m);
+      const cur = spec.encoding.scenarios[m] ?? "auto";
+      const sel = h("select", { "data-scenario-for": m, "data-testid": "scenario-select" }, ...opts.map(([v, l]) => h("option", { value: v, selected: v === cur }, v === "auto" ? `Auto · ${det ? `${SCENARIO_NAMES[det as ScenarioCode]} (${det})` : "aucun"}` : l)));
+      sel.addEventListener("change", () => {
+        const next = { ...this.store.state.spec.encoding.scenarios };
+        if (sel.value === "auto") delete next[m];
+        else next[m] = sel.value as ScenarioCode | "none";
+        // objet entier : les noms de colonnes peuvent contenir des points
+        this.store.set("encoding", { ...this.store.state.spec.encoding, scenarios: next });
+      });
+      return h("label", { class: "field field-inline" }, h("span", { class: "field-label" }, m), sel);
+    });
+    return h("div", { class: "field scenario-rows", "data-testid": "scenario-rows" }, h("span", { class: "field-label" }, "Notation des scénarios"), ...rows, h("small", { class: "hint" }, "Réel plein foncé · N-1 gris · Budget contour · Prévision hachurée"));
   }
 
   private swatches(spec: ChartSpec): HTMLElement {

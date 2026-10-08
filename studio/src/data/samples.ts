@@ -383,7 +383,23 @@ export const SAMPLES: Sample[] = [
       encoding: { x: "Région", y: ["Réel (€)", "Budget (€)"], aggregate: "sum" },
       axes: { y: { unit: "keur", decimals: 0 } },
       transform: { calculate: [{ as: "Année", op: "year", a: "Mois" }], filters: [{ field: "Année", op: "in", values: ["2026"], label: "2026" }] },
+      norme: { entity: "Alteridea SA", measure: "Chiffre d’affaires" },
       style: { source: "Source : business review de démonstration Alteridea · réel au 30/09/2026" },
+    },
+  },
+  {
+    id: "revue-mensuelle-norme",
+    name: "Revue mensuelle (norme)",
+    description: "Business review en mode norme (notation inspirée d’IBCS®) : Réel jusqu'à sept., Prévision oct.–déc., Budget en contour, N-1 en gris, écarts ΔPL",
+    rows: businessReviewRows,
+    spec: {
+      type: "bar",
+      encoding: { x: "Mois", xGrain: "month", y: ["Réel (€)", "Prévision (€)", "Budget (€)", "N-1 (€)"], aggregate: "sum" },
+      axes: { y: { unit: "keur", decimals: 0, title: "" }, x: { grid: false } },
+      transform: { calculate: [{ as: "Année", op: "year", a: "Mois" }], filters: [{ field: "Année", op: "in", values: ["2026"], label: "2026" }] },
+      variance: { show: "abs", polarity: "higher" },
+      norme: { enabled: true, entity: "Alteridea SA", measure: "Chiffre d’affaires" },
+      style: { source: "Source : business review de démonstration Alteridea · réel au 30/09/2026, prévision oct.–déc.", valueLabels: true },
     },
   },
 ];

@@ -27,6 +27,8 @@ import { isBarType } from "../spec";
 import type { CatModel, PointModel } from "../data/model";
 import { valueFormatter, timeTickFormat, unitSuffix } from "../format";
 import { clamp01, easeOut, stagger, type DrawCtx, type G, type PlotRect } from "./context";
+import { canOverlapScenarios, drawScenarioBars, hatchPattern, normeActive, seriesScenarios } from "./norme";
+import { normeDecimals, scenarioStyle } from "../norme";
 import { ellipsize, measure } from "./text";
 
 type ValueScale = ScaleLinear<number, number> | ScaleLogarithmic<number, number>;
@@ -161,9 +163,17 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   const fs = 13 * s;
   const build = frame.build;
   const reveal = prep.reveal;
+  // ---- mode norme : scénarios (réel, N-1, budget, prévision) superposés + bandeau d'écarts
+  const norme = normeActive(ctx);
+  const codes = norme ? seriesScenarios(ctx, model) : [];
+  if (norme && bars && !stacked && !normalize && canOverlapScenarios(codes)) {
+    drawScenarioBars(root, rect, ctx, model, codes);
+    return;
+  }
 
   // ---- étendues
-  const ext = prep.domains.y && !normalize ? prep.domains.y : catExtent(model, stacked, normalize);
+  let ext = prep.domains.y && !normalize ? prep.domains.y : catExtent(model, stacked, normalize);
+  if (ctx.sharedMax != null && !normalize && spec.axes.y.max == null) ext = [Math.min(0, ext[0]), Math.max(ext[1], ctx.sharedMax)];
   const includeZero = bars || t === "area" || t === "stackedArea";
   const hasY2 = !!model.y2 && spec.encoding.y2 != null;
   const y2ext = prep.domains.y2 ?? y2Extent(model) ?? [0, 1];
@@ -173,7 +183,10 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   const nTicks = Math.max(2, Math.round(valueLen / ((horizontal ? 120 : 56) * s)));
   const probe = valueScale(yAxis, ext, [0, 1], includeZero);
   const yTicks = ticksFor(probe.scale, probe.log, nTicks);
-  const yFmt = valueFormatter(yAxis, probe.log ? undefined : stepOf(yTicks));
+  // Mode norme : unité dans le sous-titre (pas sur chaque graduation), décimales identiques partout
+  const yFmt = norme
+    ? valueFormatter({ ...yAxis, decimals: yAxis.decimals ?? (normalize ? 0 : normeDecimals(yAxis)) }, probe.log ? undefined : stepOf(yTicks), { suffix: normalize })
+    : valueFormatter(yAxis, probe.log ? undefined : stepOf(yTicks));
   const y2probe = hasY2 ? valueScale(spec.axes.y2, y2ext, [0, 1], false) : null;
   const y2Ticks = y2probe ? ticksFor(y2probe.scale, y2probe.log, nTicks) : [];
   const y2Fmt = valueFormatter(spec.axes.y2, y2probe && !y2probe.log ? stepOf(y2Ticks) : undefined);
@@ -341,7 +354,10 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
 
   // ---- marques
   const gm = g.append("g").attr("class", "r4d-marks");
-  const fmtV = valueFormatter(yAxis);
+  const fmtV = norme ? yFmt : valueFormatter(yAxis);
+  // Mode norme : style de notation par série (réel plein, N-1 gris, budget contour, prévision hachurée)
+  const hatchUrl = norme && codes.includes("FC") ? hatchPattern(gm, scenarioStyle("AC", theme).ink, s) : "";
+  const scn = (si: number) => (norme && codes[si] ? scenarioStyle(codes[si]!, theme, hatchUrl) : null);
   const revealFactor = (i: number) => {
     if (reveal == null) return 1;
     if (i <= Math.floor(reveal)) return 1;
@@ -388,6 +404,8 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
           : gm.append("rect").attr("x", c0).attr("y", Math.min(pa, pb)).attr("width", thick).attr("height", Math.abs(pb - pa));
         r.attr("fill", color).attr("rx", stacked ? 0 : rx);
         if (stacked) r.attr("stroke", theme.bg).attr("stroke-width", Math.max(0.5, 1 * s));
+        const st = scn(si);
+        if (st) r.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("fill", st.fill).attr("stroke", st.stroke).attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s).attr("rx", 0);
         r.append("title").text(seriesTitle(ctx, model.labels[k]!, model.series[si]!, fmtV(raw)));
         if (spec.style.valueLabels && f >= 1) {
           const valTxt = normalize ? valueFormatter({ unit: "pct", unitCustom: "", decimals: 0 })(b - a) : fmtV(raw);
@@ -450,22 +468,25 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         gm.append("path").attr("d", ar(pts)).attr("fill", color).attr("fill-opacity", stacked ? 0.88 : 0.22);
       }
       const ln = d3line<[number, number, number]>().x((d) => d[0]).y((d) => d[2]).curve(curve);
-      gm.append("path")
+      const st = stacked ? null : scn(si);
+      const path = gm.append("path")
         .attr("d", ln(pts))
         .attr("fill", "none")
-        .attr("stroke", stacked ? theme.bg : color)
-        .attr("stroke-width", (stacked ? 1.2 : 2.6) * s)
+        .attr("stroke", stacked ? theme.bg : st ? st.ink : color)
+        .attr("stroke-width", (stacked ? 1.2 : st?.code === "AC" ? 3 : 2.6) * s)
         .attr("stroke-linejoin", "round")
         .attr("stroke-linecap", "round");
+      if (st) path.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("stroke-dasharray", st.dash ? st.dash.split(" ").map((v) => Number(v) * s).join(" ") : null);
       if (!stacked && pts.length <= 60) {
         model.values[si]!.forEach((raw, k) => {
           if (!Number.isFinite(raw) || (V.log && raw <= 0)) return;
+          const st = scn(si);
           gm.append("circle")
             .attr("cx", xc(k))
             .attr("cy", v(raw))
             .attr("r", 3.4 * s)
-            .attr("fill", color)
-            .attr("stroke", theme.bg)
+            .attr("fill", st ? (st.code === "AC" || st.code === "PY" ? st.fill : theme.bg) : color)
+            .attr("stroke", st && (st.code === "PL" || st.code === "FC") ? st.ink : theme.bg)
             .attr("stroke-width", 1.5 * s)
             .append("title")
             .text(seriesTitle(ctx, model.labels[k]!, model.series[si]!, fmtV(raw)));
@@ -541,7 +562,11 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
   const nTicks = Math.max(2, Math.round(rect.h / (56 * s)));
   const probe = valueScale(yAxis, yExt, [0, 1], false);
   const yTicks = ticksFor(probe.scale, probe.log, nTicks);
-  const yFmt = valueFormatter(yAxis, probe.log ? undefined : stepOf(yTicks));
+  // Mode norme : unité dans le sous-titre (pas sur chaque graduation), décimales identiques partout
+  const norme = normeActive(ctx);
+  const yFmt = norme
+    ? valueFormatter({ ...yAxis, decimals: yAxis.decimals ?? normeDecimals(yAxis) }, probe.log ? undefined : stepOf(yTicks), { suffix: false })
+    : valueFormatter(yAxis, probe.log ? undefined : stepOf(yTicks));
   const titleRow = yAxis.title && yAxis.show ? 22 * s : 0;
   const left = yAxis.show ? Math.max(...yTicks.map((v) => measure(yFmt(v), fs, font)), 10) + 12 * s : 8 * s;
   const bottom = (xAxis.show ? fs + 14 * s : 6 * s) + (xAxis.title && xAxis.show ? 24 * s : 0);

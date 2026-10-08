@@ -26,6 +26,10 @@ import type { Insight, StoryContext } from "./story/insights";
 import { narrate, narrativeKey, applyNarrative, type Narrative } from "./story/narrate";
 import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot } from "./story/snapshots";
 import type { SlideImage } from "./story/pptx";
+import { composeSvg } from "./export";
+import { prepareCache, renderChart, valueMaxOf } from "./charts/render";
+import { NORME_WORDING_F, SCENARIO_CODES, SCENARIO_HELP, SCENARIO_NAMES, normeAdvice, scaleGroups, scaleKey, type ScaleInfo } from "./norme";
+import { valueFormatter } from "./format";
 
 const store = new Store();
 const preview = new Preview(store);
@@ -48,7 +52,28 @@ function currentNarrative(): Narrative | null {
   if (key !== narrCache.key) narrCache = { key, n: narrate(spec, ds, sc) };
   return narrCache.n;
 }
-store.beforeNotify = (state) => applyNarrative(state.spec, currentNarrative());
+/** Mode norme : bascule douce (types déconseillés → barres, orientation temps / structure), avant le récit. */
+let lastNotice = { text: "", at: 0 };
+function applyNormeAdvice(spec: ChartSpec, ds: Dataset | null): ChartSpec {
+  let out = spec;
+  for (let k = 0; k < 2; k++) {
+    const adv = out.norme.enabled ? normeAdvice(out, ds) : null;
+    if (!adv || adv.soft || (!adv.patch.type && !adv.patch.style)) break;
+    out = { ...out, type: adv.patch.type ?? out.type, style: { ...out.style, ...(adv.patch.style ?? {}) } };
+    const now = Date.now();
+    if (adv.notice !== lastNotice.text || now - lastNotice.at > 3000) {
+      lastNotice = { text: adv.notice, at: now };
+      setTimeout(() => toast(adv.notice, "info", 4200), 0);
+    }
+  }
+  return out;
+}
+store.beforeNotify = (state) => {
+  const adjusted = applyNormeAdvice(state.spec, state.ds);
+  const changed = adjusted !== state.spec;
+  if (changed) state.spec = adjusted;
+  return applyNarrative(state.spec, currentNarrative()) ?? (changed ? adjusted : null);
+};
 
 /** Spec « neuf » côté récit : textes recalculés (drapeaux de saisie remis à zéro). */
 function freshStory(spec: { story?: unknown } & Record<string, unknown>) {
@@ -68,7 +93,11 @@ function loadSample(id: string): void {
   if (!sample) return;
   const ds = buildDataset(sample.name, sample.rows());
   const base = sample.spec;
-  const r = parseSpec(freshStory({ ...base, style: { ...keepStyle(store.state.spec), ...(base.style ?? {}) } }));
+  // Mode norme conservé d'un exemple à l'autre (sauf exemple qui l'impose) ; entité / mesure propres à l'exemple
+  const cur = store.state.spec.norme;
+  const bn = (base.norme ?? {}) as Partial<ChartSpec["norme"]>;
+  const norme = { enabled: bn.enabled ?? cur.enabled, autoSwitch: bn.autoSwitch ?? cur.autoSwitch, entity: bn.entity ?? "", measure: bn.measure ?? "" };
+  const r = parseSpec(freshStory({ ...base, norme, style: { ...keepStyle(store.state.spec), ...(base.style ?? {}) } }));
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { sampleId: sample.id, note: sample.description });
   toast(`Exemple chargé : ${sample.name}`, "ok", 2200);
@@ -89,7 +118,7 @@ async function applyImport(res: ImportResult): Promise<void> {
   }
   const title = res.name && res.name !== "Collage" ? res.name : "Nouveau graphique";
   const axes = { x: { grid: false }, y: { unit: guessUnit(encoding.y[0]) }, y2: { grid: false } };
-  const r = parseSpec({ ...spec, type, encoding, axes, transform: {}, story: {}, style: { ...spec.style, title, subtitle: "", source: "" }, mode: { ...spec.mode, fourD: { ...spec.mode.fourD, enabled: false } } });
+  const r = parseSpec({ ...spec, type, encoding: { ...encoding, scenarios: {} }, axes, transform: {}, story: {}, norme: { ...spec.norme, entity: "", measure: "" }, style: { ...spec.style, title, subtitle: "", source: "" }, mode: { ...spec.mode, fourD: { ...spec.mode.fourD, enabled: false } } });
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { note: res.note ?? null, sheets: res.sheets ?? null, sheet: res.sheet ?? null });
   const types = ds.columns.map((c) => c.type);
@@ -129,6 +158,7 @@ function openInsight(ins: Insight): void {
   const errs = store.setSpec(
     freshStory({
       ...ins.spec,
+      norme: cur.norme,
       style: { ...ins.spec.style, ...keepStyle(cur), title: ins.analysis.title, subtitle: "", source: cur.style.source },
     } as unknown as Record<string, unknown>)
   );
@@ -190,9 +220,82 @@ function openSnapshot(s: Snapshot): void {
   if (errs.length) toast(errs.join(" ; "), "error");
 }
 
+/* ---- échelles communes (IBCS) : graphiques de même mesure dans l'histoire */
+
+const sampleDs = new Map<string, Dataset>();
+/** Données d'un snapshot : l'exemple d'origine, sinon les données courantes si elles portent le même nom. */
+function datasetFor(s: Snapshot): Dataset | null {
+  if (s.sampleId) {
+    const sm = sampleById(s.sampleId);
+    if (sm) {
+      if (!sampleDs.has(sm.id)) sampleDs.set(sm.id, buildDataset(sm.name, sm.rows()));
+      return sampleDs.get(sm.id)!;
+    }
+  }
+  const ds = store.state.ds;
+  return ds && ds.name === s.dataName ? ds : null;
+}
+
+function snapshotSpec(s: Snapshot): ChartSpec | null {
+  const r = parseSpec(s.spec);
+  return r.ok ? r.spec : null;
+}
+
+let scaleCache: { key: string; map: Map<string, ScaleInfo> } = { key: "", map: new Map() };
+/** Groupes d'échelle de l'histoire (2+ graphiques de même mesure, même unité). */
+function storyScales(): Map<string, ScaleInfo> {
+  const snaps = store.state.story.snapshots;
+  const key = JSON.stringify([snaps.map((s) => s.id), store.state.dsVersion, store.state.ds?.name]);
+  if (key === scaleCache.key) return scaleCache.map;
+  const items = snaps.map((s) => {
+    const spec = snapshotSpec(s);
+    const ds = spec ? datasetFor(s) : null;
+    let max: number | null = null;
+    try {
+      max = spec && ds ? valueMaxOf(spec, ds) : null;
+    } catch {
+      max = null;
+    }
+    return { id: s.id, key: spec ? scaleKey(spec) : null, max };
+  });
+  scaleCache = { key, map: scaleGroups(items) };
+  return scaleCache.map;
+}
+
+/** Indicateur d'échelle d'un snapshot (diapositive) : échelle commune, ou différente en mode norme. */
+function scaleNoteFor(spec: ChartSpec, info: ScaleInfo | undefined, same: boolean): string | null {
+  if (!info) return null;
+  const fmt = valueFormatter(spec.axes.y);
+  if (same) return `Même échelle pour les ${info.size} graphiques de cette mesure (max. ${fmt(info.max)})`;
+  if (spec.norme.enabled && info.differs) return `Échelle propre (max. ${fmt(info.own)}) — différente des ${info.size - 1} autre(s) graphique(s) de même mesure`;
+  return null;
+}
+
+/** Rendu à neuf (SVG nu, polices embarquées) avec échelle commune / indicateur. */
+async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | null, scaleNote: string | null): Promise<string> {
+  const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+  const cache = prepareCache(spec, ds, null, -1);
+  const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare: true, sharedMax, scaleNote });
+  return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null, embedFonts: true });
+}
+
 /** Image PNG 2× d'un snapshot : SVG conservé (polices ré-embarquées), sinon rendu à neuf, sinon la vignette. */
 async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
   const spec = s.spec as ChartSpec;
+  try {
+    const parsed = snapshotSpec(s);
+    const info = storyScales().get(s.id);
+    const same = !!store.state.story.sameScale && !!info;
+    const note = parsed ? scaleNoteFor(parsed, info, same) : null;
+    const ds = parsed && (same || note) ? datasetFor(s) : null;
+    if (parsed && ds && (same || note)) {
+      const svg = await renderScaled(parsed, ds, same ? info!.max : null, note);
+      const blob = await svgToPngBlob(svg, s.width, s.height, 2);
+      return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
+    }
+  } catch (e) {
+    console.warn("Échelle commune : rendu impossible", e);
+  }
   try {
     if (s.svg) {
       const svg = await embedFontsInto(s.svg, spec.style.font);
@@ -363,6 +466,55 @@ includeData.addEventListener("change", () => store.setUi({ includeData: includeD
 const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données");
 const snapTopBtn = h("button", { class: "btn", "data-testid": "snapshot-top", title: "Ajouter le graphique courant à l'histoire", onclick: () => void takeSnapshot() }, "📸 Snapshot");
 
+/* ---- mode norme : badge, légende de notation */
+const normeBadge = h("span", { class: "norme-badge", hidden: true, "data-testid": "norme-badge", title: `Mode norme actif — notation ${NORME_WORDING_F}` }, "Norme");
+const normeLegend = buildNormeLegend();
+const normeInfoBtn = h("button", { class: "btn btn-small norme-info", hidden: true, type: "button", "aria-expanded": "false", "aria-controls": "norme-legend", "data-testid": "norme-info", title: "Légende de la notation (scénarios, écarts)", onclick: () => toggleLegend() }, "ℹ Notation");
+
+function toggleLegend(force?: boolean): void {
+  const open = force ?? normeLegend.hidden;
+  normeLegend.hidden = !open;
+  normeInfoBtn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+document.addEventListener("keydown", (e) => e.key === "Escape" && !normeLegend.hidden && toggleLegend(false));
+document.addEventListener("pointerdown", (e) => {
+  const t = e.target as Node | null;
+  if (!normeLegend.hidden && t && !normeLegend.contains(t) && !normeInfoBtn.contains(t)) toggleLegend(false);
+});
+
+function buildNormeLegend(): HTMLElement {
+  const NS = "http://www.w3.org/2000/svg";
+  const sw = (code: string) => {
+    const shapes: Record<string, string> = {
+      AC: `<rect x="1" y="1" width="26" height="14" fill="#e4e4e7"/>`,
+      PY: `<rect x="1" y="1" width="26" height="14" fill="#6b6b73"/>`,
+      PL: `<rect x="1.5" y="1.5" width="25" height="13" fill="none" stroke="#e4e4e7" stroke-width="1.6" stroke-dasharray="4 2.5"/>`,
+      FC: `<defs><pattern id="nl-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#e4e4e7" stroke-width="2"/></pattern></defs><rect x="1.5" y="1.5" width="25" height="13" fill="url(#nl-hatch)" stroke="#e4e4e7" stroke-width="1.2"/>`,
+      POS: `<rect x="1" y="3" width="26" height="10" fill="#2e9e4f"/>`,
+      NEG: `<rect x="1" y="3" width="26" height="10" fill="#d62839"/>`,
+      PIN: `<line x1="2" y1="8" x2="20" y2="8" stroke="#2e9e4f" stroke-width="2"/><circle cx="21" cy="8" r="4.5" fill="#2e9e4f"/>`,
+    };
+    return h("span", { class: "nl-swatch", html: `<svg xmlns="${NS}" width="28" height="16" viewBox="0 0 28 16" aria-hidden="true">${shapes[code]}</svg>` });
+  };
+  const item = (code: string, label: string, help: string) => h("li", { "data-code": code }, sw(code), h("span", null, h("strong", null, label), " — ", help));
+  return h(
+    "div",
+    { class: "norme-legend", id: "norme-legend", hidden: true, role: "dialog", "aria-label": "Notation des scénarios et des écarts", "data-testid": "norme-legend" },
+    h("header", null, h("strong", null, "Notation des scénarios"), h("button", { type: "button", class: "icon-btn", title: "Fermer", onclick: () => toggleLegend(false) }, "×")),
+    h("ul", null, ...SCENARIO_CODES.map((c) => item(c, `${SCENARIO_NAMES[c]} (${c})`, SCENARIO_HELP[c]))),
+    h("strong", { class: "nl-sub" }, "Écarts"),
+    h(
+      "ul",
+      null,
+      item("POS", "Écart favorable", "barre verte : ΔPL (vs Budget), ΔPY (vs N-1), en valeur absolue."),
+      item("NEG", "Écart défavorable", "barre rouge ; « Hausse = défavorable » inverse le sens (coûts, délais)."),
+      item("PIN", "Écart relatif", "épingle (aiguille + point) en % de la référence.")
+    ),
+    h("p", { class: "muted small" }, "Rouge et vert sont réservés aux écarts ; les données restent en gris, le pétrole signale l'interface. Unité dans le sous-titre, mêmes décimales partout, échelles communes pour une même mesure."),
+    h("p", { class: "muted small nl-legal" }, `Notation ${NORME_WORDING_F}. IBCS® est une marque déposée.`)
+  );
+}
+
 const header = h(
   "header",
   { class: "topbar" },
@@ -374,7 +526,9 @@ const header = h(
       html: tell4dIconMarkup("t4d-hdr", 30),
     }),
     h("h1", null, "Tell", h("em", null, "4D"), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
-    h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea")
+    h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea"),
+    normeBadge,
+    normeInfoBtn
   ),
   h(
     "div",
@@ -400,7 +554,7 @@ const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store);
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b) });
+const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales() });
 preview.onEditText = (field, value) => {
   if (field === "title") store.set("style.title", value);
   else if (field === "subtitle") store.set("style.subtitle", value);
@@ -416,11 +570,16 @@ const leftRail = h("button", { class: "rail rail-left", title: "Afficher les don
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
 // L'Explorer recouvre l'aperçu et les réglages (vignettes plus grandes, 4 colonnes sur grand écran)
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
-const app = h("div", { class: "app" }, header, workspace);
+const app = h("div", { class: "app" }, header, workspace, normeLegend);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
   const { leftCollapsed, rightCollapsed } = store.state.ui;
+  const norme = store.state.spec.norme.enabled;
+  normeBadge.hidden = !norme;
+  normeInfoBtn.hidden = !norme;
+  if (!norme && !normeLegend.hidden) toggleLegend(false);
+  app.classList.toggle("norme-on", norme);
   workspace.classList.toggle("left-collapsed", leftCollapsed);
   workspace.classList.toggle("right-collapsed", rightCollapsed);
 }
@@ -471,6 +630,8 @@ const api = {
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
   pptxBase64: async () => (await buildStoryPptx("base64")) as string,
+  storyScales: () => Object.fromEntries(storyScales()),
+  setSameScale: (on: boolean) => store.setStory({ ...store.state.story, sameScale: on }),
   pngDataUrl: async (scale = 1) => {
     const { width, height } = chartSize(store.state.spec);
     return blobToDataUrl(await svgToPngBlob(await preview.currentSvg(), width, height, scale));

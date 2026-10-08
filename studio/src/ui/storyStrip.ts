@@ -6,11 +6,14 @@ import type { Store } from "../state";
 import { NARRATIVE_ROLES, type NarrativeRole } from "../spec";
 import { assignNarrativeOrder, moveSnapshot, ROLE_LABELS, type Snapshot } from "../story/snapshots";
 import { h, svgIcon, ICONS } from "./dom";
+import type { ScaleInfo } from "../norme";
 
 export interface StoryActions {
   snapshot(): void;
   open(s: Snapshot): void;
   exportPptx(btn: HTMLButtonElement): void;
+  /** Groupes d'échelle (graphiques de même mesure). */
+  scales?(): Map<string, ScaleInfo>;
 }
 
 export class StoryStrip {
@@ -20,6 +23,8 @@ export class StoryStrip {
   private titleInp: HTMLInputElement;
   private pptxBtn: HTMLButtonElement;
   private orderBtn: HTMLButtonElement;
+  private sameScale: HTMLInputElement;
+  private sameScaleLabel: HTMLElement;
   private key = "";
   private dragFrom = -1;
 
@@ -30,6 +35,9 @@ export class StoryStrip {
     this.list = h("div", { class: "story-list", "data-testid": "story-list" });
     this.orderBtn = h("button", { class: "btn btn-small", "data-testid": "story-order", title: "Contexte → tension → révélation → recommandation", onclick: () => this.order() }, "Ordonner en récit");
     this.pptxBtn = h("button", { class: "btn btn-small", "data-testid": "story-pptx", title: "Une diapositive par snapshot (titre d'action, graphique, commentaires)", onclick: () => this.actions.exportPptx(this.pptxBtn) }, "Exporter en PowerPoint");
+    this.sameScale = h("input", { type: "checkbox", "data-testid": "story-same-scale" });
+    this.sameScale.addEventListener("change", () => this.store.setStory({ ...this.store.state.story, sameScale: this.sameScale.checked }));
+    this.sameScaleLabel = h("label", { class: "check mini story-same-scale", title: "Graphiques de même mesure : même échelle dans l'histoire et le PowerPoint (lecture comparable)" }, this.sameScale, h("span", null, "Même échelle"));
     const toggle = h(
       "button",
       { class: "story-toggle", "data-testid": "story-toggle", title: "Afficher / masquer l'histoire", onclick: () => this.store.setUi({ openSections: { ...this.store.state.ui.openSections, histoire: !this.isOpen() } }) },
@@ -47,6 +55,7 @@ export class StoryStrip {
         this.titleInp,
         h("span", { class: "spacer" }),
         h("button", { class: "btn btn-small btn-accent", "data-testid": "snapshot", title: "Ajouter le graphique courant à l'histoire", onclick: () => this.actions.snapshot() }, "📸 Snapshot"),
+        this.sameScaleLabel,
         this.orderBtn,
         this.pptxBtn
       ),
@@ -71,14 +80,17 @@ export class StoryStrip {
     if (document.activeElement !== this.titleInp) this.titleInp.value = st.title;
     this.orderBtn.disabled = st.snapshots.length < 2;
     this.pptxBtn.disabled = !st.snapshots.length;
-    const key = JSON.stringify([open, st.snapshots.map((s) => [s.id, s.name, s.role, !!s.thumb])]);
+    this.sameScale.checked = !!st.sameScale;
+    const scales = this.actions.scales?.() ?? new Map<string, ScaleInfo>();
+    this.sameScaleLabel.classList.toggle("dim", scales.size === 0);
+    const key = JSON.stringify([open, !!st.sameScale, st.snapshots.map((s) => [s.id, s.name, s.role, !!s.thumb, scales.get(s.id)?.differs ?? null])]);
     if (key === this.key) return;
     this.key = key;
     if (!st.snapshots.length) {
       this.list.replaceChildren(h("p", { class: "story-empty" }, "Aucun snapshot : cliquez « 📸 Snapshot » pour ajouter le graphique courant, puis ordonnez votre récit."));
       return;
     }
-    this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i)));
+    this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i, scales.get(s.id), !!st.sameScale)));
   }
 
   private patch(id: string, p: Partial<Snapshot>): void {
@@ -86,7 +98,7 @@ export class StoryStrip {
     this.store.setStory({ ...st, snapshots: st.snapshots.map((s) => (s.id === id ? { ...s, ...p } : s)) });
   }
 
-  private card(s: Snapshot, i: number): HTMLElement {
+  private card(s: Snapshot, i: number, scale?: ScaleInfo, same = false): HTMLElement {
     const name = h("input", { type: "text", class: "story-card-name", value: s.name, maxlength: "200", title: "Renommer", "data-testid": "story-card-name" });
     name.addEventListener("change", () => this.patch(s.id, { name: name.value.trim() || s.title || `Snapshot ${i + 1}` }));
     name.addEventListener("keydown", (e) => e.key === "Enter" && name.blur());
@@ -94,7 +106,7 @@ export class StoryStrip {
     role.addEventListener("change", () => this.patch(s.id, { role: role.value as NarrativeRole }));
     const del = h("button", { class: "icon-btn story-del", title: "Supprimer", "data-testid": "story-card-delete", html: svgIcon(ICONS.trash, 15), onclick: () => this.store.setStory({ ...this.store.state.story, snapshots: this.store.state.story.snapshots.filter((x) => x.id !== s.id) }) });
     const thumb = h("button", { class: "story-thumb", title: "Recharger ce graphique dans l'éditeur", "data-testid": "story-card-open", onclick: () => this.actions.open(s) }, s.thumb ? h("img", { src: s.thumb, alt: s.title, draggable: "false" }) : h("span", { class: "muted" }, s.title.slice(0, 60)));
-    const card = h("article", { class: "story-card", draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i) }, h("span", { class: "story-num" }, String(i + 1)), thumb, h("div", { class: "story-card-foot" }, role, del), name);
+    const card = h("article", { class: "story-card", draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i) }, h("span", { class: "story-num" }, String(i + 1)), thumb, scale ? this.scaleBadge(scale, same) : null, h("div", { class: "story-card-foot" }, role, del), name);
     card.addEventListener("dragstart", (e) => {
       this.dragFrom = i;
       card.classList.add("dragging");
@@ -116,6 +128,16 @@ export class StoryStrip {
       this.move(from, i);
     });
     return card;
+  }
+
+  /** Pastille d'échelle : « = échelle » (commune) ou « ≠ échelle » (même mesure, maxima différents). */
+  private scaleBadge(sc: ScaleInfo, same: boolean): HTMLElement {
+    const eq = same || !sc.differs;
+    return h(
+      "span",
+      { class: `story-scale ${eq ? "eq" : "ne"}`, "data-testid": "story-scale", title: eq ? `Même échelle que les ${sc.size - 1} autre(s) graphique(s) de même mesure` : `Échelle différente des ${sc.size - 1} autre(s) graphique(s) de même mesure — cochez « Même échelle »` },
+      eq ? "= échelle" : "≠ échelle"
+    );
   }
 
   /** Déplace un snapshot (aussi utilisé par l'API de test). */

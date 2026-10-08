@@ -581,6 +581,189 @@ try {
   }
   check("export PowerPoint (.pptx = zip valide)", pptxOk, pptxDetail);
 
+  /* 10. Mode norme (notation inspirée d'IBCS® / de la notation ISO 24896) */
+  const RG = ["#d62839", "#2e9e4f"];
+  const chartAudit = () =>
+    page.evaluate((rg) => {
+      const svg = document.querySelector("[data-testid=chart-svg]");
+      const bad = [];
+      let rgCount = 0;
+      for (const el of svg.querySelectorAll("*")) {
+        const paints = [el.getAttribute("fill"), el.getAttribute("stroke"), el.style?.fill, el.style?.stroke].map((v) => (v ?? "").toLowerCase());
+        if (!paints.some((p) => rg.includes(p))) continue;
+        rgCount++;
+        if (!el.closest(".r4d-variance-bar, .r4d-variance-needle, .r4d-variance-value, .r4d-hatch-var")) bad.push(`${el.tagName}.${el.getAttribute("class") ?? ""}`);
+      }
+      const hatch = svg.querySelector("pattern.r4d-hatch:not(.r4d-hatch-var)");
+      const hid = hatch?.getAttribute("id");
+      return {
+        bad,
+        rgCount,
+        varBars: svg.querySelectorAll(".r4d-variance-bar").length,
+        varFills: [...svg.querySelectorAll(".r4d-variance-bar")].map((e) => e.getAttribute("fill")),
+        sub: [...svg.querySelectorAll(".r4d-subtitle")].map((t) => t.textContent).join(" ").replace(/[\u00a0\u202f]/g, " "),
+        cartouche: !!svg.querySelector(".r4d-cartouche .r4d-logo") && /Généré le/.test(svg.querySelector(".r4d-cartouche")?.textContent ?? ""),
+        hatch: !!hatch,
+        fcHatched: hid ? [...svg.querySelectorAll('[data-scenario="FC"]')].filter((e) => e.getAttribute("fill") === `url(#${hid})`).length : 0,
+        scn: Object.fromEntries(["AC", "PY", "PL", "FC"].map((c) => [c, svg.querySelectorAll(`rect[data-scenario="${c}"]`).length])),
+        plFill: [...svg.querySelectorAll('rect[data-scenario="PL"]')].every((e) => e.getAttribute("fill") === "none"),
+        legend: [...svg.querySelectorAll(".r4d-legend text")].map((t) => t.textContent),
+        euroLabels: [...svg.querySelectorAll(".r4d-value")].filter((t) => /€/.test(t.textContent ?? "")).length,
+        type: window.r4d.getSpec().type,
+      };
+    }, RG);
+  await page.evaluate(() => window.r4d.store.setStory({ title: "Revue mensuelle — mode norme", snapshots: [] }));
+  await domClick("[data-testid=sample-business-review]");
+  await sleep(700);
+  await domClick('[data-path="norme.enabled"]');
+  await sleep(800);
+  const nOn = await page.evaluate(() => {
+    const b = document.querySelector("[data-testid=norme-badge]");
+    return { on: window.r4d.getSpec().norme.enabled, badge: !!b && !b.hidden && b.offsetWidth > 0 && b.textContent, info: !document.querySelector("[data-testid=norme-info]").hidden, wording: document.querySelector("[data-testid=norme-wording]")?.textContent ?? "" };
+  });
+  check("mode norme : interrupteur (réglages), enregistré dans le spec, badge « Norme »", nOn.on === true && nOn.badge === "Norme" && nOn.info && /inspirée d’IBCS® et de la notation ISO 24896/.test(nOn.wording) && !/certifi/i.test(nOn.wording), JSON.stringify(nOn));
+  const v1 = await chartAudit();
+  check("mode norme : sous-titre qui · quoi · quand (« Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget »)", v1.sub === "Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget", v1.sub);
+  check("mode norme : rouge / vert uniquement sur les écarts ; signature présente", v1.bad.length === 0 && v1.rgCount > 0 && v1.varBars > 0 && v1.cartouche, `${v1.rgCount} éléments rouge/vert, ${v1.bad.length} hors écarts ${v1.bad.slice(0, 3).join(" ")} · ${v1.varBars} barres d'écart`);
+  await domClick("[data-testid=norme-up-is-bad]");
+  await sleep(600);
+  const v1b = await chartAudit();
+  const swapped = v1.varFills.length > 0 && v1.varFills.every((f, i) => v1b.varFills[i] === (f === RG[1] ? RG[0] : RG[1]));
+  await domClick("[data-testid=norme-up-is-bad]");
+  await sleep(500);
+  check("« Hausse = défavorable » inverse rouge et vert", swapped && (await page.evaluate(() => window.r4d.getSpec().variance.polarity)) === "higher", `${v1.varFills.length} écarts inversés`);
+  if (SHOTS) {
+    await page.evaluate(() => {
+      document.querySelector('[data-section="norme"]')?.setAttribute("open", "");
+      document.querySelector('[data-section="norme"]')?.scrollIntoView({ block: "start" });
+    });
+    await sleep(300);
+    await page.screenshot({ path: join(shotsDir, "16-norme-ecarts.png") });
+  }
+  // Types déconseillés : désactivés avec info-bulle ; le clic propose des barres horizontales ; le film reste permis
+  const tiles = await page.evaluate(() =>
+    Object.fromEntries(["pie", "donut", "radialBar", "film", "bar"].map((t) => {
+      const b = document.querySelector(`[data-testid=type-${t}]`);
+      return [t, { aria: b.getAttribute("aria-disabled"), title: b.title, cls: b.classList.contains("disabled") }];
+    }))
+  );
+  await domClick("[data-testid=type-pie]");
+  await sleep(800);
+  const afterPie = await page.evaluate(() => ({ type: window.r4d.getSpec().type, pie: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path.r4d-slice, [data-testid=chart-svg] .r4d-arc").length }));
+  check(
+    "camembert, donut, arcs désactivés (« déconseillé par la notation IBCS — utilisez des barres ») ; clic → barres ; film permis",
+    ["pie", "donut", "radialBar"].every((t) => tiles[t].aria === "true" && tiles[t].cls && tiles[t].title.includes("déconseillé par la notation IBCS — utilisez des barres")) && tiles.film.aria === null && tiles.bar.aria === null && afterPie.type === "barH",
+    `${tiles.pie.title} → ${afterPie.type}`
+  );
+  // Orientation : catégories à la verticale (barres), temps à l'horizontale (colonnes)
+  await page.evaluate(() => window.r4d.pickType("bar"));
+  await sleep(700);
+  const orient1 = await page.evaluate(() => window.r4d.getSpec().type);
+  await page.evaluate(() => window.r4d.set("encoding.x", "Mois"));
+  await sleep(700);
+  const orient2 = await page.evaluate(() => window.r4d.getSpec().type);
+  check("orientation : structure → barres horizontales, temps → colonnes (bascule douce)", orient1 === "barH" && orient2 === "bar", `${orient1} puis ${orient2}`);
+  // Préréglage « Revue mensuelle (norme) » : colonnes par scénario
+  await domClick("[data-testid=sample-revue-mensuelle-norme]");
+  await sleep(900);
+  await page.evaluate(() => window.r4d.seek(1));
+  await sleep(300);
+  const v2 = await chartAudit();
+  check(
+    "notation des scénarios : Réel plein, N-1 gris, Budget en contour, Prévision hachurée (motif SVG)",
+    v2.hatch && v2.fcHatched === 3 && v2.scn.AC === 9 && v2.scn.PY === 12 && v2.scn.PL === 12 && v2.plFill && v2.legend.join("|").includes("Réel (AC)") && v2.legend.join("|").includes("Prévision (FC)"),
+    `${JSON.stringify(v2.scn)} · ${v2.fcHatched} hachurés · légende ${v2.legend.join(", ")}`
+  );
+  check("préréglage norme : sous-titre, unités hors étiquettes, rouge/vert réservés aux écarts, signature", v2.sub === "Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel + Prévision vs Budget, N-1" && v2.euroLabels === 0 && v2.bad.length === 0 && v2.varBars === 12 && v2.cartouche, `${v2.sub} · ${v2.bad.length} hors écarts`);
+  await shotStage("17-norme-colonnes-scenarios.png");
+  // Légende « ℹ Notation »
+  await domClick("[data-testid=norme-info]");
+  await sleep(300);
+  const legendPop = await page.evaluate(() => {
+    const p = document.querySelector("[data-testid=norme-legend]");
+    return { open: !!p && !p.hidden && p.offsetHeight > 100, text: p?.textContent ?? "", swatches: p?.querySelectorAll("svg").length ?? 0 };
+  });
+  await page.keyboard.press("Escape");
+  await sleep(200);
+  const legendClosed = await page.evaluate(() => document.querySelector("[data-testid=norme-legend]").hidden);
+  check(
+    "légende « ℹ Notation » (AC / PY / PL / FC, écarts, en français)",
+    legendPop.open && legendClosed && ["Réel (AC)", "N-1 (PY)", "Budget (PL)", "Prévision (FC)", "Écart favorable", "Écart défavorable", "Écart relatif", "inspirée d’IBCS®"].every((s) => legendPop.text.includes(s)) && legendPop.swatches >= 7 && !/certifi/i.test(legendPop.text),
+    `${legendPop.swatches} pastilles`
+  );
+  // Explorer en mode norme : sous-titre structuré, vignettes grises, pas de camembert
+  await page.evaluate(() => window.r4d.explore());
+  await page.waitForSelector("[data-testid=explorer-card]", { timeout: 8000 }).catch(() => {});
+  await sleep(500);
+  const ex = await page.evaluate(() => ({
+    cards: document.querySelectorAll("[data-testid=explorer-card]").length,
+    ibcs: [...document.querySelectorAll("[data-testid=explorer-ibcs]")].map((e) => e.textContent),
+    petrol: [...document.querySelectorAll(".explorer-thumb svg")].filter((s) => /#3fa7c4|#8ecfe2|#1b8ba8/i.test(s.outerHTML)).length,
+    pies: document.querySelectorAll(".explorer-thumb svg path[d*='A']").length,
+  }));
+  const firstCard = await page.evaluate(() => {
+    document.querySelectorAll("[data-testid=explorer-open]")[0].click();
+    return true;
+  });
+  await sleep(800);
+  const exOpened = await page.evaluate(() => ({ norme: window.r4d.getSpec().norme.enabled, type: window.r4d.getSpec().type }));
+  check(
+    "Explorer en mode norme : sous-titre qui · quoi · quand, vignettes grises, pistes ouvertes en mode norme",
+    firstCard && ex.cards >= 5 && ex.ibcs.length === ex.cards && ex.ibcs.every((t) => t.startsWith("Alteridea SA · ")) && ex.petrol === 0 && exOpened.norme && !["pie", "donut", "radialBar"].includes(exOpened.type),
+    `${ex.cards} pistes · « ${ex.ibcs[0]} » · ouverte : ${exOpened.type}`
+  );
+  // Histoire : deux graphiques de même mesure → « ≠ échelle », puis « Même échelle » ; PowerPoint avec légende de notation
+  await domClick("[data-testid=sample-business-review]");
+  await sleep(800);
+  await domClick("[data-testid=snapshot]");
+  await sleep(900);
+  await page.evaluate(() => window.r4d.set("encoding.x", "Ligne de produit"));
+  await sleep(800);
+  await domClick("[data-testid=snapshot]");
+  await sleep(900);
+  const sc1 = await page.evaluate(() => ({ badges: [...document.querySelectorAll("[data-testid=story-scale]")].map((b) => b.textContent), scales: window.r4d.storyScales() }));
+  await domClick("[data-testid=story-same-scale]");
+  await sleep(500);
+  const sc2 = await page.evaluate(() => ({ badges: [...document.querySelectorAll("[data-testid=story-scale]")].map((b) => b.textContent), same: window.r4d.story().sameScale }));
+  check(
+    "échelles : même mesure → « ≠ échelle » signalé, puis « Même échelle » (histoire + PowerPoint)",
+    sc1.badges.length === 2 && sc1.badges.every((b) => b === "≠ échelle") && Object.values(sc1.scales).every((s) => s.size === 2 && s.differs) && sc2.same && sc2.badges.every((b) => b === "= échelle"),
+    `${sc1.badges.join(", ")} → ${sc2.badges.join(", ")}`
+  );
+  {
+    const b = readdirSync(dl);
+    await domClick("[data-testid=story-pptx]");
+    const f = await waitDownload(".pptx", b);
+    let ok = false;
+    let detail = "aucun fichier";
+    if (f) {
+      const JSZip = createRequire(join(repo, "package.json"))("jszip");
+      const zip = await JSZip.loadAsync(readFileSync(f));
+      const slides = Object.keys(zip.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x));
+      const xml = (await Promise.all(slides.map((x) => zip.file(x).async("string")))).join("");
+      const notation = (xml.match(/Notation inspirée d’IBCS®/g) ?? []).length;
+      ok = slides.length === 4 && notation === 2 && xml.includes("Réel (AC)") && xml.includes("Prévision (FC)") && !/certifi/i.test(xml);
+      detail = `${slides.length} diapositives · légende de notation sur ${notation} diapositive(s)`;
+      if (SHOTS) {
+        const { execFileSync } = await import("node:child_process");
+        const out = join(dl, "pptx-norme");
+        mkdirSync(out, { recursive: true });
+        try {
+          execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", out, f], { stdio: "ignore", timeout: 120000 });
+          const pdf = readdirSync(out).find((x) => x.endsWith(".pdf"));
+          execFileSync("pdftoppm", ["-png", "-r", "80", "-f", "4", "-l", "4", "-singlefile", join(out, pdf), join(shotsDir, "18-norme-pptx")], { stdio: "ignore", timeout: 120000 });
+        } catch (e) {
+          results.push("(rendu LibreOffice impossible : " + e.message + ")");
+        }
+      }
+    }
+    check("PowerPoint en mode norme : légende de notation, même échelle", ok, detail);
+  }
+  await domClick('[data-path="norme.enabled"]');
+  await sleep(600);
+  const nOff = await page.evaluate(() => ({ on: window.r4d.getSpec().norme.enabled, badge: document.querySelector("[data-testid=norme-badge]").hidden, pie: document.querySelector("[data-testid=type-pie]").getAttribute("aria-disabled") }));
+  check("mode norme désactivable (badge masqué, camembert de nouveau permis)", !nOff.on && nOff.badge && nOff.pie === null, JSON.stringify(nOff));
+
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
     await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });

@@ -83,6 +83,21 @@ function luminance(hex: string): number {
   return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
 }
 
+/** Mode norme : gris de la notation — réel foncé (clair sur fond sombre), N-1 gris clair. */
+export function normeInk(theme: Pick<Theme, "dark">): { ac: string; py: string; muted: string } {
+  return theme.dark ? { ac: "#e4e4e7", py: "#6b6b73", muted: "#a1a1aa" } : { ac: "#2b2b2e", py: "#b8b8bd", muted: "#71717a" };
+}
+
+/** Mode norme : données en gris (le pétrole reste réservé à l'interface et aux mises en avant). */
+export function normeGreys(theme: Pick<Theme, "dark">): string[] {
+  return theme.dark ? ["#e4e4e7", "#a1a1aa", "#71717a", "#d4d4d8", "#52525b", "#c4c4c8", "#3f3f46"] : ["#2b2b2e", "#71717a", "#a1a1aa", "#3f3f46", "#d4d4d8", "#52525b", "#e4e4e7"];
+}
+
+/** Mode norme actif sur un graphique « de données » (le film 4D et la carte gardent leur palette). */
+function normeOn(spec: ChartSpec): boolean {
+  return !!spec.norme?.enabled && spec.type !== "film" && spec.type !== "map";
+}
+
 export function themeFor(spec: ChartSpec): Theme {
   const bgMode = spec.style.background;
   const bg = bgMode === "dark" ? "#0b0b0c" : bgMode === "light" ? "#fafaf9" : spec.style.backgroundCustom;
@@ -98,7 +113,7 @@ export function themeFor(spec: ChartSpec): Theme {
         axis: "#52525b",
         separator: bg,
         track: "rgba(255,255,255,0.06)",
-        accent: chartAccent(spec.style.palette, true),
+        accent: spec.norme?.enabled ? PETROLE_LIGHT : chartAccent(spec.style.palette, true),
       }
     : {
         dark,
@@ -110,7 +125,7 @@ export function themeFor(spec: ChartSpec): Theme {
         axis: "#a1a1aa",
         separator: bg,
         track: "rgba(0,0,0,0.06)",
-        accent: chartAccent(spec.style.palette, false),
+        accent: spec.norme?.enabled ? PETROLE_MAIN : chartAccent(spec.style.palette, false),
       };
 }
 
@@ -139,6 +154,7 @@ const ALTERIDEA_LIGHT = ["#d62839", "#9a1c28", "#f0707c", "#3a0a10", "#71717a", 
 
 /** Couleurs de la palette, adaptées au fond (sombre / clair). */
 export function paletteColors(spec: ChartSpec, theme: Theme): string[] {
+  if (normeOn(spec)) return normeGreys(theme);
   switch (spec.style.palette) {
     case "petrole":
       return theme.dark ? PETROLE_ON_DARK : PETROLE_ON_LIGHT;

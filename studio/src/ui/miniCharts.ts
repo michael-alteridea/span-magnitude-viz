@@ -14,7 +14,7 @@ import { paletteColors, themeFor, VARIANCE_NEG, VARIANCE_POS } from "../theme";
 import { capitalize, clip, count, formatAmount, formatGrowth, formatMeasure, formatNumber, formatPct, formatRatio, formatSignedMeasure, formatSignedPct, monthIndexLong, nounOf } from "../story/fr";
 import type { Insight } from "../story/insights";
 
-import { MINI_COLORS, MINI_H, MINI_W, miniSvg, svgAdd } from "./miniBase";
+import { MINI_COLORS, MINI_H, MINI_STACK, MINI_W, miniSvg, svgAdd } from "./miniBase";
 
 const C = MINI_COLORS;
 const PAD = 12;
@@ -111,7 +111,7 @@ function drawBars(svg: SVGSVGElement, ins: Insight, eff: Dataset): boolean {
   const nTop = ins.kind === "concentration" ? Math.max(1, num(ins.analysis.facts.n) || 1) : 1;
   const peakIdx = items.reduce((bi, it, i) => (it.total > items[bi]!.total ? i : bi), 0);
   const isHot = (i: number) => (ordered ? i < nTop : i === peakIdx);
-  const colors = stacked ? [C.accent, C.soft, "#1B8BA8", "#C3E4EE", "#0E6E8C", "#5FB8D1"] : [];
+  const colors = stacked ? [...MINI_STACK] : [];
   items.forEach((it, i) => {
     const x = x0 + i * bw + gap / 2;
     const bwi = Math.max(1.5, bw - gap);

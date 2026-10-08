@@ -74,10 +74,11 @@ export function autoDecimals(step: number): number {
  */
 export function valueFormatter(
   axis: Pick<AxisSpec, "unit" | "unitCustom" | "decimals">,
-  step?: number
+  step?: number,
+  opts: { suffix?: boolean } = {}
 ): (v: number) => string {
   const div = UNIT_DIV[axis.unit];
-  const suffix = unitSuffix(axis);
+  const suffix = opts.suffix === false ? "" : unitSuffix(axis);
   // Graduations : au moins la précision du pas (évite « 0,1 · 0,1 · 0,2 ») ; étiquettes : choix utilisateur
   const auto = step != null ? autoDecimals(step / div) : null;
   const dec = axis.decimals != null ? Math.max(axis.decimals, auto ?? 0) : auto;

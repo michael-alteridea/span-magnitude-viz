@@ -55,6 +55,8 @@ export interface DrawCtx {
   H: number;
   frame: Frame;
   prep: Prepared;
+  /** Échelle commune (histoire / PowerPoint, « même échelle ») : maximum imposé à l'axe des valeurs. */
+  sharedMax?: number | null;
 }
 
 export const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);

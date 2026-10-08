@@ -2,6 +2,7 @@
 import type { Store } from "../state";
 import { CHART_FAMILIES, CHART_TYPE_LABELS, type ChartType } from "../spec";
 import { h, svgIcon, ICONS } from "./dom";
+import { DISCOURAGED_TIP, isDiscouraged } from "../norme";
 
 const SHORT: Record<ChartType, string> = {
   bar: "Barres",
@@ -53,10 +54,16 @@ export class Gallery {
   }
 
   update(): void {
-    const cur = this.store.state.spec.type;
+    const { type: cur, norme } = this.store.state.spec;
     for (const [t, b] of this.btns) {
       b.classList.toggle("active", t === cur);
       b.setAttribute("aria-pressed", t === cur ? "true" : "false");
+      // Mode norme : camembert, donut, arcs radiaux déconseillés (le clic propose des barres)
+      const off = norme.enabled && isDiscouraged(t);
+      b.classList.toggle("disabled", off);
+      if (off) b.setAttribute("aria-disabled", "true");
+      else b.removeAttribute("aria-disabled");
+      b.title = off ? `${CHART_TYPE_LABELS[t]} : ${DISCOURAGED_TIP}` : CHART_TYPE_LABELS[t];
     }
   }
 }

@@ -26,7 +26,8 @@ import type { Domains, DrawCtx, Frame, G, PlotRect, Prepared } from "./context";
 import { ellipsize, measure, wrap } from "./text";
 import { effectiveDataset } from "../data/transform";
 import { buildVarianceModel, type VarianceModel } from "../data/variance";
-import { drawVariance, refLabelOf, refStyleOf } from "./variance";
+import { drawVariance, refLabelOf, refStyleFor } from "./variance";
+import { normeAdvice, normeInk, scaleKey, scenarioOf, scenarioStyle, SCENARIO_NAMES } from "../norme";
 import { PLATFORM_URL, PRODUCT_LABEL, appendTell4dIcon, showSignature, type Appendable } from "../brand";
 
 /** Identifiants uniques des dégradés de l'icône (plusieurs graphiques par page). */
@@ -112,10 +113,14 @@ export function fourDActive(spec: ChartSpec, ds: Dataset | null): boolean {
 
 /** Calcule (et met en cache) le modèle complet, le modèle temporel et les domaines figés. */
 export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepCache | null, dsVersion: number): PrepCache {
-  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.mode, spec.axes.x.scale, spec.transform, spec.variance]);
+  const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.style.sort, spec.style.normalize, spec.style.horizontal, spec.mode, spec.axes.x.scale, spec.transform, spec.variance, spec.norme.enabled, spec.norme.autoSwitch]);
   if (prev && prev.key === key) return prev;
   const ds = rawDs ? effectiveDataset(spec, rawDs) : null;
   const { error, warnings } = validate(spec, ds);
+  if (spec.norme.enabled) {
+    const adv = normeAdvice(spec, ds);
+    if (adv?.soft) warnings.push(adv.notice);
+  }
   if (error || !ds || isSpecial(spec.type)) return { key, full: null, time: null, frozen: {}, error, warnings };
   if (isVariance(spec.type)) {
     const vm = buildVarianceModel(spec, ds);
@@ -144,6 +149,25 @@ export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepC
   if (full.kind === "points" && !full.points.length) return { key, full, time, frozen, error: "Aucun point exploitable (X et Y doivent être renseignés).", warnings };
   if (time && time.steps.length < 2) warnings.push("Le champ temporel n'a qu'une seule valeur : rien à animer.");
   return { key, full, time, frozen, error: null, warnings };
+}
+
+/**
+ * Maximum de l'axe des valeurs d'un graphique (échelles communes de l'histoire / du PowerPoint) ;
+ * null si le type n'a pas d'échelle comparable.
+ */
+export function valueMaxOf(spec: ChartSpec, rawDs: Dataset | null): number | null {
+  if (!rawDs || !scaleKey(spec)) return null;
+  const cache = prepareCache(spec, rawDs, null, -1);
+  if (cache.error) return null;
+  const vm = cache.variance;
+  if (vm) {
+    const v = [...vm.actual, ...vm.ref].filter(Number.isFinite);
+    return v.length ? Math.max(...v) : null;
+  }
+  const full = cache.full;
+  if (!full || full.kind !== "cat") return null;
+  const stacked = spec.type === "stackedBar" || spec.type === "stackedArea";
+  return catExtent(full, stacked, false)[1];
 }
 
 export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: PrepCache, frame: Frame): Prepared {
@@ -178,15 +202,35 @@ interface LegendItem {
 }
 
 function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neutral: string, vm?: VarianceModel | null, theme?: Theme): LegendItem[] {
+  const norme = spec.norme.enabled;
   if (vm && isVariance(spec.type)) {
-    const st = refStyleOf(vm.refName);
+    const st = refStyleFor(vm.refName, norme, spec.encoding.scenarios);
+    const ink = normeInk(theme ?? { dark: true });
+    const tag = (n: string) => {
+      const c = norme ? scenarioOf(n, spec.encoding.scenarios) : null;
+      return c ? ` (${c})` : "";
+    };
     return [
-      { label: vm.actualName.replace(/\s*\(.*\)\s*$/, ""), color: colors[0]!, shape: "square" },
-      { label: refLabelOf(vm.refName), color: st === "grey" ? (theme?.dark ? "#52525b" : "#c4c4c8") : neutral, shape: st === "grey" ? "square" : st },
+      { label: vm.actualName.replace(/\s*\(.*\)\s*$/, "") + tag(vm.actualName), color: norme ? ink.ac : colors[0]!, shape: "square" },
+      { label: refLabelOf(vm.refName) + tag(vm.refName), color: st === "grey" ? (norme ? ink.py : theme?.dark ? "#52525b" : "#c4c4c8") : norme ? ink.ac : neutral, shape: st === "grey" ? "square" : st },
     ];
   }
   if (!model) return [];
   const t = spec.type;
+  if (norme && model.kind === "cat" && theme && !isRadial(t)) {
+    const codes = model.series.map((s) => scenarioOf(s, spec.encoding.scenarios));
+    if (codes.some(Boolean)) {
+      const lineLike = t === "line" || t === "area" || t === "stackedArea";
+      return model.series.map((s, i) => {
+        const c = codes[i];
+        if (!c) return { label: s, color: colors[i % colors.length]!, shape: lineLike ? "line" : "square" };
+        const st = scenarioStyle(c, theme);
+        const label = `${s.replace(/\s*\(.*\)\s*$/, "") || SCENARIO_NAMES[c]} (${c})`;
+        if (lineLike) return { label, color: st.ink, shape: c === "PL" || c === "FC" ? "dash" : "line" };
+        return { label, color: st.ink, shape: c === "PL" ? "outline" : c === "FC" ? "hatch" : "square" };
+      });
+    }
+  }
   if (model.kind === "points") {
     if (model.series.length <= 1 && !spec.encoding.series) return [];
     return model.series.slice(0, 24).map((s, i) => ({ label: s, color: colors[i % colors.length]!, shape: "dot" }));
@@ -260,6 +304,10 @@ export interface RenderOptions {
   thumb?: boolean;
   /** Date de génération affichée (défaut : maintenant). */
   now?: Date;
+  /** Échelle commune (histoire, PowerPoint) : maximum de l'axe des valeurs. */
+  sharedMax?: number | null;
+  /** Indicateur d'échelle (bas gauche) : échelle commune, ou différente des autres graphiques de même mesure. */
+  scaleNote?: string | null;
 }
 
 /**
@@ -462,7 +510,15 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
   plot.h = Math.max(40, plot.h);
 
-  const ctx: DrawCtx = { spec, ds: ds!, theme, colors, font, s, W, H, frame, prep };
+  const ctx: DrawCtx = { spec, ds: ds!, theme, colors, font, s, W, H, frame, prep, sharedMax: opts.sharedMax ?? null };
+  if (opts.scaleNote && chrome) {
+    // Indicateur d'échelle (IBCS) : pastille + texte, en bas à gauche (la signature occupe le bas droit)
+    const gi = root.append("g").attr("class", "r4d-scale-indicator").attr("data-r4d", "scale");
+    const fy = H - pad * 0.62;
+    gi.append("rect").attr("x", pad).attr("y", fy - 9 * s).attr("width", 14 * s).attr("height", 9 * s).attr("fill", "none").attr("stroke", theme.accent).attr("stroke-width", 1.4 * s);
+    gi.append("line").attr("x1", pad + 3 * s).attr("x2", pad + 11 * s).attr("y1", fy - 4.5 * s).attr("y2", fy - 4.5 * s).attr("stroke", theme.accent).attr("stroke-width", 1.4 * s);
+    gi.append("text").attr("x", pad + 20 * s).attr("y", fy).attr("font-size", 11.5 * s).attr("fill", theme.muted).text(opts.scaleNote);
+  }
   const gChart = root.append("g").attr("class", "r4d-chart") as unknown as G;
   const result = (): RenderResult => ({ plot, theme, prepared: prep, width: W, height: H, cartouche });
 

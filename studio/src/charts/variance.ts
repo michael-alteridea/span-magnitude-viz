@@ -12,6 +12,8 @@ import { VARIANCE_NEG, VARIANCE_POS } from "../theme";
 import { stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
 import { formatSignedAmount, formatSignedPct } from "../story/fr";
+import { normeDeltaFormatter, normeFormatter, normeInk, scenarioOf, type ScenarioOverrides } from "../norme";
+import { hatchPattern } from "./norme";
 
 /** Écarts : montants compacts par valeur (« −320 k€ », « +1,2 M€ »), sinon format de l'axe signé. */
 function deltaFormatter(axis: Parameters<typeof valueFormatter>[0]): (v: number) => string {
@@ -21,6 +23,13 @@ function deltaFormatter(axis: Parameters<typeof valueFormatter>[0]): (v: number)
 }
 
 export type RefStyle = "outline" | "grey" | "hatch";
+
+/** Style de la référence ; en mode norme, d'après le scénario détecté ou forcé dans les encodages. */
+export function refStyleFor(name: string, norme: boolean, overrides: ScenarioOverrides = {}): RefStyle {
+  if (!norme) return refStyleOf(name);
+  const c = scenarioOf(name, overrides);
+  return c === "PY" ? "grey" : c === "FC" ? "hatch" : "outline";
+}
 
 export function refStyleOf(name: string): RefStyle {
   if (/n\s*-\s*1|\bpy\b|prior|pr[ée]c[ée]dent|last year/i.test(name)) return "grey";
@@ -38,15 +47,27 @@ export function refLabelOf(name: string): string {
 
 function refFill(g: G, ctx: DrawCtx, style: RefStyle): { fill: string; stroke: string; dash: string | null } {
   const { theme, s } = ctx;
-  if (style === "grey") return { fill: theme.dark ? "#52525b" : "#c4c4c8", stroke: "none", dash: null };
+  const norme = !!ctx.spec.norme?.enabled;
+  const ink = normeInk(theme);
+  if (style === "grey") return { fill: norme ? ink.py : theme.dark ? "#52525b" : "#c4c4c8", stroke: "none", dash: null };
   if (style === "hatch") {
-    const id = `r4d-hatch-${Math.random().toString(36).slice(2, 7)}`;
-    const p = g.append("defs").append("pattern").attr("id", id).attr("patternUnits", "userSpaceOnUse").attr("width", 6 * s).attr("height", 6 * s).attr("patternTransform", "rotate(45)");
-    p.append("rect").attr("width", 6 * s).attr("height", 6 * s).attr("fill", "none");
-    p.append("line").attr("x1", 0).attr("y1", 0).attr("x2", 0).attr("y2", 6 * s).attr("stroke", theme.muted).attr("stroke-width", 2.2 * s);
-    return { fill: `url(#${id})`, stroke: theme.muted, dash: null };
+    const col = norme ? ink.ac : theme.muted;
+    return { fill: hatchPattern(g, col, s), stroke: col, dash: null };
   }
-  return { fill: "none", stroke: theme.text, dash: null };
+  return { fill: "none", stroke: norme ? ink.ac : theme.text, dash: null };
+}
+
+/** Formats : mode norme = sans unité (dans le sous-titre), décimales unifiées. */
+function formatters(ctx: DrawCtx) {
+  const axis = ctx.spec.axes.y;
+  if (ctx.spec.norme?.enabled) return { fmt: normeFormatter(axis), fmtD: normeDeltaFormatter(axis) };
+  return { fmt: valueFormatter(axis), fmtD: deltaFormatter(axis) };
+}
+
+/** Épingle d'écart relatif : aiguille + point. */
+function pin(g: G, x1: number, y1: number, x2: number, y2: number, col: string, s: number, good: boolean) {
+  g.append("line").attr("class", "r4d-variance-needle").attr("x1", x1).attr("x2", x2).attr("y1", y1).attr("y2", y2).attr("stroke", col).attr("stroke-width", 2.4 * s);
+  g.append("circle").attr("class", "r4d-variance-bar r4d-variance-pin").attr("cx", x2).attr("cy", y2).attr("r", 5 * s).attr("fill", col).attr("data-favourable", good ? "1" : "0");
 }
 
 export function drawVariance(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel): void {
@@ -60,8 +81,7 @@ function drawRows(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
   const { spec, theme, s, font, colors, frame } = ctx;
   const pol = spec.variance.polarity;
   const rel = spec.variance.show === "rel";
-  const fmt = valueFormatter(spec.axes.y);
-  const fmtD = deltaFormatter(spec.axes.y);
+  const { fmt, fmtD } = formatters(ctx);
   const fs = 13 * s;
   const rows = vm.labels.map((l, i) => ({ l, a: vm.actual[i]!, b: vm.ref[i]!, d: vm.delta[i]!, r: vm.rel[i]!, total: false }));
   if (spec.variance.total && rows.length > 1) rows.push({ l: "Total", a: vm.total.actual, b: vm.total.ref, d: vm.total.delta, r: vm.total.rel, total: true });
@@ -84,12 +104,13 @@ function drawRows(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
   head(p2x, (rel ? `Δ ${refName} %` : `Δ ${refName}`).toUpperCase());
 
   // panneau valeurs (réel vs référence)
-  const vmax = Math.max(1e-9, ...rows.filter((r) => !r.total || n === 1).map((r) => Math.max(r.a, r.b)), ...(n === 1 ? [] : []));
+  const vmax = Math.max(1e-9, ...rows.filter((r) => !r.total || n === 1).map((r) => Math.max(r.a, r.b)), ctx.sharedMax ?? 0);
   const totalScale = rows.some((r) => r.total);
   const xs = scaleLinear().domain([0, vmax]).range([0, p1w - 70 * s]);
   const xsTotal = totalScale ? scaleLinear().domain([0, Math.max(vm.total.actual, vm.total.ref, 1e-9)]).range([0, p1w - 70 * s]) : xs;
-  const rs = refFill(g, ctx, refStyleOf(vm.refName));
-  const actColor = colors[0]!;
+  const norme = !!spec.norme?.enabled;
+  const rs = refFill(g, ctx, refStyleFor(vm.refName, norme, spec.encoding.scenarios));
+  const actColor = norme ? normeInk(theme).ac : colors[0]!;
   // panneau écarts
   const dv = rows.map((r) => (rel ? r.r * 100 : r.d)).filter(Number.isFinite);
   const dNonTot = rows.filter((r) => !r.total).map((r) => (rel ? r.r * 100 : r.d)).filter(Number.isFinite);
@@ -125,8 +146,7 @@ function drawRows(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
     const col = good ? VARIANCE_POS : VARIANCE_NEG;
     const xv = ds(Math.max(lo, Math.min(hi, v)) * f);
     if (rel) {
-      g.append("line").attr("x1", zero).attr("x2", xv).attr("y1", y + h / 2).attr("y2", y + h / 2).attr("stroke", col).attr("stroke-width", 2.4 * s);
-      g.append("rect").attr("class", "r4d-variance-bar").attr("x", xv - 5 * s).attr("y", y + h / 2 - 5 * s).attr("width", 10 * s).attr("height", 10 * s).attr("fill", col).attr("data-favourable", good ? "1" : "0");
+      pin(g, zero, y + h / 2, xv, y + h / 2, col, s, good);
     } else {
       g.append("rect").attr("class", "r4d-variance-bar").attr("x", Math.min(zero, xv)).attr("y", y + h * 0.12).attr("width", Math.abs(xv - zero)).attr("height", h * 0.76).attr("fill", col).attr("opacity", r.total ? 1 : 0.92).attr("data-favourable", good ? "1" : "0").append("title").text(`${r.l} : ${fmtD(r.d)} (${formatSignedPct(r.r)})`);
     }
@@ -144,8 +164,7 @@ function drawColumns(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
   const { spec, theme, s, font, colors, frame } = ctx;
   const pol = spec.variance.polarity;
   const rel = spec.variance.show === "rel";
-  const fmt = valueFormatter(spec.axes.y);
-  const fmtD = deltaFormatter(spec.axes.y);
+  const { fmt, fmtD } = formatters(ctx);
   const n = vm.keys.length;
   const fs = 12.5 * s;
   const g = root.append("g").attr("class", "r4d-variance r4d-marks");
@@ -172,10 +191,12 @@ function drawColumns(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
   const z = yD(0);
   g.append("line").attr("x1", rect.x + leftW).attr("x2", rect.x + rect.w).attr("y1", z).attr("y2", z).attr("stroke", theme.axis).attr("stroke-width", 1.2 * s);
   // valeurs
-  const vmax = Math.max(1e-9, ...vm.actual, ...vm.ref);
+  const vmax = Math.max(1e-9, ...vm.actual, ...vm.ref, ctx.sharedMax ?? 0);
   const yV = scaleLinear().domain([0, vmax]).range([botY + botH, botY + 22 * s]);
   g.append("line").attr("x1", rect.x + leftW).attr("x2", rect.x + rect.w).attr("y1", yV(0)).attr("y2", yV(0)).attr("stroke", theme.axis).attr("stroke-width", 1 * s);
-  const rs = refFill(g, ctx, refStyleOf(vm.refName));
+  const norme = !!spec.norme?.enabled;
+  const rs = refFill(g, ctx, refStyleFor(vm.refName, norme, spec.encoding.scenarios));
+  const actColor = norme ? normeInk(theme).ac : colors[0]!;
   const bw = x.bandwidth();
   const showLabels = n <= 14;
   vm.keys.forEach((_, i) => {
@@ -185,7 +206,7 @@ function drawColumns(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
     const b = vm.ref[i]!;
     const off = bw * 0.22;
     g.append("rect").attr("x", cx + off).attr("y", yV(b * f)).attr("width", bw - off).attr("height", Math.max(0, yV(0) - yV(b * f))).attr("fill", rs.fill).attr("stroke", rs.stroke).attr("stroke-width", rs.stroke === "none" ? 0 : 1.3 * s).append("title").text(`${vm.labels[i]} · ${refName} : ${fmt(b)}`);
-    g.append("rect").attr("class", "r4d-variance-actual").attr("x", cx).attr("y", yV(a * f)).attr("width", bw - off).attr("height", Math.max(0, yV(0) - yV(a * f))).attr("fill", colors[0]!).append("title").text(`${vm.labels[i]} · ${actName} : ${fmt(a)}`);
+    g.append("rect").attr("class", "r4d-variance-actual").attr("x", cx).attr("y", yV(a * f)).attr("width", bw - off).attr("height", Math.max(0, yV(0) - yV(a * f))).attr("fill", actColor).append("title").text(`${vm.labels[i]} · ${actName} : ${fmt(a)}`);
     if (showLabels && f >= 1 && bw > 30 * s) g.append("text").attr("x", cx + (bw - off) / 2).attr("y", yV(Math.max(a, b)) - 6 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(a));
     const v = dv[i]!;
     if (Number.isFinite(v)) {
@@ -193,8 +214,7 @@ function drawColumns(root: G, rect: PlotRect, ctx: DrawCtx, vm: VarianceModel) {
       const col = good ? VARIANCE_POS : VARIANCE_NEG;
       const yv = yD(v * f);
       if (rel) {
-        g.append("line").attr("x1", cx + bw / 2).attr("x2", cx + bw / 2).attr("y1", z).attr("y2", yv).attr("stroke", col).attr("stroke-width", 2.4 * s);
-        g.append("rect").attr("class", "r4d-variance-bar").attr("x", cx + bw / 2 - 5 * s).attr("y", yv - 5 * s).attr("width", 10 * s).attr("height", 10 * s).attr("fill", col);
+        pin(g, cx + bw / 2, z, cx + bw / 2, yv, col, s, good);
       } else {
         g.append("rect").attr("class", "r4d-variance-bar").attr("x", cx + bw * 0.1).attr("y", Math.min(z, yv)).attr("width", bw * 0.8).attr("height", Math.abs(yv - z)).attr("fill", col).append("title").text(`${vm.labels[i]} : ${fmtD(vm.delta[i]!)} (${formatSignedPct(vm.rel[i]!)})`);
       }

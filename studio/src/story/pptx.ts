@@ -141,7 +141,33 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
   slide.addText(s.title || s.name, { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink" });
   if (s.subtitle) slide.addText(s.subtitle, { x: 0.5, y: 1.55, w: 12.3, h: 0.4, fontFace: FONT, fontSize: 13, color: muted, margin: 0, fit: "shrink" });
   const comments = s.comments.filter((c) => c.trim());
-  const area = { x: 0.5, y: 2.1, w: comments.length ? 8.2 : 12.3, h: 4.75 };
+  const norme = !!(spec as Partial<ChartSpec>)?.norme?.enabled;
+  const area = { x: 0.5, y: 2.1, w: comments.length ? 8.2 : 12.3, h: norme ? 4.4 : 4.75 };
+  if (norme) {
+    // Légende de notation (mode norme) : scénarios et écarts, au-dessus du pied de page
+    const ink = dark ? { ac: "E4E4E7", py: "6B6B73" } : { ac: "2B2B2E", py: "B8B8BD" };
+    const o = (color: string, bold = false) => ({ fontFace: FONT, fontSize: 9.5, color, bold });
+    slide.addText(
+      [
+        { text: "Notation inspirée d’IBCS® : ", options: o(muted, true) },
+        { text: "■ ", options: o(ink.ac) },
+        { text: "Réel (AC)   ", options: o(muted) },
+        { text: "■ ", options: o(ink.py) },
+        { text: "N-1 (PY)   ", options: o(muted) },
+        { text: "□ ", options: o(ink.ac) },
+        { text: "Budget (PL)   ", options: o(muted) },
+        { text: "▨ ", options: o(ink.ac) },
+        { text: "Prévision (FC)   ·   écarts : ", options: o(muted) },
+        { text: "■ ", options: o("2E9E4F") },
+        { text: "favorable  ", options: o(muted) },
+        { text: "■ ", options: o("D62839") },
+        { text: "défavorable  ", options: o(muted) },
+        { text: "●— ", options: o(muted) },
+        { text: "écart en %", options: o(muted) },
+      ],
+      { x: 0.5, y: 6.6, w: 12.3, h: 0.3, margin: 0, valign: "middle", fit: "shrink" }
+    );
+  }
   if (img) {
     const k = Math.min(area.w / img.width, area.h / img.height);
     const w = img.width * k;
@@ -154,7 +180,7 @@ function addSnapshotSlide(pptx: any, s: Snapshot, i: number, total: number, stor
     slide.addText("À RETENIR", { x: 9.0, y: 2.1, w: 3.8, h: 0.35, fontFace: FONT, fontSize: 11, bold: true, color: accent, charSpacing: 1.5, margin: 0 });
     slide.addText(
       comments.map((c) => ({ text: c, options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
-      { x: 9.0, y: 2.5, w: 3.85, h: 4.3, fontFace: FONT, fontSize: 14, color: text, valign: "top", margin: 0, fit: "shrink" }
+      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 14, color: text, valign: "top", margin: 0, fit: "shrink" }
     );
   }
   slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 } });

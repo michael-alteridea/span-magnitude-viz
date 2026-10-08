@@ -163,6 +163,11 @@ export const encodingSchema = z.object({
   others: z.boolean().default(true),
   aggregate: z.enum(AGGREGATES).default("sum"),
   y2Aggregate: z.enum(AGGREGATES).default("mean"),
+  /**
+   * Mode norme : scénario forcé par série (nom de mesure ou valeur de série). Absent = détection
+   * automatique d'après le nom (Réel / Budget / N-1 / Prévision) ; « none » = pas un scénario.
+   */
+  scenarios: z.record(z.enum(["AC", "PY", "PL", "FC", "none"])).default({}),
 });
 export type EncodingSpec = z.infer<typeof encodingSchema>;
 
@@ -277,6 +282,22 @@ export const varianceSchema = z.object({
   total: z.boolean().default(true),
 });
 
+/**
+ * « Mode norme » : notation inspirée d'IBCS® et de la notation ISO 24896 (« Notation for business reporting »).
+ * Données en gris (Réel foncé plein, N-1 gris clair, Budget en contour, Prévision hachurée), rouge / vert réservés
+ * aux écarts, temps à l'horizontale / structure à la verticale, sous-titre qui · quoi · quand, unités dans le sous-titre.
+ */
+export const normeSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** Qui (sous-titre) ; vide = nom du jeu de données. */
+  entity: z.string().max(80).default(""),
+  /** Quoi (sous-titre) ; vide = déduit de la mesure. */
+  measure: z.string().max(80).default(""),
+  /** Bascule automatique colonnes (temps) / barres horizontales (structure), avec un avis discret. */
+  autoSwitch: z.boolean().default(true),
+});
+export type NormeSpec = z.infer<typeof normeSchema>;
+
 export const NARRATIVE_ROLES = ["context", "tension", "revelation", "recommendation"] as const;
 export type NarrativeRole = (typeof NARRATIVE_ROLES)[number];
 
@@ -324,6 +345,7 @@ export const chartSpecSchema = z.object({
   special: specialSchema.default({}),
   transform: transformSchema.default({}),
   variance: varianceSchema.default({}),
+  norme: normeSchema.default({}),
   story: storySchema.default({}),
   /** Offre : seule l'offre « pro » peut masquer la signature (avec `style.brandMark: false`). */
   branding: z.enum(["free", "pro"]).default("free"),

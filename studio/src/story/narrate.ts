@@ -13,6 +13,7 @@ import { effectiveDataset } from "../data/transform";
 import { ANALYZERS, basisOf, makeCtx, type Analysis, type Ctx, type InsightKind, type StoryContext } from "./insights";
 import { capitalize, clip, dayMonthYear, measureLabel, periodLabel } from "./fr";
 import { SCENARIO_LABELS } from "./roles";
+import { normeSubtitle, specScenarios } from "../norme";
 
 export interface Narrative {
   title: string;
@@ -90,6 +91,12 @@ export function subtitleFor(spec: ChartSpec, eff: Dataset, ctx: Ctx, a: Analysis
     }
     if (lo <= hi) period = periodLabel(lo, hi);
   }
+  if (spec.norme?.enabled) {
+    // Message IBCS : qui · quoi en unité · quand + scénarios (« Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget »)
+    const year = spec.transform.filters.map((f) => f.label).find((l) => /^\d{4}$/.test(l));
+    const scen = specScenarios(spec, eff);
+    return clip(normeSubtitle(spec, { entity: ctx.entity, period: year ?? (period || `au ${dayMonthYear(ctx.today)}`), scenarios: spec.type === "variance" ? scen.slice(0, 2) : scen }), 300);
+  }
   const scope = a?.scope && spec.type !== "variance" ? a.scope : "";
   if (scope) parts.push(scope);
   else {
@@ -129,7 +136,7 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
 
 /** Clé de recalcul du récit (ne dépend pas des textes affichés). */
 export function narrativeKey(spec: ChartSpec, dsVersion: number, sc: StoryContext): string {
-  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.story.kind, spec.story.params, spec.story.basis]);
+  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme]);
 }
 
 /**

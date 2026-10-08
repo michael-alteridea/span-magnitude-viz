@@ -25,8 +25,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 
 - **Données** : CSV / TSV / JSON / XLSX / XLS (glisser-déposer ou parcourir), collage Excel / Sheets
   (tabulation, `;` ou `,`, virgule décimale), aperçu avec types détectés et modifiables (nombre, date, texte, catégorie),
-  4 exemples datés au 8 octobre 2026 (prévisions jusqu'à fin 2026), dont « Pipeline Salesforce » (300 opportunités FR/BE)
-  et « Business review grand compte » (Réel / Budget / N-1 / Prévision mensuels, janv. 2025 → déc. 2026).
+  5 exemples datés au 8 octobre 2026 (prévisions jusqu'à fin 2026), dont « Pipeline Salesforce » (300 opportunités FR/BE)
+  « Business review grand compte » (Réel / Budget / N-1 / Prévision mensuels, janv. 2025 → déc. 2026)
+  et son préréglage « Revue mensuelle (norme) ».
 - **Types** : barres (verticales, horizontales, groupées, empilées), lignes, aires (empilées), points / bulles,
   camembert, donut, arcs radiaux, **écarts IBCS** (réel vs budget / N-1 / prévision, écarts absolus en barres ou
   relatifs en épingles, rouge / vert réservés aux écarts) ; spéciaux : film 4D (span/magnitude) et carte FR·BE / Europe
@@ -64,6 +65,33 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 - **Exporter en PowerPoint** (pptxgenjs chargé à la demande) : couverture pétrole, sommaire, une diapositive par
   snapshot (rôle, titre d'action, sous-titre, graphique PNG 2×, commentaires, filet d'accent).
 
+## Mode norme (étape 2)
+
+Notation **inspirée d’IBCS® et de la notation ISO 24896** (« Notation for business reporting ») ;
+IBCS® est une marque déposée. Activable dans **Réglages › Mode norme** (`spec.norme.enabled`), badge « Norme » dans
+l'en-tête et bouton **ℹ Notation** (légende en français : scénarios, écarts). Module pur `norme.ts`, rendu `charts/norme.ts`.
+
+- **Scénarios** détectés d'après les noms de colonnes (Réel / Actual / AC, Budget / Plan / PL, N-1 / PY / Année
+  précédente, Prévision / Forecast / FC / Landing), forçables par mesure dans « Encodages » (`encoding.scenarios`).
+  Réel plein foncé (gris clair sur fond sombre), N-1 gris clair plein, Budget en contour sans remplissage,
+  Prévision hachurée (motif SVG `pattern.r4d-hatch`). Colonnes par scénario superposées (N-1 derrière, Budget en
+  contour, Réel / Prévision devant) ; données en gris, pétrole réservé à l'interface et aux repères.
+- **Écarts** : rouge / vert réservés aux écarts — barres ΔPL / ΔPY en valeur absolue ou épingles (aiguille + point) en %,
+  écarts sur prévision hachurés ; « Hausse = défavorable » inverse le sens (coûts, délais).
+- **Orientation** : temps à l'horizontale (colonnes, lignes), structure à la verticale (barres horizontales) ; bascule
+  douce avec message (désactivable : simple avis).
+- **Types déconseillés** : camembert, donut, arcs radiaux désactivés (« déconseillé par la notation IBCS — utilisez
+  des barres ») et remplacés par des barres triées ; le film 4D et la carte restent permis.
+- **Message** : sous-titre qui · quoi · quand (« Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget »),
+  entité et mesure saisissables ; le titre affirmatif calculé est conservé.
+- **Unités et formats** : unité dans le sous-titre, pas sur chaque étiquette ; mêmes décimales partout.
+- **Échelles communes** : les snapshots de même mesure (même unité) sont regroupés ; « ≠ échelle » signalé dans
+  l'histoire, case **Même échelle** pour aligner les diapositives ; indicateur d'échelle sur la diapositive.
+- **Explorer et PowerPoint** : pistes en notation norme (vignettes grises, sous-titre structuré, pas de camembert) ;
+  diapositives avec ligne de légende de notation. Préréglage **« Revue mensuelle (norme) »** (business review 2026).
+
+Captures : `16-norme-ecarts.png`, `17-norme-colonnes-scenarios.png`, `18-norme-pptx.png`.
+
 ## Label qualité
 
 Chaque graphique généré (aperçu, SVG, PNG, WebM, snapshots, diapositives) porte en bas à droite une signature
@@ -83,6 +111,7 @@ masquée qu'avec `branding: "pro"` + `style.brandMark: false` ; l'interface ne p
 | `data/model.ts` | Agrégation (catégories, points), modèle temporel 4D et pondérations par image |
 | `data/suggest.ts` | Choix automatique des encodages lors d'un changement de type |
 | `format.ts` | Locale française d3 (espace insécable, virgule, U+2212), unités, dates |
+| `norme.ts` | Mode norme (inspiré d’IBCS® / ISO 24896) : scénarios, écarts, orientation, sous-titre, formats, échelles communes |
 | `theme.ts` | Thèmes, palettes, polices (`FontFace`, @font-face embarquées pour l'export) ; identité bleu pétrole (`PETROLE_COLORS`), couleurs d'écart réservées `VARIANCE_NEG` / `VARIANCE_POS` |
 | `charts/*` | Rendu SVG pur : cartésien, radial, écarts IBCS (`variance.ts`), spéciaux (film / carte via la lib), mise en page, signature |
 | `data/transform.ts` | Colonnes calculées et filtres du spec (`spec.transform`), mémoïsés |
