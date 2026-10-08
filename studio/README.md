@@ -441,10 +441,26 @@ en 1 clic (aussi par `?reel=exemple`).
   `licences/mp4-muxer-MIT.txt`), 30 images/s, image clé toutes les 2 s, plus rapide que le temps réel. Navigateur sans
   WebCodecs H.264 : repli par `MediaRecorder` en temps réel (WebM VP9/VP8, ou MP4 sur Safari), images sautées si le rendu
   prend du retard. Barre de progression, bouton « Annuler l'export ». Fichier `datanime-reel-<titre>-<format>.mp4`.
-- **iPad / Safari** : WebCodecs `VideoEncoder` (H.264) est disponible à partir d'iPadOS / Safari 16.4 → MP4 direct.
-  Plus ancien : repli `MediaRecorder` (MP4) en temps réel, l'onglet doit rester au premier plan. Les images ne sont jamais
-  conservées en mémoire (encodées au fil de l'eau) ; seul le fichier final (≈ 4 à 8 Mo pour 25 s) est gardé jusqu'au
-  téléchargement. Sur iPad, Safari range la vidéo dans Fichiers › Téléchargements (à partager ensuite depuis Photos ou Fichiers).
+- **iPad / Safari : limites** (vérifié dans Chrome sans écran sur le serveur de test ; pas encore essayé sur un iPad
+  réel) :
+  - iPadOS / Safari **16.4 ou plus** : WebCodecs `VideoEncoder` H.264 disponible → MP4 direct, plus rapide que le temps
+    réel (profil High 4.0 essayé d'abord, puis Main, puis Baseline selon `VideoEncoder.isConfigSupported`).
+  - iPadOS **14.5 à 16.3** : pas de WebCodecs → repli `MediaRecorder` (MP4 H.264) **en temps réel** : un Reel de 25 s
+    prend 25 s, des images peuvent être sautées sur un iPad ancien (le mouvement reste à la bonne vitesse).
+    Plus ancien : export impossible, la fenêtre l'indique (ligne « Ce navigateur… » sous les formats).
+  - Garder Safari **au premier plan, écran allumé** : en arrière-plan ou écran verrouillé, Safari suspend le rendu et
+    l'export s'interrompt (relancer l'export).
+  - Mémoire : les images ne sont jamais conservées (encodées au fil de l'eau) ; seul le fichier final (≈ 4 à 8 Mo pour
+    25 s en 1080 × 1920) reste en mémoire jusqu'au téléchargement.
+  - Polices intégrées à chaque image (Inter, Poppins en data: URL) : aucun appel réseau pendant l'export, rendu
+    identique hors ligne.
+  - Téléchargement : Safari range la vidéo dans Fichiers › Téléchargements ; pour la publier, l'ouvrir dans Fichiers
+    puis « Partager › Enregistrer la vidéo » (Photos) ou directement vers Instagram / LinkedIn.
+  - Le MP4 est en plage de couleurs « pleine » (yuvj420p, signalée dans le fichier) : lu correctement par Chrome
+    et ffmpeg / VLC ; Instagram, TikTok et LinkedIn réencodent la vidéo de toute façon.
+- **Exemple de vidéo** : `docs/reel-exemple-9x16.mp4` (exporté par l'application elle-même, WebCodecs H.264 High,
+  1080 × 1920, 30 i/s, 24,4 s, 732 images, ≈ 6,0 Mo, image clé toutes les 2 s, `moov` en tête) ; carte de fin :
+  `docs/reel-exemple-9x16-fin.png`.
 - **Exemple intégré** : « Énergies renouvelables dans l'UE », données publiques Eurostat (`nrg_ind_ren`, part des
   renouvelables dans la consommation finale brute d'énergie, 2004-2025), **licence CC BY 4.0** (réutilisation commerciale
   autorisée, source citée) ; 4 scènes : moyenne de l'UE, les 10 premiers, les 5 derniers, la Belgique depuis 2004.
