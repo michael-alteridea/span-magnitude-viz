@@ -277,9 +277,25 @@ function dataHashOf(spec: unknown): string | null {
   return typeof h === "string" && HEX64.test(h) ? h : null;
 }
 
+/**
+ * Réglages ajoutés après la publication des premières revues : omis de l'empreinte tant qu'ils gardent leur valeur
+ * par défaut, pour qu'une nouvelle version du Studio ne signale pas « contenu changé » sur des graphiques identiques
+ * (étape I : extrémité des barres, icônes par catégorie, mise en avant).
+ */
+function fingerprintSpec(spec: unknown): unknown {
+  const st = (spec as { style?: Record<string, unknown> } | null)?.style;
+  if (!st || typeof st !== "object") return spec;
+  const style = { ...st };
+  if (style.barCap === "none") delete style.barCap;
+  if (style.capIcons && typeof style.capIcons === "object" && !Object.keys(style.capIcons).length) delete style.capIcons;
+  const f = style.focus as { key?: unknown; title?: unknown; note?: unknown; average?: unknown } | undefined;
+  if (f && f.key == null && !f.title && !f.note && f.average !== false) delete style.focus;
+  return { ...(spec as object), style };
+}
+
 /** Empreinte d'un snapshot : SHA-256 du JSON canonique de son contenu (graphique, textes, données). */
 export function snapshotFingerprint(s: SourceSnapshot): Promise<string> {
-  return sha256Hex(canonicalJson({ id: s.id, title: s.title, subtitle: s.subtitle, comments: s.comments, path: s.path ?? null, spec: s.spec }));
+  return sha256Hex(canonicalJson({ id: s.id, title: s.title, subtitle: s.subtitle, comments: s.comments, path: s.path ?? null, spec: fingerprintSpec(s.spec) }));
 }
 
 /**

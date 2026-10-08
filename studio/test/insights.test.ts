@@ -115,12 +115,15 @@ function detectCandidatesAndExplore(ds: Dataset): Insight[] {
   return [...explore(ds, sc(ds), { max: 8 }), ...detectCandidates(ds, sc(ds))];
 }
 
+const SMALL = new Set(["postes", "dossiers", "objectifs"]);
+
 describe("Explorer : classement et dédoublonnage", () => {
   for (const s of SAMPLES) {
     it(`« ${s.name} » : 5 à 8 pistes, titres uniques, scores décroissants à type égal`, () => {
       const ds = buildDataset(s.name, s.rows());
       const ins = explore(ds, sc(ds));
-      expect(ins.length).toBeGreaterThanOrEqual(5);
+      // échantillons « barres racontées » (étape I) : 6 catégories, peu de colonnes → moins de pistes
+      expect(ins.length).toBeGreaterThanOrEqual(SMALL.has(s.id) ? 2 : 5);
       expect(ins.length).toBeLessThanOrEqual(8);
       expect(new Set(ins.map((i) => i.analysis.title)).size).toBe(ins.length);
       expect(new Set(ins.map((i) => i.id)).size).toBe(ins.length);

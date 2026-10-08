@@ -742,3 +742,16 @@ svg .r4d-tip-on > .r4d-drill-mark, svg rect.r4d-tip-on, svg path.r4d-tip-on, svg
 .menu-row .check input { accent-color: var(--accent); }
 /* clic / toucher sur le graphique : pas d'anneau de focus (le clavier garde le sien) */
 .stage svg.r4d-svg:focus:not(:focus-visible) { outline: none; }
+
+/* Étape I : extrémité des barres (icônes Phosphor), icône par catégorie */
+.segmented.tiles-cap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0; border: 0; background: transparent; }
+.segmented.tiles-cap button { height: auto; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 2px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--panel-2); font-size: 11px; }
+.segmented.tiles-cap button.active { background: rgba(63, 167, 196, .12); border-color: var(--accent); color: #fff; box-shadow: none; }
+.segmented.tiles-cap button:disabled { opacity: .38; cursor: not-allowed; }
+.segmented.tiles-cap .cap-ic { display: inline-flex; color: var(--accent); }
+.segmented.tiles-cap .cap-ic svg, .icon-row .icon-prev svg { fill: currentColor; }
+.icon-row { display: grid !important; grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; gap: 6px; }
+.icon-row .icon-prev { display: inline-flex; color: var(--accent); }
+.icon-row .field-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-row select { min-width: 0; width: 100%; }
+.hint.warn { color: #e0b05c; }

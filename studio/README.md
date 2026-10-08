@@ -25,9 +25,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 
 - **Données** : CSV / TSV / JSON / XLSX / XLS (glisser-déposer ou parcourir), collage Excel / Sheets
   (tabulation, `;` ou `,`, virgule décimale), aperçu avec types détectés et modifiables (nombre, date, texte, catégorie),
-  5 exemples datés au 8 octobre 2026 (prévisions jusqu'à fin 2026), dont « Pipeline Salesforce » (300 opportunités FR/BE)
+  des exemples datés au 8 octobre 2026 (prévisions jusqu'à fin 2026), dont « Pipeline Salesforce » (300 opportunités FR/BE)
   « Business review grand compte » (Réel / Budget / N-1 / Prévision mensuels, janv. 2025 → déc. 2026)
-  et son préréglage « Revue mensuelle (norme) ».
+  et son préréglage « Revue mensuelle (norme) », et trois exemples « barres racontées » (étape I, Norvia, fictifs).
 - **Import sécurisé** : SheetJS **0.20.3** (CDN officiel SheetJS, corrige CVE-2023-30533 et CVE-2024-22363 ; la version npm 0.18.5
   n'est plus utilisée). Limites (`IMPORT_LIMITS`, `data/files.ts`) : fichier ≤ 20 Mo, ≤ 100 000 lignes, ≤ 2 000 colonnes,
   ≤ 2 millions de cellules par feuille, texte collé ≤ 20 Mo ; au-delà, message clair en français (« Gardez seulement l'onglet utile… »).
@@ -385,6 +385,31 @@ les QR (cartouche, PowerPoint) et les noms d'images publiées (`publie/<revue>/<
 à suffixe d'empreinte (`…-88z5ap`, `…-14j5oil`, `…-1051jsm`) ouvrent toujours la bonne diapositive
 (`matchSnapshotId`, `story/scenarios.ts`).
 
+## Barres racontées : icônes, pictogrammes, objectif, mise en avant (étape I)
+
+Pour les barres simples (verticales ou horizontales, hors mode norme), **② Graphique › Extrémité des barres** propose :
+
+- **Icône** : une pastille au bout de chaque barre, avec une icône choisie d'après le nom de la catégorie
+  (dictionnaire français / anglais : Hébergement → nuage, Équipe → personnes, Licences → clé, Serveurs, Logistique →
+  camion, Agences → bâtiments…). Pas de correspondance → pas d'icône. **Plus d'options › Icône par catégorie** : « Auto »,
+  « Aucune » ou une icône choisie dans la liste (libellés en français). Une seule mesure, sans série.
+- **Pictos** (isotype) : icônes pleines jointives dans la barre ; l'unité (1, 2 ou 5 × 10ⁿ) est calculée pour garder des
+  icônes lisibles, la dernière est coupée à la valeur exacte ; la clé « icône = 50 k€ » est en haut à droite.
+- **Objectif** : 1re mesure = réalisé, 2e = objectif. Repère d'objectif sur chaque barre, pastille verte (atteint) ou rouge
+  (non atteint), étiquette « 255 k€ · 116 % » toujours au-delà du repère. Le récit devient « 4 commerciaux sur 6 ont atteint
+  leur objectif » (meilleur taux, manques, taux global).
+
+**③ Récit › Plus d'options › Mise en avant** : une barre en couleur (catégorie choisie ou « la plus grande »), les autres
+en gris, une **annotation reliée** à la barre (titre et texte calculés — valeur, part du total, « N fois la moyenne des
+autres » — ou saisis) et la ligne **« Moyenne des autres »** (derrière les barres, jamais sur une étiquette). Toucher
+l'annotation ouvre ces réglages ; toucher une icône ouvre « Extrémité des barres ».
+
+Tout est en SVG (chemins d'icônes intégrés, aucune police d'icônes) : rendu identique en SVG, PNG, vidéo et PowerPoint.
+Icônes [Phosphor](https://phosphoricons.com) (graisses regular et fill), **licence MIT** : `src/charts/icons/LICENSE-phosphor.txt`,
+publiée avec le Studio dans `licences/phosphor-icons-MIT.txt`. Le jeu (77 icônes) est régénéré par
+`node studio/scripts/gen-phosphor.mjs [dossier @phosphor-icons/core]`. Exemples fictifs (Norvia) : « Budget informatique
+par poste », « Dossiers en retard par gestionnaire », « Objectifs commerciaux T3 2026 ».
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -413,6 +438,7 @@ les QR (cartouche, PowerPoint) et les noms d'images publiées (`publie/<revue>/<
 | `review/*` | Revues partagées : modèle, stockage, démo Norvia, pages liste / partager / participant / réunion / compte rendu, `review.css` |
 | `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage du cartouche |
 | `provenance.ts` | Empreinte des données (SHA-256), provenance, lien de vérification (construction / lecture), `VERIFY_BASE` |
+| `charts/barDeco.ts`, `charts/icons/*` | Barres racontées (étape I) : choix pur (icône, pictogrammes, objectif, mise en avant), icônes Phosphor (MIT) en chemins SVG, dictionnaire nom → icône |
 | `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Datanime |
 | `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |

@@ -31,6 +31,7 @@ import { effectiveDataset, describeTransform } from "../data/transform";
 import { KIND_LABELS, type InsightKind } from "../story/insights";
 import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
+import { categoryIcon, iconChoices, iconFor, iconSvg, ICON_LABELS } from "../charts/icons";
 import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
@@ -126,6 +127,8 @@ export class SettingsPanel {
       spec.norme.enabled,
       spec.norme.autoSwitch,
       spec.special.mapRegion,
+      spec.style.barCap,
+      !!spec.style.focus.key,
       ds?.columns.map((c) => c.type),
     ]);
     if (key !== this.key) {
@@ -614,6 +617,7 @@ export class SettingsPanel {
     if (t === "groupedBar" || t === "stackedBar")
       main.push(this.kw(this.line("Orientation", this.segmented("style.horizontal", [["false", "Verticales"], ["true", "Horizontales"]], { parse: (v) => v === "true" })), "barres horizontales verticales"));
     if (isCartesian(t) && t !== "scatter") main.push(this.check("style.valueLabels", "Étiquettes de valeur", undefined, "valeurs libellés chiffres sur les barres"));
+    if ((t === "bar" || t === "barH") && !spec.norme.enabled) main.push(this.capTiles(spec));
     if (t === "line" || t === "area" || t === "stackedArea" || (isCartesian(t) && spec.encoding.y2)) main.push(this.kw(this.line("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])), "ligne lissage"));
     if (isCartesian(t) || isRadial(t)) {
       main.push(this.kw(this.line("Unité et décimales", this.select("axes.y.unit", UNITS.map((u) => [u, UNIT_LABELS[u]] as Opt)), this.stepper("axes.y.decimals")), "unité euros € k€ M€ pourcentage % décimales virgule format nombre"));
@@ -633,6 +637,10 @@ export class SettingsPanel {
     }
     if (t === "drill") main.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → jour), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
 
+    if ((t === "bar" || t === "barH") && !spec.norme.enabled && (spec.style.barCap === "icon" || spec.style.barCap === "picto")) {
+      const g = this.iconRows(spec, cols);
+      if (g) more.push(g);
+    }
     if (!isSpecial(t)) more.push(this.row("Légende", this.select("style.legend", [["auto", "Auto"], ["top", "En haut"], ["bottom", "En bas"], ["right", "À droite"], ["none", "Aucune"]]), undefined, "légende position"));
     if (t === "stackedBar" || t === "stackedArea") more.push(this.check("style.normalize", "Empilement 100 %", undefined, "pourcentage part"));
     if (isCartesian(t)) {
@@ -672,7 +680,9 @@ export class SettingsPanel {
       this.kw(h("div", { class: "field" }, labelWithBadge("À retenir (1 à 3 points)", "comments"), ...comments), "commentaires points à retenir"),
       this.check("story.showComments", "Afficher sur le graphique", undefined, "commentaires à retenir"),
     ];
-    const more: Kid[] = [this.row("Source / note", this.text("style.source", "Source : …", 300), undefined, "source note pied")];
+    const more: Kid[] = [];
+    if ((spec.type === "bar" || spec.type === "barH") && !spec.norme.enabled) more.push(this.focusGroup(spec));
+    more.push(this.row("Source / note", this.text("style.source", "Source : …", 300), undefined, "source note pied"));
     if (spec.norme.enabled) {
       more.push(this.row("Entité (qui)", this.text("norme.entity", "ex. Norvia SA (sinon : nom de l'organisation)", 80), "Alimente le sous-titre de la norme", "norme sous-titre"));
       more.push(this.row("Mesure (quoi)", this.text("norme.measure", "ex. Chiffre d’affaires (sinon : nom de colonne)", 80), undefined, "norme sous-titre"));
@@ -828,6 +838,86 @@ export class SettingsPanel {
     }
     more.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Cartouche ${PRODUCT_LABEL} toujours présent : logo, lien vers la plateforme, date de génération, date d'import des données, source et empreinte. L'option QR masque seulement le QR.`));
     return this.sectionEl("export", main, more);
+  }
+
+  /** Catégories (axe X) du jeu de données courant, dans l'ordre d'apparition (12 au plus). */
+  private categories(spec: ChartSpec, max = 40): string[] {
+    const ds = this.store.state.ds;
+    const x = spec.encoding.x;
+    if (!ds || !x) return [];
+    const seen = new Set<string>();
+    for (const r of effectiveDataset(spec, ds).rows) {
+      const v = r[x];
+      if (v == null || v === "") continue;
+      seen.add(String(v));
+      if (seen.size >= max) break;
+    }
+    return [...seen];
+  }
+
+  /** « Extrémité des barres » : Aucune / Icône / Pictos / Objectif (étape I). */
+  private capTiles(spec: ChartSpec): HTMLElement {
+    const multi = !!spec.encoding.series || spec.encoding.y.length > 1;
+    const canGoal = spec.encoding.y.length >= 2 && !spec.encoding.series;
+    const cur = spec.style.barCap;
+    const opts: [string, string, string, boolean, string][] = [
+      ["none", "minus", "Aucune", true, "Barres simples"],
+      ["icon", "cloud", "Icône", !multi, multi ? "Une seule mesure, sans série" : "Pastille avec icône au bout de chaque barre (choisie d'après le nom)"],
+      ["picto", "users-three", "Pictos", !multi, multi ? "Une seule mesure, sans série" : "Pictogrammes : une icône = une unité (isotype)"],
+      ["goal", "flag-checkered", "Objectif", canGoal, canGoal ? "1re mesure = réalisé, 2e = objectif : repère et pastille atteint / non atteint" : "Choisissez deux mesures (réalisé, objectif) dans Données"],
+    ];
+    const tiles = h(
+      "div",
+      { class: "segmented tiles-cap", role: "radiogroup", "aria-label": "Extrémité des barres", "data-path": "style.barCap", "data-testid": "bar-cap" },
+      ...opts.map(([v, ic, l, ok, title]) =>
+        h("button", { type: "button", role: "radio", class: v === cur ? "active" : "", "aria-checked": v === cur ? "true" : "false", "data-value": v, title, disabled: !ok && v !== cur, onclick: () => this.store.set("style.barCap", v) }, h("span", { class: "cap-ic", html: iconSvg(ic, 18) }), l)
+      )
+    );
+    const warn = cur === "goal" && !canGoal ? h("small", { class: "hint warn" }, "Objectif : choisissez deux mesures (réalisé, objectif) dans ① Données.") : cur !== "none" && cur !== "goal" && multi ? h("small", { class: "hint warn" }, "Icônes et pictogrammes : une seule mesure, sans série.") : null;
+    return this.kw(h("div", { class: "field", "data-target": "barCap" }, h("span", { class: "field-label" }, "Extrémité des barres"), tiles, warn), "extrémité barres icône icones pictogrammes pictos isotype objectif cible coiffe");
+  }
+
+  /** Icône par catégorie (Plus d'options) : automatique d'après le nom, ou choisie. */
+  private iconRows(spec: ChartSpec, cols: Column[]): HTMLElement | null {
+    const xc = cols.find((c) => c.name === spec.encoding.x);
+    if (!xc || xc.type === "number" || xc.type === "date") return null;
+    const cats = this.categories(spec, 12);
+    if (!cats.length) return null;
+    const choices = iconChoices();
+    const rows = cats.map((c) => {
+      const auto = iconFor(c);
+      const cur = spec.style.capIcons[c];
+      const sel = h(
+        "select",
+        { "data-icon-for": c, "data-testid": "icon-select", "aria-label": `Icône pour « ${c} »` },
+        h("option", { value: "@auto", selected: cur === undefined }, auto ? `Auto · ${ICON_LABELS[auto] ?? auto}` : "Auto · aucune"),
+        h("option", { value: "", selected: cur === "" }, "Aucune"),
+        ...choices.map(([n, l]) => h("option", { value: n, selected: cur === n }, l))
+      );
+      sel.addEventListener("change", () => {
+        const next = { ...this.store.state.spec.style.capIcons };
+        if (sel.value === "@auto") delete next[c];
+        else next[c] = sel.value;
+        this.store.set("style.capIcons", next);
+      });
+      const ic = categoryIcon(c, spec.style.capIcons);
+      return h("label", { class: "field field-inline icon-row" }, h("span", { class: "icon-prev", html: ic ? iconSvg(ic, 16) : "" }), h("span", { class: "field-label" }, c), sel);
+    });
+    return this.group("icones", "Icône par catégorie", ...rows, h("p", { class: "muted small" }, "Auto : choisie d'après le nom (dictionnaire français / anglais) ; pas de correspondance → pas d'icône. ", h("a", { href: "licences/phosphor-icons-MIT.txt", target: "_blank", rel: "noopener", "data-licence": "phosphor" }, "Icônes Phosphor (licence MIT)"), "."));
+  }
+
+  /** Mise en avant d'une barre (mode focus) : les autres en gris, annotation reliée, moyenne des autres. */
+  private focusGroup(spec: ChartSpec): HTMLElement {
+    const cats = this.categories(spec, 40);
+    const on = !!spec.style.focus.key;
+    return this.group(
+      "focus",
+      "Mise en avant",
+      this.row("Barre mise en avant", this.select("style.focus.key", [["@max", "La plus grande (auto)"], ...cats.map((c) => [c, c] as Opt)], true), "Les autres barres passent en gris", "focus mise en avant barre annotée annotation"),
+      on && this.row("Titre de l'annotation", this.text("style.focus.title", "Calculé : valeur et part du total", 120), undefined, "annotation focus titre bulle"),
+      on && this.row("Texte de l'annotation", this.text("style.focus.note", "Calculé : comparaison à la moyenne des autres", 200), undefined, "annotation focus note bulle"),
+      on && this.check("style.focus.average", "Ligne « Moyenne des autres »", undefined, "moyenne focus")
+    );
   }
 
   /** Colonne de temps pour la 4D : celle déjà choisie, sinon X si c'est une date, sinon la 1re date. */

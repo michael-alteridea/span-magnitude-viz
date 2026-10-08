@@ -31,7 +31,11 @@ import { canOverlapScenarios, drawScenarioBars, hatchPattern, normeActive, serie
 import { rows as tipRows, shareRow, tip, type TipData } from "./tip";
 import { SCENARIO_NAMES } from "../norme";
 import { normeDecimals, scenarioStyle } from "../norme";
-import { ellipsize, measure } from "./text";
+import { ellipsize, measure, wrap } from "./text";
+import { barDeco, focusTexts, pictoUnit } from "./barDeco";
+import { categoryIcon, drawIcon } from "./icons";
+import { VARIANCE_NEG, VARIANCE_POS } from "../theme";
+import { isGood } from "../norme";
 
 type ValueScale = ScaleLinear<number, number> | ScaleLogarithmic<number, number>;
 
@@ -169,7 +173,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   const horizontal = t === "barH" || (bars && spec.style.horizontal && t !== "bar");
   const stacked = t === "stackedBar" || t === "stackedArea";
   const normalize = stacked && spec.style.normalize;
-  const grouped = t === "groupedBar" || (t === "bar" && model.series.length > 1) || (t === "barH" && model.series.length > 1);
+  let grouped = t === "groupedBar" || (t === "bar" && model.series.length > 1) || (t === "barH" && model.series.length > 1);
   const nK = model.keys.length;
   const nS = model.series.length;
   const yAxis: AxisSpec = normalize ? { ...spec.axes.y, unit: "pct", min: 0, max: 100, scale: "linear" } : spec.axes.y;
@@ -188,6 +192,53 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   // ---- étendues
   let ext = prep.domains.y && !normalize ? prep.domains.y : catExtent(model, stacked, normalize);
   if (ctx.sharedMax != null && !normalize && spec.axes.y.max == null) ext = [Math.min(0, ext[0]), Math.max(ext[1], ctx.sharedMax)];
+
+  // ---- barres racontées (étape I) : icône, pictogrammes, objectif, barre mise en avant + annotation
+  const deco = barDeco(spec, model, bars && !stacked && !normalize && !norme);
+  const goal = deco.cap === "goal";
+  if (goal) grouped = false;
+  const focusK = deco.focusK;
+  const lenEst = horizontal ? rect.w * 0.78 : rect.h * 0.8;
+  const bandEst = (((horizontal ? rect.h : rect.w) * 0.85) / Math.max(1, nK)) * 0.76;
+  const capEst = Math.max(9 * s, Math.min(18 * s, bandEst * 0.34));
+  const fmtDeco = valueFormatter(yAxis);
+  const callFs = 14.5 * s;
+  const noteFs = 12 * s;
+  const callPad = 12 * s;
+  let callout: { title: string[]; note: string[]; w: number; h: number; icon: string | null; avg: number | null } | null = null;
+  if (focusK != null) {
+    const label = model.labels[focusK] ?? "";
+    const vals = model.values[0] ?? [];
+    const tx = focusTexts(label, vals[focusK] ?? 0, vals, focusK, fmtDeco, spec.style.focus);
+    const icon = deco.icons[focusK] ?? categoryIcon(label, spec.style.capIcons);
+    const iconW = icon ? 34 * s : 0;
+    const maxW = horizontal ? lenEst * 0.44 : Math.min(rect.w * 0.52, 480 * s);
+    const inner = Math.max(80 * s, maxW - 2 * callPad - iconW);
+    // lignes équilibrées : plus petite largeur qui garde le même nombre de lignes (pas de mot orphelin)
+    const balanced = (t: string, fs: number, wt: number, maxL: number) => {
+      const ref = wrap(t, inner, fs, font, wt, maxL);
+      if (ref.length < 2) return ref;
+      let lo = inner * 0.4;
+      let hi = inner;
+      for (let i = 0; i < 12; i++) {
+        const mid = (lo + hi) / 2;
+        const tryL = wrap(t, mid, fs, font, wt, maxL);
+        if (tryL.length === ref.length && tryL.join(" ") === ref.join(" ")) hi = mid;
+        else lo = mid;
+      }
+      return wrap(t, hi, fs, font, wt, maxL);
+    };
+    const title = balanced(tx.title, callFs, 700, 2);
+    const note = tx.note ? balanced(tx.note, noteFs, 400, 3) : [];
+    const w = Math.max(...title.map((l) => measure(l, callFs, font, 700)), ...note.map((l) => measure(l, noteFs, font)), 60 * s) + 2 * callPad + iconW;
+    const h = 2 * callPad + title.length * callFs * 1.2 + (note.length ? 5 * s + note.length * noteFs * 1.35 : 0);
+    callout = { title, note, w, h, icon, avg: tx.avg };
+  }
+  let reserve = 0;
+  if (deco.cap === "icon" || goal) reserve = horizontal ? capEst * 2 + 64 * s : capEst + 18 * s;
+  if (deco.cap === "picto") reserve = horizontal ? 110 * s : 28 * s;
+  if (callout) reserve = Math.max(reserve, (horizontal ? callout.w : callout.h) + (horizontal ? 40 : 30) * s + (horizontal ? 0 : reserve));
+  if (reserve > 0 && spec.axes.y.max == null && ext[1] > 0 && !ctx.sharedMax) ext = [ext[0], ext[1] / Math.max(0.4, 1 - reserve / lenEst)];
   const includeZero = bars || t === "area" || t === "stackedArea";
   const hasY2 = !!model.y2 && spec.encoding.y2 != null;
   const y2ext = prep.domains.y2 ?? y2Extent(model) ?? [0, 1];
@@ -333,15 +384,16 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         const p = xc(i);
         const text = ellipsize(lab, Math.max(labW, 30 * s), fs, font);
         if (horizontal) {
-          ga.append("text").attr("x", -10 * s).attr("y", p).attr("dy", "0.35em").attr("text-anchor", "end").text(text);
+          ga.append("text").attr("x", -10 * s).attr("y", p).attr("dy", "0.35em").attr("text-anchor", "end").attr("data-k", i).text(text);
         } else if (rotate) {
           ga.append("text")
             .attr("transform", `translate(${p},${ph + 10 * s}) rotate(-38)`)
             .attr("text-anchor", "end")
             .attr("dy", "0.35em")
+            .attr("data-k", i)
             .text(text);
         } else {
-          ga.append("text").attr("x", p).attr("y", ph + 8 * s + fs * 0.8).attr("text-anchor", "middle").text(text);
+          ga.append("text").attr("x", p).attr("y", ph + 8 * s + fs * 0.8).attr("text-anchor", "middle").attr("data-k", i).text(text);
         }
       });
       ga.selectAll("text").attr("fill", theme.muted).attr("font-size", fs).attr("font-family", font);
@@ -385,10 +437,14 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       .domain(model.series.map((_, i) => i))
       .range([0, band.bandwidth()])
       .paddingInner(grouped && nS > 1 ? 0.08 : 0);
-    const labels: { x: number; y: number; text: string; anchor: string; inside: boolean; color: string }[] = [];
-    for (let si = 0; si < nS; si++) {
-      const color = colors[si % colors.length]!;
+    const labels: { x: number; y: number; text: string; anchor: string; inside: boolean; color: string; bold?: boolean }[] = [];
+    const greyFocus = theme.dark ? "#4a4a52" : "#c4c4c8";
+    const placed: { k: number; c0: number; thick: number; pa: number; pb: number; raw: number; full: boolean; color: string }[] = [];
+    const capR = (thick: number) => Math.max(8 * s, Math.min(18 * s, thick * 0.34));
+    for (let si = 0; si < (goal ? 1 : nS); si++) {
+      const baseColor = colors[si % colors.length]!;
       for (let k = 0; k < nK; k++) {
+        const color = focusK != null && k !== focusK ? greyFocus : baseColor;
         const raw = model.values[si]![k]!;
         if (!Number.isFinite(raw)) continue;
         const f = stagger(build, k, nK) * revealFactor(k);
@@ -417,6 +473,9 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
           ? gm.append("rect").attr("x", Math.min(pa, pb)).attr("y", c0).attr("width", Math.abs(pb - pa)).attr("height", thick)
           : gm.append("rect").attr("x", c0).attr("y", Math.min(pa, pb)).attr("width", thick).attr("height", Math.abs(pb - pa));
         r.attr("fill", color).attr("rx", stacked ? 0 : rx);
+        if (deco.cap === "picto") r.attr("fill-opacity", 0.1);
+        if (focusK === k) r.attr("class", "r4d-focus-bar");
+        if (deco.cap !== "none" || focusK != null) placed.push({ k, c0, thick, pa, pb, raw, full: f >= 1, color });
         if (stacked) r.attr("stroke", theme.bg).attr("stroke-width", Math.max(0.5, 1 * s));
         const st = scn(si);
         if (st) r.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("fill", st.fill).attr("stroke", st.stroke).attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s).attr("rx", 0);
@@ -429,15 +488,33 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
             if ((horizontal ? len > tw + 8 * s && thick > 12 * s : len > 15 * s && thick > tw + 4 * s))
               labels.push({ x: horizontal ? (pa + pb) / 2 : c0 + thick / 2, y: horizontal ? c0 + thick / 2 : (pa + pb) / 2, text: valTxt, anchor: "middle", inside: true, color });
           } else if (nK * nS <= 60) {
-            labels.push(
-              horizontal
-                ? { x: pb + (raw >= base ? 6 : -6) * s, y: c0 + thick / 2, text: valTxt, anchor: raw >= base ? "start" : "end", inside: false, color }
-                : { x: c0 + thick / 2, y: pb + (raw >= base ? -7 : 14) * s, text: valTxt, anchor: "middle", inside: false, color }
-            );
+            const hasCap = (deco.cap === "icon" && !!deco.icons[k]) || (goal && Number.isFinite(model.values[1]?.[k] ?? NaN));
+            const off = hasCap ? capR(thick) + 3 * s : deco.cap === "picto" ? 5 * s : 0;
+            const tv = goal ? model.values[1]?.[k] : undefined;
+            const text = goal && tv && Number.isFinite(tv) && tv > 0 ? `${valTxt} · ${Math.round((raw / tv) * 100)} %` : valTxt;
+            const len = Math.abs(pb - pa);
+            if (focusK != null && k !== focusK && !hasCap && len > (horizontal ? measure(valTxt, 11 * s, font) + 12 * s : 22 * s) && thick > (horizontal ? 13 * s : measure(valTxt, 11 * s, font) + 4 * s))
+              // mode focus : valeurs des autres barres dans la barre (gris), la barre mise en avant garde la sienne au-dessus
+              labels.push(horizontal ? { x: pb - 6 * s, y: c0 + thick / 2, text, anchor: "end", inside: true, color } : { x: c0 + thick / 2, y: pb + 14 * s, text, anchor: "middle", inside: true, color });
+            else if (goal && tv != null && Number.isFinite(tv) && raw >= base && tv >= base) {
+              // objectif : l'étiquette passe au-delà du repère s'il dépasse la barre (pas de trait sur le texte)
+              const tp = v(tv);
+              labels.push(
+                horizontal
+                  ? { x: Math.max(pb + off, tp + 3 * s) + 6 * s, y: c0 + thick / 2, text, anchor: "start", inside: false, color }
+                  : { x: c0 + thick / 2, y: Math.min(pb - off, tp - 3 * s) - 7 * s, text, anchor: "middle", inside: false, color }
+              );
+            } else
+              labels.push(
+                horizontal
+                  ? { x: pb + (raw >= base ? 6 * s + off : -6 * s - off), y: c0 + thick / 2, text, anchor: raw >= base ? "start" : "end", inside: false, color, bold: focusK === k }
+                  : { x: c0 + thick / 2, y: pb + (raw >= base ? -7 * s - off : 14 * s + off), text, anchor: "middle", inside: false, color, bold: focusK === k }
+              );
           }
         }
       }
     }
+    if (placed.length) drawBarDeco(gm, g, { ctx, deco, placed, horizontal, capR, v, base, pw, ph, fmt: fmtDeco, model, callout, callFs, noteFs, callPad });
     const gl = gm.append("g").attr("class", "r4d-value-labels");
     for (const l of labels) {
       gl.append("text")
@@ -445,10 +522,11 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         .attr("y", l.y)
         .attr("dy", horizontal || l.inside ? "0.35em" : null)
         .attr("text-anchor", l.anchor)
-        .attr("font-size", (l.inside ? 11 : 12) * s)
+        .attr("font-size", (l.inside ? 11 : l.bold ? 13.5 : 12) * s)
         .attr("font-weight", 700)
         .attr("font-family", font)
-        .attr("fill", l.inside ? "#ffffff" : theme.text)
+        .attr("fill", l.inside ? (!theme.dark && l.color === "#c4c4c8" ? "#27272a" : "#ffffff") : theme.text)
+        .attr("font-weight", 700)
         .text(l.text);
     }
   } else {
@@ -681,4 +759,188 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
     if (showLabels && p.label)
       gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f).text(p.label);
   });
+}
+
+/* ------------------------------------------------------------------ barres racontées (étape I) */
+
+interface DecoArgs {
+  ctx: DrawCtx;
+  deco: import("./barDeco").BarDeco;
+  placed: { k: number; c0: number; thick: number; pa: number; pb: number; raw: number; full: boolean; color: string }[];
+  horizontal: boolean;
+  capR: (thick: number) => number;
+  v: (x: number) => number;
+  base: number;
+  pw: number;
+  ph: number;
+  fmt: (v: number) => string;
+  model: CatModel;
+  callout: { title: string[]; note: string[]; w: number; h: number; icon: string | null; avg: number | null } | null;
+  callFs: number;
+  noteFs: number;
+  callPad: number;
+}
+
+/** Pictogrammes, pastilles d'icône, repères d'objectif (sous les étiquettes), puis annotation et moyenne (au-dessus). */
+function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
+  const { ctx, deco, placed, horizontal: hz, capR, v, base, pw, ph, fmt, model } = a;
+  const { theme, s, font, spec } = ctx;
+  const gd = gm.append("g").attr("class", "r4d-bar-deco");
+  const at = (p: { c0: number; thick: number }, along: number) => (hz ? { x: along, y: p.c0 + p.thick / 2 } : { x: p.c0 + p.thick / 2, y: along });
+
+  if (deco.cap === "picto") {
+    const max = Math.max(...placed.map((p) => p.raw), 0);
+    const thick = placed[0]?.thick ?? 20 * s;
+    const lenMax = Math.abs(v(max) - v(base));
+    // isotype : icônes pleines, jointives, de taille fixe ; l'unité (1, 2 ou 5 × 10ⁿ) en découle
+    const want = Math.max(10 * s, Math.min(thick * 0.82, 30 * s));
+    const target = Math.max(3, Math.min(24, Math.floor(lenMax / (want * 1.12))));
+    const u = pictoUnit(max - base, target);
+    const step = Math.abs(v(base + u) - v(base));
+    const size = Math.min(want, step * 0.92);
+    const uid = Math.random().toString(36).slice(2, 8);
+    const one = (gg: G, icon: string | null, cx: number, cy: number, color: string) => {
+      if (icon) drawIcon(gg, icon, cx, cy, size, color, "r4d-picto", true);
+      else gg.append("circle").attr("class", "r4d-picto").attr("cx", cx).attr("cy", cy).attr("r", size * 0.38).attr("fill", color);
+    };
+    for (const p of placed) {
+      const n = (p.raw - base) / u;
+      if (!(n > 0)) continue;
+      const icon = deco.icons[p.k] ?? null;
+      for (let j = 0; j < Math.ceil(n - 1e-6); j++) {
+        const c = at(p, v(base + (j + 0.5) * u));
+        const frac = Math.min(1, n - j);
+        if (frac < 0.12) continue; // reste trop petit pour être lisible : la barre pâle porte la valeur exacte
+        if (frac >= 0.999) one(gd, icon, c.x, c.y, p.color);
+        else {
+          // dernière icône coupée à la valeur exacte (sens de lecture)
+          const id = `r4d-pc-${uid}-${p.k}`;
+          const lo = hz ? c.x - size / 2 : c.y + size / 2;
+          const cut = lo + (hz ? size * frac : -size * frac);
+          gd.append("clipPath").attr("id", id).append("rect").attr("x", hz ? lo : c.x - size).attr("y", hz ? c.y - size : cut).attr("width", hz ? size * frac : size * 2).attr("height", hz ? size * 2 : size * frac);
+          one(gd.append("g").attr("clip-path", `url(#${id})`), icon, c.x, c.y, p.color);
+        }
+      }
+    }
+    // clé : « ● = 10 k€ » en haut à droite du tracé
+    const keyIcon = deco.icons.find(Boolean) ?? null;
+    const txt = `= ${fmt(u)}`;
+    const kfs = 12 * s;
+    const kw = measure(txt, kfs, font, 700);
+    const gk = g.append("g").attr("class", "r4d-picto-key");
+    const kx = pw - kw;
+    const ky = hz ? ph - 10 * s : 10 * s;
+    if (keyIcon) drawIcon(gk, keyIcon, kx - 12 * s, ky, 16 * s, theme.text, "r4d-picto", true);
+    else gk.append("circle").attr("cx", kx - 12 * s).attr("cy", ky).attr("r", 5.5 * s).attr("fill", theme.text);
+    gk.append("text").attr("x", kx).attr("y", ky).attr("dy", "0.35em").attr("font-size", kfs).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).text(txt);
+  }
+
+  if (deco.cap === "icon" || deco.cap === "goal") {
+    for (const p of placed) {
+      if (!p.full) continue;
+      const r = capR(p.thick);
+      const c = at(p, p.pb);
+      if (deco.cap === "goal") {
+        const tv = model.values[1]?.[p.k];
+        if (tv == null || !Number.isFinite(tv)) continue;
+        const good = isGood(p.raw - tv, spec.variance.polarity === "lower");
+        const col = good ? VARIANCE_POS : VARIANCE_NEG;
+        const tp = v(tv);
+        const m = hz
+          ? gd.append("line").attr("x1", tp).attr("x2", tp).attr("y1", p.c0 - 4 * s).attr("y2", p.c0 + p.thick + 4 * s)
+          : gd.append("line").attr("x1", p.c0 - 4 * s).attr("x2", p.c0 + p.thick + 4 * s).attr("y1", tp).attr("y2", tp);
+        m.attr("class", "r4d-goal-mark").attr("stroke", theme.text).attr("stroke-width", 2.5 * s).attr("stroke-linecap", "round");
+        tip(m, { t: model.labels[p.k] ?? "", sub: model.series[1] ?? "Objectif", v: fmt(tv), rows: [] } as TipData);
+        const gc = gd.append("g").attr("class", "r4d-cap r4d-goal-cap").attr("data-goal", good ? "atteint" : "manque");
+        gc.append("circle").attr("cx", c.x).attr("cy", c.y).attr("r", r).attr("fill", col).attr("stroke", theme.bg).attr("stroke-width", 1.5 * s);
+        drawIcon(gc, good ? "check" : "warning", c.x, c.y, r * 1.15, "#ffffff");
+      } else {
+        const icon = deco.icons[p.k];
+        if (!icon) continue;
+        const gc = gd.append("g").attr("class", "r4d-cap");
+        gc.append("circle").attr("cx", c.x).attr("cy", c.y).attr("r", r).attr("fill", theme.bg).attr("stroke", p.color).attr("stroke-width", 2 * s);
+        drawIcon(gc, icon, c.x, c.y, r * 1.15, p.color === "#4a4a52" || p.color === "#c4c4c8" ? theme.muted : p.color);
+      }
+    }
+  }
+
+  // ---- barre mise en avant : libellé de catégorie en gras, moyenne des autres, annotation reliée
+  const fp = deco.focusK != null ? placed.find((p) => p.k === deco.focusK) : undefined;
+  if (!fp) return;
+  g.selectAll<SVGTextElement, unknown>(`.r4d-axis-x text[data-k="${fp.k}"]`).attr("fill", theme.text).attr("font-weight", 700);
+  const co = a.callout;
+  if (!co || !fp.full) return;
+  const accent = theme.dark ? "#3FA7C4" : "#0E6E8C";
+  if (spec.style.focus.average && co.avg != null && Number.isFinite(co.avg)) {
+    // trait derrière les barres (lisible dans les intervalles, jamais sur une étiquette), libellé devant
+    const gl = g.insert("g", ".r4d-marks").attr("class", "r4d-avg r4d-avg-line");
+    const ga = g.append("g").attr("class", "r4d-avg");
+    const p = v(co.avg);
+    const ln = hz ? gl.append("line").attr("x1", p).attr("x2", p).attr("y1", 0).attr("y2", ph) : gl.append("line").attr("x1", 0).attr("x2", pw).attr("y1", p).attr("y2", p);
+    ln.attr("stroke", theme.muted).attr("stroke-width", 1.2 * s).attr("stroke-dasharray", `${5 * s} ${4 * s}`);
+    const lab = `Moyenne des autres : ${fmt(co.avg)}`;
+    const lfs = 11.5 * s;
+    if (hz) ga.append("text").attr("x", p + 5 * s).attr("y", -6 * s).attr("font-size", lfs).attr("font-family", font).attr("fill", theme.muted).text(lab);
+    else {
+      // au-dessus de la ligne, sauf si une barre (autre que la mise en avant) dépasse sous l'étiquette
+      const lw = measure(lab, lfs, font);
+      const clash = placed.some((q) => q.k !== fp.k && q.c0 + q.thick > pw - lw - 4 * s && Math.min(q.pa, q.pb) < p - 2 * s);
+      ga.append("text").attr("x", pw).attr("y", clash ? p + 15 * s : p - 6 * s).attr("text-anchor", "end").attr("font-size", lfs).attr("font-family", font).attr("fill", theme.muted).text(lab);
+    }
+  }
+  const gc = g.append("g").attr("class", "r4d-callout");
+  const end = at(fp, fp.pb);
+  let bx: number;
+  let by: number;
+  let from: { x: number; y: number };
+  let to: { x: number; y: number };
+  const gap = 26 * s;
+  if (!hz) {
+    by = 4 * s;
+    const right = fp.c0 + fp.thick + gap;
+    const left = fp.c0 - gap - co.w;
+    if (right + co.w <= pw) {
+      bx = right;
+      from = { x: bx, y: by + co.h / 2 };
+      to = { x: fp.c0 + fp.thick + 3 * s, y: Math.max(end.y + 12 * s, by + co.h + 6 * s) };
+    } else if (left >= 0) {
+      bx = left;
+      from = { x: bx + co.w, y: by + co.h / 2 };
+      to = { x: fp.c0 - 3 * s, y: Math.max(end.y + 12 * s, by + co.h + 6 * s) };
+    } else {
+      bx = Math.max(0, Math.min(pw - co.w, end.x - co.w / 2));
+      from = { x: end.x, y: by + co.h };
+      to = { x: end.x, y: end.y - 26 * s };
+    }
+  } else {
+    bx = pw - co.w;
+    by = Math.max(0, Math.min(ph - co.h, end.y - co.h / 2));
+    from = { x: bx, y: by + co.h / 2 };
+    // le lien vise la fin de l'étiquette de valeur (jamais par-dessus le chiffre)
+    const lw = spec.style.valueLabels ? measure(fmt(fp.raw), 13.5 * s, font, 700) + 10 * s : 0;
+    to = { x: end.x + 8 * s + lw, y: end.y };
+  }
+  if (Math.hypot(to.x - from.x, to.y - from.y) > 8 * s) {
+    const mid = hz ? { x: (from.x + to.x) / 2, y: from.y } : { x: to.x, y: from.y };
+    gc.append("path")
+      .attr("class", "r4d-callout-link")
+      .attr("d", `M${from.x},${from.y} Q${mid.x},${mid.y} ${to.x},${to.y}`)
+      .attr("fill", "none")
+      .attr("stroke", accent)
+      .attr("stroke-width", 2 * s);
+    gc.append("circle").attr("cx", to.x).attr("cy", to.y).attr("r", 3.5 * s).attr("fill", accent);
+  }
+  gc.append("rect").attr("x", bx).attr("y", by).attr("width", co.w).attr("height", co.h).attr("rx", 10 * s).attr("fill", theme.dark ? "#0c2a33" : "#eef6f9").attr("stroke", accent).attr("stroke-width", 1.5 * s);
+  let tx = bx + a.callPad;
+  if (co.icon) {
+    drawIcon(gc, co.icon, tx + 11 * s, by + a.callPad + a.callFs * 0.6, 22 * s, accent);
+    tx += 34 * s;
+  }
+  co.title.forEach((l, i) =>
+    gc.append("text").attr("class", "r4d-callout-title").attr("x", tx).attr("y", by + a.callPad + a.callFs * 0.85 + i * a.callFs * 1.2).attr("font-size", a.callFs).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).text(l)
+  );
+  const ny = by + a.callPad + co.title.length * a.callFs * 1.2 + 5 * s;
+  co.note.forEach((l, i) =>
+    gc.append("text").attr("class", "r4d-callout-note").attr("x", tx).attr("y", ny + a.noteFs * 0.9 + i * a.noteFs * 1.35).attr("font-size", a.noteFs).attr("font-family", font).attr("fill", theme.muted).text(l)
+  );
 }

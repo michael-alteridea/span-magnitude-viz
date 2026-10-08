@@ -130,6 +130,17 @@ describe("construction du manifeste", () => {
     expect(changed).not.toBe(prints[0]);
   });
 
+  it("réglages de l'étape I à leur valeur par défaut : empreinte inchangée (pas de faux « contenu changé »)", async () => {
+    const demo = (await demoReadingStory("demo-dircom"))!;
+    const s0 = demo.snapshots[0]!;
+    const spec = s0.spec as { style: Record<string, unknown> };
+    const { barCap: _b, capIcons: _c, focus: _f, ...oldStyle } = spec.style;
+    const before = await snapshotFingerprint({ ...s0, spec: { ...spec, style: oldStyle } });
+    expect(await snapshotFingerprint(s0)).toBe(before);
+    expect(await snapshotFingerprint({ ...s0, spec: { ...spec, style: { ...spec.style, barCap: "icon" } } })).not.toBe(before);
+    expect(await snapshotFingerprint({ ...s0, spec: { ...spec, style: { ...spec.style, focus: { key: "@max", title: "", note: "", average: true } } } })).not.toBe(before);
+  });
+
   it("manifeste téléchargé (histoire locale) : images intégrées, sans SVG, liens de lecture null (non partagés)", async () => {
     const input = await pipelineInput();
     const id = await localStoryManifestId(input.snapshots.map((x) => x.snap.id));

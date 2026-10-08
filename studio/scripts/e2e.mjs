@@ -290,6 +290,87 @@ try {
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "72-panneau-accordeon.png") });
   }
 
+  /* I. Barres racontées : icône au bout des barres (Phosphor), pictogrammes, objectif, barre mise en avant annotée */
+  {
+    const load = async (id) => {
+      await page.evaluate((i) => window.r4d.loadSample(i), id);
+      await sleep(400);
+      await page.evaluate(() => window.r4d.settle());
+      await sleep(1600);
+    };
+    const tapAt = async (sel) => {
+      const r = await page.$eval(sel, (e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; });
+      await page.mouse.click(r.x, r.y);
+      await sleep(400);
+      return page.evaluate(() => ({ rev: document.querySelector("[data-testid=settings-panel]").getAttribute("data-revealed"), open: document.querySelector("[data-testid=settings-panel] .acc-s.open")?.dataset.section }));
+    };
+    await load("postes");
+    await page.evaluate(() => window.r4d.panel().open("graphique"));
+    const ic = await page.evaluate(() => ({
+      caps: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-cap [data-icon]")].map((e) => e.dataset.icon),
+      tiles: [...document.querySelectorAll("[data-testid=bar-cap] button")].map((b) => `${b.dataset.value}${b.classList.contains("active") ? "*" : ""}${b.disabled ? "!" : ""}`),
+      lic: !!document.querySelector('a[href*="licences/phosphor-icons-MIT.txt"], [data-licence="phosphor"]'),
+    }));
+    check("icône au bout des barres : 6 pastilles Phosphor choisies d'après le nom (Hébergement → nuage, Équipe → personnes…), licence MIT liée", ic.lic && ic.caps.join() === "cloud,users,key,hard-drives,truck,buildings" && ic.tiles.join() === "none,icon*,picto,goal!", `${ic.caps.join()} · tuiles ${ic.tiles.join()}`);
+    await shotStage("73-barres-icones.png");
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "74-panneau-extremite-barres.png") });
+    // icône choisie pour une catégorie (Plus d'options › Icône par catégorie)
+    await page.select('[data-icon-for="Équipe"]', "headset");
+    await sleep(500);
+    const forced = await page.evaluate(() => ({ cfg: window.r4d.getSpec().style.capIcons, icon: document.querySelectorAll("[data-testid=chart-svg] .r4d-cap [data-icon]")[1]?.dataset.icon }));
+    await page.select('[data-icon-for="Équipe"]', "@auto");
+    await sleep(300);
+    const back = await page.evaluate(() => window.r4d.getSpec().style.capIcons);
+    check("icône par catégorie : choix forcé (Équipe → casque) puis retour à « Auto »", forced.cfg["Équipe"] === "headset" && forced.icon === "headset" && Object.keys(back).length === 0, JSON.stringify({ forced, back }));
+    await domClick('[data-testid=bar-cap] [data-value="picto"]');
+    await sleep(400);
+    await page.evaluate(() => window.r4d.settle());
+    await sleep(1200);
+    const pc = await page.evaluate(() => ({
+      n: document.querySelectorAll("[data-testid=chart-svg] .r4d-bar-deco .r4d-picto").length,
+      key: document.querySelector("[data-testid=chart-svg] .r4d-picto-key text")?.textContent ?? "",
+      cap: window.r4d.getSpec().style.barCap,
+    }));
+    check("pictogrammes : icônes pleines jointives, clé « icône = unité ronde »", pc.cap === "picto" && pc.n >= 15 && /^= \d+[\s\u00a0\u202f]k€$/.test(pc.key), JSON.stringify(pc));
+    await shotStage("75-barres-pictogrammes.png");
+    const tc = await tapAt("[data-testid=chart-svg] .r4d-bar-deco .r4d-picto");
+    check("toucher un pictogramme → Graphique › Extrémité des barres", tc.open === "graphique" && /style\.barCap/.test(tc.rev ?? ""), JSON.stringify(tc));
+
+    await load("dossiers");
+    const fo = await page.evaluate(() => {
+      const svg = document.querySelector("[data-testid=chart-svg]");
+      const fills = [...svg.querySelectorAll(".r4d-marks > rect")].map((r) => r.getAttribute("fill"));
+      return {
+        callout: svg.querySelector(".r4d-callout")?.textContent ?? "",
+        link: !!svg.querySelector(".r4d-callout-link"),
+        avg: svg.querySelector(".r4d-avg text")?.textContent ?? "",
+        focus: svg.querySelectorAll(".r4d-focus-bar").length,
+        grey: fills.filter((f) => f === "#c4c4c8" || f === "#4a4a52").length,
+        bold: svg.querySelector('.r4d-axis-x text[font-weight="700"]')?.textContent ?? "",
+      };
+    });
+    check("barre mise en avant : couleur pour Julie M., les autres en gris, annotation reliée, « Moyenne des autres »", fo.focus === 1 && fo.grey === 5 && fo.link && /Julie M\. absente, pas de relais/.test(fo.callout) && /^Moyenne des autres : 10$/.test(fo.avg) && fo.bold === "Julie M.", JSON.stringify(fo));
+    await shotStage("76-barre-annotee.png");
+    const ta = await tapAt("[data-testid=chart-svg] .r4d-callout rect");
+    const fk = await page.evaluate(() => document.querySelector('[data-testid=settings-panel] select[data-path="style.focus.key"]')?.value);
+    check("toucher l'annotation → Récit › Mise en avant (barre, titre, texte)", ta.open === "recit" && ta.rev === "recit:focus" && fk === "Julie M.", JSON.stringify({ ta, fk }));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "77-toucher-annotation.png") });
+
+    await load("objectifs");
+    const go = await page.evaluate(() => {
+      const svg = document.querySelector("[data-testid=chart-svg]");
+      const caps = [...svg.querySelectorAll(".r4d-goal-cap")].map((e) => e.dataset.goal);
+      // aucune étiquette de valeur barrée par un repère d'objectif
+      const marks = [...svg.querySelectorAll(".r4d-goal-mark")].map((m) => m.getBoundingClientRect());
+      const labs = [...svg.querySelectorAll(".r4d-value-labels text")].map((t) => t.getBoundingClientRect());
+      const crossed = labs.filter((l) => marks.some((m) => m.left < l.right && m.right > l.left && m.top < l.bottom && m.bottom > l.top)).length;
+      return { caps, crossed, title: svg.querySelector(".r4d-title")?.textContent ?? "", legend: svg.querySelector(".r4d-legend")?.textContent ?? "" };
+    });
+    const ok4 = go.caps.filter((c) => c === "atteint").length;
+    check("objectif : repère par barre, pastille verte (atteint) / rouge (manque), titre « 4 commerciaux sur 6 ont atteint leur objectif »", go.caps.length === 6 && ok4 === 4 && go.crossed === 0 && go.title.replace(/\s+/g, " ") === "4 commerciaux sur 6 ont atteint leur objectif" && /Objectif/.test(go.legend), JSON.stringify(go));
+    await shotStage("78-barres-objectif.png");
+  }
+
   /* 1. Collage type Excel (tabulations, virgule décimale, mois FR) */
   const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
   const lines = ["Mois\tRégion\tVentes (€)\tMarge (%)\tCommandes"];

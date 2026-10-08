@@ -10,7 +10,7 @@ import { isRadial } from "../spec";
 import type { Dataset } from "../data/table";
 import { columnOf } from "../data/table";
 import { effectiveDataset } from "../data/transform";
-import { ANALYZERS, basisOf, makeCtx, type Analysis, type Ctx, type InsightKind, type StoryContext } from "./insights";
+import { analyzeGoal, ANALYZERS, basisOf, makeCtx, type Analysis, type Ctx, type InsightKind, type StoryContext } from "./insights";
 import { capitalize, clip, dayMonthYear, measureLabel, periodLabel } from "./fr";
 import { SCENARIO_LABELS } from "./roles";
 import { normeSubtitle, specScenarios } from "../norme";
@@ -119,7 +119,8 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
   let a: Analysis | null = null;
   try {
     const k = spec.story.kind as InsightKind | null;
-    if (k && ANALYZERS[k] && spec.story.basis === basisOf(spec)) a = ANALYZERS[k](spec, eff, ctx);
+    if ((spec.type === "bar" || spec.type === "barH") && spec.style.barCap === "goal" && !spec.norme?.enabled) a = analyzeGoal(spec, eff, ctx);
+    if (!a && k && ANALYZERS[k] && spec.story.basis === basisOf(spec)) a = ANALYZERS[k](spec, eff, ctx);
     if (!a) a = pickGeneric(generic(spec, eff), spec, eff, ctx);
   } catch {
     a = null;
@@ -138,7 +139,7 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
 
 /** Clé de recalcul du récit (ne dépend pas des textes affichés). */
 export function narrativeKey(spec: ChartSpec, dsVersion: number, sc: StoryContext): string {
-  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.type === "drill" ? spec.drill : null]);
+  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.style.barCap, spec.type === "drill" ? spec.drill : null]);
 }
 
 /**

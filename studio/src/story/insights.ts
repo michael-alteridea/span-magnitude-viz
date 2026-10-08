@@ -482,7 +482,7 @@ const analyzeConcentration: Analyzer = (spec, eff, ctx) => {
   else title = `${count(N, noun.sg, noun.pl)} concentrent ${formatPct(share)} ${partitive(mLabel)}`;
   const comments = [
     `${pairs[0]!.l} : ${formatPct(c.shares[0]!)} à ${agree(noun, "lui seul", "elle seule")} (${fm(pairs[0]!.v, u)}).`,
-    N > 1 ? `Les ${N} ${agree(noun, "premiers", "premières")} ${noun.pl} : ${joinList(names)}.` : `${pairs[1]!.l} suit avec ${formatPct(c.shares[1]!)}.`,
+    N > 1 ? `Les ${N} ${agree(noun, "premiers", "premières")} ${noun.pl} : ${joinList(names)}.`.replace(/\.\.$/, ".") : `${pairs[1]!.l} suit avec ${formatPct(c.shares[1]!)}.`,
     K - N === 1 ? `${agree(noun, "Le dernier", "La dernière")} ${noun.sg} pèse ${formatPct(1 - share)}.` : `Les ${count(K - N, noun.sg, noun.pl)} ${agree(noun, "restants", "restantes")} se partagent ${formatPct(1 - share)}.`,
   ];
   const uniform = N / K;
@@ -497,6 +497,56 @@ const analyzeConcentration: Analyzer = (spec, eff, ctx) => {
     facts: { n: N, share, top1: c.shares[0]!, categories: K, total: c.total },
   };
 };
+
+/**
+ * Objectif atteint ou non (barres « Objectif », étape I) : 1re mesure = réalisé, 2e = objectif.
+ * Compte les catégories qui atteignent leur objectif, meilleur taux, manques et taux global.
+ */
+export function analyzeGoal(spec: ChartSpec, eff: Dataset, ctx: Ctx): Analysis | null {
+  const [yr, yo] = spec.encoding.y;
+  const xCol = columnOf(eff, spec.encoding.x);
+  if (!yr || !yo || !xCol || spec.encoding.series) return null;
+  const real = keyTotals({ ...spec, encoding: { ...spec.encoding, y: [yr] } }, eff);
+  const goal = keyTotals({ ...spec, encoding: { ...spec.encoding, y: [yo] } }, eff);
+  if (!real || !goal) return null;
+  const gi = new Map(goal.labels.map((l, i) => [l, goal.totals[i]!]));
+  const rows = real.labels
+    .map((l, i) => ({ l, r: real.totals[i]!, o: gi.get(l) ?? NaN }))
+    .filter((p) => Number.isFinite(p.r) && Number.isFinite(p.o) && p.o > 0)
+    .map((p) => ({ ...p, q: p.r / p.o }));
+  if (rows.length < 2) return null;
+  const u = measureUnit(spec, yr, ctx);
+  const noun = nounOf(xCol.name);
+  const K = rows.length;
+  const ok = rows.filter((p) => p.r >= p.o);
+  const miss = rows.filter((p) => p.r < p.o).sort((a, b) => a.q - b.q);
+  const best = [...rows].sort((a, b) => b.q - a.q)[0]!;
+  const sr = rows.reduce((t, p) => t + p.r, 0);
+  const so = rows.reduce((t, p) => t + p.o, 0);
+  const title =
+    ok.length === K
+      ? `${agree(noun, "Tous les", "Toutes les")} ${noun.pl} ont atteint leur objectif`
+      : ok.length === 0
+        ? `${agree(noun, "Aucun", "Aucune")} ${noun.sg} n'atteint son objectif`
+        : `${ok.length} ${noun.pl} sur ${K} ont atteint leur objectif`;
+  const comments = [
+    `${best.l} : ${formatPct(best.q)} de l'objectif (${fm(best.r, u)} pour ${fm(best.o, u)}).`,
+    miss.length
+      ? `Sous l'objectif : ${joinList(miss.map((p) => p.l))} (manque ${fm(miss.reduce((t, p) => t + p.o - p.r, 0), u)}).`
+      : `Plus petite marge : ${[...rows].sort((a, b) => a.q - b.q)[0]!.l} à ${formatPct([...rows].sort((a, b) => a.q - b.q)[0]!.q)} de l'objectif.`,
+    `Ensemble : ${formatPct(sr / so)} de l'objectif (${fm(sr, u)} pour ${fm(so, u)}).`,
+  ];
+  return {
+    kind: "ranking",
+    title,
+    comments: comments.map((c) => c.replace(/\.\.$/, ".")),
+    why: `${ok.length} sur ${K} au-dessus de l'objectif ; ensemble ${formatPct(sr / so)}.`,
+    role: "revelation",
+    effect: S.clamp01(Math.abs(1 - sr / so) * 3),
+    coverage: 1,
+    facts: { atteints: ok.length, categories: K, taux: sr / so, best: best.l },
+  };
+}
 
 /** Classement / dispersion : meilleur, moins bon, écart à la moyenne. */
 const analyzeRanking: Analyzer = (spec, eff, ctx) => {

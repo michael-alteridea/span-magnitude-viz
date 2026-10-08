@@ -166,6 +166,8 @@ const NOUNS: [RegExp, string, string, boolean][] = [
   [/^nature/i, "nature", "natures", true],
   [/^version|sc[ée]nario/i, "version", "versions", true],
   [/produit|product/i, "produit", "produits", false],
+  [/gestionnaire|charg[ée]e? de/i, "gestionnaire", "gestionnaires", false],
+  [/^postes?\b|poste de/i, "poste", "postes", false],
   [/commercial|vendeur|owner|propri[ée]taire|sales/i, "commercial", "commerciaux", false],
   [/canal|channel/i, "canal", "canaux", false],
   [/[ée]tape|stage|phase/i, "étape", "étapes", true],
@@ -246,7 +248,7 @@ export function clip(s: string, n: number): string {
 }
 
 const FEM = /^(marge|valeur|vente|quantit|d[ée]pense|commande|recette|production|consommation|charge|facturation|livraison|part|population|surface|capacit|prime|remise|perte|dette|tr[ée]sorerie|activit|demande|offre)/i;
-const PLURAL_MEASURES = /^(ventes|commandes|d[ée]penses|leads|clients|recettes|charges|livraisons|heures|unit[ée]s|effectifs|achats|pertes|primes|remises|visites|inscriptions)\b/i;
+const PLURAL_MEASURES = /^(ventes|commandes|d[ée]penses|leads|clients|recettes|charges|livraisons|heures|unit[ée]s|effectifs|achats|pertes|primes|remises|visites|inscriptions|dossiers|tickets|incidents|jours|demandes|factures|contrats|projets|appels|retards|absences)\b/i;
 
 /** Article partitif devant une mesure : « du montant », « de la marge », « de l'EBITDA », « des ventes ». */
 export function partitive(label: string): string {

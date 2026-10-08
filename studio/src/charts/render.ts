@@ -244,6 +244,12 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
     if (spec.style.legend === "auto" || spec.style.legend === "none") return [];
     return slicesOf(model, colors).map((s) => ({ label: s.label, color: s.color, shape: "square" }));
   }
+  // Objectif (étape I) : réalisé en barres, objectif en repère
+  if ((t === "bar" || t === "barH") && spec.style.barCap === "goal" && model.kind === "cat" && model.series.length >= 2 && !spec.encoding.series && !norme)
+    return [
+      { label: model.series[0]!, color: colors[0]!, shape: "square" },
+      { label: model.series[1]!, color: neutral, shape: "line" },
+    ];
   const items: LegendItem[] = [];
   const shape: LegendItem["shape"] = t === "line" ? "line" : "square";
   if (model.series.length > 1 || spec.encoding.series || (spec.encoding.y2 && model.series.length >= 1))

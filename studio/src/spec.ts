@@ -229,6 +229,27 @@ export const styleSchema = z.object({
   brandMark: z.boolean().default(true),
   /** QR d'empreinte des données dans le cartouche (masque seulement le QR, jamais le cartouche). */
   authQr: z.boolean().default(true),
+  /**
+   * Extrémité des barres (étape I) — barres simples (une série) : « icon » = pastille avec icône Phosphor au bout de la
+   * barre, « picto » = pictogrammes (isotype, une icône = une unité), « goal » = réalisé (1re mesure) vs objectif
+   * (2e mesure) avec repère et pastille atteint / non atteint.
+   */
+  barCap: z.enum(["none", "icon", "picto", "goal"]).default("none"),
+  /** Icône choisie par catégorie (nom Phosphor ; "" = aucune). Catégorie absente : icône automatique d'après son nom. */
+  capIcons: z.record(z.string(), z.string().max(40)).default({}),
+  /** Barre mise en avant (« mode focus ») : les autres en gris, annotation reliée à la barre, moyenne des autres. */
+  focus: z
+    .object({
+      /** Catégorie mise en avant, « @max » = la plus grande, null = aucune. */
+      key: z.string().max(200).nullable().default(null),
+      /** Titre de l'annotation ("" = calculé : valeur et part du total). */
+      title: z.string().max(120).default(""),
+      /** Texte de l'annotation ("" = calculé : comparaison à la moyenne des autres). */
+      note: z.string().max(200).default(""),
+      /** Ligne « Moyenne des autres ». */
+      average: z.boolean().default(true),
+    })
+    .default({}),
   /** Réservé V2 : identifiant de charte de marque. */
   charterId: z.string().nullable().default(null),
 });

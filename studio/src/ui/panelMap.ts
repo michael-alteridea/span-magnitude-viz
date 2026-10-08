@@ -86,12 +86,14 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
     if (lab) g.push(lab);
   }
   if (isVariance(t) || (spec.norme.enabled && !isSpecial(t) && t !== "drill")) g.push(spec.variance.polarity === "lower" ? "moins = mieux" : "plus = mieux");
+  if ((t === "bar" || t === "barH") && !spec.norme.enabled && s.barCap !== "none") g.push(s.barCap === "icon" ? "icônes" : s.barCap === "picto" ? "pictogrammes" : "objectif");
   if (t === "map") g.push(spec.special.mapRegion === "europe" ? "Europe" : "France · Belgique");
   if (t === "film") g.push(spec.special.geometry === "arc" ? "arcs" : spec.special.geometry === "bar" ? "barres" : "points");
   /* Récit */
   const n = spec.story.comments.filter((c) => (c ?? "").trim()).length;
   const titre = s.title.trim() ? `Titre ${spec.story.edited.title ? "modifié" : "calculé"}` : "Sans titre";
-  const recit = `${titre} · ${n ? `${n} point${n > 1 ? "s" : ""} à retenir` : "aucun point à retenir"}${n && !spec.story.showComments ? " (masqués)" : ""}`;
+  let recit = `${titre} · ${n ? `${n} point${n > 1 ? "s" : ""} à retenir` : "aucun point à retenir"}${n && !spec.story.showComments ? " (masqués)" : ""}`;
+  if ((t === "bar" || t === "barH") && !spec.norme.enabled && s.focus.key) recit += ` · mise en avant : ${s.focus.key === "@max" ? "la plus grande" : s.focus.key}`;
   /* Style */
   const style = `${BG_LABEL[s.background] ?? s.background} · ${spec.norme.enabled ? "Norme (gris)" : PALETTE_LABELS[s.palette].replace(/\s*\(défaut\)/, "")}`;
   /* Export */
@@ -134,6 +136,9 @@ export function chartTarget(el: Element | null, t: ChartType, norme: boolean): P
   if (c(".r4d-stamp")) return { section: "export", paths: ["mode.fourD.stamp", "anim"] };
   if (c(".r4d-cartouche, .r4d-qr, .r4d-qr-plate, .r4d-fingerprint")) return { section: "export", paths: ["style.authQr"] };
   if (c(".r4d-accent")) return { section: "style", paths: ["style.accentBar"] };
+  if (c(".r4d-callout, .r4d-callout-link")) return { section: "recit", paths: ["style.focus.title", "style.focus.key"], group: "focus" };
+  if (c(".r4d-avg")) return { section: "recit", paths: ["style.focus.average", "style.focus.key"], group: "focus" };
+  if (c(".r4d-bar-deco, .r4d-cap, .r4d-picto-key")) return { section: "graphique", paths: ["style.barCap"] };
   if (c(".r4d-legend")) return { section: "graphique", paths: ["style.legend"] };
   if (c(".r4d-axis-y2")) return { section: "graphique", paths: ["axes.y2.title"], group: "axe-y2" };
   if (c(".r4d-axis-y")) return { section: "graphique", paths: ["axes.y.show"], group: "axe-y" };

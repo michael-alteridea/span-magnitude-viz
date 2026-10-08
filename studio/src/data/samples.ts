@@ -316,6 +316,36 @@ function businessReviewRows(): Record<string, unknown>[] {
   return rows;
 }
 
+/** Budget informatique par poste (barres à icônes) : 6 postes × 9 mois 2026, fictif. */
+function postesRows(): Record<string, unknown>[] {
+  const r = rng(91);
+  const postes: [string, number][] = [["Hébergement", 412000], ["Équipe", 368000], ["Licences", 214000], ["Serveurs", 156000], ["Logistique", 98000], ["Agences", 74000]];
+  const rows: Record<string, unknown>[] = [];
+  for (const [p, total] of postes) {
+    const w = Array.from({ length: 9 }, () => 0.8 + r() * 0.4);
+    const sw = w.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    w.forEach((x, m) => {
+      const v = m === 8 ? total - acc : Math.round((total * x) / sw / 100) * 100;
+      acc += v;
+      rows.push({ Mois: `2026-${String(m + 1).padStart(2, "0")}-01`, Poste: p, "Dépenses (€)": v });
+    });
+  }
+  return rows;
+}
+
+/** Dossiers en attente depuis plus de 10 jours, par gestionnaire (barre mise en avant), fictif. */
+function dossiersRows(): Record<string, unknown>[] {
+  const data: [string, number][] = [["Julie M.", 47], ["Karim B.", 14], ["Sophie L.", 12], ["Thomas R.", 9], ["Nadia E.", 8], ["Lucas P.", 6]];
+  return data.map(([g, n]) => ({ Gestionnaire: g, "Dossiers en retard": n, Semaine: "2026-W36" }));
+}
+
+/** Réalisé vs objectif du T3 2026 par commercial (objectif), fictif. */
+function objectifsRows(): Record<string, unknown>[] {
+  const data: [string, number, number][] = [["Paul G.", 255000, 220000], ["Léa D.", 212000, 200000], ["Marc V.", 280000, 262000], ["Inès K.", 261000, 238000], ["Emma T.", 184000, 210000], ["Hugo R.", 176000, 215000]];
+  return data.map(([c, r, o]) => ({ Commercial: c, "Réalisé (€)": r, "Objectif (€)": o }));
+}
+
 export const SAMPLES: Sample[] = [
   {
     id: "ventes",
@@ -402,6 +432,47 @@ export const SAMPLES: Sample[] = [
       variance: { show: "abs", polarity: "higher" },
       norme: { enabled: true, entity: "Alteridea SA", measure: "Chiffre d’affaires" },
       style: { source: "Source : business review de démonstration Alteridea · réel au 30/09/2026, prévision oct.–déc.", valueLabels: true },
+    },
+  },
+  {
+    id: "postes",
+    name: "Budget informatique par poste",
+    description: "6 postes de dépenses, janv. → sept. 2026 · barres à icônes (Phosphor, choisies d'après le nom) · Norvia, fictif",
+    rows: postesRows,
+    spec: {
+      type: "bar",
+      encoding: { x: "Poste", y: ["Dépenses (€)"], series: null, aggregate: "sum" },
+      axes: { y: { unit: "keur", decimals: 0, title: "" }, x: { grid: false } },
+      style: { source: "Source : contrôle de gestion Norvia (données fictives)", sort: "desc", valueLabels: true, barCap: "icon" },
+    },
+  },
+  {
+    id: "dossiers",
+    name: "Dossiers en retard par gestionnaire",
+    description: "Dossiers en attente depuis plus de 10 jours, semaine 36 · barre mise en avant et annotation · Norvia, fictif",
+    rows: dossiersRows,
+    spec: {
+      type: "bar",
+      encoding: { x: "Gestionnaire", y: ["Dossiers en retard"], series: null, aggregate: "sum" },
+      axes: { y: { unit: "none", decimals: 0, title: "" }, x: { grid: false } },
+      style: {
+        source: "Source : outil de gestion des dossiers Norvia (données fictives)",
+        sort: "desc",
+        valueLabels: true,
+        focus: { key: "Julie M.", title: "Julie M. absente, pas de relais", note: "Absente du 17 août au 4 sept. : 47 dossiers bloqués, 49 % du stock", average: true },
+      },
+    },
+  },
+  {
+    id: "objectifs",
+    name: "Objectifs commerciaux T3 2026",
+    description: "Réalisé vs objectif par commercial · repère d'objectif et pastille atteint / non atteint · Norvia, fictif",
+    rows: objectifsRows,
+    spec: {
+      type: "barH",
+      encoding: { x: "Commercial", y: ["Réalisé (€)", "Objectif (€)"], series: null, aggregate: "sum" },
+      axes: { y: { unit: "keur", decimals: 0, title: "" }, x: { grid: false } },
+      style: { source: "Source : CRM Norvia (données fictives)", sort: "desc", valueLabels: true, barCap: "goal" },
     },
   },
   {
