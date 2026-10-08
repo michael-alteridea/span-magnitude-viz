@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 5 — Axes · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 5 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Axes</h1>
+    <p class="lead">axisBottom / axisLeft : légender domain & range sans bricolage.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar mike">M</div>
+          <div class="bubble">Des barres sans échelle, c’est du décor. J’ai besoin de ticks !</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>d3.axisBottom(x)</code> lit ton scale et dessine ticks + labels. Un <code>g</code> les accueille.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <div class="controls">
+      <button type="button" id="btn-axis">Tracer axes</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">x = mois · y = budget</div>
+      <svg id="svg5" width="340" height="220" viewBox="0 0 340 220"></svg>
+    </div>
+    <pre><code>svg.append("g")
+  .attr("transform", "translate(0,180)")
+  .call(d3.axisBottom(x).ticks(5));
+svg.append("g")
+  .attr("transform", "translate(40,0)")
+  .call(d3.axisLeft(y).ticks(4));</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> L’axe partage le même <code>scale</code> que les marques.</label>
+      <label class="check"><input type="checkbox"> <code>transform</code> place le groupe d’axe.</label>
+      <label class="check"><input type="checkbox"> Pour une timeline span-magnitude, x = temps.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-04.html">← Leçon 4</a>
+      <a href="lecon-06.html">Suite → Leçon 6</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+document.getElementById("btn-axis").onclick = () => {
+  const svg = d3.select("#svg5");
+  svg.selectAll("*").remove();
+  const margin = {t:20, r:20, b:40, l:48};
+  const W = 340, H = 220;
+  const x = d3.scaleLinear().domain([0, 20]).range([margin.l, W - margin.r]);
+  const y = d3.scaleLinear().domain([0, 100]).range([H - margin.b, margin.t]);
+  const data = [{m:6,b:35},{m:12,b:70},{m:18,b:50}];
+  svg.append("g").attr("transform", `translate(0,${H-margin.b})`)
+    .call(d3.axisBottom(x).ticks(5)).attr("font-size", 12);
+  svg.append("g").attr("transform", `translate(${margin.l},0)`)
+    .call(d3.axisLeft(y).ticks(4)).attr("font-size", 12);
+  svg.selectAll("circle").data(data).join("circle")
+    .attr("cx", d => x(d.m)).attr("cy", d => y(d.b))
+    .attr("r", 10).attr("fill", "#d62839");
+};
+// auto-draw once
+document.getElementById("btn-axis").click();
+
+  </script>
+</body>
+</html>

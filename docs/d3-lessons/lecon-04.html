@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 4 — Formes SVG · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 4 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Formes SVG</h1>
+    <p class="lead">rect, circle, line, path — dessiner des marques à partir des données.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator">SVG = scène vectorielle. Chaque forme a des attributs (x, y, width, r, d…).</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="bubble tip">Pour span-magnitude : un <code>rect</code> (ou arc) dont <strong>width</strong> = durée et <strong>height</strong> = intensité.</div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <p>Trois projets jouets : durée (mois) → largeur, budget → hauteur.</p>
+    <div class="controls">
+      <button type="button" id="btn-draw4">Dessiner</button>
+      <button type="button" class="ghost" id="btn-shuffle4">Mélanger</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">rect = span × magnitude</div>
+      <svg id="svg4" width="340" height="200" viewBox="0 0 340 200"></svg>
+    </div>
+    <pre><code>svg.selectAll("rect").data(projets).join("rect")
+  .attr("x", 20).attr("y", (d,i) => 20 + i*55)
+  .attr("width", d => x(d.mois))
+  .attr("height", d => y(d.budget))
+  .attr("fill", "#d62839");</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Identifie quel attr = span, lequel = magnitude.</label>
+      <label class="check"><input type="checkbox"> Touche Mélanger : les barres changent, le code reste le même.</label>
+      <label class="check"><input type="checkbox"> Bonus : un <code>circle</code> encoderait plutôt un point-événement.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-03.html">← Leçon 3</a>
+      <a href="lecon-05.html">Suite → Leçon 5</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+let projets = [
+  {nom:"Alpha", mois:8, budget:40},
+  {nom:"Beta", mois:14, budget:70},
+  {nom:"Gamma", mois:5, budget:25}
+];
+const x = d3.scaleLinear().domain([0, 20]).range([0, 280]);
+const y = d3.scaleLinear().domain([0, 100]).range([12, 42]);
+function draw4() {
+  const svg = d3.select("#svg4");
+  svg.selectAll("*").remove();
+  svg.selectAll("rect").data(projets).join("rect")
+    .attr("x", 40).attr("y", (d,i) => 25 + i*55)
+    .attr("width", d => x(d.mois))
+    .attr("height", d => y(d.budget))
+    .attr("rx", 6).attr("fill", "#d62839");
+  svg.selectAll("text").data(projets).join("text")
+    .attr("x", 36).attr("y", (d,i) => 22 + i*55)
+    .attr("text-anchor", "end").attr("font-size", 12).attr("font-weight", 700)
+    .attr("fill", "#5a5a5a").text(d => d.nom);
+}
+document.getElementById("btn-draw4").onclick = draw4;
+document.getElementById("btn-shuffle4").onclick = () => {
+  projets = projets.map(p => ({...p, mois: 3+Math.floor(Math.random()*16), budget: 15+Math.floor(Math.random()*80)}));
+  draw4();
+};
+draw4();
+
+  </script>
+</body>
+</html>

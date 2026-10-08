@@ -1,0 +1,29 @@
+D3 en 10 leçons — crash course Alteridea (Michael)
+==================================================
+iPad-friendly · hors-ligne · accent #d62839
+
+Contenu
+-------
+  index.html          Sommaire tactile
+  lecon-01.html … 10  Leçons BD + labo D3 + exercices
+  shared.css          Styles communs
+  vendor/d3.min.js    D3 v7 (offline)
+
+Sur iPad
+--------
+1. Copie ce dossier dans Fichiers (iCloud / OneDrive / « Sur mon iPad »).
+2. Ouvre index.html avec Safari (partage → Safari) ou un lecteur HTML offline.
+3. Pas besoin de réseau : D3 est local.
+
+Sur Windows
+-----------
+Double-clic index.html dans le navigateur, ou sers le dossier :
+  npx serve .
+
+Leçons (~15 min)
+----------------
+1 Données→DOM  2 Sélections  3 Échelles  4 Formes SVG  5 Axes
+6 Joins enter/update/exit  7 Transitions  8 Couleur  9 Interaction
+10 Assemblage → grammaire span-magnitude
+
+Zip compagnon : d3-lecons-ipad.zip (même contenu)

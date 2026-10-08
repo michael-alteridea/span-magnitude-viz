@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 3 — Échelles · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 3 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Échelles</h1>
+    <p class="lead">scaleLinear : domain (données) → range (pixels). Le GPS de la viz.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar mike">M</div>
+          <div class="bubble">Mes projets durent 3 à 48 mois… comment ça tient en 300 px ?</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>scaleLinear().domain([3,48]).range([0,300])</code> — magie proportionnelle.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <p>Glisse (ou tape) pour changer la valeur. L’échelle place le curseur.</p>
+    <div class="controls">
+      <label style="font-weight:700">Valeur <span id="valLabel">24</span></label>
+      <input id="slider" type="range" min="0" max="100" value="24" style="width:min(100%,280px);height:44px;accent-color:#d62839" />
+    </div>
+    <div class="stage">
+      <div class="stage-label">domain [0,100] → range [20,300]</div>
+      <svg id="svg3" width="320" height="80" viewBox="0 0 320 80">
+        <line x1="20" y1="40" x2="300" y2="40" stroke="#e8ddd8" stroke-width="6" stroke-linecap="round"></line>
+        <circle id="dot3" cx="20" cy="40" r="14" fill="#d62839"></circle>
+        <text id="txt3" x="20" y="70" text-anchor="middle" font-weight="800" fill="#1a1a1a" font-size="13">0</text>
+      </svg>
+    </div>
+    <pre><code>const x = d3.scaleLinear().domain([0, 100]).range([20, 300]);
+dot.attr("cx", x(valeur));</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Domain = monde des données ; range = monde des pixels.</label>
+      <label class="check"><input type="checkbox"> Imagine domain = [début, fin] d’un projet (span).</label>
+      <label class="check"><input type="checkbox"> Et une 2ᵉ échelle pour la hauteur = magnitude.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-02.html">← Leçon 2</a>
+      <a href="lecon-04.html">Suite → Leçon 4</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+const x = d3.scaleLinear().domain([0, 100]).range([20, 300]);
+const slider = document.getElementById("slider");
+function update() {
+  const v = +slider.value;
+  document.getElementById("valLabel").textContent = v;
+  d3.select("#dot3").attr("cx", x(v));
+  d3.select("#txt3").attr("x", x(v)).text(v);
+}
+slider.addEventListener("input", update);
+update();
+
+  </script>
+</body>
+</html>

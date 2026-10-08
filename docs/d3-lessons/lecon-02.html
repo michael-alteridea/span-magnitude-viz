@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 2 — Sélections · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 2 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Sélections</h1>
+    <p class="lead">select / selectAll + attr / style / text / html — ton pinceau DOM.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>d3.select</code> = un élément. <code>selectAll</code> = une troupe. Ensuite on enchaîne.</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="bubble tip">Chaînage fluide : <code>.attr().style().text()</code> — chaque appel renvoie la sélection.</div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <p>Trois boutons, trois styles. Observe le cercle SVG.</p>
+    <div class="controls">
+      <button type="button" id="btn-rouge">Rouge Alteridea</button>
+      <button type="button" class="ghost" id="btn-gros">Plus gros</button>
+      <button type="button" class="ghost" id="btn-label">Étiquette</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">SVG 280×160</div>
+      <svg id="svg2" width="280" height="160" viewBox="0 0 280 160">
+        <circle id="cible" cx="140" cy="80" r="40" fill="#2b2d42"></circle>
+        <text id="label2" x="140" y="86" text-anchor="middle" fill="#fff" font-weight="800" font-size="14"></text>
+      </svg>
+    </div>
+    <pre><code>d3.select("#cible").attr("fill", "#d62839");
+d3.select("#cible").attr("r", 55);
+d3.select("#label2").text("Boom");</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Différence <code>select</code> vs <code>selectAll</code> claire ?</label>
+      <label class="check"><input type="checkbox"> Essaie les 3 boutons dans un ordre différent.</label>
+      <label class="check"><input type="checkbox"> Note : <code>attr</code> pour SVG (r, cx), <code>style</code> pour CSS.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-01.html">← Leçon 1</a>
+      <a href="lecon-03.html">Suite → Leçon 3</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+d3.select("#btn-rouge").on("click", () => {
+  d3.select("#cible").attr("fill", "#d62839");
+});
+d3.select("#btn-gros").on("click", () => {
+  d3.select("#cible").attr("r", 55);
+});
+d3.select("#btn-label").on("click", () => {
+  d3.select("#label2").text("Boom");
+});
+
+  </script>
+</body>
+</html>
