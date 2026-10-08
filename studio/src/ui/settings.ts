@@ -304,7 +304,7 @@ export class SettingsPanel {
     st.push(this.row("Palette", this.select("style.palette", PALETTE_KEYS.map((p) => [p, PALETTE_LABELS[p]] as Opt))));
     st.push(this.swatches(spec));
     if (spec.style.palette === "custom") {
-      const inp = h("input", { type: "text", value: spec.style.paletteCustom.join(", "), placeholder: "#d62839, #1d4ed8, …" });
+      const inp = h("input", { type: "text", value: spec.style.paletteCustom.join(", "), placeholder: "#0E6E8C, #3FA7C4, #8A9BA3, …" });
       inp.addEventListener("change", () => {
         const list = inp.value.split(/[\s,;]+/).map((x) => x.trim()).filter((x) => /^#[0-9a-fA-F]{6}$/.test(x));
         this.store.set("style.paletteCustom", list);
@@ -320,7 +320,7 @@ export class SettingsPanel {
     if (isBarType(t) || isRadial(t)) st.push(this.row("Tri des catégories", this.select("style.sort", [["none", "Ordre des données"], ["desc", "Décroissant"], ["asc", "Croissant"], ["alpha", "Alphabétique"]])));
     if (t === "groupedBar" || t === "stackedBar") st.push(this.check("style.horizontal", "Barres horizontales"));
     if (t === "stackedBar" || t === "stackedArea") st.push(this.check("style.normalize", "Empilement 100 %"));
-    st.push(this.check("style.accentBar", "Filet rouge Alteridea"));
+    st.push(this.check("style.accentBar", "Filet d'accent devant le titre"));
     st.push(this.check("style.brandMark", "Signature « Reporting 4D · alteridea »"));
     out.push(this.section("style", "Style", ...st));
 

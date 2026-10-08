@@ -92,6 +92,9 @@ export const UNIT_LABELS: Record<UnitKey, string> = {
 };
 
 export const PALETTE_KEYS = [
+  "petrole",
+  "petroleMono",
+  "petroleGris",
   "alteridea",
   "alterideaMono",
   "rougeGris",
@@ -182,7 +185,7 @@ export const styleSchema = z.object({
   source: z.string().max(300).default(""),
   background: z.enum(["dark", "light", "custom"]).default("dark"),
   backgroundCustom: hex.default("#101418"),
-  palette: z.enum(PALETTE_KEYS).default("alteridea"),
+  palette: z.enum(PALETTE_KEYS).default("petrole"),
   paletteCustom: z.array(hex).max(16).default([]),
   font: z.enum(FONT_KEYS).default("inter"),
   size: z
@@ -200,7 +203,7 @@ export const styleSchema = z.object({
   horizontal: z.boolean().default(false),
   /** Barres / aires empilées à 100 %. */
   normalize: z.boolean().default(false),
-  /** Petit filet rouge Alteridea devant le titre. */
+  /** Petit filet d'accent devant le titre (bleu pétrole, ou rouge avec les palettes Alteridea). */
   accentBar: z.boolean().default(true),
   /** Signature « Reporting 4D · alteridea.com » en pied. */
   brandMark: z.boolean().default(true),

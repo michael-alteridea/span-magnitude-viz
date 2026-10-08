@@ -28,6 +28,20 @@ export interface AppState {
 
 const KEY = "reporting-4d-studio:session:v1";
 const MAX_DATA_CHARS = 2_500_000;
+/** v2 : identité bleu pétrole (palette par défaut « petrole »). */
+const SESSION_VERSION = 2;
+
+/**
+ * Sessions v1 : « alteridea » y était la palette par défaut (enregistrée explicitement).
+ * On bascule ces sessions sur la nouvelle palette par défaut bleu pétrole ; le préréglage
+ * « Alteridea (rouge) » reste sélectionnable, et les configurations JSON ouvertes à la main ne sont pas touchées.
+ */
+export function migrateSessionSpec(spec: unknown, version: number): unknown {
+  if (version >= 2 || !spec || typeof spec !== "object") return spec;
+  const s = spec as { style?: { palette?: unknown } };
+  if (s.style?.palette !== "alteridea") return spec;
+  return { ...s, style: { ...s.style, palette: "petrole" } };
+}
 
 type Listener = (kinds: Set<ChangeKind>) => void;
 
@@ -138,7 +152,7 @@ export class Store {
         if (raw.length <= MAX_DATA_CHARS) data = { name: ds.name, raw: JSON.parse(raw), typeOverrides: ds.typeOverrides };
       }
       const typeOverrides = ds && sampleId ? ds.typeOverrides : undefined;
-      localStorage.setItem(KEY, JSON.stringify({ v: 1, spec, sampleId, data, typeOverrides, ui, importNote, savedAt: new Date().toISOString() }));
+      localStorage.setItem(KEY, JSON.stringify({ v: SESSION_VERSION, spec, sampleId, data, typeOverrides, ui, importNote, savedAt: new Date().toISOString() }));
     } catch {
       /* quota dépassé / navigation privée : on ignore */
     }
@@ -150,6 +164,7 @@ export class Store {
       const raw = localStorage.getItem(KEY);
       if (!raw) return false;
       const s = JSON.parse(raw) as {
+        v?: number;
         spec?: unknown;
         sampleId?: string | null;
         data?: { name: string; raw: Record<string, unknown>[]; typeOverrides?: Record<string, ColumnType> } | null;
@@ -157,7 +172,7 @@ export class Store {
         ui?: Partial<UiState>;
         importNote?: string | null;
       };
-      const spec = chartSpecSchema.safeParse(s.spec ?? {});
+      const spec = chartSpecSchema.safeParse(migrateSessionSpec(s.spec ?? {}, s.v ?? 1));
       if (!spec.success) return false;
       this.state.spec = spec.data;
       if (s.ui) this.state.ui = { ...this.state.ui, ...s.ui };

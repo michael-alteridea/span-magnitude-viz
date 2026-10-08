@@ -223,7 +223,7 @@ const header = h(
     { class: "brand" },
     h("span", {
       class: "logo",
-      html: `<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#d62839"/><path d="M6 23 Q11 7 16 23" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M12 23 Q18.5 12 25 23" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.8" stroke-linecap="round"/><path d="M5 24.5 H27" stroke="#fff" stroke-opacity=".5" stroke-width="1.2"/></svg>`,
+      html: `<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><defs><linearGradient id="r4d-logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3FA7C4"/><stop offset=".55" stop-color="#0E6E8C"/><stop offset="1" stop-color="#08465A"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#r4d-logo-g)"/><path d="M6 23 Q11 7 16 23" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M12 23 Q18.5 12 25 23" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.8" stroke-linecap="round"/><path d="M5 24.5 H27" stroke="#fff" stroke-opacity=".5" stroke-width="1.2"/></svg>`,
     }),
     h("h1", null, "Reporting ", h("em", null, "4D"), h("span", { class: "dot" }, " · "), h("span", { class: "studio" }, "Studio")),
     h("span", { class: "tagline" }, "Graphiques SVG animés · alteridea")

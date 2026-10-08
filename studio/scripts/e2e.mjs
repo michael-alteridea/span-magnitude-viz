@@ -134,6 +134,13 @@ try {
   await page.waitForSelector("[data-testid=chart-svg] .r4d-marks");
   const header = await page.$eval("header", (e) => e.textContent ?? "");
   check("en-tête « Reporting 4D · Studio »", /Reporting 4D\s*·\s*Studio/.test(header));
+  // Identité bleu pétrole : bouton principal, logo, palette par défaut
+  const brand = await page.evaluate(() => ({
+    btn: getComputedStyle(document.querySelector("[data-testid=export-svg]")).backgroundColor,
+    logo: document.querySelector(".brand .logo stop")?.getAttribute("stop-color"),
+    palette: window.r4d.getSpec().style.palette,
+  }));
+  check("identité bleu pétrole (bouton, logo, palette)", brand.btn === "rgb(63, 167, 196)" && brand.logo === "#3FA7C4" && brand.palette === "petrole", JSON.stringify(brand));
 
   /* 1. Collage type Excel (tabulations, virgule décimale, mois FR) */
   const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
@@ -383,6 +390,20 @@ try {
     await page.evaluate(() => window.r4d.seek(0.7));
     await sleep(700);
     await shotStage("08-film-4d.png");
+    // 9. Fond clair : série unique au ton principal #0E6E8C
+    await prep(() => {
+      window.r4d.loadSample("ventes");
+      window.r4d.set("style.background", "light");
+    });
+    await shotStage("09-barres-fond-clair.png");
+    // 10. Préréglage « Alteridea (rouge) » (toujours disponible)
+    await prep(() => {
+      window.r4d.loadSample("canaux");
+      window.r4d.set("style.background", "dark");
+      window.r4d.set("style.palette", "alteridea");
+    });
+    await shotStage("10-preset-alteridea-rouge.png");
+    await page.evaluate(() => window.r4d.set("style.palette", "petrole"));
   }
 } catch (e) {
   failures++;

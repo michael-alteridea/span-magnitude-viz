@@ -1,7 +1,17 @@
 /**
  * Thème visuel des graphiques : fonds, couleurs de texte / grille, palettes, polices.
  */
-import { ALTAIRADY_REDS, COLD_HOT, OBSERVABLE10, WARM_PALETTE, BRAND } from "span-magnitude-viz/colors";
+import {
+  BRAND as BRAND_ALTERIDEA,
+  BRAND_PETROLE,
+  COLD_HOT,
+  OBSERVABLE10,
+  PETROLE,
+  PETROLE_DARK,
+  PETROLE_LIGHT,
+  PETROLE_MAIN,
+  WARM_PALETTE,
+} from "span-magnitude-viz/colors";
 import type { ChartSpec, FontKey, PaletteKey } from "./spec";
 import inter400 from "./fonts/inter-400.woff2?url";
 import inter700 from "./fonts/inter-700.woff2?url";
@@ -14,7 +24,41 @@ import barlow700 from "./fonts/barlow-700.woff2?url";
 import playfair400 from "./fonts/playfair-400.woff2?url";
 import playfair700 from "./fonts/playfair-700.woff2?url";
 
-export { BRAND };
+/**
+ * Identité Reporting 4D : bleu pétrole (choisi le 08/10/2026).
+ * - MAIN : ton principal (graphiques sur fond clair, aplats) ;
+ * - LIGHT : accents, boutons et mises en avant sur fond SOMBRE (le ton principal y paraît terne) ;
+ * - DARK : ombres, dégradés, texte d'accent sur fond clair.
+ */
+export const PETROLE_COLORS = {
+  main: PETROLE_MAIN,
+  light: PETROLE_LIGHT,
+  dark: PETROLE_DARK,
+  /** Teintes / nuances dérivées pour dégradés et palettes. */
+  pale: "#8ECFE2",
+  ice: "#C3E4EE",
+  mid: "#1B8BA8",
+  deep: "#052F3D",
+} as const;
+
+/** Jetons d'accent de l'interface (bleu pétrole). */
+export const BRAND = BRAND_PETROLE;
+
+/**
+ * Couleurs sémantiques réservées aux écarts (futurs graphiques normés IBCS / ISO 24896) :
+ * rouge = écart défavorable, vert = écart favorable. Ne pas les utiliser comme couleurs d'accent.
+ */
+export const VARIANCE_NEG = "#d62839";
+export const VARIANCE_POS = "#2e9e4f";
+
+/** Palettes « rouges » (préréglages Alteridea) : l'accent du graphique reste alors rouge. */
+const RED_PALETTES: ReadonlySet<PaletteKey> = new Set(["alteridea", "alterideaMono", "rougeGris"]);
+
+/** Couleur d'accent du graphique (filet, « 4D » de la signature, barre de progression). */
+function chartAccent(palette: PaletteKey, dark: boolean): string {
+  if (RED_PALETTES.has(palette)) return BRAND_ALTERIDEA.accent;
+  return dark ? PETROLE_LIGHT : PETROLE_MAIN;
+}
 
 export interface Theme {
   dark: boolean;
@@ -54,7 +98,7 @@ export function themeFor(spec: ChartSpec): Theme {
         axis: "#52525b",
         separator: bg,
         track: "rgba(255,255,255,0.06)",
-        accent: BRAND.accent,
+        accent: chartAccent(spec.style.palette, true),
       }
     : {
         dark,
@@ -66,12 +110,15 @@ export function themeFor(spec: ChartSpec): Theme {
         axis: "#a1a1aa",
         separator: bg,
         track: "rgba(0,0,0,0.06)",
-        accent: BRAND.accent,
+        accent: chartAccent(spec.style.palette, false),
       };
 }
 
 export const PALETTE_LABELS: Record<PaletteKey, string> = {
-  alteridea: "Alteridea (rouges)",
+  petrole: "Bleu pétrole (défaut)",
+  petroleMono: "Bleu pétrole dégradé",
+  petroleGris: "Pétrole & gris (mise en avant)",
+  alteridea: "Alteridea (rouge)",
   alterideaMono: "Alteridea dégradé",
   rougeGris: "Rouge & gris (mise en avant)",
   vives: "Vives (10 teintes)",
@@ -80,12 +127,29 @@ export const PALETTE_LABELS: Record<PaletteKey, string> = {
   custom: "Personnalisée",
 };
 
+/**
+ * Bleu pétrole : 1re couleur = LIGHT sur fond sombre, MAIN sur fond clair (série unique),
+ * puis rampe pétrole / bleu / gris pour les séries multiples.
+ */
+const PETROLE_ON_DARK = ["#3FA7C4", "#9FB3BD", "#0E6E8C", "#8ECFE2", "#4F7CAC", "#6B7F89", "#C3E4EE", "#2F5D8A", "#D4D4D8", "#1B8BA8"];
+const PETROLE_ON_LIGHT = ["#0E6E8C", "#8A9BA3", "#08465A", "#3FA7C4", "#2F5D8A", "#5E6E76", "#8ECFE2", "#052F3D", "#4F7CAC", "#B9C7CE"];
+
 const ALTERIDEA_DARK = ["#d62839", "#f4a0a8", "#9a1c28", "#ed5564", "#d4d4d8", "#7a1520", "#f0707c", "#71717a", "#b82232", "#fbd5d9"];
 const ALTERIDEA_LIGHT = ["#d62839", "#9a1c28", "#f0707c", "#3a0a10", "#71717a", "#e9374a", "#5c1018", "#a1a1aa", "#b82232", "#f4a0a8"];
 
 /** Couleurs de la palette, adaptées au fond (sombre / clair). */
 export function paletteColors(spec: ChartSpec, theme: Theme): string[] {
   switch (spec.style.palette) {
+    case "petrole":
+      return theme.dark ? PETROLE_ON_DARK : PETROLE_ON_LIGHT;
+    case "petroleMono":
+      return theme.dark
+        ? ["#3FA7C4", "#8ECFE2", "#0E6E8C", "#C3E4EE", "#1B8BA8", "#5FB8D1", "#08465A", "#E1F2F7"]
+        : ["#0E6E8C", "#08465A", "#3FA7C4", "#052F3D", "#1B8BA8", "#8ECFE2", "#0B5A73", "#C3E4EE"];
+    case "petroleGris":
+      return theme.dark
+        ? ["#3FA7C4", "#a1a1aa", "#71717a", "#d4d4d8", "#52525b", "#e4e4e7"]
+        : ["#0E6E8C", "#71717a", "#a1a1aa", "#3f3f46", "#d4d4d8", "#52525b"];
     case "alteridea":
       return theme.dark ? ALTERIDEA_DARK : ALTERIDEA_LIGHT;
     case "alterideaMono":
@@ -103,7 +167,7 @@ export function paletteColors(spec: ChartSpec, theme: Theme): string[] {
     case "or":
       return [...WARM_PALETTE];
     case "custom":
-      return spec.style.paletteCustom.length ? spec.style.paletteCustom : [...ALTAIRADY_REDS];
+      return spec.style.paletteCustom.length ? spec.style.paletteCustom : [...PETROLE];
   }
 }
 
@@ -112,7 +176,8 @@ export function libColorScheme(p: PaletteKey): string {
   if (p === "vives") return "observable10";
   if (p === "froidChaud") return "coldhot";
   if (p === "or") return "warm";
-  return "altairady";
+  if (RED_PALETTES.has(p)) return "altairady";
+  return "petrole";
 }
 
 export interface FontDef {

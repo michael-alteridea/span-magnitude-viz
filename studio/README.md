@@ -32,7 +32,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   décimales, titre, grille.
 - **Mode** : fixe ou dynamique (construction animée) ; 4D sur le champ temps (cumul ou instantané, lecture / pause,
   curseur, vitesse, barre espace).
-- **Style** : titre, sous-titre, source, fond sombre / clair / perso, palettes (Alteridea rouges par défaut),
+- **Style** : titre, sous-titre, source, fond sombre / clair / perso, palettes (bleu pétrole par défaut, préréglage « Alteridea (rouge) » conservé),
   5 polices embarquées (OFL, sous-ensembles latin + français), formats 16:9, 1:1, 4:5, perso.
 - **Export** : SVG autonome (polices en base64), PNG 1× / 2× / 3×, vidéo WebM (MediaRecorder, côté navigateur),
   configuration JSON (spec validé Zod, données en option). GIF : bouton prévu, V2.
@@ -50,7 +50,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 | `data/model.ts` | Agrégation (catégories, points), modèle temporel 4D et pondérations par image |
 | `data/suggest.ts` | Choix automatique des encodages lors d'un changement de type |
 | `format.ts` | Locale française d3 (espace insécable, virgule, U+2212), unités, dates |
-| `theme.ts` | Thèmes, palettes, polices (`FontFace`, @font-face embarquées pour l'export) |
+| `theme.ts` | Thèmes, palettes, polices (`FontFace`, @font-face embarquées pour l'export) ; identité bleu pétrole (`PETROLE_COLORS`), couleurs d'écart réservées `VARIANCE_NEG` / `VARIANCE_POS` |
 | `charts/*` | Rendu SVG pur : cartésien, radial, spéciaux (film / carte via la lib), mise en page |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, toasts |
@@ -64,3 +64,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 - **Firestore** : le fichier `reporting-4d-studio` (spec + données) est déjà du JSON sérialisable et validé.
 
 Captures : `studio/docs/shots/`.
+
+## Identité visuelle
+
+Bleu pétrole : principal `#0E6E8C`, clair `#3FA7C4` (accents, boutons et mises en avant sur l'interface sombre),
+foncé `#08465A`. Le rouge `#d62839` et le vert `#2e9e4f` sont réservés aux écarts défavorables / favorables
+(futurs graphiques normés IBCS / ISO 24896) : ne pas les utiliser comme couleurs d'accent.

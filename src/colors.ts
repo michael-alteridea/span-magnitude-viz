@@ -21,6 +21,40 @@ export const ALTAIRADY_REDS = [
 /** @deprecated Alias — same as ALTAIRADY_REDS (Alteridea brand). */
 export const ALTERIDEA_REDS = ALTAIRADY_REDS;
 
+/**
+ * Reporting 4D « bleu pétrole » identity (chosen 2026-10-08).
+ * main: #0E6E8C · light (accents on dark backgrounds): #3FA7C4 · dark: #08465A
+ */
+export const PETROLE_MAIN = "#0E6E8C";
+export const PETROLE_LIGHT = "#3FA7C4";
+export const PETROLE_DARK = "#08465A";
+
+/**
+ * Reporting 4D categorical palette: petrol / blue / grey ramp, ordered so that
+ * neighbouring categories stay distinguishable on dark and light backgrounds.
+ * Colour scheme keys: "petrole" (aliases "petrol", "reporting4d").
+ */
+export const PETROLE = [
+  "#0E6E8C", // main (exact)
+  "#3FA7C4", // light (exact)
+  "#08465A", // dark (exact)
+  "#8ECFE2", // pale petrol
+  "#2F5D8A", // petrol blue
+  "#8A9BA3", // blue grey
+  "#1B8BA8", // mid petrol
+  "#C3E4EE", // ice
+  "#4F7CAC", // steel blue
+  "#5E6E76", // slate
+] as const;
+
+/** Sequential petrol ramp (low → high) used for continuous colorBy with the "petrole" scheme. */
+export const PETROLE_SEQUENTIAL = ["#2F5D8A", "#0E6E8C", "#1B8BA8", "#3FA7C4", "#8ECFE2"] as const;
+
+/** Scheme keys that resolve to the petrol palette. */
+export function isPetroleScheme(scheme: string | null | undefined): boolean {
+  return scheme === "petrole" || scheme === "petrol" || scheme === "reporting4d";
+}
+
 /** Legacy warm gold (kept for colorScheme: "warm"). */
 export const WARM_PALETTE = [
   "#f5a623",
@@ -90,20 +124,40 @@ export const BRAND = {
   miniArcs: ["#9a1c28", "#d62839", "#e9374a"] as const,
 } as const;
 
+/** Accent tokens for Reporting 4D (bleu pétrole). Same shape as BRAND. */
+export const BRAND_PETROLE = {
+  accent: PETROLE_MAIN,
+  accentSoft: PETROLE_LIGHT,
+  accentDeep: PETROLE_DARK,
+  accentGlow: "rgba(63, 167, 196, 0.55)",
+  annotation: "#8ECFE2",
+  miniArcs: [PETROLE_DARK, PETROLE_MAIN, PETROLE_LIGHT] as const,
+} as const;
+
+/** Accent tokens matching a colour scheme (petrol for "petrole", Alteridea red otherwise). */
+export function brandForScheme(scheme: string | null | undefined): typeof BRAND | typeof BRAND_PETROLE {
+  return isPetroleScheme(scheme) ? BRAND_PETROLE : BRAND;
+}
+
 export function isContinuousColorBy(colorBy: string | null | undefined): boolean {
   return colorBy === "magnitude" || colorBy === "span";
 }
 
-function coldHotInterpolator() {
-  const n = COLD_HOT.length;
+function rampInterpolator(stops: readonly string[]) {
+  const n = stops.length;
   return (t: number) => {
     const u = Math.max(0, Math.min(1, t));
     const x = u * (n - 1);
     const i = Math.floor(x);
     const f = x - i;
-    if (i >= n - 1) return COLD_HOT[n - 1]!;
-    return interpolateRgb(COLD_HOT[i]!, COLD_HOT[i + 1]!)(f);
+    if (i >= n - 1) return stops[n - 1]!;
+    return interpolateRgb(stops[i]!, stops[i + 1]!)(f);
   };
+}
+
+/** Continuous interpolator: petrol ramp for "petrole", cold → hot for every other scheme. */
+function continuousInterpolator(scheme: string) {
+  return rampInterpolator(isPetroleScheme(scheme) ? PETROLE_SEQUENTIAL : COLD_HOT);
 }
 
 function categoricalPalette(scheme: string, categoryCount: number): readonly string[] {
@@ -111,6 +165,7 @@ function categoricalPalette(scheme: string, categoryCount: number): readonly str
   if (scheme === "observable10") return OBSERVABLE10;
   if (scheme === "warm") return WARM_PALETTE;
   if (scheme === "coldhot" || scheme === "cold-hot") return COLD_HOT;
+  if (isPetroleScheme(scheme)) return PETROLE;
   // Default Alteridea reds (scheme keys: altairady | alteridea); mix cool hues when many categories
   if (categoryCount > ALTAIRADY_REDS.length) return MIXED_COOL;
   return ALTAIRADY_REDS;
@@ -169,7 +224,7 @@ export function resolveMarkColor(
     );
     const lo = Math.min(...values);
     const hi = Math.max(...values, lo + 1e-9);
-    const scale = scaleSequential(coldHotInterpolator()).domain([lo, hi]);
+    const scale = scaleSequential(continuousInterpolator(scheme)).domain([lo, hi]);
     const v = colorBy === "magnitude" ? mark.magnitude : mark.spanLength;
     return scale(v);
   }
@@ -182,7 +237,7 @@ export function resolveMarkColor(
         .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
       const lo = Math.min(...values);
       const hi = Math.max(...values, lo + 1e-9);
-      const scale = scaleSequential(coldHotInterpolator()).domain([lo, hi]);
+      const scale = scaleSequential(continuousInterpolator(scheme)).domain([lo, hi]);
       const v = mark.meta[key];
       if (typeof v === "number" && Number.isFinite(v)) return scale(v);
       return MUTED;

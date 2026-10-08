@@ -120,6 +120,8 @@ export function mountSpecial(
   if (isMap && !spec.encoding.postal && !(spec.encoding.lat && spec.encoding.lon))
     return { ...empty, error: "Carte : choisissez une colonne « Code postal » (FR/BE) ou « Latitude » + « Longitude »." };
   host.innerHTML = "";
+  // Accents de la bibliothèque (compteurs, info-bulle, survol) : bleu pétrole sauf palettes rouges
+  host.dataset.scheme = libColorScheme(spec.style.palette);
   const handle = createSpanMagnitudeViz(host, parsed.data, {
     geometry: isMap ? "point" : spec.special.geometry,
     persistence: spec.special.persistence,

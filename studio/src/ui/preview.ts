@@ -61,6 +61,7 @@ export class Preview {
     const restart = h("button", { class: "icon-btn", title: "Rejouer depuis le début", "data-testid": "restart", html: svgIcon(ICONS.restart, 18), onclick: () => this.restart(true) });
     this.scrub = h("input", { type: "range", min: "0", max: "1000", value: "1000", class: "scrubber", "aria-label": "Position de l'animation", "data-testid": "scrubber" });
     this.scrub.addEventListener("input", () => this.onScrub());
+    this.paintScrub();
     this.scrub.addEventListener("pointerdown", () => (this.scrubbing = true));
     this.scrub.addEventListener("pointerup", () => (this.scrubbing = false));
     this.timeLabel = h("span", { class: "time-label", "data-testid": "time-label" }, "");
@@ -139,7 +140,7 @@ export class Preview {
     this.fit();
     this.syncSpecial();
     if (this.mode !== "special") {
-      if (!this.scrubbing) this.scrub.value = String(Math.round(p * 1000));
+      if (!this.scrubbing) this.setScrub(p);
       this.timeLabel.textContent = this.mode === "4d" ? this.last.prepared.stamp ?? "" : this.mode === "build" ? "Entrée" : "";
     }
     const warn = [...(this.last.prepared.warnings ?? [])];
@@ -188,7 +189,7 @@ export class Preview {
     const m = mod.mountSpecial(this.specialHost, spec, ds, plot, theme, {
       animate,
       onTick: (st) => {
-        if (!this.scrubbing) this.scrub.value = String(Math.round(st.progress * 1000));
+        if (!this.scrubbing) this.setScrub(st.progress);
         this.timeLabel.textContent = this.specialLabel(st.progress);
       },
       onComplete: () => {
@@ -294,7 +295,18 @@ export class Preview {
   }
 
   private onScrub(): void {
+    this.paintScrub();
     this.seek(Number(this.scrub.value) / 1000);
+  }
+
+  /** Position du curseur (0 → 1) + remplissage pétrole de la partie parcourue. */
+  private setScrub(p: number): void {
+    this.scrub.value = String(Math.round(p * 1000));
+    this.paintScrub();
+  }
+
+  private paintScrub(): void {
+    this.scrub.style.setProperty("--pct", `${Number(this.scrub.value) / 10}%`);
   }
 
   /* ---------------------------------------------------------------- export */

@@ -31,7 +31,7 @@ import {
   persistenceFactor,
   type RevealSchedule,
 } from "../animate.js";
-import { ALTAIRADY_REDS, BRAND, resolveMarkColor } from "../colors.js";
+import { ALTAIRADY_REDS, BRAND, PETROLE_SEQUENTIAL, brandForScheme, isPetroleScheme, resolveMarkColor } from "../colors.js";
 import type {
   MapLevel,
   MapRegion,
@@ -357,15 +357,17 @@ export function computeMapLayout(
   };
 }
 
-function choroplethColor(t: number): string {
-  // Alteridea red ramp on dark basemap
-  const stops = [
-    ALTAIRADY_REDS[1]!,
-    ALTAIRADY_REDS[3]!,
-    ALTAIRADY_REDS[5]!,
-    ALTAIRADY_REDS[6]!,
-    "#f0707c",
-  ];
+function choroplethColor(t: number, scheme?: string): string {
+  // Alteridea red ramp on dark basemap (petrol ramp for the "petrole" scheme)
+  const stops: readonly string[] = isPetroleScheme(scheme)
+    ? PETROLE_SEQUENTIAL
+    : [
+        ALTAIRADY_REDS[1]!,
+        ALTAIRADY_REDS[3]!,
+        ALTAIRADY_REDS[5]!,
+        ALTAIRADY_REDS[6]!,
+        "#f0707c",
+      ];
   const u = Math.max(0, Math.min(1, t));
   const x = u * (stops.length - 1);
   const i = Math.floor(x);
@@ -443,7 +445,7 @@ export function paintMapLayers(ctx: MapPaintContext): void {
       .attr("cx", (d) => d.cx)
       .attr("cy", (d) => d.cy)
       .attr("r", (d) => d.r * 4.5 * layout.markScale)
-      .attr("fill", BRAND.accent)
+      .attr("fill", brandForScheme(options.colorScheme).accent)
       .attr("fill-opacity", 0)
       .attr("data-id", (d) => d.mark.id);
   }
@@ -519,7 +521,7 @@ export function applyMapFrame(
       if (!choroplethOn || intensity <= 0.01) return base;
       const v = revealed.get(d.properties.id) ?? 0;
       if (v <= 0) return base;
-      return choroplethColor(v / maxRegion);
+      return choroplethColor(v / maxRegion, options.colorScheme);
     })
     .attr("fill-opacity", function (d) {
       const v = revealed.get(d.properties.id) ?? 0;

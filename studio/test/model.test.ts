@@ -17,7 +17,7 @@ describe("spec (Zod)", () => {
   it("fills defaults from an empty object", () => {
     const s = defaultSpec();
     expect(s.type).toBe("bar");
-    expect(s.style.palette).toBe("alteridea");
+    expect(s.style.palette).toBe("petrole");
     expect(s.axes.x.grid).toBe(false);
     expect(chartSize(s)).toEqual({ width: 1200, height: 675 });
   });
