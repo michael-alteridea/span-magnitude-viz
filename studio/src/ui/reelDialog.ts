@@ -12,7 +12,7 @@ import { generatedOn } from "../story/fr";
 import { ReelCharts, drillLinks, type ReelItem } from "../reel/charts";
 import { ReelComposer } from "../reel/compose";
 import { encodeReel, reelCapabilities, type EncodeResult } from "../reel/encode";
-import { autoSceneDuration, DEFAULT_RHYTHM, fitDurations, fmtS, frameCount, REEL_FORMATS, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, REEL_RHYTHMS, reelProblems, SCENE_MAX_S, SCENE_MIN_S, timingsFor, totalDuration, type ReelFormatKey, type ReelPlan, type ReelRhythm, type ReelScene } from "../reel/plan";
+import { autoSceneDuration, DEFAULT_RHYTHM, fitDurations, fmtS, frameCount, REEL_FORMATS, sceneStarts, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, REEL_RHYTHMS, reelProblems, SCENE_MAX_S, SCENE_MIN_S, timingsFor, totalDuration, type ReelFormatKey, type ReelPlan, type ReelRhythm, type ReelScene } from "../reel/plan";
 import { defaultPlan } from "../reel/scenes";
 
 export interface ReelSource {
@@ -22,6 +22,11 @@ export interface ReelSource {
   licence: string;
   /** Date de génération affichée (défaut : aujourd'hui). */
   now?: Date;
+  /**
+   * « Modifier le graphique » d'une scène : la fenêtre est mise de côté (état conservé), l'éditeur ouvre le snapshot ;
+   * l'appelant revient ensuite par `resume()` (Valider : snapshot mis à jour, même id ; Annuler : sans changement).
+   */
+  editChart?: (item: ReelItem, sceneNo: number) => void;
 }
 
 export const LICENCE_CHIPS = ["CC BY 4.0", "Licence Ouverte 2.0", "Données internes", "Données fictives (démonstration)"];
@@ -78,6 +83,51 @@ export class ReelDialog {
     return !this.root.hidden;
   }
 
+  /** Fenêtre mise de côté pendant la modification du graphique d'une scène (état conservé). */
+  get isSuspended(): boolean {
+    return this.suspended;
+  }
+  private suspended = false;
+
+  /** Met la fenêtre de côté sans rien perdre (sélection, ordre, rythme, format, textes et durées retouchés). */
+  suspend(): void {
+    if (!this.src || this.abort) return;
+    this.setPlaying(false);
+    this.root.hidden = true;
+    this.suspended = true;
+    document.removeEventListener("keydown", this.onKey);
+  }
+
+  /**
+   * Retour après « Modifier le graphique » : `update` remplace le snapshot de même id (même place) ;
+   * les retouches de la scène (titre, chiffre, légende, durée), le rythme et l'ordre sont conservés.
+   */
+  async resume(update?: ReelItem | null): Promise<void> {
+    if (!this.src || !this.suspended) return;
+    let id: string | null = null;
+    if (update) {
+      const i = this.src.items.findIndex((it) => it.snap.id === update.snap.id);
+      if (i >= 0) {
+        this.src.items[i] = update;
+        id = update.snap.id;
+      }
+      await Promise.all(this.fontsUsed().map((f) => ensureFont(f).catch(() => undefined)));
+    }
+    this.suspended = false;
+    this.root.hidden = false;
+    document.addEventListener("keydown", this.onKey);
+    this.rebuild();
+    const k = id ? this.plan!.scenes.findIndex((sc) => sc.id === id) : -1;
+    this.seek(k >= 0 ? sceneStarts(this.plan!)[k]! : 0);
+    if (k >= 0) this.sceneList.querySelector<HTMLElement>(`[data-scene-id="${CSS.escape(id!)}"]`)?.scrollIntoView({ block: "nearest" });
+    this.setPlaying(true);
+  }
+
+  /** Snapshots des scènes retenues, dans l'ordre de lecture (tests, contrôles). */
+  get sceneItems(): ReelItem[] {
+    return this.chosen();
+  }
+
   get currentPlan(): ReelPlan | null {
     return this.plan;
   }
@@ -114,6 +164,7 @@ export class ReelDialog {
   }
 
   close(): void {
+    this.suspended = false;
     this.abort?.abort();
     this.setPlaying(false);
     this.charts?.dispose();
@@ -356,12 +407,28 @@ export class ReelDialog {
         sc.duration = v;
         this.retext();
       });
+      const sceneNo = (byId.get(it.snap.id)?.k ?? 0) + 1;
+      const editBtn = h(
+        "button",
+        {
+          type: "button",
+          class: "btn btn-mini reel-edit-chart",
+          "data-testid": "reel-edit-chart",
+          disabled: !src.editChart || !it.ds,
+          title: it.ds ? "Ouvrir ce graphique dans l'éditeur (type, couleurs, mise en avant, réglages), puis revenir au Reel" : "Données de ce snapshot non chargées : rechargez-les pour modifier le graphique",
+          "aria-label": `Modifier le graphique de la scène ${sceneNo}`,
+          onclick: () => src.editChart?.(it, sceneNo),
+        },
+        h("span", { html: svgIcon(ICONS.edit, 13) }),
+        "Modifier le graphique"
+      );
       const link = sc.linkIn === "in" ? "zoom dans la marque depuis la scène précédente" : sc.linkIn === "out" ? "remontée depuis la scène précédente" : sc.linkIn === "focus" ? "mise en avant animée depuis la scène précédente" : "";
       const card = h(
         "div",
         { class: "reel-scene", "data-scene-id": it.snap.id, "data-item": String(i), "data-testid": "reel-scene" },
         head,
         h("div", { class: "reel-fields" }, h("label", { class: "reel-f wide" }, h("span", null, "Titre"), title), h("label", { class: "reel-f" }, h("span", null, "Chiffre clé"), num), h("label", { class: "reel-f" }, h("span", null, "Durée (s)"), dur), h("label", { class: "reel-f wide" }, h("span", null, "Légende"), cap)),
+        h("div", { class: "reel-scene-actions" }, editBtn),
         link ? h("p", { class: "rv-hint reel-link-note" }, `Transition : ${link}.`) : null
       );
       // glisser-déposer depuis la poignée (Pointer Events : souris, doigt sur iPad, stylet)

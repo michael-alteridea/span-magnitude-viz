@@ -115,7 +115,8 @@ function detectCandidatesAndExplore(ds: Dataset): Insight[] {
   return [...explore(ds, sc(ds), { max: 8 }), ...detectCandidates(ds, sc(ds))];
 }
 
-const SMALL = new Set(["postes", "dossiers", "objectifs", "renouvelables"]);
+// séries mensuelles uniques (NOAA Mauna Loa) : pas de dimension catégorielle → moins de pistes
+const SMALL = new Set(["postes", "dossiers", "objectifs", "renouvelables", "co2-mauna-loa"]);
 
 describe("Explorer : classement et dédoublonnage", () => {
   for (const s of SAMPLES) {

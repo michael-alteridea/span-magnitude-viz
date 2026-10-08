@@ -532,6 +532,48 @@ Modules : `src/charts/focus.ts` (choix, transitions, bulle et placement), `radia
 Tests : `test/focus.test.ts`, e2e `--focus` (chaque type, toucher pour choisir, duplication, film, PowerPoint, Reel,
 carte, iPad 1024 et 1366 px). Captures : `docs/shots/88` à `100`.
 
+## Données publiques (exemples ouverts, licence compatible usage commercial)
+
+Section **« Données publiques »** du panneau Données, sous les exemples fictifs, groupée par thème. Chaque exemple
+porte sa licence (réutilisation commerciale permise, mention de la source) et un raccourci **« Créer un Reel »**
+(histoire suggérée de 3 à 5 snapshots, identifiants stables).
+
+| Thème | Exemple | Producteur · licence |
+| --- | --- | --- |
+| Dette publique | Dette publique dans l'UE (% du PIB, M€, €/habitant) | Eurostat · CC BY 4.0 |
+| CO₂ & climat | Énergies renouvelables dans l'UE (déplacé ici) | Eurostat · CC BY 4.0 |
+| CO₂ & climat | CO₂ dans l'atmosphère, Mauna Loa (mensuel) | NOAA · domaine public (mesures à partir de mai 1974) |
+| CO₂ & climat | CO₂ fossile par pays et zone | Global Carbon Project · CC BY 4.0 |
+| CO₂ & climat | Gaz à effet de serre dans l'UE | Eurostat · CC BY 4.0 |
+| Démographie | Fécondité et âge médian dans l'UE | Eurostat · CC BY 4.0 |
+| Démographie | Population mondiale 1950-2100 | ONU (WPP 2024) · CC BY 3.0 IGO |
+| Démographie | Âges par province en Belgique (agrégé aux provinces) | Statbel · CC BY 4.0 |
+| Nature | Zones protégées dans l'UE | Eurostat (d'après l'AEE) · CC BY 4.0 |
+
+- **Cartouche prérempli** : « Source : Eurostat (<code du tableau>) · données adaptées · Licence : CC BY 4.0 »
+  (idem pour chaque producteur). Le Reel affiche la source et « Licence des données : … ».
+- **Modifiable comme vos données** : type, couleurs, libellés, mise en avant, snapshots. Dans l'aperçu,
+  **« Modifier »** rend les cellules éditables (virgule décimale acceptée, filtre « Belgique 2024 », 60 lignes
+  affichées) : le jeu devient « … (modifié) », la source reçoit « · données modifiées » et la session le conserve.
+- **Cartes** : fond Europe (pays, latitude/longitude ; agrégats UE-27, États-Unis, Chine sans position, gardés pour
+  barres et courbes), une seule année filtrée. Un taux (%) n'est jamais additionné : titre « X en tête, Y en dernier »,
+  moyenne simple, compteur de somme masqué.
+- **Modules** : `src/data/public/` (données régénérées par `_build/gen_public_samples.py`), `catalog.ts` (thèmes,
+  lignes, histoires suggérées), `src/data/licence.ts`.
+
+Tests : `test/publicData.test.ts` (thèmes, licences commerciales, CC BY 3.0 IGO, NOAA, histoires 3 à 5 snapshots, spec
+valides, crédit Eurostat), e2e `--public`. Captures : `docs/shots/104` à `108`.
+
+### Reel : « Modifier le graphique » d'une scène
+
+Chaque scène de la fenêtre « Créer un Reel » a un bouton **« Modifier le graphique »** : la fenêtre se met de côté
+(rien n'est perdu), le snapshot s'ouvre dans l'éditeur complet (type, couleurs, mise en avant, réglages) avec la barre
+**« Modification de la scène N du Reel — Annuler / Valider »**. *Valider* remplace le snapshot sur place (même
+position, même identifiant ; aussi dans l'histoire s'il en fait partie) et rouvre le Reel sur la scène redessinée, en
+gardant titre, chiffre clé, légende et durée retouchés, le rythme, l'ordre et le format. *Annuler* rouvre le Reel
+inchangé et rend à l'éditeur son état d'avant. Boutons de 44 px au toucher (iPad). e2e `--public` ; captures
+`docs/shots/109` à `111`.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |

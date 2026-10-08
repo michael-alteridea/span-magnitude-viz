@@ -4,6 +4,7 @@
  * carte de fin (mot-symbole, accroche, lien, QR). Aucune horloge : tout est fonction de t (rendu déterministe,
  * identique dans l'aperçu et dans la vidéo).
  */
+import { stripLicence } from "../data/licence";
 import { PLATFORM_HOST, PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
 import { qrMatrix, qrPath } from "../qr";
 import { measure, wrap, ellipsize } from "../charts/text";
@@ -181,7 +182,9 @@ export class ReelComposer {
     const wmH = fs * 1.15;
     let out = `<g class="reel-cartouche" opacity="${f2(a)}">`;
     out += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="12" fill="rgba(4,20,26,0.72)" stroke="${REEL_COLORS.line}" stroke-width="1.5"/>`;
-    const lines = [this.plan.generatedAt, this.plan.source, this.plan.licence ? `Licence des données : ${this.plan.licence}` : ""].filter(Boolean);
+    // Ligne de licence propre : retirée de la source quand elle y figure déjà (« … · Licence : CC BY 4.0 »)
+    const source = this.plan.licence ? stripLicence(this.plan.source) : this.plan.source;
+    const lines = [this.plan.generatedAt, source, this.plan.licence ? `Licence des données : ${this.plan.licence}` : ""].filter(Boolean);
     const blockH = logo + 6 + lines.length * lh;
     let y = b.y + (b.h - blockH) / 2;
     const icon = tell4dIconMarkup(`reel-ic`, Math.round(logo), 'aria-hidden="true"').replace(/^<svg/, `<svg x="${f2(tx)}" y="${f2(y)}"`);
@@ -252,3 +255,4 @@ export class ReelComposer {
     return out + `</g>`;
   }
 }
+

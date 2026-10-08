@@ -48,7 +48,9 @@ import { demoNotesFor } from "./publish/demoNotes";
 import { DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES, IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
 import { CadencerDialog, type CadencerTarget } from "./ui/cadencerDialog";
 import { ReelDialog } from "./ui/reelDialog";
+import type { ReelItem } from "./reel/charts";
 import { REEL_EXAMPLE_TITLE, reelExampleSnapshots } from "./reel/example";
+import { licenceFromSource } from "./data/licence";
 import { drillStepAdded, type NativeSlide } from "./story/morph";
 import { ScenarioDialog } from "./ui/scenarioDialog";
 import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
@@ -173,6 +175,25 @@ function loadSample(id: string): void {
   store.setDataset(ds, { sampleId: sample.id, note: sample.description });
   attachProvenance(sampleProvenance(sample.id));
   toast(`Exemple chargé : ${sample.name}`, "ok", 2200);
+}
+
+/**
+ * Modification d'une cellule (Données › Aperçu › Modifier) : tout jeu de données, exemples compris. Un exemple modifié
+ * devient « vos données » (nom « … (modifié) », session enregistrée, snapshots sur les données modifiées) ; l'empreinte
+ * suit le contenu (JSON canonique des lignes) ; source et licence restent dans le cartouche (texte du graphique).
+ */
+function editCell(row: number, column: string, text: string): void {
+  const ds = store.state.ds;
+  if (!ds || !ds.raw[row] || !ds.columns.some((c) => c.name === column)) return;
+  const raw = ds.raw.map((r, i) => (i === row ? { ...r, [column]: text } : r));
+  const fromSample = !!store.state.sampleId;
+  const name = fromSample && !/ \(modifié\)$/.test(ds.name) ? `${ds.name} (modifié)` : ds.name;
+  const nds = buildDataset(name, raw, ds.typeOverrides);
+  const note = fromSample ? "Exemple modifié : vos changements sont enregistrés dans cette session ; source et licence restent dans le cartouche (précisez-y que les données ont été modifiées)." : store.state.importNote;
+  const { sheets, sheet } = store.state;
+  store.setDataset(nds, { note, sheets, sheet, provenance: null });
+  if (store.state.spec.style.source && fromSample && !/données modifiées/i.test(store.state.spec.style.source)) store.set("style.source", `${store.state.spec.style.source} · données modifiées`);
+  attachProvenance(safeHash(() => hashRows(raw)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: name, rows: nds.rows.length, cols: nds.columns.length }) : null)));
 }
 
 async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<void> {
@@ -304,6 +325,10 @@ const mappingWindow = new MappingWindow(
 
 const actions = {
   loadSample,
+  editCell,
+  reelSample(id: string) {
+    void openReel(`public:${id}`);
+  },
   importText(text: string) {
     void importPasted(text).catch((e) => toast(String(e instanceof Error ? e.message : e), "error"));
   },
@@ -365,6 +390,21 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
     toast(`Histoire limitée à ${MAX_SNAPSHOTS} snapshots.`, "info");
     return null;
   }
+  const snap = await captureSnapshot(opts);
+  const list = [...store.state.story.snapshots];
+  if (replace >= 0) list[replace] = snap;
+  else if (opts.insertAt != null) list.splice(Math.max(0, Math.min(list.length, opts.insertAt)), 0, snap);
+  else list.push(snap);
+  store.setStory({ ...store.state.story, snapshots: list });
+  store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
+  if (!opts.quiet) toast(replace >= 0 ? "Snapshot mis à jour dans l'histoire" : `Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
+  return snap;
+}
+
+/** Snapshot du graphique courant (rendu, textes, spec), sans l'ajouter à l'histoire. Données chargées requises. */
+async function captureSnapshot(opts: SnapOpts = {}): Promise<Snapshot> {
+  const { spec, sampleId, story } = store.state;
+  const ds = store.state.ds!;
   const { width, height } = chartSize(spec);
   const th = themeFor(spec);
   const n = currentNarrative();
@@ -393,14 +433,71 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
     scenario: opts.scenario ?? null,
     step: opts.step ?? null,
   };
-  const list = [...store.state.story.snapshots];
-  if (replace >= 0) list[replace] = snap;
-  else if (opts.insertAt != null) list.splice(Math.max(0, Math.min(list.length, opts.insertAt)), 0, snap);
-  else list.push(snap);
-  store.setStory({ ...store.state.story, snapshots: list });
-  store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
-  if (!opts.quiet) toast(replace >= 0 ? "Snapshot mis à jour dans l'histoire" : `Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
   return snap;
+}
+
+/* ---- « Modifier le graphique » d'une scène du Reel : éditeur complet, puis retour au Reel */
+
+let reelEdit: { item: ReelItem; sceneNo: number; before: { spec: ChartSpec; ds: Dataset | null; sampleId: string | null; note: string | null; provenance: Provenance | null; sheets: string[] | null; sheet: string | null } } | null = null;
+const reelEditLabel = h("span", { class: "reel-edit-label", "data-testid": "reel-edit-label" });
+const reelEditBar = h(
+  "div",
+  { class: "reel-edit-bar", role: "region", "aria-label": "Modification d'une scène du Reel", hidden: true, "data-testid": "reel-edit-bar" },
+  h("span", { class: "reel-edit-ico", html: svgIcon(ICONS.reel, 16) }),
+  reelEditLabel,
+  h("span", { class: "reel-edit-hint" }, "Type, couleurs, mise en avant, réglages : tout l'éditeur est disponible."),
+  h("button", { class: "btn", type: "button", "data-testid": "reel-edit-cancel", onclick: () => void cancelReelEdit() }, "Annuler"),
+  h("button", { class: "btn btn-accent", type: "button", "data-testid": "reel-edit-validate", onclick: () => void validateReelEdit() }, h("span", { html: svgIcon(ICONS.check, 15) }), "Valider")
+);
+
+function editReelScene(item: ReelItem, sceneNo: number): void {
+  const st = store.state;
+  reelEdit = { item, sceneNo, before: { spec: structuredClone(st.spec), ds: st.ds, sampleId: st.sampleId, note: st.importNote, provenance: st.provenance, sheets: st.sheets, sheet: st.sheet } };
+  reelDialog.suspend();
+  const s = item.snap;
+  const sample = s.sampleId ? sampleById(s.sampleId) : undefined;
+  // données du snapshot (exemple, ou données du Reel) chargées dans l'éditeur si ce ne sont pas les données courantes
+  if (!sample && item.ds && st.ds !== item.ds && st.ds?.name !== s.dataName) store.setDataset(item.ds, { note: `Données du snapshot « ${s.title || s.name} »` });
+  openSnapshot(s);
+  reelEditLabel.textContent = `Modification de la scène ${sceneNo} du Reel`;
+  reelEditBar.hidden = false;
+  document.body.classList.add("reel-editing");
+  settings.reveal({ section: "graphique", paths: [] });
+}
+
+function endReelEdit(): void {
+  reelEdit = null;
+  reelEditBar.hidden = true;
+  document.body.classList.remove("reel-editing");
+}
+
+/** Valider : le snapshot est remplacé sur place (même id, même position), puis la fenêtre du Reel revient. */
+async function validateReelEdit(): Promise<void> {
+  const e = reelEdit;
+  if (!e || !store.state.ds) return;
+  stopFocusPick();
+  await settle();
+  const s = e.item.snap;
+  const opts: SnapOpts = { id: s.id, name: s.name, role: s.role, scenario: s.scenario ?? null, step: s.step ?? null, quiet: true };
+  const inStory = store.state.story.snapshots.some((x) => x.id === s.id);
+  const snap = inStory ? await takeSnapshot(opts) : await captureSnapshot(opts);
+  if (!snap) return;
+  if (s.path?.length && !snap.path?.length) snap.path = s.path;
+  endReelEdit();
+  await reelDialog.resume({ snap, ds: store.state.ds });
+  toast(`Scène ${e.sceneNo} mise à jour${inStory ? " (et dans l'histoire)" : ""}`, "ok", 2200);
+}
+
+/** Annuler : l'éditeur retrouve son état d'avant, le Reel revient inchangé. */
+async function cancelReelEdit(): Promise<void> {
+  const e = reelEdit;
+  if (!e) return;
+  stopFocusPick();
+  const b = e.before;
+  if (store.state.ds !== b.ds) store.setDataset(b.ds, { sampleId: b.sampleId, note: b.note, provenance: b.provenance, sheets: b.sheets, sheet: b.sheet });
+  store.setSpec(b.spec);
+  endReelEdit();
+  await reelDialog.resume(null);
 }
 
 function openSnapshot(s: Snapshot): void {
@@ -859,7 +956,14 @@ async function storyPublishedId(snaps: Snapshot[]): Promise<{ id: string | null;
 async function openReel(storyId: string = LOCAL_STORY_ID): Promise<void> {
   let title: string;
   let snaps: Snapshot[];
-  if (storyId === "exemple" || (storyId === LOCAL_STORY_ID && !store.state.story.snapshots.length)) {
+  const pub = storyId.startsWith("public:") ? sampleById(storyId.slice(7)) : undefined;
+  if (pub?.publicData?.reel) {
+    // Données publiques : exemple chargé dans l'éditeur (modifiable), Reel sur l'histoire suggérée
+    if (store.state.sampleId !== pub.id) loadSample(pub.id);
+    const r = await pub.publicData.reel();
+    title = r.title;
+    snaps = r.snapshots;
+  } else if (storyId === "exemple" || (storyId === LOCAL_STORY_ID && !store.state.story.snapshots.length)) {
     title = REEL_EXAMPLE_TITLE;
     snaps = reelExampleSnapshots();
   } else if (storyId === LOCAL_STORY_ID) {
@@ -875,8 +979,10 @@ async function openReel(storyId: string = LOCAL_STORY_ID): Promise<void> {
     toast("Aucun snapshot à raconter : prenez des snapshots pour l'histoire.", "info");
     return;
   }
-  const lic = [...new Set(snaps.map((s) => sampleLicence(s.sampleId)).filter(Boolean))];
-  await reelDialog.open({ title, items: snaps.map((snap) => ({ snap, ds: datasetFor(snap) })), licence: lic.length === 1 ? lic[0]! : "" });
+  // Licence : celle de l'exemple, sinon celle écrite dans la source (données publiques modifiées : « … · Licence : … »)
+  const lic = [...new Set(snaps.map((s) => sampleLicence(s.sampleId) || licenceFromSource(s.source)).filter(Boolean))];
+  if (reelEdit) endReelEdit();
+  await reelDialog.open({ title, items: snaps.map((snap) => ({ snap, ds: datasetFor(snap) })), licence: lic.length === 1 ? lic[0]! : "", editChart: editReelScene });
 }
 
 async function openCadencer(storyId: string): Promise<void> {
@@ -1473,7 +1579,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root, reelEditBar);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -1528,6 +1634,7 @@ void reviewSpace.ensureDemo().then(() => {
 });
 // lien direct vers l'exemple de Reel (?reel=exemple) : un visiteur crée un Reel en 1 clic
 if (params.get("reel") === "exemple") void openReel("exemple");
+else if (params.get("reel")?.startsWith("public:")) void openReel(params.get("reel")!);
 
 /** API de débogage / tests (console : r4d.getSpec()). */
 const api = {
@@ -1594,6 +1701,7 @@ const api = {
   /** « Créer un Reel » (histoire courante, id de revue, ou « exemple »). */
   reel: (storyId: string = LOCAL_STORY_ID) => openReel(storyId),
   reelDialog: () => reelDialog,
+  reelEditing: () => (reelEdit ? { sceneNo: reelEdit.sceneNo, id: reelEdit.item.snap.id } : null),
   pngDataUrl: async (scale = 1) => {
     const { width, height } = chartSize(store.state.spec);
     return blobToDataUrl(await svgToPngBlob(await preview.currentSvg(), width, height, scale));

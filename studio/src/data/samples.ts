@@ -6,6 +6,7 @@ import type { ChartSpecInput } from "../spec";
 import { demoFinanceRows } from "./demoFinance";
 import { demoPipelineRows } from "./demoPipeline";
 import { EUROSTAT_REN } from "./eurostatRenouvelables";
+import { publicSamples } from "./public/catalog";
 
 export const SAMPLE_TODAY = "2026-10-08";
 
@@ -18,7 +19,29 @@ export interface Sample {
   spec: ChartSpecInput;
   /** Licence des données (cartouche du Reel) ; défaut : données fictives de démonstration. */
   licence?: string;
+  /** Section « Données publiques » (données ouvertes, licence compatible avec un usage commercial). */
+  publicData?: PublicDataInfo;
 }
+
+/** Thèmes de la section « Données publiques » (ordre d'affichage). */
+export const PUBLIC_THEMES = ["Dette publique", "CO₂ & climat", "Démographie", "Nature"] as const;
+export type PublicTheme = (typeof PUBLIC_THEMES)[number];
+
+export interface PublicDataInfo {
+  theme: PublicTheme;
+  /** Licence courte affichée sous l'exemple (« CC BY 4.0 »). */
+  licenceShort: string;
+  /** Producteur et jeu de données (info-bulle). */
+  sourceLabel: string;
+  /** Page du jeu de données (vérification de la source et de la licence). */
+  page?: string;
+  /** Histoire suggérée pour « Créer un Reel » (3 à 5 snapshots, identifiants stables). */
+  reel?: () => Promise<{ title: string; snapshots: import("../story/snapshots").Snapshot[] }>;
+  reelCount?: number;
+}
+
+/** Ligne « Source … · Licence … » du cartouche d'un exemple de données publiques. */
+export const publicSourceLine = (source: string, licence: string): string => `${source} · Licence : ${licence}`;
 
 /** Part des renouvelables (Eurostat nrg_ind_ren) : une ligne par pays et par année. */
 export function renouvelablesRows(): Record<string, unknown>[] {
@@ -34,7 +57,7 @@ export function renouvelablesRows(): Record<string, unknown>[] {
   return out;
 }
 
-export const RENOUVELABLES_SOURCE = EUROSTAT_REN.source;
+export const RENOUVELABLES_SOURCE = publicSourceLine(`${EUROSTAT_REN.source} · données adaptées`, EUROSTAT_REN.licence);
 
 function rng(seed: number) {
   let a = seed >>> 0;
@@ -526,6 +549,14 @@ export const SAMPLES: Sample[] = [
     description: "Données publiques : part des renouvelables dans la consommation finale brute d'énergie · UE-27 et 27 pays · 2004 → 2025 (2025 provisoire) · Eurostat, CC BY 4.0 · exemple de Reel",
     rows: renouvelablesRows,
     licence: `${EUROSTAT_REN.licence} (Eurostat)`,
+    publicData: {
+      theme: "CO₂ & climat",
+      licenceShort: `Eurostat · ${EUROSTAT_REN.licence}`,
+      sourceLabel: "Eurostat, nrg_ind_ren : part des renouvelables dans la consommation finale brute d'énergie",
+      page: EUROSTAT_REN.page,
+      reelCount: 4,
+      reel: () => import("../reel/example").then((m) => ({ title: m.REEL_EXAMPLE_TITLE, snapshots: m.reelExampleSnapshots() })),
+    },
     spec: {
       type: "barH",
       encoding: { x: "Pays", y: ["Part des renouvelables (%)"], series: null, aggregate: "sum", topN: 10, others: false },
@@ -534,12 +565,14 @@ export const SAMPLES: Sample[] = [
       style: {
         title: "La Suède en tête : 65,4 % d'énergie renouvelable en 2025",
         subtitle: "Part des renouvelables dans la consommation finale brute d'énergie, 10 premiers pays de l'UE, 2025 (provisoire)",
-        source: EUROSTAT_REN.source,
+        source: RENOUVELABLES_SOURCE,
         sort: "desc",
         valueLabels: true,
       },
     },
   },
+  // Données publiques (modules générés) : dette, CO₂, démographie, nature — hors renouvelables (déjà ci-dessus)
+  ...publicSamples(),
 ];
 
 export function sampleLicence(id: string | null | undefined): string {

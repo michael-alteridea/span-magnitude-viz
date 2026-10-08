@@ -1005,6 +1005,8 @@ const analyzeGeo: Analyzer = (spec, eff, ctx) => {
     by.set(String(k), (by.get(String(k)) ?? 0) + v);
   }
   if (by.size < 2) return null;
+  const u0 = measureUnit(spec, yField, ctx);
+  if (u0 === "pct") return analyzeGeoRate(spec, eff, ctx, yField, place, u0);
   const pairs = [...by.entries()].sort((a, b) => b[1] - a[1]);
   const tot = S.sum(pairs.map((p) => p[1]));
   const n = Math.min(3, pairs.length - 1);
@@ -1030,13 +1032,51 @@ const analyzeGeo: Analyzer = (spec, eff, ctx) => {
     kind: "geo",
     title: `${joinList(pairs.slice(0, n).map((p) => p[0]))} : ${formatPct(share)} ${ctx.roles.isPipeline && isOpenFilter(spec, ctx.roles.stage?.name ?? null) ? "du pipeline ouvert" : partitive(mLabel)}`,
     comments,
-    why: "Lecture territoriale : où se concentre l'activité en France et en Belgique.",
+    why: spec.special.mapRegion === "europe" ? "Lecture territoriale : où se concentre la mesure entre pays européens." : "Lecture territoriale : où se concentre l'activité en France et en Belgique.",
     role: "context",
     effect: S.clamp01(0.25 + (share - n / pairs.length) * 0.6),
     coverage: S.clamp01(S.sum(pairs.map((p) => p[1])) / Math.max(1, S.sum(rowsOf(eff).map((r) => numAt(r, yField) ?? 0)))),
     facts: { top: pairs[0]![0], share, places: pairs.length },
   };
 };
+
+/**
+ * Carte d'un taux ou d'une part (%, ex. dette en % du PIB, part protégée) : une somme n'a pas de sens.
+ * Moyenne par lieu, puis lecture « en tête / en queue / écart » au lieu d'une concentration.
+ */
+function analyzeGeoRate(spec: ChartSpec, eff: Dataset, ctx: Ctx, yField: string, place: string, u: MUnit): Analysis | null {
+  const acc = new Map<string, { s: number; n: number }>();
+  for (const r of rowsOf(eff)) {
+    const k = r[place];
+    const v = numAt(r, yField);
+    if (k == null || k === "" || v == null) continue;
+    const a = acc.get(String(k)) ?? { s: 0, n: 0 };
+    a.s += v;
+    a.n += 1;
+    acc.set(String(k), a);
+  }
+  const pairs = [...acc.entries()].map(([k, a]) => [k, a.s / a.n] as const).sort((a, b) => b[1] - a[1]);
+  if (pairs.length < 2) return null;
+  const top = pairs[0]!;
+  const low = pairs[pairs.length - 1]!;
+  const mean = S.sum(pairs.map((p) => p[1])) / pairs.length;
+  const noun = nounOf(place);
+  const spread = top[1] - low[1];
+  void ctx;
+  return {
+    kind: "geo",
+    title: `${top[0]} en tête (${fm(top[1], u)}), ${low[0]} en dernier (${fm(low[1], u)})`,
+    comments: [
+      `${count(pairs.length, noun.sg, noun.pl)} ${agree(noun, plural(pairs.length, "représenté"), plural(pairs.length, "représentée"))} ; moyenne simple : ${fm(mean, u)}.`,
+      `Écart entre extrêmes : ${formatPoints(spread).replace("+", "")}.`,
+    ],
+    why: "Lecture territoriale d'un taux : on compare les niveaux, on ne les additionne pas.",
+    role: "context",
+    effect: S.clamp01(0.25 + Math.min(0.5, spread / Math.max(1, Math.abs(mean)) / 2)),
+    coverage: 1,
+    facts: { top: top[0], low: low[0], mean, places: pairs.length },
+  };
+}
 
 const analyzeCorrelation: Analyzer = (spec, eff, ctx) => {
   const x = spec.encoding.x;

@@ -119,7 +119,8 @@ describe("exemples : récit sans emballement", () => {
     for (const s of SAMPLES) {
       const ds = buildDataset(s.name, s.rows());
       for (const i of allInsights(ds, sc(ds))) {
-        expect(norm(i.analysis.title), s.id).not.toMatch(/[+−]?\d{3,} %/);
+        // données publiques : un niveau en % peut dépasser 100 (dette en % du PIB) ; seules les variations signées sont proscrites
+        expect(norm(i.analysis.title), s.id).not.toMatch(s.publicData ? /[+−]\d{3,} %/ : /[+−]?\d{3,} %/);
         expect(norm(i.analysis.why), s.id).not.toMatch(/[+−]\d{3,} %/);
       }
     }

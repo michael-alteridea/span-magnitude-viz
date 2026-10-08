@@ -77,5 +77,6 @@ export const ICONS = {
   save: `<path d="M5 4 H16 L20 8 V20 H4 V5 Z"/><path d="M8 4 V9 H15 V4"/><rect x="7.5" y="13" width="9" height="5" rx="1"/>`,
   folder: `<path d="M3 7 V18.5 H21 V8.5 H11.5 L9.5 6 H4 Z"/>`,
   export: `<path d="M12 15 V4 M7.5 8.5 L12 4 L16.5 8.5"/><path d="M5 13 V20 H19 V13"/>`,
+  edit: `<path d="M4 20 L8.5 19 L19 8.5 L15.5 5 L5 15.5 Z"/><path d="M13.5 7 L17 10.5"/>`,
   paste: `<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4 V3 H15 V4"/><path d="M9 10 H15 M9 14 H15"/>`,
 };

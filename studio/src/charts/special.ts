@@ -154,7 +154,8 @@ export function mountSpecial(
     autoplay: opts.animate,
     durationMs: spec.mode.fourD.durationMs,
     theme: theme.dark ? "dark" : "light",
-    tickers: spec.special.tickers,
+    // Compteur « somme » sans objet pour un taux ou une part (%) : masqué sur la carte
+    tickers: spec.special.tickers && !(isMap && (spec.axes.y.unit === "pct" || /%|\bpart\b|\btaux\b/i.test(magName(spec)))),
     facetSummary: false,
     colorScheme: libColorScheme(spec.style.palette),
     colorBy: spec.encoding.series ? "group" : "magnitude",

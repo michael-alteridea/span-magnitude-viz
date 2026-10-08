@@ -4,6 +4,7 @@
  *
  *   npm run build:studio && npm run test:e2e:studio            # vérifications
  *   node studio/scripts/e2e.mjs --shots                         # + captures dans studio/docs/shots/
+ *   node studio/scripts/e2e.mjs --public [--shots]              # seulement « Données publiques » + « Modifier le graphique » du Reel
  *
  * Variables : CHROME_PATH (défaut /usr/bin/google-chrome), PUPPETEER_DIR (dossier où
  * puppeteer-core est installé si ce n'est pas une dépendance du projet).
@@ -397,6 +398,206 @@ async function e2eReel() {
 }
 
 /* Mise en avant généralisée (étape L) : parts, arcs, points, courbes, carte ; toucher pour choisir ; « Dupliquer et mettre en avant » ; film, Reel, PowerPoint Morph ; iPad */
+
+/** « Modifier le graphique » d'une scène du Reel : éditeur, barre Valider / Annuler, retour au Reel (même id, même place). */
+async function reelEditChecks(pg, shot, tag, ipad = false, mode = "type") {
+  const press = async (sel) => (ipad ? pg.tap(sel) : pg.click(sel));
+  const st0 = await pg.evaluate(async () => {
+    const d = window.r4d.reelDialog();
+    document.querySelector("[data-testid=reel-rhythm-calme]")?.click();
+    await new Promise((r) => setTimeout(r, 80));
+    // ordre : la scène 3 remonte en 2
+    const cards = [...document.querySelectorAll("[data-testid=reel-scene]")];
+    cards[2]?.querySelector("[data-testid=reel-move-up]")?.click();
+    await new Promise((r) => setTimeout(r, 80));
+    const c2 = document.querySelectorAll("[data-testid=reel-scene]")[1];
+    const t = c2.querySelector("[data-testid=reel-title]");
+    t.value = "Titre retouché de la scène 2";
+    t.dispatchEvent(new Event("input", { bubbles: true }));
+    const n = c2.querySelector("[data-testid=reel-number]");
+    n.value = "42 %";
+    n.dispatchEvent(new Event("input", { bubbles: true }));
+    const du = c2.querySelector("[data-testid=reel-duration]");
+    du.value = "5";
+    du.dispatchEvent(new Event("change", { bubbles: true }));
+    const p = d.currentPlan;
+    return { ids: p.scenes.map((s) => s.id), rhythm: p.rhythm, id2: p.scenes[1].id, type2: d.sceneItems[1].snap.spec.type, n: document.querySelectorAll("[data-testid=reel-edit-chart]").length };
+  });
+  check(`Reel (${tag}) : bouton « Modifier le graphique » sur chaque scène`, st0.n === st0.ids.length && st0.n >= 3, JSON.stringify(st0));
+  await press(`[data-testid=reel-scene][data-scene-id="${st0.id2}"] [data-testid=reel-edit-chart]`);
+  await sleep(700);
+  const ed = await pg.evaluate(() => ({
+    dialog: window.r4d.reelDialog().isOpen,
+    suspended: window.r4d.reelDialog().isSuspended,
+    bar: !document.querySelector("[data-testid=reel-edit-bar]").hidden,
+    label: document.querySelector("[data-testid=reel-edit-label]")?.textContent ?? "",
+    type: window.r4d.getSpec().type,
+    editing: window.r4d.reelEditing(),
+    marks: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks *").length,
+  }));
+  check(`Reel (${tag}) : « Modifier le graphique » met le Reel de côté, ouvre la scène 2 dans l'éditeur avec la barre`, !ed.dialog && ed.suspended && ed.bar && ed.label === "Modification de la scène 2 du Reel" && ed.type === st0.type2 && ed.editing?.id === st0.id2 && ed.marks > 0, JSON.stringify(ed));
+  // « type » : autre type de graphique ; « style » : couleurs + mise en avant (même type)
+  const newType = mode === "type" ? (st0.type2 === "bar" ? "barH" : "bar") : st0.type2;
+  await pg.evaluate((t, m) => {
+    if (m === "type") window.r4d.pickType(t);
+    else window.r4d.set("style.focus.key", "@max");
+    window.r4d.set("style.palette", "petroleGris");
+  }, newType, mode);
+  await sleep(900);
+  await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); });
+  await sleep(300);
+  if (shot) await shot(ipad ? "110-reel-modifier-scene-ipad.png" : "109-reel-modifier-scene.png");
+  await press("[data-testid=reel-edit-validate]");
+  await pg.waitForFunction(() => window.r4d.reelDialog().isOpen, { timeout: 15000 });
+  await sleep(500);
+  const st1 = await pg.evaluate(() => {
+    const d = window.r4d.reelDialog();
+    const p = d.currentPlan;
+    const sc = p.scenes[1];
+    return { ids: p.scenes.map((s) => s.id), rhythm: p.rhythm, title: sc.title, number: sc.number, dur: sc.duration, type2: d.sceneItems[1].snap.spec.type, pal: d.sceneItems[1].snap.spec.style.palette, focus: d.sceneItems[1].snap.spec.style.focus.key, bar: !document.querySelector("[data-testid=reel-edit-bar]").hidden, t: d.time, field: document.querySelectorAll("[data-testid=reel-scene]")[1].querySelector("[data-testid=reel-title]").value };
+  });
+  check(`Reel (${tag}) : Valider met à jour la scène 2 sur place (même id, même ordre), retouches et rythme conservés`, JSON.stringify(st1.ids) === JSON.stringify(st0.ids) && st1.type2 === newType && st1.pal === "petroleGris" && (mode === "type" || st1.focus === "@max") && st1.title === "Titre retouché de la scène 2" && st1.field === st1.title && st1.number === "42 %" && st1.dur === 5 && st1.rhythm === "calme" && !st1.bar && st1.t > 0, JSON.stringify(st1));
+  const fr = await pg.evaluate(async () => { const d = window.r4d.reelDialog(); d.setPlaying(false); d.seek(d.time + 3); await new Promise((r) => requestAnimationFrame(r)); return document.querySelectorAll("[data-testid=reel-frame] .reel-chart .r4d-marks *").length; });
+  check(`Reel (${tag}) : scène 2 redessinée avec le nouveau graphique`, fr > 0, String(fr));
+  if (shot && !ipad) await (await pg.$("[data-testid=reel-dialog] .rv-dialog")).screenshot({ path: join(shotsDir, "111-reel-scene-modifiee.png") }).catch(() => {});
+  // Annuler : rien ne change, l'éditeur retrouve son état
+  const before = await pg.evaluate(() => ({ type: window.r4d.getSpec().type, id1: window.r4d.reelDialog().currentPlan.scenes[0].id, t1: window.r4d.reelDialog().sceneItems[0].snap.spec.type }));
+  await press(`[data-testid=reel-scene][data-scene-id="${before.id1}"] [data-testid=reel-edit-chart]`);
+  await sleep(600);
+  await pg.evaluate(() => window.r4d.pickType("donut"));
+  await sleep(500);
+  await press("[data-testid=reel-edit-cancel]");
+  await pg.waitForFunction(() => window.r4d.reelDialog().isOpen, { timeout: 15000 });
+  await sleep(300);
+  const after = await pg.evaluate(() => ({ type: window.r4d.getSpec().type, t1: window.r4d.reelDialog().sceneItems[0].snap.spec.type, ids: window.r4d.reelDialog().currentPlan.scenes.map((s) => s.id) }));
+  check(`Reel (${tag}) : Annuler revient au Reel sans changement et restaure l'éditeur`, after.t1 === before.t1 && after.type === before.type && JSON.stringify(after.ids) === JSON.stringify(st0.ids), JSON.stringify({ before, after }));
+}
+
+async function e2ePublic() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  await pg.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  const shot = async (name) => { if (!SHOTS) return; await sleep(300); await pg.screenshot({ path: join(shotsDir, name) }); };
+  const themes = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=public-theme]")].map((el) => el.getAttribute("data-theme")));
+  check("Données publiques : 4 thèmes (Dette, CO₂, Démographie, Nature)", themes.join("|") === "Dette publique|CO₂ & climat|Démographie|Nature", themes.join("|"));
+  const cards = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=public-data] [data-sample]")].map((b) => b.getAttribute("data-sample")));
+  check("Données publiques : ≥ 9 exemples (renouvelables + 8 modules)", cards.length >= 9 && cards.includes("renouvelables") && cards.includes("population-mondiale") && cards.includes("dette-publique-ue"), cards.join(","));
+  const lic = await pg.evaluate(() => document.querySelector('[data-sample="population-mondiale"]')?.closest(".public-sample")?.querySelector(".public-licence")?.textContent ?? "");
+  check("population mondiale : licence CC BY 3.0 IGO affichée", /CC BY 3\.0 IGO/.test(lic), lic);
+  await pg.evaluate(() => window.r4d.loadSample("dette-publique-ue"));
+  await sleep(900);
+  await pg.evaluate(() => window.r4d.settle());
+  await sleep(500);
+  const debt = await pg.evaluate(() => {
+    const ds = window.r4d.store.state.ds;
+    const src = window.r4d.getSpec().style.source;
+    return { n: ds?.rows.length ?? 0, cols: ds?.columns.map((c) => c.name) ?? [], src, sample: window.r4d.store.state.sampleId };
+  });
+  check("dette publique : chargé, source Eurostat + Licence + données adaptées", debt.sample === "dette-publique-ue" && debt.n > 100 && debt.cols.includes("Dette publique (% du PIB)") && /Eurostat \(gov_10dd_edpt1/.test(debt.src) && /Licence : CC BY 4\.0/.test(debt.src) && /données adaptées/.test(debt.src), JSON.stringify(debt).slice(0, 280));
+  await shot("104-donnees-publiques.png");
+  await pg.click("[data-testid=data-edit]");
+  await sleep(250);
+  await pg.evaluate(() => { const f = document.querySelector("[data-testid=data-filter]"); f.value = "Belgique 2025"; f.dispatchEvent(new Event("input", { bubbles: true })); });
+  await sleep(250);
+  const edited = await pg.evaluate(() => {
+    const inp = document.querySelector('.table-wrap .cell-input[data-col="Dette publique (% du PIB)"]');
+    if (!inp) return { ok: false };
+    const row = Number(inp.getAttribute("data-row"));
+    inp.value = "99,5";
+    inp.dispatchEvent(new Event("change", { bubbles: true }));
+    return { ok: true, row, name: window.r4d.store.state.ds?.name, sample: window.r4d.store.state.sampleId, src: window.r4d.getSpec().style.source };
+  });
+  await sleep(500);
+  check("Modifier une cellule : devient « (modifié) », plus d'exemple, mention « données modifiées »", edited.ok && /\(modifié\)/.test(edited.name ?? "") && edited.sample == null && /données modifiées/i.test(edited.src ?? ""), JSON.stringify(edited));
+  const parsed = await pg.evaluate((row) => {
+    const ds = window.r4d.store.state.ds;
+    return { type: ds?.columns.find((c) => c.name === "Dette publique (% du PIB)")?.type, v: ds?.rows[row]?.["Dette publique (% du PIB)"], pays: ds?.rows[row]?.Pays, editing: document.querySelector("[data-testid=data-edit]")?.getAttribute("aria-pressed") };
+  }, edited.row);
+  await pg.evaluate(() => window.r4d.set("transform.filters", [{ field: "Pays", op: "in", values: ["Belgique"], value: null, label: "Belgique" }]));
+  await sleep(900);
+  await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); });
+  await sleep(400);
+  await pg.evaluate(() => document.querySelector("[data-testid=data-table]")?.scrollIntoView({ block: "center" }));
+  await shot("108-donnees-publiques-modifier.png");
+  check("Modifier une cellule : « 99,5 » lu comme le nombre 99,5 (colonne toujours numérique, mode édition actif)", parsed.type === "number" && parsed.v === 99.5 && parsed.pays === "Belgique" && parsed.editing === "true", JSON.stringify(parsed));
+  await pg.evaluate(() => window.r4d.loadSample("zones-protegees-ue"));
+  await sleep(800);
+  await pg.click("[data-testid=public-reel-zones-protegees-ue]");
+  await pg.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  const reel = await pg.evaluate(() => {
+    const d = window.r4d.reelDialog();
+    const p = d.plan;
+    return { open: d.isOpen, n: p.scenes.length, lic: p.licence, source: p.source };
+  });
+  check("Créer un Reel (zones protégées) : 3 à 5 scènes, licence CC BY 4.0, source Eurostat", reel.open && reel.n >= 3 && reel.n <= 5 && /CC BY 4\.0/.test(reel.lic) && /Eurostat/.test(reel.source), JSON.stringify(reel).slice(0, 300));
+  await pg.evaluate(async () => { const d = window.r4d.reelDialog(); d.setPlaying(false); d.seek(d.plan.scenes[0].duration + d.plan.scenes[1].duration * 0.85); await new Promise((r) => requestAnimationFrame(r)); });
+  await shot("105-donnees-publiques-reel.png");
+  await reelEditChecks(pg, shot, "public", false, "style");
+  await pg.keyboard.press("Escape");
+  await sleep(300);
+  await pg.evaluate(() => window.r4d.loadSample("zones-protegees-ue"));
+  await sleep(700);
+  await pg.evaluate(() => {
+    const s = window.r4d.getSpec();
+    window.r4d.setSpec({
+      type: "map",
+      encoding: { ...s.encoding, x: "Année", end: null, y: ["Surface protégée (%)"], lat: "Latitude", lon: "Longitude", postal: null, label: "Pays", series: null },
+      special: { ...s.special, mapRegion: "europe" },
+      mode: { ...s.mode, kind: "static" },
+      // carte = une seule année (filtre 2023)
+      transform: { ...s.transform, filters: [
+        { field: "Année", op: "gte", value: Date.UTC(2023, 0, 1), values: [], label: "2023" },
+        { field: "Année", op: "lt", value: Date.UTC(2024, 0, 1), values: [], label: "2023" },
+      ] },
+    });
+  });
+  await sleep(1500);
+  await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); });
+  await sleep(800);
+  const map = await pg.evaluate(() => ({
+    marks: document.querySelectorAll("[data-testid=special-host] svg circle").length,
+    region: window.r4d.getSpec().special.mapRegion,
+    title: document.querySelector("[data-testid=chart-svg] .r4d-title")?.textContent ?? "",
+    empty: document.querySelector("[data-testid=chart-svg] .r4d-empty")?.textContent ?? null,
+  }));
+  check("carte Europe (zones protégées, 2023) : points rendus, titre en niveaux (pas de somme de %)", map.marks > 20 && map.region === "europe" && !map.empty && /en tête/.test(map.title) && !/\d{3,}\s?%/.test(map.title), JSON.stringify(map));
+  await shot("106-donnees-publiques-carte.png");
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+  await pg.evaluate(() => window.r4d.loadSample("renouvelables"));
+  await sleep(900);
+  const ipad = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: window.innerWidth, themes: document.querySelectorAll("[data-testid=public-theme]").length }));
+  check("iPad : Données publiques visibles, pas de défilement horizontal", ipad.themes === 4 && ipad.sw <= ipad.vw + 1, JSON.stringify(ipad));
+  await shot("107-donnees-publiques-ipad.png");
+  // iPad, histoire locale : « Modifier le graphique » met aussi à jour le snapshot de l'histoire (même id, même place)
+  await pg.evaluate(async () => {
+    window.r4d.store.setStory({ ...window.r4d.store.state.story, snapshots: [] });
+    const steps = [() => {}, () => window.r4d.set("style.focus.key", "@max"), () => window.r4d.set("style.palette", "petroleMono")];
+    for (const f of steps) {
+      f();
+      await new Promise((r) => setTimeout(r, 500));
+      await window.r4d.settle();
+      await window.r4d.snapshot();
+    }
+  });
+  const story0 = await pg.evaluate(() => window.r4d.story().snapshots.map((x) => ({ id: x.id, type: x.spec.type })));
+  await pg.evaluate(() => window.r4d.reel());
+  await pg.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+  await reelEditChecks(pg, shot, "histoire, iPad", true);
+  const story1 = await pg.evaluate(() => window.r4d.story().snapshots.map((x) => ({ id: x.id, type: x.spec.type })));
+  check("Reel (histoire, iPad) : le snapshot modifié reste à sa place dans l'histoire, même id", story0.length === 3 && JSON.stringify(story1.map((x) => x.id)) === JSON.stringify(story0.map((x) => x.id)) && story1[2].type !== story0[2].type && story1[0].type === story0[0].type && story1[1].type === story0[1].type && story1.length === 3, JSON.stringify({ story0, story1 }));
+  await pg.keyboard.press("Escape");
+  await sleep(200);
+  check("Données publiques : aucune erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("Données publiques : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  await ctx.close();
+}
+
 async function e2eFocus() {
   const fctx = await browser.createBrowserContext();
   const fp = await fctx.newPage();
@@ -663,6 +864,14 @@ async function e2eFocus() {
   await fctx.close();
 }
 
+if (process.argv.includes("--public")) {
+  try { await e2ePublic(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
 if (process.argv.includes("--focus")) {
   try {
     await e2eFocus();
@@ -2910,6 +3119,9 @@ try {
 
   /* 21. Mise en avant généralisée (étape L) : voir e2eFocus() */
   await e2eFocus();
+
+  /* 22. Données publiques + « Modifier le graphique » d'une scène du Reel : voir e2ePublic() */
+  await e2ePublic();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

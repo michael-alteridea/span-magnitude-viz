@@ -501,3 +501,18 @@ body.rv-open .app > :not(.rv-space):not(.cad-overlay) { display: none !important
   .reel-stage[data-format="16x9"] { height: auto; }
   .reel-right { overflow: visible; }
 }
+
+/* « Modifier le graphique » d'une scène du Reel */
+.reel-scene-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.reel-edit-chart { display: inline-flex; align-items: center; gap: 6px; }
+.reel-edit-chart span { display: inline-flex; }
+@media (pointer: coarse) { .reel-edit-chart { min-height: 40px; padding: 0 14px; } }
+.reel-edit-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 70; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 8px 10px 8px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--panel-2); color: var(--text); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.reel-edit-bar[hidden] { display: none; }
+.reel-edit-ico { display: inline-flex; color: var(--accent); }
+.reel-edit-label { font-weight: 650; white-space: nowrap; }
+.reel-edit-hint { color: var(--muted); font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reel-edit-bar .btn { display: inline-flex; align-items: center; gap: 6px; }
+.reel-edit-bar .btn span { display: inline-flex; }
+@media (max-width: 900px) { .reel-edit-hint { display: none; } }
+@media (pointer: coarse) { .reel-edit-bar .btn { min-height: 44px; padding: 0 16px; } }
