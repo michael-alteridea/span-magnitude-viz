@@ -1,7 +1,11 @@
-# Tell4D — logo « Bulle + barres » (h1)
+# Tell4D — logo « Bulle à contour, barres colorées » (variante « Contour moyen »)
 
 © Alteridea — tous droits réservés. Ces fichiers constituent l'identité de **Tell4D** (moteur Reporting 4D) ;
 ils ne sont pas couverts par la licence MIT du code et ne doivent pas être réutilisés hors des produits Alteridea.
+
+Carré bleu pétrole aux coins arrondis ; grande bulle blanche presque pleine page, cernée d'un contour pétrole ;
+quatre barres croissantes rouge → orange → lime → cyan avec leur traîne ; frise temporelle ; « 4D » agrandi.
+Tous les textes (« 4D », « Tell4D ») sont vectorisés (chemins) : rendu identique sans aucune police installée.
 
 | Fichier | Usage |
 |---|---|
@@ -11,5 +15,7 @@ ils ne sont pas couverts par la licence MIT du code et ne doivent pas être réu
 | `tell4d-h1-icon-{512,64,32,24}.png` | Rendus PNG |
 | `icon-png.ts` | Le PNG 64 px en data URL : logo 2× de l'export PowerPoint |
 
-Couleurs bleu pétrole : `#0E6E8C`, `#3FA7C4`, `#08465A`. Généré par `build_hybrid.py` (cairosvg), choisi le 8 oct. 2026.
-`studio/public/favicon.svg` et `studio/public/apple-touch-icon.png` (180 px, fond plein cadre) en dérivent.
+Palette : fond bleu pétrole (pétrole, pétrole clair, pétrole profond) ; barres rouge corail, orange, lime, cyan.
+Généré par `build_contour.py` → `make(36, 92)` (cairosvg), choisi le 8 oct. 2026 (les noms de fichiers `h1` sont
+conservés pour ne pas changer les imports). `studio/public/favicon.svg` (= l'icône) et `studio/public/apple-touch-icon.png`
+(180 px, fond plein cadre sans coins arrondis, iOS les ajoute) en dérivent.

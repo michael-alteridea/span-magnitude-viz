@@ -439,11 +439,11 @@ try {
   }
   check("export PNG 2×", dims?.[0] === 2400 && dims?.[1] === 1350, dims ? dims.join("×") : "aucun fichier");
   if (pngFile) {
-    // L'icône Tell4D de la signature est bien dans le PNG : pixel du fond pétrole (bord gauche de l'icône,
-    // hors bulle blanche), échelle 2×
+    // L'icône Tell4D de la signature est bien dans le PNG : pixel du contour pétrole (bord gauche de l'icône,
+    // hors bulle blanche : le contour occupe 7 % de la largeur), échelle 2×
     const logo = await page.evaluate(() => {
       const r = document.querySelector("[data-testid=chart-svg] .r4d-logo");
-      return r ? { x: +r.getAttribute("x") + +r.getAttribute("width") * 0.07, y: +r.getAttribute("y") + +r.getAttribute("height") / 2 } : null;
+      return r ? { x: +r.getAttribute("x") + +r.getAttribute("width") * 0.035, y: +r.getAttribute("y") + +r.getAttribute("height") / 2 } : null;
     });
     const px = logo
       ? await page.evaluate(
