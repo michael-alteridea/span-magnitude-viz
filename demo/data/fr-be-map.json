@@ -1,0 +1,464 @@
+{
+  "version": 1,
+  "unit": "date",
+  "title": "France · Belgique — carte",
+  "description": "Démo carte SVG : dots depuis codes postaux FR/BE (lookup offline) ou lat/lon. Finale → choroplèthe Alteridea.",
+  "magnitudeLabel": "Budget (€)",
+  "spanLabel": "Calendrier",
+  "countLabel": "Sites",
+  "defaults": {
+    "geometry": "point",
+    "colorScheme": "altairady",
+    "animate": true,
+    "tickers": [
+      "count",
+      "magnitudeSum"
+    ]
+  },
+  "marks": [
+    {
+      "id": "geo-001",
+      "label": "Paris Hub",
+      "span": {
+        "start": "2019-01-05",
+        "end": "2019-04-10"
+      },
+      "magnitude": 413000.0,
+      "revealAt": "2019-01-05",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "postal": "75008",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-002",
+      "label": "Lyon Nord",
+      "span": {
+        "start": "2020-02-06",
+        "end": "2020-06-11"
+      },
+      "magnitude": 466000.0,
+      "revealAt": "2020-02-06",
+      "cohort": "2020",
+      "group": "Ops",
+      "meta": {
+        "postal": "69003",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-003",
+      "label": "Marseille Port",
+      "span": {
+        "start": "2021-03-07",
+        "end": "2021-08-12"
+      },
+      "magnitude": 196000.0,
+      "revealAt": "2021-03-07",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "postal": "13002",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-004",
+      "label": "Toulouse Aero",
+      "span": {
+        "start": "2022-04-08",
+        "end": "2022-10-13"
+      },
+      "magnitude": 133000.0,
+      "revealAt": "2022-04-08",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "postal": "31000",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-005",
+      "label": "Bordeaux Vin",
+      "span": {
+        "start": "2023-05-09",
+        "end": "2023-12-14"
+      },
+      "magnitude": 544000.0,
+      "revealAt": "2023-05-09",
+      "cohort": "2023",
+      "group": "Marketing",
+      "meta": {
+        "postal": "33000",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-006",
+      "label": "Nantes Atlantique",
+      "span": {
+        "start": "2019-06-10",
+        "end": "2020-02-15"
+      },
+      "magnitude": 387000.0,
+      "revealAt": "2019-06-10",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "postal": "44000",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-007",
+      "label": "Lille Flandre",
+      "span": {
+        "start": "2020-07-11",
+        "end": "2020-10-16"
+      },
+      "magnitude": 95000.0,
+      "revealAt": "2020-07-11",
+      "cohort": "2020",
+      "group": "Ops",
+      "meta": {
+        "postal": "59000",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-008",
+      "label": "Strasbourg EU",
+      "span": {
+        "start": "2021-08-12",
+        "end": "2021-12-17"
+      },
+      "magnitude": 201000.0,
+      "revealAt": "2021-08-12",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "postal": "67000",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-009",
+      "label": "Montpellier Sud",
+      "span": {
+        "start": "2022-09-13",
+        "end": "2023-02-18"
+      },
+      "magnitude": 94000.0,
+      "revealAt": "2022-09-13",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "postal": "34000",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-010",
+      "label": "Rennes Tech",
+      "span": {
+        "start": "2023-01-14",
+        "end": "2023-07-19"
+      },
+      "magnitude": 452000.0,
+      "revealAt": "2023-01-14",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "postal": "35000",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-011",
+      "label": "Nice Côte",
+      "span": {
+        "start": "2019-02-15",
+        "end": "2019-09-20"
+      },
+      "magnitude": 363000.0,
+      "revealAt": "2019-02-15",
+      "cohort": "2019",
+      "group": "Marketing",
+      "meta": {
+        "postal": "06000",
+        "country": "FR",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-012",
+      "label": "Grenoble Alpes",
+      "span": {
+        "start": "2020-03-16",
+        "end": "2020-11-21"
+      },
+      "magnitude": 314000.0,
+      "revealAt": "2020-03-16",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "postal": "38000",
+        "country": "FR",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-013",
+      "label": "Bruxelles Centre",
+      "span": {
+        "start": "2021-04-17",
+        "end": "2021-07-22"
+      },
+      "magnitude": 501000.0,
+      "revealAt": "2021-04-17",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "postal": "1000",
+        "country": "BE",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-014",
+      "label": "Anvers Port",
+      "span": {
+        "start": "2022-05-18",
+        "end": "2022-09-23"
+      },
+      "magnitude": 475000.0,
+      "revealAt": "2022-05-18",
+      "cohort": "2022",
+      "group": "Ops",
+      "meta": {
+        "postal": "2000",
+        "country": "BE",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-015",
+      "label": "Gand Canal",
+      "span": {
+        "start": "2023-06-19",
+        "end": "2023-11-24"
+      },
+      "magnitude": 443000.0,
+      "revealAt": "2023-06-19",
+      "cohort": "2023",
+      "group": "Marketing",
+      "meta": {
+        "postal": "9000",
+        "country": "BE",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-016",
+      "label": "Liège Meuse",
+      "span": {
+        "start": "2019-07-20",
+        "end": "2020-01-10"
+      },
+      "magnitude": 224000.0,
+      "revealAt": "2019-07-20",
+      "cohort": "2019",
+      "group": "Ops",
+      "meta": {
+        "postal": "4000",
+        "country": "BE",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-017",
+      "label": "Namur Citadelle",
+      "span": {
+        "start": "2020-08-21",
+        "end": "2021-03-11"
+      },
+      "magnitude": 578000.0,
+      "revealAt": "2020-08-21",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "postal": "5000",
+        "country": "BE",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-018",
+      "label": "Bruges Ouest",
+      "span": {
+        "start": "2021-09-22",
+        "end": "2022-05-12"
+      },
+      "magnitude": 133000.0,
+      "revealAt": "2021-09-22",
+      "cohort": "2021",
+      "group": "Marketing",
+      "meta": {
+        "postal": "8000",
+        "country": "BE",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-019",
+      "label": "Louvain",
+      "span": {
+        "start": "2022-01-23",
+        "end": "2022-04-13"
+      },
+      "magnitude": 130000.0,
+      "revealAt": "2022-01-23",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "postal": "3000",
+        "country": "BE",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-020",
+      "label": "Charleroi",
+      "span": {
+        "start": "2023-02-24",
+        "end": "2023-06-14"
+      },
+      "magnitude": 394000.0,
+      "revealAt": "2023-02-24",
+      "cohort": "2023",
+      "group": "Ops",
+      "meta": {
+        "postal": "6000",
+        "country": "BE",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "geo-021",
+      "label": "Dijon Bourgogne",
+      "span": {
+        "start": "2019-03-05",
+        "end": "2019-08-15"
+      },
+      "magnitude": 459000.0,
+      "revealAt": "2019-03-05",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "postal": "21000",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-022",
+      "label": "Reims Champagne",
+      "span": {
+        "start": "2020-04-06",
+        "end": "2020-10-16"
+      },
+      "magnitude": 145000.0,
+      "revealAt": "2020-04-06",
+      "cohort": "2020",
+      "group": "Marketing",
+      "meta": {
+        "postal": "51000",
+        "country": "FR",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-023",
+      "label": "Rouen Seine",
+      "span": {
+        "start": "2021-05-07",
+        "end": "2021-12-17"
+      },
+      "magnitude": 121000.0,
+      "revealAt": "2021-05-07",
+      "cohort": "2021",
+      "group": "Ops",
+      "meta": {
+        "postal": "76000",
+        "country": "FR",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-024",
+      "label": "Nantes Bis",
+      "span": {
+        "start": "2022-06-08",
+        "end": "2023-02-18"
+      },
+      "magnitude": 511000.0,
+      "revealAt": "2022-06-08",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "postal": "44100",
+        "country": "FR",
+        "status": "pilot"
+      }
+    },
+    {
+      "id": "geo-ll-1",
+      "label": "Bruxelles LatLon",
+      "span": {
+        "start": "2022-03-01",
+        "end": "2023-01-15"
+      },
+      "magnitude": 410000,
+      "revealAt": "2022-03-01",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "lat": 50.8503,
+        "lon": 4.3517,
+        "country": "BE",
+        "status": "active"
+      }
+    },
+    {
+      "id": "geo-ll-2",
+      "label": "Paris LatLon",
+      "span": {
+        "start": "2021-06-01",
+        "end": "2022-06-01"
+      },
+      "magnitude": 625000,
+      "revealAt": "2021-06-01",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "lat": 48.8566,
+        "lon": 2.3522,
+        "country": "FR",
+        "status": "shipped"
+      }
+    }
+  ]
+}
