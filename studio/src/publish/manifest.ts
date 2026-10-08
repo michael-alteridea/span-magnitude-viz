@@ -106,6 +106,8 @@ export const manifestSchema = z
     genere_le: iso,
     source: z.string().max(400),
     empreinte: hex64,
+    /** Empreinte des données (celle du cartouche) — ajout compatible 1.1 ; `empreinte` couvre le contenu publié. */
+    empreinte_donnees: hex64.optional(),
     lien_lecture: url.nullable(),
     snapshots: z.array(manifestSnapshotSchema).min(1).max(24),
   })
@@ -138,6 +140,7 @@ export const indexSchema = z.object({
       persona: z.string(),
       manifeste: url,
       empreinte: hex64,
+      empreinte_donnees: hex64.optional(),
       genere_le: iso,
       nb_snapshots: z.number().int().min(1).max(24),
     })
@@ -293,19 +296,71 @@ function fingerprintSpec(spec: unknown): unknown {
   return { ...(spec as object), style };
 }
 
-/** Empreinte d'un snapshot : SHA-256 du JSON canonique de son contenu (graphique, textes, données). */
-export function snapshotFingerprint(s: SourceSnapshot): Promise<string> {
-  return sha256Hex(canonicalJson({ id: s.id, title: s.title, subtitle: s.subtitle, comments: s.comments, path: s.path ?? null, spec: fingerprintSpec(s.spec) }));
+/** Note de l'animateur·rice telle que publiée (`commentaire_animateur`) : texte nettoyé, ou null. */
+export const noteOf = (note: string | null | undefined): string | null => (note?.trim() ? note.trim() : null);
+
+/**
+ * Empreinte d'un snapshot : SHA-256 du JSON canonique de son contenu (identifiant, titres, puces, chemin, rôle,
+ * spécification du graphique et données, d'où l'image est rendue) ET de tous les textes publiés dans le manifeste
+ * (`titre`, `a_retenir`, `commentaire_genere`, `commentaire_animateur`, `chemin`, `alt`). Une note d'animateur·rice
+ * modifiée seule change donc l'empreinte (et le `?v=` des images) : Cadencer rafraîchit le point d'ordre du jour.
+ */
+export function snapshotFingerprint(s: SourceSnapshot, note: string | null = null): Promise<string> {
+  return sha256Hex(
+    canonicalJson({
+      id: s.id,
+      title: s.title,
+      subtitle: s.subtitle,
+      comments: s.comments,
+      path: s.path ?? null,
+      role: s.role ?? null,
+      spec: fingerprintSpec(s.spec),
+      publie: {
+        titre: s.title,
+        a_retenir: s.comments.map((c) => c.trim()).filter(Boolean),
+        commentaire_genere: commentaireOf(s),
+        commentaire_animateur: noteOf(note),
+        chemin: cheminOf(s),
+        alt: altOf(s),
+      },
+    })
+  );
 }
 
 /**
- * Empreinte de la revue : empreinte des données (celle du cartouche) quand tous les snapshots viennent du même
- * jeu de données ; sinon SHA-256 des empreintes de données triées (ou des empreintes des snapshots).
+ * Empreinte des données de la revue (celle du cartouche, ex. `d923·bd5f`) quand tous les snapshots viennent du même
+ * jeu de données ; sinon SHA-256 des empreintes de données triées ; null sans provenance.
  */
-export async function reviewFingerprint(snaps: SourceSnapshot[], snapPrints: string[]): Promise<string> {
+export async function reviewDataFingerprint(snaps: SourceSnapshot[]): Promise<string | null> {
   const data = [...new Set(snaps.map((s) => dataHashOf(s.spec)).filter((h): h is string => !!h))].sort();
+  if (!data.length) return null;
   if (data.length === 1 && snaps.every((s) => dataHashOf(s.spec))) return data[0]!;
-  return sha256Hex((data.length ? data : snapPrints).join(","));
+  return sha256Hex(data.join(","));
+}
+
+/**
+ * Empreinte de la revue : SHA-256 du JSON canonique des champs de la revue (titre, destinataire, entreprise, date de
+ * réunion, source, empreinte des données) et de la suite ordonnée (id, empreinte) de ses snapshots. Change dès qu'un
+ * snapshot change (note comprise), qu'un snapshot est ajouté, retiré ou déplacé : l'index suffit à détecter une revue
+ * modifiée.
+ */
+export function reviewFingerprint(
+  r: { id: string; titre: string; persona: string; entreprise: string; date_reunion: string | null; source: string },
+  dataPrint: string | null,
+  snaps: { id: string; empreinte: string }[]
+): Promise<string> {
+  return sha256Hex(
+    canonicalJson({
+      id: r.id,
+      titre: r.titre,
+      persona: r.persona,
+      entreprise: r.entreprise,
+      date_reunion: r.date_reunion,
+      source: r.source,
+      empreinte_donnees: dataPrint,
+      snapshots: snaps.map((s) => [s.id, s.empreinte]),
+    })
+  );
 }
 
 export async function buildManifest(input: ManifestInput, o: ManifestOptions): Promise<Manifest> {
@@ -313,8 +368,15 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
   const readBase = o.readBase ?? base;
   const readId = input.readId ?? input.id;
   const publie = o.images === "publie";
-  const prints = await Promise.all(input.snapshots.map((x) => snapshotFingerprint(x.snap)));
+  const prints = await Promise.all(input.snapshots.map((x) => snapshotFingerprint(x.snap, x.note)));
   const sources = [...new Set(input.snapshots.map((x) => x.snap.source.trim()).filter(Boolean))];
+  const source = sources.join(" ; ");
+  const dataPrint = await reviewDataFingerprint(input.snapshots.map((x) => x.snap));
+  const empreinte = await reviewFingerprint(
+    { id: input.id, titre: input.titre, persona: input.persona, entreprise: input.entreprise, date_reunion: input.date_reunion, source },
+    dataPrint,
+    input.snapshots.map((x, i) => ({ id: x.snap.id, empreinte: prints[i]! }))
+  );
   const m: Manifest = {
     format: MANIFEST_FORMAT,
     version: MANIFEST_VERSION,
@@ -324,11 +386,9 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
     entreprise: input.entreprise,
     date_reunion: input.date_reunion,
     genere_le: input.genere_le,
-    source: sources.join(" ; "),
-    empreinte: await reviewFingerprint(
-      input.snapshots.map((x) => x.snap),
-      prints
-    ),
+    source,
+    empreinte,
+    ...(dataPrint ? { empreinte_donnees: dataPrint } : {}),
     // Manifeste téléchargé : les liens de cet appareil ne sont pas partagés (null) ; seuls les liens https publiés circulent.
     lien_lecture: publie ? readUrl(readBase, readId) : null,
     snapshots: input.snapshots.map(({ snap, note, png, svg }, i) => ({
@@ -336,7 +396,7 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
       position: i + 1,
       titre: snap.title || `Snapshot ${i + 1}`,
       commentaire_genere: commentaireOf(snap),
-      commentaire_animateur: note?.trim() ? note.trim() : null,
+      commentaire_animateur: noteOf(note),
       a_retenir: snap.comments.map((c) => c.trim()).filter(Boolean),
       chemin: cheminOf(snap),
       image_png: publie ? imageUrl(input.id, snap.id, "png", base, prints[i]) : png,
@@ -354,7 +414,7 @@ export function buildIndex(manifests: Manifest[], genere_le: string, base: strin
     format: INDEX_FORMAT,
     version: MANIFEST_VERSION,
     genere_le,
-    revues: manifests.map((m) => ({ id: m.id, titre: m.titre, persona: m.persona, manifeste: manifestUrl(m.id, base), empreinte: m.empreinte, genere_le: m.genere_le, nb_snapshots: m.snapshots.length })),
+    revues: manifests.map((m) => ({ id: m.id, titre: m.titre, persona: m.persona, manifeste: manifestUrl(m.id, base), empreinte: m.empreinte, ...(m.empreinte_donnees ? { empreinte_donnees: m.empreinte_donnees } : {}), genere_le: m.genere_le, nb_snapshots: m.snapshots.length })),
   });
 }
 

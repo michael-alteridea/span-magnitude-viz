@@ -2475,6 +2475,23 @@ try {
     const nf = await rd.evaluate(() => ({ msg: document.querySelector("[data-testid=reader-msg]")?.textContent ?? "", hidden: document.querySelector("[data-testid=reader-msg]")?.hidden }));
     check("lien vers une histoire locale absente : message « introuvable sur cet appareil » + liens vers les démos", !nf.hidden && /introuvable sur cet appareil/.test(nf.msg) && /Directeur commercial/.test(nf.msg), nf.msg.slice(0, 80));
     await shotOn(rd, "54-lecture-introuvable.png");
+    // snapshot inconnu dans une histoire existante : message explicite + « Ouvrir la diapositive 1 » (pas d'ouverture silencieuse)
+    await rd.evaluate(() => (location.hash = "#/lire/demo-dircom/dircom-99-retire"));
+    await sleep(900);
+    const un = await rd.evaluate(() => ({ msg: document.querySelector("[data-testid=reader-msg]")?.textContent ?? "", hidden: document.querySelector("[data-testid=reader-msg]")?.hidden, acts: [...document.querySelectorAll("[data-testid=reader-msg] .film-msg-acts > *")].map((a) => a.textContent + "|" + (a.getAttribute("href") ?? "")) }));
+    await shotOn(rd, "103-lecture-snapshot-introuvable.png");
+    await rd.evaluate(() => document.querySelector("[data-testid=reader-msg] a.btn")?.click());
+    await sleep(1200);
+    const un1 = { ...(await rs()), hash: await rd.evaluate(() => location.hash), msgHidden: await rd.evaluate(() => document.querySelector("[data-testid=reader-msg]")?.hidden) };
+    check("lien vers un snapshot inconnu : « Ce snapshot n'existe plus ou a été renommé », puis « Ouvrir la diapositive 1 » → 1 / 7", !un.hidden && /Ce snapshot n'existe plus ou a été renommé/.test(un.msg) && /dircom-99-retire/.test(un.msg) && un.acts[0] === "Ouvrir la diapositive 1|#/lire/demo-dircom/dircom-01-trimestres" && un1.counter === "1 / 7" && un1.hash === "#/lire/demo-dircom/dircom-01-trimestres" && un1.msgHidden, JSON.stringify({ un, un1 }).slice(0, 300));
+    // anciens identifiants à suffixe d'empreinte : toujours résolus comme avant (aucun message)
+    await rd.evaluate(() => (location.hash = "#/lire/demo-dircom/dircom-03-mois-focus-88z5ap"));
+    await sleep(1200);
+    const old = { ...(await rs()), id: await rd.evaluate(() => window.r4d.reader().current?.id), msgHidden: await rd.evaluate(() => document.querySelector("[data-testid=reader-msg]")?.hidden) };
+    await rd.evaluate(() => (location.hash = "#/lire/demo-daf/daf-01-cascade-14j5oil"));
+    await sleep(1200);
+    const old2 = { ...(await rs()), id: await rd.evaluate(() => window.r4d.reader().current?.id), msgHidden: await rd.evaluate(() => document.querySelector("[data-testid=reader-msg]")?.hidden) };
+    check("anciens identifiants à suffixe (dircom-03-mois-focus-88z5ap, daf-01-cascade-14j5oil) : bon snapshot, pas de message", old.counter === "3 / 7" && old.id === "dircom-03-mois-focus" && old.msgHidden && old2.counter === "1 / 7" && old2.id === "daf-01-cascade" && old2.msgHidden, JSON.stringify({ old, old2 }).slice(0, 300));
     check("mode lecture (autre appareil) : zéro erreur console", rdErrors.length === 0, rdErrors.slice(0, 3).join(" | "));
     await ctx.close();
 
@@ -2573,6 +2590,22 @@ try {
         nImg++;
       }
     }
+    // anciennes adresses d'images (identifiants à suffixe) : vraies images (copies), pas la page du Studio
+    const legacyBad = [];
+    let nLegacy = 0;
+    for (const [rid, sfx] of [["demo-dircom", ["88z5ap"]], ["norvia-pipeline-oct-2026", ["88z5ap"]], ["demo-daf", ["14j5oil", "1051jsm"]], ["norvia-budget-2026", ["14j5oil", "1051jsm"]]])
+      for (let k = 1; k <= 7; k++)
+        for (const x of sfx) {
+          const base = readdirSync(join(dist, "publie", rid)).find((f) => new RegExp(`^(dircom|daf)-0${k}-[a-z-]+\\.png$`).test(f))?.replace(/\.png$/, "");
+          for (const ext of ["png", "svg"]) {
+            const f = join(dist, "publie", rid, `${base}-${x}.${ext}`);
+            const buf = existsSync(f) ? readFileSync(f) : null;
+            if (!buf || (ext === "png" ? buf.readUInt32BE(0) !== 0x89504e47 : !buf.subarray(0, 200).toString().includes("<svg"))) legacyBad.push(`${rid}/${base}-${x}.${ext}`);
+            else nLegacy++;
+          }
+        }
+    const legacyHttp = await page.evaluate(async (b) => { const r = await fetch(`${b}publie/demo-daf/daf-01-cascade-14j5oil.png`); return r.headers.get("content-type"); }, BASE);
+    check("anciennes adresses d'images (…-14j5oil.png, …-88z5ap.svg) : 84 copies PNG / SVG servies comme images", !legacyBad.length && nLegacy === 84 && /image\/png/.test(legacyHttp ?? ""), `${nLegacy} · ${legacyHttp} · ${legacyBad.slice(0, 3).join(" | ")}`);
     check(`4 manifestes valides (schéma Zod 1.1 : ?v=empreinte, alt, synthèse ≠ puces, notes des démos), ${nImg} PNG 1600 × 900 + SVG présents`, !bad.length && nImg === 28, bad.slice(0, 3).join(" | "));
     // Histoire = démo « Directeur commercial » complète → URL du manifeste publié
     await page.evaluate(() => window.r4d.store.setUi({ openSections: { ...window.r4d.store.state.ui.openSections, histoire: true } }));

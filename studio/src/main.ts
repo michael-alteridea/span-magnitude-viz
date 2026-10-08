@@ -1385,10 +1385,20 @@ async function openReading(rt: ReadRoute): Promise<void> {
     );
     return;
   }
-  let k = rt.snapId ? snapshotIndexOf(story.snapshots, rt.snapId) : 0;
+  const k = rt.snapId ? snapshotIndexOf(story.snapshots, rt.snapId) : 0;
   if (k < 0) {
-    k = 0;
-    toast("Diapositive introuvable dans cette histoire : lecture depuis le début", "info", 4500);
+    // Identifiant inconnu (ni stable, ni ancien identifiant à suffixe) : le dire, proposer la diapositive 1
+    readerStory = null;
+    const first = story.snapshots[0]!;
+    reader.showMessage(
+      "Ce snapshot n'existe plus ou a été renommé",
+      `Le lien désigne « ${rt.snapId} », introuvable dans « ${story.title} ». Il a peut-être été retiré ou renommé depuis l'envoi du lien.`,
+      [
+        { label: "Ouvrir la diapositive 1", href: readHash(rt.storyId, first.id) },
+        { label: "Ouvrir le Studio", onclick: () => reader.close() },
+      ]
+    );
+    return;
   }
   const same = reader.isOpen && readerStory === rt.storyId;
   readerStory = rt.storyId;

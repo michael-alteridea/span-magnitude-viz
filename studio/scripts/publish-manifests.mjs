@@ -9,6 +9,7 @@
  *   studio-dist/publie/<revue>/manifeste.json
  *   studio-dist/publie/<revue>/<snapshot>.png   (1600 × 900, cartouche, QR vers le mode lecture ; adresse ?v=<empreinte>)
  *   studio-dist/publie/<revue>/<snapshot>.svg   (autonome, polices intégrées)
+ *   studio-dist/publie/<revue>/<snapshot>-<ancien suffixe>.png|svg   (copies pour les anciennes adresses, avant 1.1)
  *
  * Déterministe : dates de génération figées (données de démonstration), aucun horodatage de construction.
  * Contrat : studio/docs/contrat-cadencer.md. DATANIME_SKIP_PUBLIE=1 : étape ignorée (construction rapide).
@@ -69,6 +70,14 @@ const jsQR = require("jsqr").default ?? require("jsqr");
 const problems = [];
 const sha = (b) => createHash("sha256").update(b).digest("hex").slice(0, 12);
 
+/**
+ * Suffixes d'empreinte des anciens identifiants publiés (avant « id stable », contrat 1.1, point 9) : les images
+ * `<snapshot>-<suffixe>.png|svg` restent servies (copies) pour les liens déjà diffusés.
+ */
+const LEGACY_SUFFIXES = { "dircom-": ["88z5ap"], "daf-": ["14j5oil", "1051jsm"] };
+const legacySuffixes = (snapId) => Object.entries(LEGACY_SUFFIXES).find(([p]) => snapId.startsWith(p))?.[1] ?? [];
+let legacyCount = 0;
+
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 const ids = await page.evaluate(() => window.r4d.publishedStories());
@@ -103,6 +112,13 @@ for (const id of ids) {
       if (!img.svg) problems.push(`${id}/${s.id} : SVG annoncé mais absent`);
       else writeFileSync(join(dir, fileOf(s.image_svg)), img.svg);
     }
+    // Anciennes adresses (identifiants à suffixe d'empreinte, avant le contrat 1.1) : copies du fichier actuel, pour
+    // qu'elles servent une vraie image au lieu de la page du Studio (réécriture SPA de Firebase) — firebase.json intact.
+    for (const suffix of legacySuffixes(s.id)) {
+      writeFileSync(join(dir, `${s.id}-${suffix}.png`), pngBuf);
+      if (s.image_svg && img.svg) writeFileSync(join(dir, `${s.id}-${suffix}.svg`), img.svg);
+      legacyCount++;
+    }
     summary.push({ id, snap: s.id, png: sha(pngBuf), kb: Math.round(pngBuf.length / 1024), svgKb: img.svg ? Math.round(img.svg.length / 1024) : 0 });
   }
   writeFileSync(join(dir, "manifeste.json"), JSON.stringify(manifest, null, 2) + "\n");
@@ -116,6 +132,7 @@ server.close();
 if (errors.length) problems.push(...errors.map((e) => `console : ${e}`));
 const total = summary.reduce((a, s) => a + s.kb + s.svgKb, 0);
 console.log(`publish-manifests : ${manifests.length} manifestes, ${summary.length} images (${Math.round(total / 1024 * 10) / 10} Mo) → ${outDir}`);
+console.log(`  anciennes adresses d'images (suffixe d'empreinte) : ${legacyCount} copies PNG + SVG`);
 for (const m of manifests) console.log(`  ${m.id} · ${m.snapshots.length} snapshots · empreinte ${m.empreinte.slice(0, 8)} · ${index.revues.find((r) => r.id === m.id)?.manifeste}`);
 if (process.argv.includes("--details")) console.log(JSON.stringify(summary, null, 1));
 if (problems.length) {

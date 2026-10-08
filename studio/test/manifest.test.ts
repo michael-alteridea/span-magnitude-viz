@@ -90,8 +90,10 @@ describe("construction du manifeste", () => {
     expect(m.date_reunion).toBe("2026-10-08T09:00:00+02:00");
     expect(m.lien_lecture).toBe(`${PLATFORM_URL}#/lire/${DEMO_PIPELINE_ID}`);
     expect(m.source).toMatch(/Norvia/);
-    // empreinte de la revue = empreinte des données (8 premiers caractères dans le cartouche : d923·bd5f)
-    expect(m.empreinte).toMatch(/^d923bd5f[0-9a-f]{56}$/);
+    // empreinte des données (8 premiers caractères dans le cartouche : d923·bd5f) ; empreinte de la revue = contenu publié
+    expect(m.empreinte_donnees).toMatch(/^d923bd5f[0-9a-f]{56}$/);
+    expect(m.empreinte).toMatch(/^[0-9a-f]{64}$/);
+    expect(m.empreinte).not.toBe(m.empreinte_donnees);
     expect(m.snapshots).toHaveLength(7);
     const s3 = m.snapshots[2]!;
     expect(s3.position).toBe(3);
@@ -119,15 +121,49 @@ describe("construction du manifeste", () => {
     expect(new Set(m.snapshots.map((s) => s.empreinte)).size).toBe(7);
   });
 
-  it("déterministe ; mêmes empreintes de snapshots pour la démo et la revue (même contenu)", async () => {
-    const a = await buildManifest(await pipelineInput(), { images: "publie" });
+  it("déterministe ; empreintes de snapshots = contenu + note publiée (même contenu et même note → même empreinte)", async () => {
+    const input = await pipelineInput();
+    const a = await buildManifest(input, { images: "publie" });
     const b = await buildManifest(await pipelineInput(), { images: "publie" });
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     const demo = (await demoReadingStory("demo-dircom"))!;
-    const prints = await Promise.all(demo.snapshots.map((s) => snapshotFingerprint(s)));
+    const notes = input.snapshots.map((x) => x.note);
+    const prints = await Promise.all(demo.snapshots.map((s, i) => snapshotFingerprint(s, notes[i] ?? null)));
     expect(prints).toEqual(a.snapshots.map((s) => s.empreinte));
-    const changed = await snapshotFingerprint({ ...demo.snapshots[0]!, title: "Autre titre" });
+    const changed = await snapshotFingerprint({ ...demo.snapshots[0]!, title: "Autre titre" }, notes[0] ?? null);
     expect(changed).not.toBe(prints[0]);
+  });
+
+  it("contrat 1.1 : l'empreinte couvre la note de l'animateur·rice, le rôle et les textes publiés ; l'index suit", async () => {
+    const input = await pipelineInput();
+    const a = await buildManifest(input, { images: "publie" });
+    const k = input.snapshots.findIndex((x) => x.note);
+    expect(k).toBeGreaterThanOrEqual(0);
+    // note modifiée seule → empreinte du snapshot, ?v= des images, empreinte de la revue et de l'index changent
+    const edited = { ...input, snapshots: input.snapshots.map((x, i) => (i === k ? { ...x, note: `${x.note} (mise à jour)` } : x)) };
+    const b = await buildManifest(edited, { images: "publie" });
+    expect(b.snapshots[k]!.empreinte).not.toBe(a.snapshots[k]!.empreinte);
+    expect(b.snapshots[k]!.image_png).not.toBe(a.snapshots[k]!.image_png);
+    expect(b.snapshots[k]!.id).toBe(a.snapshots[k]!.id);
+    expect(b.snapshots.filter((s, i) => s.empreinte !== a.snapshots[i]!.empreinte)).toHaveLength(1);
+    expect(b.empreinte).not.toBe(a.empreinte);
+    expect(b.empreinte_donnees).toBe(a.empreinte_donnees);
+    expect(buildIndex([b], b.genere_le).revues[0]!.empreinte).not.toBe(buildIndex([a], a.genere_le).revues[0]!.empreinte);
+    // note ajoutée / retirée, espaces seuls ignorés (comme commentaire_animateur)
+    const s0 = input.snapshots[0]!.snap;
+    const none = await snapshotFingerprint(s0, null);
+    expect(await snapshotFingerprint(s0, "   ")).toBe(none);
+    expect(await snapshotFingerprint(s0, "Une note")).not.toBe(none);
+    expect(await snapshotFingerprint(s0, " Une note ")).toBe(await snapshotFingerprint(s0, "Une note"));
+    // rôle (donc commentaire_genere) couvert
+    expect(await snapshotFingerprint({ ...s0, role: s0.role === "tension" ? "context" : "tension" }, null)).not.toBe(none);
+    // ordre des snapshots couvert par l'empreinte de la revue
+    const swapped = await buildManifest({ ...input, snapshots: [input.snapshots[1]!, input.snapshots[0]!, ...input.snapshots.slice(2)] }, { images: "publie" });
+    expect(swapped.empreinte).not.toBe(a.empreinte);
+    // même snapshot, notes différentes selon la revue → empreintes différentes ; sans note identique → égales
+    const demo = (await demoReadingStory("demo-dircom"))!;
+    const d0 = demo.snapshots.find((s) => s.id === "dircom-01-trimestres")!;
+    expect(await snapshotFingerprint(d0, null)).not.toBe(await snapshotFingerprint(d0, "Note de revue"));
   });
 
   it("réglages de l'étape I à leur valeur par défaut : empreinte inchangée (pas de faux « contenu changé »)", async () => {
@@ -164,7 +200,7 @@ describe("construction du manifeste", () => {
       format: "datanime-index",
       version: 1,
       genere_le: "2026-10-08T06:30:00+02:00",
-      revues: [{ id: DEMO_PIPELINE_ID, titre: m.titre, persona: "Directeur commercial", manifeste: manifestUrl(DEMO_PIPELINE_ID), empreinte: m.empreinte, genere_le: m.genere_le, nb_snapshots: 7 }],
+      revues: [{ id: DEMO_PIPELINE_ID, titre: m.titre, persona: "Directeur commercial", manifeste: manifestUrl(DEMO_PIPELINE_ID), empreinte: m.empreinte, empreinte_donnees: m.empreinte_donnees, genere_le: m.genere_le, nb_snapshots: 7 }],
     });
     expect(indexSchema.safeParse({ ...idx, version: 2 }).success).toBe(false);
   });

@@ -383,7 +383,15 @@ ses points d'ordre du jour et ses accusés « J'ai vu » à cet identifiant : id
 → `empreinte` et `?v=` des images. Même identifiant pour les manifestes, les liens `#/lire/<histoire>/<snapshot>`,
 les QR (cartouche, PowerPoint) et les noms d'images publiées (`publie/<revue>/<snapshot>.png?v=…`). Les anciens liens
 à suffixe d'empreinte (`…-88z5ap`, `…-14j5oil`, `…-1051jsm`) ouvrent toujours la bonne diapositive
-(`matchSnapshotId`, `story/scenarios.ts`).
+(`matchSnapshotId`, `story/scenarios.ts`) et leurs anciennes adresses d'images servent toujours une vraie image (copies
+publiées par `scripts/publish-manifests.mjs`). Un identifiant inconnu affiche « Ce snapshot n'existe plus ou a été
+renommé » avec « Ouvrir la diapositive 1 » (capture `docs/shots/103-lecture-snapshot-introuvable.png`).
+
+**Empreintes (contrat 1.1, complément).** L'empreinte d'un snapshot couvre `alt`, `titre`, `a_retenir`,
+`commentaire_genere`, `commentaire_animateur` et l'image (contenu, rôle, graphique, données) : une note d'animateur·rice
+modifiée seule change l'empreinte et le `?v=`. L'empreinte de la revue (manifeste, `index.json`) couvre les champs de la
+revue et la suite ordonnée des empreintes de snapshots ; l'empreinte des données du cartouche est dans
+`empreinte_donnees`. Détail : `docs/contrat-cadencer.md`.
 
 ## Barres racontées : icônes, pictogrammes, objectif, mise en avant (étape I)
 

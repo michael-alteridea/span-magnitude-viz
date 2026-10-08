@@ -54,7 +54,8 @@ CORS non nécessaire (import côté serveur).
   "date_reunion": "2026-10-08T09:00:00+02:00" | null,
   "genere_le": "ISO 8601 avec fuseau",
   "source": "…",                         // sources des données (plusieurs : séparées par « ; »)
-  "empreinte": "<64 hex>",               // empreinte des données (voir plus bas)
+  "empreinte": "<64 hex>",               // empreinte du contenu publié de la revue (voir plus bas)
+  "empreinte_donnees": "<64 hex>",       // empreinte des données (celle du cartouche) ; absent sans provenance (1.1)
   "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>" | null,   // null : manifeste téléchargé (1.1)
   "snapshots": [ {
     "id": "<snapshotId>",                // stable dans une revue (sans empreinte), unique DANS la revue seulement (1.1)
@@ -68,7 +69,7 @@ CORS non nécessaire (import côté serveur).
     "image_svg": "<PLATFORM_URL>publie/<reviewId>/<snapshotId>.svg?v=<12 hex>",   // facultatif (champ absent)
     "alt": "…",                          // texte alternatif en français (1.1)
     "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>/<snapshotId>" | null,      // null : manifeste téléchargé (1.1)
-    "empreinte": "<64 hex>"
+    "empreinte": "<64 hex>"              // couvre alt, titre, a_retenir, commentaire_genere, commentaire_animateur, image
   } ]
 }
 ```
@@ -92,7 +93,10 @@ CORS non nécessaire (import côté serveur).
   `empreinte` (snapshot et revue) et dans le paramètre `?v=` des images ; le nom du fichier image (`<snapshotId>.png`),
   le `lien_lecture` et le QR ne changent pas. Compatibilité : les anciens identifiants à suffixe d'empreinte
   (`dircom-03-mois-focus-88z5ap`, `daf-01-cascade-14j5oil`, `daf-05-baisse-mois-1051jsm`…) ouvrent toujours le bon
-  snapshot dans `#/lire/…` (suffixe retiré puis rapproché de l'identifiant stable).
+  snapshot dans `#/lire/…` (suffixe retiré puis rapproché de l'identifiant stable), et les anciennes adresses d'images
+  (`…/publie/demo-daf/daf-01-cascade-14j5oil.png`, `.svg`) servent toujours une vraie image (copie de l'image actuelle).
+  Un identifiant inconnu (ni stable, ni ancien) n'ouvre plus la diapositive 1 en silence : le mode lecture affiche
+  « Ce snapshot n'existe plus ou a été renommé » et propose « Ouvrir la diapositive 1 ».
 - **Commentaires (1.1).** `commentaire_genere` = synthèse narrative **en une phrase** : rôle dans le récit
   (« Pour situer », « Point d'attention », « Ce que montre l'analyse », « À décider »), périmètre (`chemin`) et message
   (titre d'action). `a_retenir` = les puces détaillées. Les deux ne sont jamais identiques (contrôlé par le schéma) :
@@ -106,11 +110,21 @@ CORS non nécessaire (import côté serveur).
 - **Liens de lecture.** S'ouvrent sur tout appareil (téléphone compris) pour les revues publiées : le Studio
   recalcule ces histoires depuis les données de démonstration embarquées.
 - **Empreintes** (SHA-256, 64 caractères hexadécimaux minuscules) :
-  - revue : empreinte des données affichée dans le cartouche (8 premiers caractères, ex. `d923·bd5f`) quand tous
-    les snapshots viennent du même jeu de données ; sinon SHA-256 des empreintes de données triées, jointes par « , » ;
-  - snapshot : SHA-256 du JSON canonique (clés triées) de son contenu (identifiant, titres, commentaires, chemin,
-    spécification du graphique, données) — **change dès que le snapshot change** : Cadencer peut détecter une
-    mise à jour et rafraîchir le point d'ordre du jour.
+  - snapshot (`snapshots[].empreinte`) : SHA-256 du JSON canonique (clés triées) de son contenu **et de tout ce
+    qui est publié pour lui** : `alt`, `titre`, `a_retenir`, `commentaire_genere`, `commentaire_animateur` et
+    `image` (l'image est rendue à partir de l'identifiant, des titres, des puces, du rôle dans le récit, de la
+    spécification du graphique et des données, tous couverts), ainsi que `chemin`. **Change dès que l'un de ces champs
+    change — une note d'animateur·rice modifiée seule comprise** — et avec lui le `?v=` des images ; l'`id` ne change
+    pas. Une note vide ou faite d'espaces vaut `null`. Le même snapshot publié dans deux revues avec des notes
+    différentes a donc deux empreintes différentes ;
+  - revue (`empreinte`, reprise dans `index.json`) : SHA-256 du JSON canonique des champs de la revue (`id`,
+    `titre`, `persona`, `entreprise`, `date_reunion`, `source`, `empreinte_donnees`) et de la suite ordonnée
+    (`id`, `empreinte`) de ses snapshots : change dès qu'un snapshot change, est ajouté, retiré ou déplacé —
+    l'index suffit pour savoir qu'il faut ré-importer ;
+  - données (`empreinte_donnees`, revue et index) : empreinte des données affichée dans le cartouche (8 premiers
+    caractères, ex. `d923·bd5f`) quand tous les snapshots viennent du même jeu de données ; sinon SHA-256 des
+    empreintes de données triées, jointes par « , ». Ne sert pas à détecter une mise à jour (inchangée quand seuls
+    les textes changent).
 - **Ordre.** `position` vaut 1, 2, 3… sans trou ; identifiants de snapshots uniques dans la revue ; 1 à 24 snapshots.
 - **Évolutions.** Champs ajoutés plus tard = compatibles : Cadencer **ignore les champs inconnus**. Changement
   incompatible = `version: 2` (Cadencer refuse une version qu'il ne connaît pas).
@@ -130,7 +144,8 @@ CORS non nécessaire (import côté serveur).
   "date_reunion": "2026-10-08T09:00:00+02:00",
   "genere_le": "2026-10-08T06:30:00+02:00",
   "source": "Source : CRM Norvia (données fictives) · extrait du 8 oct. 2026",
-  "empreinte": "d923bd5f307bd229554addaf4c4c2c1ce280921b0786618d11f834e4f8ba1a0a",
+  "empreinte": "4a7f3c6c4c197d39ce182e4f1e5d815f51cd11b19b36a4fe61e46535a61ebf9b",
+  "empreinte_donnees": "d923bd5f307bd229554addaf4c4c2c1ce280921b0786618d11f834e4f8ba1a0a",
   "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026",
   "snapshots": [
     {
@@ -145,11 +160,11 @@ CORS non nécessaire (import côté serveur).
         "T3 2026 repart (+13 %) : à quel mois tient le recul ?"
       ],
       "chemin": "Pipeline créé",
-      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.png?v=9b22a2cc7b9c",
-      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.svg?v=9b22a2cc7b9c",
+      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.png?v=daa6855ea923",
+      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.svg?v=daa6855ea923",
       "alt": "Graphique en barres par période : Pipeline créé. T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse.",
       "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026/dircom-01-trimestres",
-      "empreinte": "9b22a2cc7b9cb6b2ce6374855f6ec023a6e7c3d1847cc72f6db5a2d45c69e0f9"
+      "empreinte": "daa6855ea92366b76856abe38131ef15c23b64c471c44265738384926a52c63f"
     }
   ]
 }
@@ -168,7 +183,8 @@ CORS non nécessaire (import côté serveur).
       "titre": "Revue pipeline — octobre 2026",
       "persona": "Directeur commercial",
       "manifeste": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/manifeste.json",
-      "empreinte": "d923bd5f307bd229554addaf4c4c2c1ce280921b0786618d11f834e4f8ba1a0a",
+      "empreinte": "4a7f3c6c4c197d39ce182e4f1e5d815f51cd11b19b36a4fe61e46535a61ebf9b",
+      "empreinte_donnees": "d923bd5f307bd229554addaf4c4c2c1ce280921b0786618d11f834e4f8ba1a0a",
       "genere_le": "2026-10-08T06:30:00+02:00",
       "nb_snapshots": 7
     }
@@ -177,8 +193,9 @@ CORS non nécessaire (import côté serveur).
 ```
 
 (extrait : une revue sur 4 ; `revues` liste toutes les revues publiées, `genere_le` = date la plus récente des manifestes.
-1.1 : chaque entrée reprend aussi l'`empreinte`, le `genere_le` et le nombre de snapshots (`nb_snapshots`) de son
-manifeste : Cadencer peut détecter une revue modifiée sans télécharger le manifeste.)
+1.1 : chaque entrée reprend aussi l'`empreinte` (contenu publié), l'`empreinte_donnees`, le `genere_le` et le nombre
+de snapshots (`nb_snapshots`) de son manifeste : Cadencer peut détecter une revue modifiée — note d'animateur·rice
+comprise — sans télécharger le manifeste.)
 
 ## Côté Cadencer (import, rappel)
 
@@ -189,7 +206,8 @@ manifeste : Cadencer peut détecter une revue modifiée sans télécharger le ma
 3. Créer un point d'ordre du jour par snapshot (source `datanime`) : `titre`, `image_png` (+ `alt`),
    `commentaire_genere` (chapeau) et `a_retenir` (puces), `commentaire_animateur`, `lien_lecture` ; mémoriser
    (`reviewId`, `id`) + `empreinte` pour les mises à jour.
-4. Ré-import de la même URL : mettre à jour les points dont l'`empreinte` a changé, ajouter / retirer les autres.
+4. Ré-import de la même URL : mettre à jour les points dont l'`empreinte` a changé (textes, note ou image),
+   ajouter / retirer les autres. Revue dont l'`empreinte` d'index n'a pas changé : rien à ré-importer.
 
 ## Histoires locales (pas encore publiées)
 
@@ -228,6 +246,18 @@ Suite à la revue du contrat par Cadencer :
 9. « id stable dans une revue ; le contenu change → empreinte et ?v= » : les identifiants de snapshots ne contiennent
    plus l'empreinte des données (`dircom-01-trimestres` au lieu de `dircom-01-trimestres-88z5ap`) ; les anciens liens
    `#/lire/…` restent valides.
+
+Complément 1.1 (8 octobre 2026, soir) — toujours `version: 1`, ajouts compatibles :
+
+10. L'empreinte d'un snapshot couvre explicitement `alt`, `titre`, `a_retenir`, `commentaire_genere`,
+    `commentaire_animateur` et l'image : une note d'animateur·rice modifiée seule change l'empreinte et le `?v=`
+    (auparavant elle n'arrivait jamais dans Cadencer, qui saute un ré-import à empreinte inchangée).
+11. L'empreinte de la revue (manifeste et `index.json`) couvre le contenu publié (champs de la revue + suite ordonnée
+    des empreintes de snapshots) ; l'empreinte des données du cartouche passe dans le nouveau champ
+    `empreinte_donnees` (manifeste et index). Toutes les empreintes publiées changent une fois avec ce complément
+    (identifiants inchangés) : Cadencer rafraîchit chaque point une fois.
+12. Anciennes adresses d'images (identifiants à suffixe) servies comme images ; identifiant de snapshot inconnu dans
+    `#/lire/…` : message explicite au lieu d'une ouverture silencieuse de la diapositive 1.
 
 Un consommateur 1.0 reste compatible : il ignore `alt` et les nouveaux champs d'index, et charge les adresses
 d'images telles quelles. Changements à prévoir : `lien_lecture` peut être `null` dans un manifeste téléchargé ; au
