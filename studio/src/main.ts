@@ -30,6 +30,10 @@ import { composeSvg } from "./export";
 import { prepareCache, renderChart, valueMaxOf } from "./charts/render";
 import { NORME_WORDING_F, SCENARIO_CODES, SCENARIO_HELP, SCENARIO_NAMES, normeAdvice, scaleGroups, scaleKey, type ScaleInfo } from "./norme";
 import { valueFormatter } from "./format";
+import { MappingWindow, type MappingApply, type MappingSource } from "./ui/mapping";
+import { readWorkbookData, sheetMatrix, toWorkbookIn, type Matrix, type WorkbookData } from "./data/workbook";
+import { detectStructure } from "./data/structure";
+import { detectDelimiter, parseDelimitedMatrix } from "span-magnitude-viz/fileImport";
 import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
 
 const store = new Store();
@@ -171,18 +175,109 @@ async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<vo
   toast(`${ds.rows.length} lignes importées · ${types.filter((t) => t === "number").length} mesure(s), ${types.filter((t) => t === "date").length} date(s)`, "ok");
 }
 
+/* ------------------------------------------------------------------ import intelligent (fenêtre « Mise en forme ») */
+
+/** Tableau « simple » : un seul bloc, en-tête en ligne 1, en colonnes, sans sections ni ligne de temps. */
+function isPlainMatrix(m: Matrix): boolean {
+  const s = detectStructure(m);
+  const t = s.tables[s.main];
+  return s.tables.length <= 1 && (!t || (t.layout === "long" && t.headerRow === 0 && !t.sections.length && t.timeSource !== "row" && !t.notes.length));
+}
+/** Classeur à mettre en forme : plusieurs onglets non vides, formules sans résultat, ou feuille « humaine ». */
+function needsMapping(wb: WorkbookData): boolean {
+  const filled = wb.sheets.filter((s) => s.model.cells.size > 0);
+  if (filled.length > 1 || wb.missingCached > 0) return true;
+  return !!filled[0] && !isPlainMatrix(sheetMatrix(filled[0]));
+}
+
+let lastMapping: { src: MappingSource; origin: ImportOrigin } | null = null;
+let pendingOrigin: ImportOrigin | null = null;
+
+function openMapping(src: MappingSource, origin: ImportOrigin): Promise<void> {
+  lastMapping = { src, origin };
+  pendingOrigin = origin;
+  return mappingWindow.open(src);
+}
+
+function applyMapping(a: MappingApply): void {
+  const ds = buildDataset(a.name, a.rows);
+  if (!ds.columns.length || !ds.rows.length) {
+    toast("Aucune ligne exploitable.", "error");
+    return;
+  }
+  // Titre saisi dans la fenêtre : protégé du titre calculé par le récit (sous-titre et commentaires restent calculés)
+  const fresh = freshStory({ ...a.spec, provenance: null } as unknown as Record<string, unknown>);
+  if (a.spec.style.title.trim()) (fresh.story as { edited: { title: boolean } }).edited.title = true;
+  const errs = store.setSpec(fresh);
+  if (errs.length) toast(errs.join(" ; "), "error");
+  const origin = pendingOrigin ?? lastMapping?.origin ?? null;
+  const provenance = origin?.hash ? makeProvenance({ hash: origin.hash, kind: origin.kind, fileName: origin.fileName, rows: ds.rows.length, cols: ds.columns.length, sheet: a.sheet }) : null;
+  store.setDataset(ds, { note: a.note, sheets: null, sheet: a.sheet, provenance });
+  toast(`Mise en forme appliquée : ${ds.rows.length} lignes · ${a.pivot.y.length + (a.pivot.y2 ? 1 : 0)} série(s)`, "ok");
+}
+
 /** Texte collé : empreinte du texte normalisé (fins de ligne LF, blancs de fin retirés). */
 async function importPasted(text: string): Promise<void> {
+  const hashP = safeHash(() => hashPastedText(text));
+  const matrix = parseDelimitedMatrix(text, detectDelimiter(text));
+  if (matrix.length >= 3 && !isPlainMatrix(matrix)) {
+    await openMapping({ kind: "paste", name: "Collage", fileName: "", matrix }, { hash: await hashP, kind: "paste", fileName: "" });
+    return;
+  }
   const res = parseText(text, "Collage");
-  const hash = await safeHash(() => hashPastedText(text));
-  await applyImport(res, { hash, kind: "paste", fileName: "" });
+  await applyImport(res, { hash: await hashP, kind: "paste", fileName: "" });
 }
+
+const WORKBOOK_EXT = /\.(xlsx|xlsm|xls|ods)$/i;
+const TEXT_EXT = /\.(csv|tsv|txt)$/i;
 
 /** Fichier déposé / choisi : empreinte des octets bruts du fichier. */
 async function importFromFile(file: File, sheet?: string): Promise<void> {
-  const [res, hash] = await Promise.all([readFile(file, sheet), safeHash(async () => hashFileBytes(await file.arrayBuffer()))]);
+  const buf = await file.arrayBuffer();
+  const hashP = safeHash(async () => hashFileBytes(buf));
+  const base = file.name.replace(/\.[^.]+$/, "");
+  if (!sheet && WORKBOOK_EXT.test(file.name)) {
+    const wb = await readWorkbookData(buf);
+    if (needsMapping(wb)) {
+      await openMapping({ kind: "file", name: base, fileName: file.name, workbook: wb }, { hash: await hashP, kind: "file", fileName: file.name });
+      return;
+    }
+  } else if (TEXT_EXT.test(file.name)) {
+    const text = await file.text();
+    const matrix = parseDelimitedMatrix(text, detectDelimiter(text));
+    if (matrix.length >= 3 && !isPlainMatrix(matrix)) {
+      await openMapping({ kind: "file", name: base, fileName: file.name, matrix }, { hash: await hashP, kind: "file", fileName: file.name });
+      return;
+    }
+  }
+  const [res, hash] = await Promise.all([readFile(file, sheet), hashP]);
   await applyImport(res, { hash, kind: "file", fileName: file.name });
 }
+
+/** « Mise en forme… » : rouvre le dernier fichier, sinon le tableau courant. */
+function reopenMapping(): void {
+  if (lastMapping) {
+    void openMapping(lastMapping.src, lastMapping.origin);
+    return;
+  }
+  const { ds, provenance } = store.state;
+  if (!ds || !ds.rows.length) {
+    toast("Chargez d'abord un fichier ou collez un tableau.", "info");
+    return;
+  }
+  const cols = ds.columns.map((c) => c.name);
+  const matrix: Matrix = [cols, ...ds.raw.map((r) => cols.map((c) => {
+    const v = r[c];
+    return v == null ? null : typeof v === "number" || typeof v === "boolean" || v instanceof Date ? v : String(v);
+  }))];
+  void openMapping({ kind: "paste", name: ds.name, fileName: provenance?.fileName ?? "", matrix }, { hash: provenance?.hash ?? null, kind: provenance?.kind ?? "paste", fileName: provenance?.fileName ?? "" });
+}
+
+const mappingWindow = new MappingWindow(
+  () => store.state.spec,
+  (wb, onProgress) => import("./data/formula/recalc").then((m) => m.recalcInBrowser(toWorkbookIn(wb), wb.formulas, onProgress)),
+  (a) => applyMapping(a)
+);
 
 const actions = {
   loadSample,
@@ -200,6 +295,9 @@ const actions = {
   },
   explore() {
     explorer.open();
+  },
+  reshape() {
+    reopenMapping();
   },
 };
 
@@ -635,7 +733,7 @@ const leftRail = h("button", { class: "rail rail-left", title: "Afficher les don
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
 // L'Explorer recouvre l'aperçu et les réglages (vignettes plus grandes, 4 colonnes sur grand écran)
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
-const app = h("div", { class: "app" }, header, workspace, normeLegend);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -690,6 +788,8 @@ const api = {
   currentSvg: () => preview.currentSvg(),
   seek: (p: number) => preview.seek(p),
   explore: () => explorer.open(),
+  mapping: () => mappingWindow,
+  reshape: () => reopenMapping(),
   closeExplorer: () => explorer.close(),
   narrative: () => currentNarrative(),
   regenerate: () => store.regenerate(),

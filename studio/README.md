@@ -149,6 +149,56 @@ Tests : `test/cartouche.test.ts` (normalisation, lien, QR décodé par jsQR, car
 dans les PNG 1×, 2× et 1600 px, carte, mode norme, page de vérification (fichier ✓, fichier modifié ✗, texte collé, exemple,
 lien illisible), version hors ligne. Captures : `19-cartouche.png`, `20-verifier-ok.png`, `21-verifier-ko.png`.
 
+## Import intelligent et mise en forme (étape import)
+
+Un classeur « humain » (plan financier, tableau de bord mensuel) s'ouvre dans la fenêtre **« Mise en forme des données »**
+au lieu d'être importé tel quel. Elle s'ouvre automatiquement quand le classeur a plusieurs onglets, contient des formules
+sans résultat enregistré, ou quand la feuille / le collage n'est pas un simple tableau (titres, sections, mois en colonnes) ;
+sinon l'import reste direct. Bouton **Données › « Mise en forme des données… »** pour la rouvrir (dernier fichier, ou tableau courant).
+
+- **Recalcul des formules dans le navigateur** (`data/formula/*`, code maison sous licence MIT, repli sur
+  `@formulajs/formulajs`, MIT — pas de HyperFormula ni de bibliothèque copyleft) : un fichier généré par script et jamais
+  ouvert dans Excel ne contient pas les résultats des formules ; ils sont recalculés (références relatives / absolues,
+  plages, autres onglets, noms définis, 98 fonctions courantes : SI, SOMME, SOMMEPROD, INDEX/EQUIV, RECHERCHEV, NB.SI(S),
+  SOMME.SI(S), DATE, FIN.MOIS, ARRONDI…). Ordre topologique itératif, **Web Worker** avec progression au-delà de 3 000
+  formules (Blob en version hors ligne), repli sur le fil principal. **Rapport de couverture** en français : nombre de
+  formules non évaluées, fonctions non prises en charge, exemples (cellule, formule, raison) — jamais de graphique vide en silence.
+  Validation : sur `fichier-michael.xlsx` (29 848 formules), **100 % des cellules identiques** au même fichier recalculé
+  par LibreOffice (tolérance relative 1e-6), en ≈ 0,3 s.
+- **Choix de l'onglet** : vignette des premières cellules, score « tableau de données » (grille chiffrée, en-têtes M1…M60),
+  onglet conseillé ; Lisez-moi, Sources, Notes… relégués en dernier.
+- **Structure détectée** (`data/structure.ts`) : vraie ligne d'en-têtes (titres, notes, lignes vides ignorés), ligne
+  « Mois » datée ou en-têtes temporels (M1, janv. 2027, 2027), lignes de section → champ **Section**, colonne d'unités,
+  colonne **Ouverture** facultative (valeur avant M1), nombres et pourcentages français (« 26,7% » → 0,267), colonnes
+  annuelles proposées comme tableau séparé (« totaux annuels »), bloc **RÉSUMÉ…** proposé à part, dates répétées →
+  **Variante** (« Colonnes B–F » / « Colonnes G–K »). Tableau large → long (Section, Poste, Entité, Indicateur, Unité,
+  Date, Période, Valeur) ; libellés répétitifs découpés en **Entité + Indicateur** (« Commercial salarié n°3 — productivité (ramp) »).
+- **Grille et rôles** (`data/mapping.ts`, `ui/mapping.ts`) : toucher un libellé de ligne l'ajoute en Y (ou le retire) ;
+  toucher un champ ou un en-tête de colonne → X, Y, Y axe 2, Couleur / Groupe, Facette ; **⇄ X / Y** (les séries
+  deviennent les catégories) ; cocher des lignes → **Regrouper** avec un agrégat (somme, moyenne, max, dernier) et un nom ;
+  filtres Section / Indicateur / Entité / Variante ; type, courbe (escalier pour des effectifs), titre. **Aperçu en direct**
+  (rendu du Studio, différé) ; **« Appliquer »** charge le tableau mis en forme dans le Studio. Mode norme, style et
+  cartouche sont conservés ; la provenance reste l'empreinte des **octets bruts du fichier** (ou du texte collé) et
+  l'onglet utilisé. Facettes : petits multiples dans l'aperçu, la première facette est appliquée (filtre modifiable).
+- iPad : cibles ≥ 34 px, aucun survol nécessaire, disposition empilée en portrait ; clavier : Entrée (regrouper,
+  renommer), Échap (fermer le menu puis la fenêtre) — aucun raccourci lettre, donc indifférent à l'AZERTY.
+
+Démonstration (fichier de Michaël) : filtre Indicateur « en poste (1/0) » → tout cocher → Regrouper (Somme) → courbe en
+escalier « Commerciaux en poste par mois » (0 → 24, 2027–2031) ; « productivité (ramp) » → « Capacité commerciale
+équivalent temps plein » ; lignes « MRR Produit A » + « MRR Produit B » ; onglet Synthèse, bloc « Tableau annuel » :
+CA HT, EBITDA, Résultat net par année.
+
+Limites : INDIRECT / DECALER (références dynamiques), références structurées (Table1[Col]), formules matricielles
+dynamiques et macros ne sont pas évaluées (signalées dans le rapport) ; seules les 36 premières périodes sont affichées
+dans la grille (toutes sont importées).
+
+Tests : `test/smartImport.test.ts` (analyse, moteur, feuilles croisées, couverture, validation contre LibreOffice sur la
+fixture réduite `test/fixtures/plan-mini.xlsx` + `plan-mini.expected.json`, structure, large → long, Entité + Indicateur,
+nombres français, regroupements, X ⇄ Y ; fichier complet testé s'il est présent hors dépôt). Fixture réduite régénérable :
+`npx vite-node --config vitest.config.ts studio/scripts/make-test-fixtures.ts`. e2e : dépôt du classeur, onglet conseillé,
+recalcul (Worker), 4 graphiques construits dans la fenêtre, ⇄, regroupement, Appliquer, collage large, version hors ligne.
+Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-poste.png`, `25-mrr-produits.png`.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -156,7 +206,11 @@ lien illisible), version hors ligne. Captures : `19-cartouche.png`, `20-verifier
 | `spec.ts` | Schéma Zod du spec (`reporting-4d-studio/spec-v1`), valeurs par défaut, formats de fichier |
 | `state.ts` | Store (spec + dataset + UI), émissions groupées, persistance localStorage |
 | `data/table.ts` | Parsing tolérant FR/EN des nombres et dates, détection des types, `Dataset` |
-| `data/files.ts` | Texte collé, JSON, classeurs (SheetJS chargé à la demande) |
+| `data/files.ts` | Texte collé, JSON, classeurs (SheetJS chargé à la demande), limites d'import |
+| `data/formula/*` | Moteur de formules maison (MIT) : analyseur, fonctions, graphe de dépendances, recalcul, Web Worker |
+| `data/workbook.ts` | Classeur → modèle de cellules (formules, formats de date), matrices par onglet, score « tableau de données » |
+| `data/structure.ts` | Détection de structure (en-tête, temps, sections, unités, Ouverture, résumé), large → long, Entité + Indicateur |
+| `data/mapping.ts` | Modèle de la fenêtre « Mise en forme » : rôles, regroupements, filtres, X ⇄ Y, pivot vers le Studio |
 | `data/samples.ts` | Jeux d'exemple déterministes ancrés au 8 octobre 2026 |
 | `data/model.ts` | Agrégation (catégories, points), modèle temporel 4D et pondérations par image |
 | `data/suggest.ts` | Choix automatique des encodages lors d'un changement de type |
@@ -172,7 +226,7 @@ lien illisible), version hors ligne. Captures : `19-cartouche.png`, `20-verifier
 | `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Tell4D |
 | `verifier.ts` | Page `verifier.html` : « Vérifier l'empreinte » |
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
-| `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts |
+| `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts, fenêtre « Mise en forme des données » (`ui/mapping.ts`) |
 
 ## Extensions prévues (V2, non construites)
 

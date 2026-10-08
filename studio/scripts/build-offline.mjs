@@ -26,6 +26,16 @@ const plugin = {
     b.onResolve({ filter: /^span-magnitude-viz\// }, (a) => ({ path: join(repo, "src", a.path.slice("span-magnitude-viz/".length)) + (/\.(ts|json)$/.test(a.path) ? "" : ".ts") }));
     b.onResolve({ filter: /\?url$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?url$/, "")), namespace: "dataurl" }));
     b.onResolve({ filter: /\?inline$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?inline$/, "")), namespace: "dataurl" }));
+    // Web Worker « ?worker&inline » : bundle IIFE séparé, lancé depuis une Blob URL (fonctionne en file://)
+    b.onResolve({ filter: /\?worker&inline$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?worker&inline$/, "")).replace(/(\.ts)?$/, ".ts"), namespace: "worker" }));
+    b.onLoad({ filter: /.*/, namespace: "worker" }, async (a) => {
+      const r = await build({ entryPoints: [a.path], bundle: true, format: "iife", platform: "browser", target: "es2020", minify: true, legalComments: "none", write: false, plugins: [plugin], logLevel: "warning" });
+      const code = r.outputFiles[0].text;
+      return {
+        contents: `const code = ${JSON.stringify(code)};\nexport default function RecalcWorker() { const u = URL.createObjectURL(new Blob([code], { type: "text/javascript" })); const w = new Worker(u); setTimeout(() => URL.revokeObjectURL(u), 30000); return w; }`,
+        loader: "js",
+      };
+    });
     b.onResolve({ filter: /\?raw$/ }, (a) => ({ path: resolve(a.resolveDir, a.path.replace(/\?raw$/, "")), namespace: "raw" }));
     b.onLoad({ filter: /.*/, namespace: "raw" }, (a) => ({ contents: `export default ${JSON.stringify(readFileSync(a.path, "utf8"))};`, loader: "js" }));
     b.onLoad({ filter: /.*/, namespace: "dataurl" }, (a) => {

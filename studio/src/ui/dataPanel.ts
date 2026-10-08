@@ -15,6 +15,8 @@ export interface DataActions {
   importFile(file: File): void;
   changeSheet(name: string): void;
   explore(): void;
+  /** Fenêtre « Mise en forme des données » (dernier fichier ou tableau courant). */
+  reshape(): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -102,7 +104,14 @@ export class DataPanel {
       h(
         "div",
         { class: "panel-body" },
-        h("div", { class: "block" }, h("h3", null, "Importer"), drop, fileInput),
+        h(
+          "div",
+          { class: "block" },
+          h("h3", null, "Importer"),
+          drop,
+          fileInput,
+          h("button", { class: "btn btn-reshape", "data-testid": "reshape-open", title: "Choisir l'onglet, le tableau, les axes X / Y, regrouper des lignes — aperçu en direct", onclick: () => actions.reshape() }, h("span", { html: svgIcon(ICONS.sliders, 15) }), "Mise en forme des données…")
+        ),
         h("div", { class: "block" }, h("h3", null, h("span", { html: svgIcon(ICONS.paste, 15) }), " Coller un tableau"), ta, pasteBtn),
         h("div", { class: "block" }, h("h3", null, "Exemples"), samples),
         h(

@@ -982,8 +982,169 @@ try {
       await op.waitForSelector("[data-testid=chart-svg] .r4d-qr", { timeout: 15000 }).catch(() => {});
       const url = await op.evaluate(() => document.querySelector("[data-testid=chart-svg] .r4d-qr")?.getAttribute("data-url") ?? "");
       check("version hors ligne (file://) : empreinte calculée, QR vers la vérification en ligne", /^https:\/\/alteridea-dashboard\.web\.app\/reporting\/verifier\.html#1\.E\./.test(url) && offErrors.length === 0, url || offErrors.slice(0, 2).join(" | "));
+      await (await op.$("[data-testid=file-input]")).uploadFile(join(repo, "studio/test/fixtures/plan-mini.xlsx"));
+      await op.waitForFunction(() => window.r4d.mapping().state.report && window.r4d.mapping().state.mapping, { timeout: 20000 }).catch(() => {});
+      const ost = await op.evaluate(() => ({ r: window.r4d.mapping().state.report, where: window.r4d.mapping().state.where }));
+      check("hors ligne (file://) : recalcul des formules dans un Worker (Blob), sans erreur", ost.r?.failed === 0 && ost.r.evaluated > 7000 && ost.where === "worker" && offErrors.length === 0, `${ost.r?.evaluated} formules (${ost.where}) ${offErrors.slice(0, 2).join(" | ")}`);
       await op.close();
     } else results.push("(version hors ligne absente : npm run build:studio:offline)");
+  }
+
+  /* 13. Import intelligent : onglets, recalcul des formules, tableau large, fenêtre « Mise en forme des données » */
+  {
+    const FULL = process.env.R4D_SMART_XLSX ?? "/workspace/fixtures/fichier-michael.xlsx";
+    const full = existsSync(FULL);
+    const xf = full ? FULL : join(repo, "studio/test/fixtures/plan-mini.xlsx");
+    const mw = () => page.evaluate(() => window.r4d.mapping().state);
+    const waitMw = async () => {
+      await page.waitForFunction(() => window.r4d.mapping().isOpen && window.r4d.mapping().state.report && window.r4d.mapping().state.mapping, { timeout: 30000 }).catch(() => {});
+      await sleep(400);
+    };
+    const pv = () => page.evaluate(() => window.r4d.mapping().state.pivot);
+    const shotWindow = async (name) => {
+      if (!SHOTS) return;
+      await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 2 });
+      await sleep(400);
+      await page.screenshot({ path: join(shotsDir, name) });
+      await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: 1.5 });
+    };
+    await page.evaluate(() => window.r4d.setSpec({ type: "line" }));
+    const input = await page.$("[data-testid=file-input]");
+    await input.uploadFile(xf);
+    await waitMw();
+    let st = await mw();
+    const visible = await page.$eval("[data-testid=mapping-window]", (e) => !e.classList.contains("hidden"));
+    check(
+      "import intelligent : fenêtre ouverte, onglet « plan mensuel » proposé (Lisez-moi / Sources en dernier)",
+      visible && /^Plan 60m — Exemple$/.test(st.sheet) && (!full || ["Lisez-moi", "Sources"].every((n) => st.guesses.slice().sort((a, b) => a.score - b.score).slice(0, 2).some((g) => g.name === n))),
+      `${st.sheet} · ${st.guesses.map((g) => `${g.name}:${g.score}`).join(", ")}`
+    );
+    check(
+      "recalcul des formules dans le navigateur (Web Worker) : toutes évaluées, aucune en échec",
+      st.report && st.report.failed === 0 && st.report.evaluated === st.report.formulas && st.report.formulas > (full ? 29000 : 7000) && st.where === "worker" && /formules recalculées/.test(await page.$eval("[data-testid=mw-status]", (e) => e.textContent)),
+      `${st.report?.evaluated}/${st.report?.formulas} en ${st.report?.ms} ms (${st.where})`
+    );
+    check("structure : tableau large daté, sections, totaux annuels et résumé proposés à part", st.tables.length >= (full ? 3 : 2) && st.tables.some((t) => /totaux annuels/.test(t)) && (!full || st.tables.some((t) => t.startsWith("summary:"))), st.tables.join(" | "));
+    await shotWindow("22-choix-onglet.png");
+
+    // Graphique 1 : commerciaux en poste = somme des lignes « en poste (1/0) », courbe en escalier
+    await page.evaluate(() => window.r4d.mapping().clearSeries());
+    await selectValue("[data-testid=mw-filter][data-filter=Indicateur]", "en poste (1/0)");
+    await sleep(150);
+    await domClick("[data-testid=mw-check-all]");
+    await selectValue("[data-testid=mw-agg]", "sum");
+    await page.$eval("[data-testid=mw-group-name]", (e) => (e.value = "Commerciaux en poste"));
+    await domClick("[data-testid=mw-group]");
+    await selectValue("[data-testid=mw-curve]", "step");
+    await page.$eval("[data-testid=mw-title]", (e) => {
+      e.value = "Commerciaux en poste par mois";
+      e.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await sleep(500);
+    let p = await pv();
+    const vals = p?.rows.map((r) => r["Commerciaux en poste"]) ?? [];
+    check(
+      "regrouper 24 lignes 0/1 (somme) → effectif en escalier 2027–2031, aperçu en direct",
+      p && p.rows.length === 60 && p.xGrain === "month" && vals.at(-1) === 24 && vals.every((v, i) => Number.isInteger(v) && (i === 0 || v >= vals[i - 1])) && (await page.$$eval("[data-testid=mw-preview] svg .r4d-marks *", (e) => e.length)) > 0,
+      `${p?.rows.length} mois · ${vals.slice(0, 3).join(",")}…${vals.at(-1)} · ${p?.rows[0]?.[p.x]}`
+    );
+    await shotWindow("23-mapping-live.png");
+    await domClick("[data-testid=mw-apply]");
+    await sleep(900);
+    let sp = await page.evaluate(() => ({ spec: window.r4d.getSpec(), n: window.r4d.store.state.ds?.rows.length, prov: window.r4d.provenance(), open: window.r4d.mapping().isOpen }));
+    check(
+      "Appliquer : chargé dans le Studio (courbe en escalier, provenance = empreinte du fichier brut, cartouche)",
+      !sp.open && sp.n === 60 && sp.spec.encoding.y[0] === "Commerciaux en poste" && sp.spec.style.curve === "step" && sp.spec.style.title === "Commerciaux en poste par mois" && sp.prov?.kind === "file" && sp.prov.hash === sha256(readFileSync(xf)) && sp.prov.sheet === "Plan 60m — Exemple" && !!(await cartoucheInfo()),
+      `${sp.spec.type} ${sp.spec.encoding.x} → ${sp.spec.encoding.y.join(",")} · ${sp.prov?.hash?.slice(0, 12)}…`
+    );
+    await page.evaluate(() => window.r4d.seek(1));
+    await shotStage("24-commerciaux-en-poste.png");
+
+    // Graphique 2 : capacité commerciale (ETP) = somme des productivités ; X ⇄ Y
+    await domClick("[data-testid=reshape-open]");
+    await waitMw();
+    await page.evaluate(() => window.r4d.mapping().clearSeries());
+    await selectValue("[data-testid=mw-filter][data-filter=Indicateur]", "productivité (ramp)");
+    await sleep(150);
+    await domClick("[data-testid=mw-check-all]");
+    await page.$eval("[data-testid=mw-group-name]", (e) => (e.value = "Capacité commerciale (ETP)"));
+    await domClick("[data-testid=mw-group]");
+    await page.$eval("[data-testid=mw-title]", (e) => {
+      e.value = "Capacité commerciale équivalent temps plein";
+      e.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await sleep(400);
+    p = await pv();
+    const cap = p?.rows.map((r) => r["Capacité commerciale (ETP)"]) ?? [];
+    await domClick("[data-testid=mw-swap]");
+    await sleep(400);
+    const ps = await pv();
+    await domClick("[data-testid=mw-swap]");
+    await sleep(400);
+    const pb = await pv();
+    check(
+      "capacité ETP (somme des productivités) ; ⇄ X / Y puis retour",
+      cap.length === 60 && cap.at(-1) > 20 && cap.at(-1) <= 24 && ps?.x === "Série" && ps.series === "Période" && pb?.x === "Date" && pb.rows.length === 60,
+      `fin ${cap.at(-1)?.toFixed(2)} · permuté x=${ps?.x} séries=${ps?.series}`
+    );
+    await domClick("[data-testid=mw-apply]");
+    await sleep(700);
+    sp = await page.evaluate(() => ({ y: window.r4d.getSpec().encoding.y, n: window.r4d.store.state.ds?.rows.length }));
+    check("capacité ETP appliquée", sp.y[0] === "Capacité commerciale (ETP)" && sp.n === 60, JSON.stringify(sp));
+
+    if (full) {
+      // Graphique 3 : MRR Produit A vs MRR Produit B (deux lignes du tableau large)
+      await domClick("[data-testid=reshape-open]");
+      await waitMw();
+      await page.evaluate(() => window.r4d.mapping().clearSeries());
+      await domClick('[data-testid=mw-row][data-label="MRR Produit A"]');
+      await domClick('[data-testid=mw-row][data-label="MRR Produit B"]');
+      await page.$eval("[data-testid=mw-title]", (e) => {
+        e.value = "MRR Produit A vs MRR Produit B";
+        e.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await selectValue("[data-testid=mw-type]", "line");
+      await sleep(400);
+      p = await pv();
+      check("MRR Produit A vs MRR Produit B : 2 séries mensuelles en euros", p?.y.join("|") === "MRR Produit A|MRR Produit B" && p.rows.length === 60 && p.unit === "eur", `${p?.y.join(", ")} · ${p?.unit}`);
+      await domClick("[data-testid=mw-apply]");
+      await sleep(900);
+      await page.evaluate(() => window.r4d.seek(1));
+      await shotStage("25-mrr-produits.png");
+
+      // Graphique 4 : Synthèse — CA, EBITDA, Résultat net annuels (variante « Colonnes B–F »)
+      await domClick("[data-testid=reshape-open]");
+      await waitMw();
+      await domClick('[data-testid=mw-sheet][data-sheet="Synthèse"]');
+      await sleep(300);
+      await domClick("[data-testid=mw-table]");
+      await sleep(300);
+      await page.evaluate(() => window.r4d.mapping().clearSeries());
+      for (const l of ["Chiffre d'affaires HT", "EBITDA", "Résultat net"]) await domClick(`[data-testid=mw-row][data-label="${l}"]`);
+      await selectValue("[data-testid=mw-type]", "groupedBar");
+      await page.$eval("[data-testid=mw-title]", (e) => {
+        e.value = "Synthèse annuelle : CA, EBITDA, résultat net";
+        e.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await sleep(400);
+      p = await pv();
+      const ca = p?.rows.map((r) => r["Chiffre d'affaires HT"]) ?? [];
+      check("Synthèse : CA / EBITDA / Résultat net 2027–2031 (5 années, une variante)", p?.xGrain === "year" && p.rows.length === 5 && p.y.length === 3 && Math.abs(ca[0] - 0) < 0.01, `${p?.rows.length} ans · CA 2027 ${ca[0]?.toFixed(0)} · ${p?.y.join(", ")}`);
+      await domClick("[data-testid=mw-apply]");
+      await sleep(700);
+      sp = await page.evaluate(() => ({ t: window.r4d.getSpec().type, g: window.r4d.getSpec().encoding.xGrain, n: window.r4d.store.state.ds?.rows.length, sheet: window.r4d.provenance()?.sheet }));
+      check("Synthèse appliquée (barres groupées par année)", sp.t === "groupedBar" && sp.g === "year" && sp.n === 5 && sp.sheet === "Synthèse", JSON.stringify(sp));
+    } else results.push("(fichier complet absent : graphiques MRR et Synthèse non testés)");
+
+    // Collage d'un tableau large (temps en colonnes) → fenêtre proposée
+    const tsvWide = readFileSync(join(repo, "studio/test/fixtures/plan-commercial.tsv"), "utf8");
+    await page.evaluate((t) => window.r4d.importText(t), tsvWide);
+    await page.waitForFunction(() => window.r4d.mapping().isOpen && window.r4d.mapping().state.mapping, { timeout: 8000 }).catch(() => {});
+    st = await mw();
+    check("collage d'un tableau large : fenêtre de mise en forme proposée (Entité + Indicateur, Ouverture)", st.mapping && st.tables.length >= 1 && (await page.$$("[data-testid=mw-opening]")).length === 1, st.tables.join(" | "));
+    await page.keyboard.press("Escape");
+    await sleep(200);
+    check("Échap ferme la fenêtre", !(await page.evaluate(() => window.r4d.mapping().isOpen)));
   }
 
   /* ------------------------------------------------ captures de documentation */
