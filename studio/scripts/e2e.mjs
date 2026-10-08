@@ -1230,6 +1230,7 @@ try {
     await page.waitForFunction(() => window.r4d.film().isOpen, { timeout: 30000 }).catch(() => {});
     const story = await page.evaluate(() => window.r4d.story());
     const ids = story.snapshots.map((s) => s.id);
+    globalThis.__dircom = { ids, titles: story.snapshots.map((s) => s.title) };
     check("scénario : 7 snapshots (ids stables, chemin, commentaires) puis film", story.snapshots.length === 7 && ids.every((id) => /^dircom-0\d-/.test(id)) && story.snapshots[3].path.join(" › ") === "Tout › T2 2026 › Juin 2026" && story.snapshots.every((s) => s.comments.length >= 2 && s.svg && s.thumb) && story.title === "Revue du pipeline — octobre 2026", ids.join(" "));
     await sleep(2200);
     const film = await page.evaluate(() => ({ open: window.r4d.film().isOpen, marks: document.querySelectorAll("[data-testid=film-svg] .r4d-drill-mark").length, counter: document.querySelector("[data-testid=film-counter]").textContent }));
@@ -1363,6 +1364,196 @@ try {
     await sleep(500);
     check("scénario DAF pas à pas : bouton « Étape 2 : Facteur en hausse » → Cloud", /^Étape 2 : Facteur en hausse/.test(chipTxt) && /^Cloud : \+2,1 M€/.test(await t()), chipTxt + " · " + (await t()));
     if (SHOTS) await page.screenshot({ path: join(shotsDir, "39-pas-a-pas-finance.png") });
+  }
+
+  /* 16. Revues partagées : liste, Partager (lien + QR par revue / snapshot), page participant, réunion, compte rendu */
+  {
+    const P = "norvia-pipeline-oct-2026";
+    const F = "norvia-budget-2026";
+    const vp = async (w, h2, touch = false) => {
+      await page.setViewport({ width: w, height: h2, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: touch, hasTouch: touch });
+      await sleep(400);
+    };
+    const shot = async (name) => {
+      if (!SHOTS) return;
+      await sleep(250);
+      await page.screenshot({ path: join(shotsDir, name) });
+    };
+    await page.evaluate(() => window.r4d.film().close());
+    await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await domClick("[data-testid=reviews-open]");
+    await page.waitForSelector(`[data-testid=rv-card-${P}]`, { timeout: 15000 });
+    const list = await page.evaluate(() => ({
+      hash: location.hash,
+      cards: [...document.querySelectorAll("[data-testid^=rv-card-]")].map((e) => e.getAttribute("data-testid").slice(8)),
+      count: document.querySelector("[data-testid=reviews-count]")?.textContent,
+      note: document.querySelector("[data-testid=rv-local-note]")?.textContent ?? "",
+      reset: !!document.querySelector("[data-testid=rv-reset-demo]"),
+    }));
+    check("Revues : bouton « Revues » → liste (#/revues), revue pipeline Norvia + revue DAF préchargées, note « partage en ligne bientôt »", list.hash.startsWith("#/revues") && list.cards.includes(P) && list.cards.includes(F) && list.count === "2" && /Partage en ligne bientôt/.test(list.note) && list.reset, JSON.stringify(list));
+    await domClick(`[data-testid=rv-card-${P}]`);
+    await sleep(500);
+    const det = await page.evaluate((id) => {
+      const r = window.r4d.reviewStorage().get(id);
+      return { hash: location.hash, title: document.querySelector("[data-testid=rv-title]")?.textContent, seq: document.querySelectorAll("[data-testid^=rv-seq-]:not([data-testid^=rv-seq-qr])").length, ids: r.snapshots.map((s) => s.id), titles: r.snapshots.map((s) => s.title), org: r.org, reading: document.querySelector("[data-testid=rv-reading]")?.textContent ?? "" };
+    }, P);
+    const dc = globalThis.__dircom ?? { ids: [], titles: [] };
+    check("revue pipeline : 7 snapshots du Scénario Directeur commercial, mêmes ids stables et titres que dans le Studio", det.title === "Revue pipeline — octobre 2026" && det.seq === 7 && JSON.stringify(det.ids) === JSON.stringify(dc.ids) && JSON.stringify(det.titles) === JSON.stringify(dc.titles) && /^Norvia/.test(det.org), `${det.hash} · ${det.ids.join(" ")}`);
+    check("revue pipeline : lecture avant la réunion (8/9 ont tout vu)", /8\s*\/9/.test(det.reading.replace(/\s+/g, " ")) || /8\/9/.test(det.reading), det.reading.slice(0, 80));
+    await page.evaluate(() => (document.querySelector(".rv-main").scrollTop = 0));
+    await shot("40-revues-liste.png");
+    // Partager : lien + QR de la revue, puis d'un snapshot
+    await domClick("[data-testid=rv-share]");
+    await page.waitForSelector("[data-testid=rv-share-dialog]");
+    const sh = await page.evaluate(() => ({ url: document.querySelector("[data-testid=rv-share-url]").textContent, qr: !!document.querySelector("[data-testid=rv-qr] svg path"), links: document.querySelectorAll("[data-testid^=rv-snaplink-]").length }));
+    check("Partager : lien de la revue (#/r/…) + QR + 7 liens de snapshot", sh.url.endsWith(`#/r/${P}`) && sh.qr && sh.links === 7, sh.url);
+    await shot("41-revues-partager.png");
+    // premier snapshot qu'Antoine Mercier (en retard) n'a pas encore vu
+    const K = await page.evaluate((id) => { const r = window.r4d.reviewStorage().get(id); return Math.min(5, r.snapshots.findIndex((s) => !(r.seen.am ?? {})[s.id])); }, P);
+    await page.evaluate((k) => document.querySelectorAll(".rv-snaplink-title")[k].click(), K);
+    await sleep(300);
+    const sh3 = await page.evaluate(() => ({ url: document.querySelector("[data-testid=rv-share-url]").textContent, hash: location.hash, qrLabel: document.querySelector("[data-testid=rv-qr] svg").getAttribute("aria-label") }));
+    check(`Partager : QR propre au snapshot ${K + 1} (lien #/r/<revue>/<snapshot>)`, sh3.url.endsWith(`#/r/${P}/${dc.ids[K]}`) && sh3.qrLabel.includes(dc.ids[K]) && sh3.hash === `#/revues/${P}/partager/${dc.ids[K]}`, sh3.url);
+    // page participant par le lien du snapshot 3
+    await domClick("[data-testid=rv-open-participant]");
+    await page.waitForSelector("[data-testid=rv-participant]");
+    await sleep(1600);
+    await page.evaluate(() => {
+      const sel = document.querySelector("[data-testid=rv-who]");
+      sel.value = "am";
+      sel.dispatchEvent(new Event("change"));
+    });
+    await sleep(600);
+    const p1 = await page.evaluate(() => ({ hash: location.hash, title: document.querySelector("[data-testid=rv-part-title]")?.textContent, seen: document.querySelector("[data-testid=rv-seen]")?.textContent, marks: document.querySelectorAll("[data-testid=rv-participant] .rv-part-chart svg .r4d-drill-mark, [data-testid=rv-participant] .rv-part-chart svg path").length, count: document.querySelector("[data-testid=rv-part-count]")?.textContent }));
+    check(`page participant : ouverte par le lien du snapshot ${K + 1}, graphique rendu, « J'ai vu »`, p1.hash === `#/r/${P}/${dc.ids[K]}` && p1.title === dc.titles[K] && p1.marks > 0 && /J'ai vu/.test(p1.seen ?? ""), JSON.stringify(p1));
+    await shot("42-participant-bureau.png");
+    await domClick("[data-testid=rv-seen]");
+    await sleep(300);
+    await domClick("[data-testid=rv-react-utile]");
+    await sleep(300);
+    await page.evaluate(() => {
+      const ta = document.querySelector("[data-testid=rv-ask-text]");
+      ta.value = "Peut-on voir le même cumul pour juillet ?";
+    });
+    await domClick("[data-testid=rv-ask-send]");
+    await sleep(400);
+    const p2 = await page.evaluate((id, k) => {
+      const r = window.r4d.reviewStorage().get(id);
+      const snap = r.snapshots[k].id;
+      return {
+        seen: (r.seen.am ?? {})[snap] != null,
+        react: r.reactions.some((x) => x.author === "am" && x.snapId === snap && x.kind === "utile"),
+        q: r.comments.some((c) => c.author === "am" && c.question && /juillet/.test(c.text)),
+        btn: document.querySelector("[data-testid=rv-seen]")?.textContent,
+      };
+    }, P, K);
+    check("page participant : « J'ai vu », réaction « Utile » et question enregistrées (stockage local)", p2.seen && p2.react && p2.q && /Vu/.test(p2.btn), JSON.stringify(p2));
+    await domClick("[data-testid=rv-next]");
+    await sleep(500);
+    const n4 = await page.evaluate(() => document.querySelector("[data-testid=rv-part-title]")?.textContent);
+    await page.keyboard.press("ArrowLeft");
+    await sleep(500);
+    const n3 = await page.evaluate(() => document.querySelector("[data-testid=rv-part-title]")?.textContent);
+    await domClick("[data-testid=rv-replay]");
+    await sleep(250);
+    const midBuild = await page.evaluate(() => {
+      const rects = [...document.querySelectorAll(".rv-part-chart svg path, .rv-part-chart svg rect.r4d-drill-mark")];
+      return rects.length;
+    });
+    check("page participant : suivant / précédent (bouton, flèches) et « Revoir l'animation »", n4 === dc.titles[K + 1] && n3 === dc.titles[K] && midBuild > 0, `${n4} ← ${n3}`);
+    // iPad / iPhone
+    await vp(1024, 768, true);
+    await page.evaluate((h2) => (location.hash = h2), `#/r/${P}/${dc.ids[4]}`);
+    await sleep(1800);
+    await shot("43-participant-ipad-paysage.png");
+    await vp(768, 1024, true);
+    await page.evaluate((h2) => (location.hash = h2), `#/r/${P}/${dc.ids[1]}`);
+    await sleep(1800);
+    const ipad = await page.evaluate(() => ({ w: document.documentElement.scrollWidth, vw: window.innerWidth }));
+    await shot("44-participant-ipad-portrait.png");
+    await vp(390, 844, true);
+    await page.evaluate((h2) => (location.hash = h2), `#/r/${P}/${dc.ids[4]}`);
+    await sleep(1800);
+    const phone = await page.evaluate(() => {
+      const svg = document.querySelector(".rv-part-chart svg");
+      const vb = svg?.getAttribute("viewBox")?.split(" ").map(Number) ?? [];
+      const nav = document.querySelector(".rv-part-nav").getBoundingClientRect();
+      const seen = document.querySelector("[data-testid=rv-seen]").getBoundingClientRect();
+      return { w: document.documentElement.scrollWidth, vw: window.innerWidth, portrait: vb[3] > vb[2], navBottom: Math.round(nav.bottom), seenH: Math.round(seen.height), shortNext: getComputedStyle(document.querySelector(".rv-next-short")).display !== "none" };
+    });
+    check("page participant iPhone (390 px) : pas de débordement, graphique en format portrait, barre de navigation en bas, cibles ≥ 44 px", phone.w <= phone.vw + 1 && phone.portrait && phone.navBottom <= 844 && phone.seenH >= 44 && phone.shortNext && ipad.w <= ipad.vw + 1, JSON.stringify({ phone, ipad }));
+    await shot("45-participant-iphone.png");
+    await page.evaluate(() => (document.querySelector(".rv-scroll-keep").scrollTop = 640));
+    await sleep(300);
+    await shot("46-participant-iphone-fil.png");
+    await vp(1600, 960);
+    // mode réunion sur la revue DAF : décision, action, question → action, compte rendu
+    await page.evaluate((h2) => (location.hash = h2), `#/revues/${F}/reunion`);
+    await page.waitForSelector("[data-testid=rv-meeting-page]");
+    await sleep(1200);
+    const m0 = await page.evaluate((id) => ({ status: window.r4d.reviewStorage().get(id).status, queue: document.querySelectorAll("[data-testid=rv-queue-item]").length, live: document.querySelectorAll("[data-testid^=rv-live-]").length }), F);
+    check("mode réunion : séance démarrée (« En réunion »), « Vu en direct » (6), file de questions", m0.status === "en-reunion" && m0.live === 6 && m0.queue >= 2, JSON.stringify(m0));
+    await page.evaluate(() => {
+      const i = document.querySelector("[data-testid=rv-item-text]");
+      i.value = "Budget SN/Legacy validé tel quel ; revue à fin T1";
+    });
+    await domClick("[data-testid=rv-item-add]");
+    await sleep(300);
+    await domClick("[data-testid=rv-q-action]");
+    await sleep(500);
+    const pre = await page.evaluate(() => ({ text: document.querySelector("[data-testid=rv-item-text]").value, due: !!document.querySelector("[data-testid=rv-item-due]") }));
+    await page.evaluate(() => {
+      const d = document.querySelector("[data-testid=rv-item-due]");
+      d.value = "2026-10-23";
+    });
+    await domClick("[data-testid=rv-item-add]");
+    await sleep(400);
+    const m1 = await page.evaluate((id) => {
+      const r = window.r4d.reviewStorage().get(id);
+      return { items: r.items.map((x) => `${x.kind}:${x.text.slice(0, 30)}:${x.due ?? ""}`), inAction: r.comments.filter((c) => c.status === "en-action").length };
+    }, F);
+    check("mode réunion : décision ajoutée, question passée en action (texte prérempli, échéance)", m1.items.length === 2 && m1.items[0].startsWith("decision:Budget SN/Legacy") && m1.items[1].startsWith("action:") && m1.items[1].endsWith("2026-10-23") && m1.inAction === 1 && pre.due && pre.text.length > 10, JSON.stringify(m1));
+    await page.evaluate(() => (document.querySelector(".rv-scroll-keep").scrollTop = 330));
+    await shot("47-reunion.png");
+    await domClick("[data-testid=rv-end]");
+    await page.waitForSelector("[data-testid=rv-report-page]");
+    await sleep(1200);
+    const rep = await page.evaluate((id) => ({
+      hash: location.hash,
+      status: window.r4d.reviewStorage().get(id).status,
+      decisions: document.querySelectorAll("[data-testid=rv-report-decision]").length,
+      actions: document.querySelectorAll("[data-testid=rv-report-action]").length,
+      sections: document.querySelectorAll("[data-testid=rv-report-section]").length,
+      reading: document.querySelectorAll("[data-testid=rv-report-reading] tbody tr").length,
+      print: !!document.querySelector("[data-testid=rv-report-print]"),
+      text: document.querySelector("[data-testid=rv-report-doc]").textContent,
+    }), F);
+    check("compte rendu : décisions, actions, qui a lu quoi, une section par snapshot, bouton Imprimer / PDF", rep.hash === `#/revues/${F}/compte-rendu` && rep.status === "terminee" && rep.decisions === 1 && rep.actions === 1 && rep.sections === 7 && rep.reading === 6 && rep.print, JSON.stringify({ ...rep, text: undefined }));
+    check("compte rendu : vocabulaire sobre, Norvia", !/certifi|conforme|authenticit|preuve/i.test(rep.text) && /Norvia/.test(rep.text), "");
+    await shot("48-compte-rendu.png");
+    const b64 = await page.evaluate((id) => window.r4d.reviewPptxBase64(id), F);
+    const zip = Buffer.from(b64 ?? "", "base64").toString("latin1");
+    const slides = new Set(zip.match(/ppt\/slides\/slide\d+\.xml/g) ?? []).size;
+    check("compte rendu : export PowerPoint (exporteur du Studio, 9 diapositives, commentaires de séance)", slides === 9 && zip.startsWith("PK"), `${slides} diapositives`);
+    // pipeline : compte rendu de la réunion du 8 octobre
+    await page.evaluate((h2) => (location.hash = h2), `#/revues/${P}/compte-rendu`);
+    await sleep(1500);
+    const rp = await page.evaluate(() => ({ d: document.querySelectorAll("[data-testid=rv-report-decision]").length, a: document.querySelectorAll("[data-testid=rv-report-action]").length, k: document.querySelector("[data-testid=rv-kpi-reading]")?.textContent }));
+    check("compte rendu pipeline (8 oct.) : 2 décisions, 3 actions, lecture 7/9 → 8/9", rp.d === 2 && rp.a === 3 && /7\/9 → 8\/9/.test(rp.k ?? ""), JSON.stringify(rp));
+    await page.evaluate(() => (document.querySelector(".rv-scroll-keep").scrollTop = 900));
+    await shot("49-compte-rendu-sections.png");
+    // Réinitialiser la démo : la revue DAF revient à « partagée », sans décision
+    await page.evaluate((h2) => (location.hash = h2), `#/revues/${F}`);
+    await sleep(600);
+    await domClick("[data-testid=rv-reset-demo]");
+    await sleep(1500);
+    const rs = await page.evaluate((id) => { const r = window.r4d.reviewStorage().get(id); return { status: r.status, items: r.items.length, n: window.r4d.reviewStorage().list().length }; }, F);
+    check("« Réinitialiser la démo » : revues Norvia rechargées", rs.status === "partagee" && rs.items === 0 && rs.n === 2, JSON.stringify(rs));
+    // retour au Studio
+    await domClick("[data-testid=rv-back-studio]");
+    await sleep(500);
+    const back = await page.evaluate(() => ({ hash: location.hash, hidden: document.querySelector("[data-testid=reviews]").hidden, stage: !!document.querySelector(".stage")?.getBoundingClientRect().width }));
+    check("retour au Studio (fragment effacé, Studio visible)", back.hash === "" && back.hidden && back.stage, JSON.stringify(back));
   }
 
   /* ------------------------------------------------ captures de documentation */

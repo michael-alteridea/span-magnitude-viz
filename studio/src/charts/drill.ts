@@ -148,6 +148,12 @@ function drawPeriods(g: G, r: PlotRect, ctx: DrawCtx, m: PeriodsModel, f: Fmt) {
   // pas de grille : chaque barre porte sa valeur
   g.append("line").attr("x1", r.x).attr("x2", r.x + r.w).attr("y1", base).attr("y2", base).attr("stroke", ctx.theme.axis).attr("stroke-width", 1.2 * s);
   const fs = Math.min(15 * s, Math.max(10 * s, bw * 0.3));
+  // format étroit (téléphone) : libellés de valeur et graduations éclaircis pour ne jamais se chevaucher
+  const valueFits = m.bars.every((b) => measure(f.v(b.value), fs, font, 500) <= x.step() - 3 * s);
+  const tickW = Math.max(...m.bars.map((b) => measure(b.tick, 13 * s, font, 700)));
+  const every = Math.max(1, Math.ceil((tickW + 8 * s) / x.step()));
+  const tickShown = m.bars.map((_, i) => every === 1 || i === m.focus || (i % every === 0 && (m.focus == null || Math.abs(i - m.focus) >= every)));
+  const yearSeen = new Set<string>();
   m.bars.forEach((b, i) => {
     const p = stagger(frame.build, i, n);
     const x0 = x(b.key)!;
@@ -166,11 +172,13 @@ function drawPeriods(g: G, r: PlotRect, ctx: DrawCtx, m: PeriodsModel, f: Fmt) {
     bar.append("rect").attr("class", "r4d-drill-mark").attr("x", x0).attr("y", y(v)).attr("width", bw).attr("height", Math.max(0, base - y(v))).attr("rx", Math.min(4 * s, bw / 6)).attr("fill", fill).attr("stroke", b.partial ? ink.soft : "none").attr("stroke-width", 1.2 * s);
     // libellé de valeur
     const yl = isF && b.ref != null && b.ref > b.value ? y(b.ref) : y(v);
-    if (p > 0.6 && bw > 16 * s) bar.append("text").attr("x", x0 + bw / 2).attr("y", yl - 7 * s).attr("text-anchor", "middle").attr("font-size", fs).attr("font-weight", isF ? 700 : 500).attr("fill", isF ? ink.text : ink.muted).attr("fill-opacity", Math.min(1, (p - 0.6) / 0.4)).text(f.v(b.value));
+    if (p > 0.6 && bw > 16 * s && (valueFits || isF)) bar.append("text").attr("x", x0 + bw / 2).attr("y", yl - 7 * s).attr("text-anchor", "middle").attr("font-size", fs).attr("font-weight", isF ? 700 : 500).attr("fill", isF ? ink.text : ink.muted).attr("fill-opacity", Math.min(1, (p - 0.6) / 0.4)).text(f.v(b.value));
     // graduations : 2 lignes
     const yt = base + 16 * s;
+    if (!tickShown[i]) return;
     bar.append("text").attr("x", x0 + bw / 2).attr("y", yt).attr("text-anchor", "middle").attr("font-size", 13 * s).attr("font-weight", isF ? 700 : 400).attr("fill", isF ? ink.text : ink.muted).text(b.tick);
-    const showYear = i === 0 || b.year !== m.bars[i - 1]!.year;
+    const showYear = every === 1 ? i === 0 || b.year !== m.bars[i - 1]!.year : !yearSeen.has(b.year);
+    yearSeen.add(b.year);
     if (showYear || isF) bar.append("text").attr("x", x0 + bw / 2).attr("y", yt + 16 * s).attr("text-anchor", "middle").attr("font-size", 11.5 * s).attr("fill", ctx.theme.faint).text(b.partial ? "en cours" : b.year);
   });
   // repère de la référence de la barre mise en avant + écart
@@ -205,7 +213,9 @@ function drawPeriods(g: G, r: PlotRect, ctx: DrawCtx, m: PeriodsModel, f: Fmt) {
 function drawMonth(g: G, r: PlotRect, ctx: DrawCtx, m: MonthModel, f: Fmt) {
   const { s, frame } = ctx;
   const ink = inkOf(ctx);
-  const weekH = 54 * s;
+  // format étroit (téléphone) : écart de la semaine sur deux lignes
+  const narrow = r.w < r.h * 1.4;
+  const weekH = (narrow ? 72 : 54) * s;
   const tickH = 24 * s;
   const right = 120 * s;
   const plot = { x: r.x + 4 * s, y: r.y + 10 * s, w: r.w - right, h: r.h - weekH - tickH - 10 * s };
@@ -225,7 +235,10 @@ function drawMonth(g: G, r: PlotRect, ctx: DrawCtx, m: MonthModel, f: Fmt) {
     const cx = (xa + xb) / 2;
     const yw = plot.y + plot.h + tickH + 18 * s;
     g.append("text").attr("x", cx).attr("y", yw).attr("text-anchor", "middle").attr("font-size", 12 * s).attr("fill", ink.muted).text(`${w.from}–${w.to}${NBSP}${MONTH_ABBR[new Date(m.start).getUTCMonth()]}`);
-    g.append("text").attr("class", "r4d-drill-week").attr("x", cx).attr("y", yw + 20 * s).attr("text-anchor", "middle").attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", varColor(ink, rr)).text(`${f.sv(w.cur - w.ref)} · ${pctTxt(rr)}`);
+    if (narrow) {
+      g.append("text").attr("class", "r4d-drill-week").attr("x", cx).attr("y", yw + 20 * s).attr("text-anchor", "middle").attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", varColor(ink, rr)).text(f.sv(w.cur - w.ref));
+      g.append("text").attr("x", cx).attr("y", yw + 38 * s).attr("text-anchor", "middle").attr("font-size", 13 * s).attr("font-weight", 600).attr("fill", varColor(ink, rr)).text(pctTxt(rr));
+    } else g.append("text").attr("class", "r4d-drill-week").attr("x", cx).attr("y", yw + 20 * s).attr("text-anchor", "middle").attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", varColor(ink, rr)).text(`${f.sv(w.cur - w.ref)} · ${pctTxt(rr)}`);
   });
   for (const d of [1, 5, 10, 15, 20, 25, m.days]) {
     if (d > m.days) continue;
@@ -468,7 +481,9 @@ function drawHistory(g: G, r: PlotRect, ctx: DrawCtx, m: HistoryModel, f: Fmt) {
   const { s, frame, font, theme } = ctx;
   const ink = inkOf(ctx);
   const n = m.series.length;
-  const cols = n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : 4;
+  // format portrait (téléphone) : 2 colonnes au plus
+  const portrait = r.w < r.h * 1.4;
+  const cols = portrait ? Math.min(n, 2) : n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : 4;
   const rows = Math.ceil(n / cols);
   const gapX = 22 * s;
   const gapY = 16 * s;
@@ -485,7 +500,7 @@ function drawHistory(g: G, r: PlotRect, ctx: DrawCtx, m: HistoryModel, f: Fmt) {
     const gp = g.append("g").attr("class", "r4d-drill-panel r4d-drill-hit").attr("data-drill-kind", "cat").attr("data-drill-field", m.field).attr("data-drill-value", se.key).style("cursor", "pointer");
     gp.append("rect").attr("x", px).attr("y", py).attr("width", cw).attr("height", ch).attr("rx", 8 * s).attr("fill", isStd ? (theme.dark ? "#16262d" : "#f2f8fa") : "transparent").attr("stroke", isStd ? ink.text : theme.grid).attr("stroke-width", (isStd ? 1.6 : 1) * s);
     const head = 40 * s;
-    gp.append("text").attr("x", px + 12 * s).attr("y", py + 22 * s).attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", ink.text).text(ellipsize(se.key, cw * 0.6, 15 * s, font, 700));
+    gp.append("text").attr("x", px + 12 * s).attr("y", py + 22 * s).attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", ink.text).text(ellipsize(se.key, Math.min(cw * 0.6, cw - 24 * s - (se.focusRatio != null && m.focus != null ? 66 * s : 0)), 15 * s, font, 700));
     if (se.focusRatio != null && m.focus != null) {
       gp.append("text").attr("class", "r4d-drill-delta").attr("x", px + cw - 12 * s).attr("y", py + 22 * s).attr("text-anchor", "end").attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", varColor(ink, se.focusRatio)).text(pctTxt(se.focusRatio));
       gp.append("text").attr("x", px + cw - 12 * s).attr("y", py + 37 * s).attr("text-anchor", "end").attr("font-size", 10.5 * s).attr("fill", ink.muted).text(`${MONTH_ABBR[new Date(m.keys[m.focus]!).getUTCMonth()]} vs ${m.refLabel.replace(/^moy\. /, "")}`);
@@ -537,7 +552,9 @@ function drawBreakdown(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fm
   const x0 = r.x + labelW;
   const max = Math.max(1e-9, ...m.stats.map((st) => Math.max(st.value, st.ref ?? 0)));
   const min = Math.min(0, ...m.stats.map((st) => Math.min(st.value, st.ref ?? 0)));
-  const xr = scaleLinear().domain([min * 1.04, max * 1.04]).range([x0, r.x + r.w - right]);
+  // place réservée au libellé de valeur à droite de la barre la plus longue (pas de chevauchement avec la colonne d'écart)
+  const valW = Math.max(...m.stats.map((st) => measure(f.v(st.value), 14 * s, font, 700))) + 12 * s;
+  const xr = scaleLinear().domain([min * 1.04, max * 1.04]).range([x0, Math.max(x0 + 40 * s, r.x + r.w - right - valW)]);
   const x = (v: number) => xr(v);
   const xz = xr(0);
   const top = r.y + 14 * s + Math.max(0, (r.h - 14 * s - rowH * n) / 2) * 0.5;
@@ -693,6 +710,9 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
   const yv = scaleLinear().domain([dmin - (dmin < 0 ? span * 0.28 : 0), dmax + (dmax > 0 ? span * 0.28 : 0)]).range([vy0 + varH - 14 * s, vy0]);
   const good = (d: number) => (m.costOnly ? d < 0 : d > 0);
   const tiny = (d: number) => Math.abs(d) < Math.abs(m.fromTotal / 12) * 0.03;
+  // Seuil de matérialité : pas d'étiquette sous 0,5 % du plus grand écart mensuel (bruit de quelques centaines d'euros)
+  const maxAbs = Math.max(...m.months.map((x0) => Math.abs(x0.delta ?? 0)));
+  const material = (d: number) => Math.abs(d) >= maxAbs * 0.005;
   m.months.forEach((mo, i) => {
     const p = stagger(frame.build, i, 12, 0.5);
     const x0 = x(mo.key)!;
@@ -709,20 +729,21 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
       const d = mo.delta * p;
       const col = tiny(mo.delta) ? ink.muted : good(mo.delta) ? ink.pos : ink.neg;
       g.append("rect").attr("class", "r4d-drill-var").attr("x", x0 + bw * 0.12).attr("y", Math.min(yv(0), yv(d))).attr("width", bw * 0.76).attr("height", Math.max(1 * s, Math.abs(yv(d) - yv(0)))).attr("fill", col).attr("rx", 2 * s);
-      if (p > 0.8) {
+      if (p > 0.8 && material(mo.delta)) {
         const below = mo.delta < 0;
         g.append("text").attr("x", x0 + bw / 2).attr("y", below ? yv(d) + 14 * s : yv(d) - 5 * s).attr("text-anchor", "middle").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", col).text(compact(mo.delta, f));
       }
     }
   });
   g.append("line").attr("x1", r.x).attr("x2", r.x + W).attr("y1", yv(0)).attr("y2", yv(0)).attr("stroke", theme.axis).attr("stroke-width", 1 * s);
-  g.append("text").attr("x", r.x).attr("y", vy0 - 10 * s).attr("font-size", 12 * s).attr("font-weight", 700).attr("fill", ink.muted).text(`Écart ${m.toLabel} vs ${m.fromLabel}${m.costOnly ? " (coûts : une hausse est défavorable)" : ""}`);
   // rupture
   if (m.breakAt != null && frame.build > 0.85) {
     const xb = x(m.breakAt)! - (x.step() - bw) / 2;
     g.append("line").attr("class", "r4d-drill-break").attr("x1", xb).attr("x2", xb).attr("y1", r.y + 4 * s).attr("y2", vy0 + varH).attr("stroke", ink.text).attr("stroke-width", 1.4 * s).attr("stroke-dasharray", `${5 * s} ${3 * s}`);
     g.append("text").attr("x", xb + 6 * s).attr("y", r.y + 14 * s).attr("font-size", 12.5 * s).attr("font-weight", 700).attr("fill", ink.text).text(`à partir de ${MONTH_LONG[m.breakAt]!.toLocaleLowerCase("fr-FR")}`);
   }
+  // titre du panneau d'écart (halo de fond : lisible même s'il croise le repère de rupture)
+  g.append("text").attr("x", r.x).attr("y", vy0 - 10 * s).attr("font-size", 12 * s).attr("font-weight", 700).attr("fill", ink.muted).attr("stroke", theme.bg).attr("stroke-width", 4 * s).attr("stroke-linejoin", "round").attr("paint-order", "stroke").text(`Écart ${m.toLabel} vs ${m.fromLabel}${m.costOnly ? " (coûts : une hausse est défavorable)" : ""}`);
   // totaux à droite
   if (frame.build > 0.6) {
     const tx = r.x + W + 22 * s;

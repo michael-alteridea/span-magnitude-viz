@@ -1,8 +1,8 @@
 # Démo : pipeline commercial 2026 — dictionnaire des données
 
-**Données entièrement fictives** (sociétés, clients, commerciaux et montants inventés), générées de façon
+**Données entièrement fictives** de la société de démonstration **Norvia** (clients, commerciaux et montants inventés), générées de façon
 déterministe par `studio/scripts/make-demo-pipeline.ts` (graine 20261008) à partir de `studio/src/data/demoPipeline.ts`.
-Extrait du CRM de démonstration au **8 octobre 2026**.
+Extrait du CRM (fictif) de Norvia au **8 octobre 2026**.
 
 - Fichier : `pipeline-commercial-2026.csv` — UTF-8, séparateur `;`, décimales à la virgule, 1 975 lignes.
 - Une ligne = une opportunité créée entre le 2 janvier 2025 et le 30 septembre 2026 (jours ouvrés).
@@ -35,3 +35,6 @@ Extrait du CRM de démonstration au **8 octobre 2026**.
 
 Utilisation : exemple intégré « Démo : pipeline commercial » du Studio, puis **Scénarios → Scénario Directeur commercial**
 (automatique ou pas à pas). Le CSV peut aussi être importé tel quel : l'exploration guidée devine les rôles des colonnes.
+
+Revue partagée : dans le Studio, bouton **Revues** → « Revue pipeline — octobre 2026 » (Norvia, Direction commerciale),
+construite à partir des 7 snapshots du scénario, avec participants, lectures, questions, décisions et actions fictifs.

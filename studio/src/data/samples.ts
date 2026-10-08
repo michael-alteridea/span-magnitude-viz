@@ -414,7 +414,7 @@ export const SAMPLES: Sample[] = [
       drill: { date: "date_creation", measure: "montant_eur", label: "Pipeline créé", by: "region", view: "periods", grain: "quarter", path: [] },
       axes: { y: { unit: "eur", decimals: 0 } },
       mode: { kind: "dynamic", buildIn: true, buildInMs: 1100 },
-      style: { source: "Source : CRM de démonstration (données fictives) · extrait du 8 oct. 2026", background: "light" },
+      style: { source: "Source : CRM Norvia (données fictives) · extrait du 8 oct. 2026", background: "light" },
     },
   },
   {
@@ -427,7 +427,7 @@ export const SAMPLES: Sample[] = [
       drill: { date: "mois", measure: "montant_eur", label: "Marge contributive", version: "version", from: "Réel 2025", to: "Budget 2026", nature: "nature", levels: ["ligne_metier", "compte"], by: "ligne_metier", view: "bridge", grain: "quarter", path: [], pivot: { x: "@quarter", series: "ligne_metier", agg: "delta", chart: "bar" } },
       axes: { y: { unit: "eur", decimals: 0 } },
       mode: { kind: "dynamic", buildIn: true, buildInMs: 1100 },
-      style: { source: "Source : contrôle de gestion de démonstration (données fictives) · budget 2026 du 8 oct. 2026", background: "light" },
+      style: { source: "Source : contrôle de gestion Norvia (données fictives) · budget 2026 du 8 oct. 2026", background: "light" },
     },
   },
 ];

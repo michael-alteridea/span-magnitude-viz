@@ -251,6 +251,33 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   `node studio/scripts/demo-scenario.mjs --scenario daf --out <dossier> --pptx <nom>` produit PNG et PowerPoint.
 - **PowerPoint lisible** : les graphiques des snapshots sont rendus en PNG à 3× et les commentaires en 15 pt.
 
+## Revues partagées (étape partage)
+
+- **Espace « Revues »** (bouton **Revues** de la barre du haut, ou `#/revues`) : liste des revues (persona, date de réunion,
+  statut : brouillon, partagée, en réunion, terminée), recherche et filtres ; détail d'une revue : séquence ordonnée des
+  snapshots (les vrais objets `Snapshot`, ids stables des scénarios), lecture avant la réunion (anneau, barres par snapshot,
+  « Relancer » = message local, export CSV), participants avec un point par snapshot vu.
+- **Partager** : lien et **QR** de la revue (`#/r/<revue>`) et de **chaque snapshot** (`#/r/<revue>/<snapshot>`), téléchargement
+  du QR en SVG, accès, options (commentaires, « qui a vu », montants), invitations. Le partage est **local pour l'instant** :
+  les liens s'ouvrent dans le Studio, dans ce navigateur (note visible dans l'interface — partage en ligne bientôt).
+- **Page participant** (`#/r/…`) : graphique recalculé et animé (format portrait sur téléphone), commentaire généré et
+  commentaire de l'animation, **J'ai vu**, réactions (D'accord, Utile, À clarifier, Point d'attention), fil de commentaires et
+  **questions pour la séance** (« Moi aussi »), précédent / suivant, flèches ←/→, balayage sur iPad / iPhone,
+  **Revoir l'animation**. « Vous êtes » choisit le participant sur cet appareil.
+- **Mode réunion** (`#/revues/<id>/reunion`) : chrono, snapshot en cours, **Vu en direct** (présents / absents), **file de
+  questions** triée par soutiens (Afficher, Répondue, En action → action préremplie), saisie **Décision / Action** (responsable,
+  échéance) rattachée au snapshot, frise, **Projeter** (film plein écran).
+- **Compte rendu automatique** (`#/revues/<id>/compte-rendu`) : réunion, présents / absents, indicateurs, décisions, tableau
+  des actions, **qui a lu quoi** (avant → après), une section par snapshot (graphique, commentaires, décisions, actions,
+  questions) ; **PowerPoint** (exporteur du Studio, commentaires de séance sur chaque diapositive) et **Imprimer / PDF**.
+- **Stockage** : `review/storage.ts`, interface `ReviewStorage` (implémentation `LocalReviewStorage` : localStorage, synchronisé
+  entre onglets) — Firestore viendra derrière la même interface. Modèle pur et testé : `review/model.ts`.
+- **Démo Norvia (fictive)** installée au premier passage : « Revue pipeline — octobre 2026 » (Scénario Directeur commercial,
+  réunion du 8 oct. terminée, compte rendu prêt) et « Business review — Budget 2026 vs réel 2025 » (Scénario Directeur
+  financier, réunion du 9 oct. à venir). **Réinitialiser la démo** les recharge sans toucher à vos revues.
+- **Nouvelle revue** : reprend les snapshots de l'histoire courante.
+- Lien direct vers la revue pipeline : `…/reporting/#/revues/norvia-pipeline-oct-2026`.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -276,6 +303,7 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 | `data/regions.ts`, `data/demoPipeline.ts` | Régions FR·BE ↔ NUTS 1 ; générateur de la démo pipeline (fictive, graine fixe) |
 | `story/drillStory.ts`, `story/scenarios.ts` | Récit de l'exploration ; scénarios persona rejouables (rôles, étapes) |
 | `story/*` | Rôles des colonnes, statistiques, détecteurs, narration, textes français, snapshots, export PowerPoint |
+| `review/*` | Revues partagées : modèle, stockage, démo Norvia, pages liste / partager / participant / réunion / compte rendu, `review.css` |
 | `brand.ts` | Nom du produit, URL de la plateforme, règle d'affichage du cartouche |
 | `provenance.ts` | Empreinte des données (SHA-256), provenance, lien de vérification (construction / lecture), `VERIFY_BASE` |
 | `qr.ts`, `charts/cartouche.ts` | QR en SVG pur (qrcode-generator) ; cartouche Datanime |

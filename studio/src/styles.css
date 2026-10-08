@@ -544,3 +544,7 @@ tr.in-series .mw-row-btn { color: #fff; font-weight: 700; }
 .film-dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: none; background: #3f3f46; cursor: pointer; position: relative; }
 .film-dot::after { content: ""; position: absolute; inset: -15px; }
 .film-dot.on { background: var(--accent); }
+
+/* bouton « Revues » (barre du haut) */
+.btn-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-deep); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.btn-count:empty { display: none; }

@@ -15,7 +15,7 @@ Budget 2026 arrêté au **8 octobre 2026** par le contrôle de gestion de démon
 | `ligne_metier` | catégorie | Cloud, SN/Legacy, Services, Licences, Formation |
 | `nature` | catégorie | Revenus, Coûts |
 | `compte` | catégorie | 21 comptes (Abonnements SaaS, Maintenance grands comptes, Coûts d'hébergement…) |
-| `entite` | catégorie | Démo Belgique SA, Démo France SAS |
+| `entite` | catégorie | Norvia Belgique SA, Norvia France SAS |
 | `region` | catégorie | Bruxelles, Flandre, Wallonie, Hauts-de-France, Île-de-France |
 | `montant_eur` | nombre | Montant en euros, toujours positif ; la colonne `nature` indique s'il s'agit d'un revenu ou d'un coût |
 

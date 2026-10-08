@@ -18,13 +18,16 @@ import { h, svgIcon, ICONS } from "./ui/dom";
 import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl } from "./export";
 import { themeFor, ensureFont } from "./theme";
 import { tell4dIconMarkup } from "./brand";
+import { ReviewSpace } from "./review/space";
+import { LocalReviewStorage } from "./review/storage";
+import { reportSlideComments } from "./review/model";
 import { guessUnit } from "./format";
 import { SAMPLE_TODAY } from "./data/samples";
 import { Explorer } from "./ui/explorer";
 import { StoryStrip } from "./ui/storyStrip";
 import type { Insight, StoryContext } from "./story/insights";
 import { narrate, narrativeKey, applyNarrative, type Narrative } from "./story/narrate";
-import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot } from "./story/snapshots";
+import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot, type StoryState } from "./story/snapshots";
 import type { SlideImage } from "./story/pptx";
 import { composeSvg } from "./export";
 import { prepareCache, renderChart, valueMaxOf } from "./charts/render";
@@ -454,12 +457,12 @@ async function renderScaled(spec: ChartSpec, ds: Dataset, sharedMax: number | nu
 }
 
 /** Image PNG 2× d'un snapshot : SVG conservé (polices ré-embarquées), sinon rendu à neuf, sinon la vignette. */
-async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
+async function snapshotImage(s: Snapshot, scales: Map<string, ScaleInfo> = storyScales(), sameScale = !!store.state.story.sameScale): Promise<SlideImage | null> {
   const spec = s.spec as ChartSpec;
+  const parsed = snapshotSpec(s);
   try {
-    const parsed = snapshotSpec(s);
-    const info = storyScales().get(s.id);
-    const same = !!store.state.story.sameScale && !!info;
+    const info = scales.get(s.id);
+    const same = sameScale && !!info;
     const note = parsed ? scaleNoteFor(parsed, info, same) : null;
     const ds = parsed && (same || note) ? datasetFor(s) : null;
     if (parsed && ds && (same || note)) {
@@ -476,16 +479,42 @@ async function snapshotImage(s: Snapshot): Promise<SlideImage | null> {
       const blob = await svgToPngBlob(svg, s.width, s.height, 3);
       return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
     }
+    // snapshot sans rendu conservé (revues de démonstration) : rendu à neuf depuis les données d'origine
+    const ds = parsed ? datasetFor(s) : null;
+    if (parsed && ds) {
+      const fixed = { ...parsed, style: { ...parsed.style, title: s.title, subtitle: s.subtitle }, story: { ...parsed.story, comments: s.comments } };
+      const svg = await renderScaled(fixed, ds, null, null);
+      const blob = await svgToPngBlob(svg, s.width, s.height, 3);
+      return { data: await blobToDataUrl(blob), width: s.width, height: s.height };
+    }
   } catch {
     /* repli */
   }
   return s.thumb ? { data: s.thumb, width: s.width, height: s.height } : null;
 }
 
-async function buildStoryPptx(outputType: "blob" | "base64" = "blob") {
-  const story = store.state.story;
+/** Groupes d'échelle d'une liste de snapshots quelconque (revues). */
+function scalesOf(snaps: Snapshot[]): Map<string, ScaleInfo> {
+  return scaleGroups(
+    snaps.map((s) => {
+      const spec = snapshotSpec(s);
+      const ds = spec ? datasetFor(s) : null;
+      let max: number | null = null;
+      try {
+        max = spec && ds ? valueMaxOf(spec, ds) : null;
+      } catch {
+        max = null;
+      }
+      return { id: s.id, key: spec ? scaleKey(spec) : null, max };
+    })
+  );
+}
+
+async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: StoryState = store.state.story) {
+  const own = story === store.state.story;
+  const scales = own ? storyScales() : scalesOf(story.snapshots);
   const images = new Map<string, SlideImage | null>();
-  for (const s of story.snapshots) images.set(s.id, await snapshotImage(s));
+  for (const s of story.snapshots) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale));
   const { buildPptx } = await import("./story/pptx");
   return buildPptx(story, { images, outputType });
 }
@@ -756,6 +785,8 @@ includeData.addEventListener("change", () => store.setUi({ includeData: includeD
 
 const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données");
 const scenarioTopBtn = h("button", { class: "btn btn-scenario", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => scenarioDialog.open() }, h("span", { html: svgIcon(ICONS.clapper, 16) }), "Scénarios");
+const reviewsCount = h("span", { class: "btn-count", "data-testid": "reviews-count" });
+const reviewsTopBtn = h("button", { class: "btn", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par snapshot, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), "Revues", reviewsCount);
 const snapTopBtn = h("button", { class: "btn", "data-testid": "snapshot-top", title: "Ajouter le graphique courant à l'histoire", onclick: () => void takeSnapshot() }, "📸 Snapshot");
 
 /* ---- mode norme : badge, légende de notation */
@@ -825,7 +856,7 @@ const header = h(
   h(
     "div",
     { class: "toolbar" },
-    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, scenarioTopBtn, snapTopBtn),
+    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, scenarioTopBtn, snapTopBtn, reviewsTopBtn),
     h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Exporter"),
       h("button", { class: "btn btn-accent", "data-testid": "export-svg", onclick: () => void exportSvg().catch((e) => toast(String(e), "error")) }, h("span", { html: svgIcon(ICONS.download, 16) }), "SVG"),
       h("span", { class: "split" }, h("button", { class: "btn", "data-testid": "export-png", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) }, "PNG"), pngScale),
@@ -866,7 +897,27 @@ const leftRail = h("button", { class: "rail rail-left", title: "Afficher les don
 const rightRail = h("button", { class: "rail rail-right", title: "Afficher les réglages", onclick: () => store.setUi({ rightCollapsed: false }) }, h("span", { html: svgIcon(ICONS.sliders, 18) }), h("span", { class: "rail-label" }, "Réglages"));
 // L'Explorer recouvre l'aperçu et les réglages (vignettes plus grandes, 4 colonnes sur grand écran)
 const workspace = h("main", { class: "workspace" }, leftRail, dataPanel.root, center, settings.root, rightRail, explorer.root);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root);
+/* ---- espace « Revues » (partage local pour l'instant ; stockage derrière une interface) */
+const reviewStorage = new LocalReviewStorage();
+const reviewSpace = new ReviewSpace(
+  {
+    storage: reviewStorage,
+    datasetFor: (s) => datasetFor(s),
+    toast: (m, k, ms) => toast(m, k ?? "info", ms),
+    pptx: async (title, snaps) => (await buildStoryPptx("blob", { title, snapshots: snaps, sameScale: false })) as Blob,
+    film: (snaps, k) => film.open(snaps, k),
+    currentStory: () => store.state.story,
+    baseUrl: () => location.href.split("#")[0]!.split("?")[0]!,
+    openInStudio: (s) => (reviewSpace.close(), openSnapshot(s)),
+  },
+  tell4dIconMarkup("t4d-rv", 34)
+);
+const updateReviewsCount = () => {
+  const n = reviewStorage.list().length;
+  reviewsCount.textContent = n ? String(n) : "";
+};
+reviewStorage.subscribe(updateReviewsCount);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -908,6 +959,13 @@ void ensureFont(store.state.spec.style.font).finally(() => {
   storyStrip.update();
 });
 
+// routes de l'espace Revues (#/revues…, #/r/…) : liens et QR de partage
+window.addEventListener("hashchange", () => void reviewSpace.handleHash(location.hash));
+void reviewSpace.ensureDemo().then(() => {
+  updateReviewsCount();
+  if (location.hash.startsWith("#/")) void reviewSpace.handleHash(location.hash);
+});
+
 /** API de débogage / tests (console : r4d.getSpec()). */
 const api = {
   store,
@@ -936,6 +994,13 @@ const api = {
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
   pptxBase64: async () => (await buildStoryPptx("base64")) as string,
+  reviews: () => reviewSpace,
+  reviewStorage: () => reviewStorage,
+  reviewPptxBase64: async (id: string) => {
+    const r = reviewStorage.get(id);
+    if (!r) return null;
+    return (await buildStoryPptx("base64", { title: r.title, snapshots: r.snapshots.map((s) => ({ ...s, comments: reportSlideComments(r, s) })), sameScale: false })) as string;
+  },
   storyScales: () => Object.fromEntries(storyScales()),
   setSameScale: (on: boolean) => store.setStory({ ...store.state.story, sameScale: on }),
   pngDataUrl: async (scale = 1) => {

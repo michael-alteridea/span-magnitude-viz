@@ -29,11 +29,11 @@ export const FIN_COLUMNS = ["version", "mois", "ligne_metier", "nature", "compte
 export type FinRow = Record<(typeof FIN_COLUMNS)[number], string | number>;
 
 export const FIN_REGIONS = [
-  { name: "Bruxelles", entity: "Démo Belgique SA", w: 0.24 },
-  { name: "Flandre", entity: "Démo Belgique SA", w: 0.2 },
-  { name: "Wallonie", entity: "Démo Belgique SA", w: 0.14 },
-  { name: "Hauts-de-France", entity: "Démo France SAS", w: 0.14 },
-  { name: "Île-de-France", entity: "Démo France SAS", w: 0.28 },
+  { name: "Bruxelles", entity: "Norvia Belgique SA", w: 0.24 },
+  { name: "Flandre", entity: "Norvia Belgique SA", w: 0.2 },
+  { name: "Wallonie", entity: "Norvia Belgique SA", w: 0.14 },
+  { name: "Hauts-de-France", entity: "Norvia France SAS", w: 0.14 },
+  { name: "Île-de-France", entity: "Norvia France SAS", w: 0.28 },
 ] as const;
 
 type Nature = "Revenus" | "Coûts";

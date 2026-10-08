@@ -316,6 +316,8 @@ export interface RenderOptions {
   sharedMax?: number | null;
   /** Indicateur d'échelle (bas gauche) : échelle commune, ou différente des autres graphiques de même mesure. */
   scaleNote?: string | null;
+  /** Agrandissement des textes imposé (page participant sur téléphone) ; défaut : BARE_TEXT_BOOST en mode bare. */
+  textBoost?: number;
 }
 
 /**
@@ -330,7 +332,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   const colors = paletteColors(spec, theme);
   const font = fontStack(spec.style.font);
   // Image de diapositive (bare) : textes agrandis de 30 % pour rester lisibles une fois l'image réduite dans le PowerPoint
-  const s = opts.thumb ? Math.max(0.5, Math.sqrt(W * H) / Math.sqrt(1200 * 675)) : (Math.sqrt(W * H) / Math.sqrt(1200 * 675)) * (opts.bare ? BARE_TEXT_BOOST : 1);
+  const s = opts.thumb ? Math.max(0.5, Math.sqrt(W * H) / Math.sqrt(1200 * 675)) : (Math.sqrt(W * H) / Math.sqrt(1200 * 675)) * (opts.textBoost ?? (opts.bare ? BARE_TEXT_BOOST : 1));
   const prep = prepareFrame(spec, ds, cache, frame);
   const chrome = !opts.thumb;
   const texts = chrome && !opts.bare;
