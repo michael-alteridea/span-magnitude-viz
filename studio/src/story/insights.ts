@@ -10,7 +10,8 @@
 import { chartSpecSchema, type ChartSpec, type ChartSpecInput, type NarrativeRole, type UnitKey } from "../spec";
 import type { Dataset, Row } from "../data/table";
 import { columnOf } from "../data/table";
-import { allRows, buildCatModel, bucketDate } from "../data/model";
+import { allRows, buildCatModel, buildPointModel, bucketDate } from "../data/model";
+import { focusKindOf, pointKey, resolveFocus } from "../charts/focus";
 import { effectiveDataset } from "../data/transform";
 import { buildVarianceModel, isFavourable } from "../data/variance";
 import { closedValues, detectRoles, distinctValues, regionsMappable, SCENARIO_LABELS, type Roles, type Scenario } from "./roles";
@@ -195,6 +196,14 @@ function keyTotals(spec: ChartSpec, eff: Dataset): { labels: string[]; totals: n
     return any ? s : NaN;
   });
   return { labels: m.labels, totals };
+}
+
+/** Vrai si le graphique n'affiche que les N plus petits (top N « Les plus petits » effectivement appliqué). */
+function bottomView(spec: ChartSpec, eff: Dataset): boolean {
+  const e = spec.encoding;
+  if (!e.topN || e.topOrder !== "bottom") return false;
+  const kt = keyTotals(spec, eff);
+  return !!kt && kt.labels.length > e.topN;
 }
 
 function isOpenFilter(spec: ChartSpec, stage: string | null): boolean {
@@ -459,6 +468,8 @@ const analyzeTrend: Analyzer = (spec, eff, ctx) => {
 const analyzeConcentration: Analyzer = (spec, eff, ctx) => {
   const xCol = columnOf(eff, spec.encoding.x);
   if (!xCol || xCol.type === "date" || xCol.type === "number") return null;
+  // classement « Les plus petits » : le graphique ne montre pas les premiers, une concentration n'aurait pas de sens
+  if (bottomView(spec, eff)) return null;
   const kt = keyTotals(spec, eff);
   if (!kt || kt.labels.length < 3) return null;
   const pairs = kt.labels.map((l, i) => ({ l, v: kt.totals[i]! })).filter((p) => p.v > 0).sort((a, b) => b.v - a.v);
@@ -566,19 +577,25 @@ const analyzeRanking: Analyzer = (spec, eff, ctx) => {
   const mLabel = spec.encoding.aggregate === "count" ? "nombre de lignes" : measureLabel(yField ?? "valeur");
   const disp = S.cv(vals);
   const above = vals.filter((v) => v > avg).length;
+  // classement « Les plus petits » (top N inversé) : le titre parle du dernier, seul extrême visible
+  const bottom = bottomView(spec, eff);
   let title: string;
-  if (u === "pct") {
-    title = disp < 0.08 ? `${capitalize(mLabel)} homogène entre ${noun.pl} (${fm(worst.v, u)} à ${fm(best.v, u)})` : `${best.l} en tête : ${fm(best.v, u)}, ${formatPoints(best.v - avg)} vs la moyenne`;
-  } else if (disp < 0.08) {
-    title = `${capitalize(mLabel)} homogène entre ${noun.pl} (écart max ${formatPct(Math.max(best.v / avg - 1, 1 - worst.v / avg))})`;
+  if (disp < 0.08) {
+    title = u === "pct" ? `${capitalize(mLabel)} homogène entre ${noun.pl} (${fm(worst.v, u)} à ${fm(best.v, u)})` : `${capitalize(mLabel)} homogène entre ${noun.pl} (écart max ${formatPct(Math.max(best.v / avg - 1, 1 - worst.v / avg))})`;
+  } else if (bottom) {
+    title = u === "pct" ? `${worst.l} en dernier : ${fm(worst.v, u)}, ${formatPoints(worst.v - avg)} vs la moyenne` : `${worst.l} en dernier : ${formatSignedPct(worst.v / avg - 1)} vs la moyenne des ${noun.pl}`;
+  } else if (u === "pct") {
+    title = `${best.l} en tête : ${fm(best.v, u)}, ${formatPoints(best.v - avg)} vs la moyenne`;
   } else {
     title = `${best.l} en tête : ${formatRatio(best.v / avg)} la moyenne des ${noun.pl}`;
   }
   const ratio = worst.v > 0 ? best.v / worst.v : NaN;
   const comments = [
-    `${best.l} : ${fm(best.v, u)} ; ${worst.l} : ${fm(worst.v, u)}${Number.isFinite(ratio) && u !== "pct" ? ` (${formatRatio(ratio)} moins)` : ""}.`,
+    bottom
+      ? `${worst.l} : ${fm(worst.v, u)} ; en tête, hors de ce classement : ${best.l} (${fm(best.v, u)}).`
+      : `${best.l} : ${fm(best.v, u)} ; ${worst.l} : ${fm(worst.v, u)}${Number.isFinite(ratio) && u !== "pct" ? ` (${formatRatio(ratio)} moins)` : ""}.`,
     `Moyenne par ${noun.sg} : ${fm(avg, u)} ; ${count(above, noun.sg, noun.pl)} au-dessus.`,
-    u === "pct" ? `${worst.l} : ${formatPoints(worst.v - avg)} sous la moyenne.` : `${worst.l} : ${formatSignedPct(worst.v / avg - 1)} par rapport à la moyenne.`,
+    ...(bottom ? [] : [u === "pct" ? `${worst.l} : ${formatPoints(worst.v - avg)} sous la moyenne.` : `${worst.l} : ${formatSignedPct(worst.v / avg - 1)} par rapport à la moyenne.`]),
   ];
   return {
     kind: "ranking",
@@ -1592,3 +1609,87 @@ export function explore(ds: Dataset, sc: StoryContext, opts: ExploreOptions = {}
 }
 
 export { allInsights as detectCandidates, distinctValues };
+
+
+/* ------------------------------------------------------------------ mise en avant : le titre parle de l'élément */
+
+/** Valeur d'un taux à la française : « 14,9 % » (une décimale si utile). */
+function fmRate(v: number): string {
+  return `${formatNumber(v, Math.abs(v) < 100 ? 1 : 0)}\u00a0%`;
+}
+
+/**
+ * Mise en avant active (style.focus.key) : titre calculé sur l'élément mis en avant — barre, part, arc, point,
+ * série ou point de courbe — (« Belgique : 14,9 %, −11 pts vs la moyenne » ; « Île-de-France : 7,6 M€, 35 % du
+ * total ») et commentaires (rang, moyenne des autres). null si rien n'est mis en avant ou résolu.
+ */
+export function analyzeFocus(spec: ChartSpec, eff: Dataset, ctx: Ctx): Analysis | null {
+  const key = spec.style.focus?.key;
+  if (!key || spec.type === "drill" || spec.norme?.enabled) return null;
+  const yField = spec.encoding.y[0];
+  const u = measureUnit(spec, yField, ctx);
+  const additiveAgg = spec.encoding.aggregate === "sum" || spec.encoding.aggregate === "count";
+  let names: string[] = [];
+  let values: number[] = [];
+  let when = "";
+  let fk: ReturnType<typeof focusKindOf> = null;
+  if (spec.type === "scatter") {
+    fk = "point";
+    const m = buildPointModel(spec, eff, allRows(eff));
+    names = m.points.map(pointKey);
+    values = m.points.map((p) => p.y);
+  } else {
+    const m = buildCatModel(spec, eff, allRows(eff));
+    fk = focusKindOf(spec, m.series.length);
+    if (!fk || !m.labels.length) return null;
+    if (fk === "series") {
+      const lastOf = (row: number[]) => {
+        for (let i = row.length - 1; i >= 0; i--) if (Number.isFinite(row[i]!)) return i;
+        return -1;
+      };
+      names = [...m.series];
+      values = m.values.map((row) => row[lastOf(row)] ?? NaN);
+      const li = Math.max(...m.values.map(lastOf));
+      when = li >= 0 ? m.labels[li] ?? "" : "";
+    } else {
+      names = [...m.labels];
+      values = m.values[0] ?? [];
+    }
+  }
+  const k = resolveFocus(key, names, values);
+  if (k == null) return null;
+  const v = values[k]!;
+  const label = names[k]!;
+  if (!Number.isFinite(v) || !label) return null;
+  const finite = values.filter((x, i) => i !== k && Number.isFinite(x));
+  const avg = finite.length ? S.sum(finite) / finite.length : null;
+  const total = S.sum(values.filter(Number.isFinite));
+  // mesure « simple » (dossiers, heures…) : l'unité est dans le nom de la mesure → « 47 dossiers en retard »
+  const ml = yField && u === "plain" ? measureLabel(yField) : "";
+  const vTxt = u === "pct" ? fmRate(v) : `${fm(v, u)}${ml && ml.length <= 32 && !/[()]/.test(ml) ? ` ${ml}` : ""}`;
+  const share = fk !== "series" && fk !== "linePoint" && fk !== "point" && additiveAgg && u !== "pct" && total > 0 && v >= 0 ? v / total : null;
+  let tail = "";
+  if (share != null) tail = `, ${formatPct(share)} du total`;
+  else if (avg != null && u === "pct") tail = `, ${formatPoints(v - avg)} vs la moyenne`;
+  else if (avg != null && avg !== 0 && Math.sign(avg) === Math.sign(v || avg)) {
+    const r = v / avg - 1;
+    tail = Math.abs(r) < 0.005 ? ", au niveau de la moyenne" : `, ${formatSignedPct(r)} vs la moyenne`;
+  }
+  const title = `${label}\u00a0: ${vTxt}${when ? ` (${when})` : ""}${tail}`;
+  const ranked = values.map((x, i) => [x, i] as const).filter(([x]) => Number.isFinite(x)).sort((a, b) => b[0] - a[0]);
+  const rank = ranked.findIndex(([, i]) => i === k) + 1;
+  const n = ranked.length;
+  const comments: string[] = [];
+  if (n > 1) comments.push(`Rang : ${rank === 1 ? "1er" : `${rank}e`} sur ${n}${rank === 1 ? " (le plus élevé)" : rank === n ? " (le plus bas)" : ""}.`);
+  if (avg != null) comments.push(`Moyenne des autres : ${u === "pct" ? fmRate(avg) : fm(avg, u)}.`);
+  return {
+    kind: "ranking",
+    title,
+    comments,
+    why: "Mise en avant : le titre et le commentaire parlent de l'élément choisi, le sous-titre garde le contexte.",
+    role: "revelation",
+    effect: 0.6,
+    coverage: 1,
+    facts: { focus: label, value: v, rank, of: n, ...(avg != null ? { avgOthers: avg } : {}), ...(share != null ? { share } : {}) },
+  };
+}

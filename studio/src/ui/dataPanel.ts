@@ -1,6 +1,7 @@
 /**
- * Panneau Données (gauche) : glisser-déposer / sélection de fichier, collage depuis Excel ou
- * Google Sheets, jeux d'exemple, et aperçu du tableau avec types détectés (modifiables).
+ * Panneau Données (gauche), simplifié : jeu de données courant, « Changer de données » (ouvre la fenêtre
+ * Données : fichier, collage, récents, exemples, données publiques) et aperçu du tableau avec types détectés
+ * (modifiables).
  */
 import type { Store } from "../state";
 import { SAMPLES, PUBLIC_THEMES, type Sample } from "../data/samples";
@@ -21,8 +22,10 @@ export interface DataActions {
   editCell(row: number, column: string, text: string): void;
   /** « Créer un Reel » sur un exemple de données publiques (histoire suggérée de 3 à 5 snapshots). */
   reelSample(id: string): void;
-  /** « Scénarios » de réunion (bouton à droite du titre « Exemples »). */
+  /** « Scénarios » de réunion (bouton à droite du titre « Exemples », fenêtre Données). */
   scenarios?(): void;
+  /** Fenêtre « Données » (Changer de données). */
+  openData?(): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -32,97 +35,10 @@ export class DataPanel {
   private store: Store;
   private info: HTMLElement;
   private table: HTMLElement;
-  private sampleBtns: HTMLButtonElement[] = [];
   private key = "";
 
   constructor(store: Store, actions: DataActions) {
     this.store = store;
-    const fileInput = h("input", { type: "file", accept: ACCEPTED_EXT.join(","), class: "hidden", "data-testid": "file-input" });
-    fileInput.addEventListener("change", () => {
-      const f = fileInput.files?.[0];
-      if (f) actions.importFile(f);
-      fileInput.value = "";
-    });
-    const drop = h(
-      "div",
-      { class: "dropzone", tabindex: "0", role: "button", "data-testid": "dropzone", onclick: () => fileInput.click(), onkeydown: (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && fileInput.click() },
-      h("span", { class: "drop-icon", html: svgIcon(ICONS.upload, 26) }),
-      h("strong", null, "Déposez un fichier"),
-      h("span", null, "ou cliquez pour parcourir"),
-      h("small", null, "CSV · TSV · JSON · XLSX · XLS")
-    );
-    drop.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      drop.classList.add("over");
-    });
-    drop.addEventListener("dragleave", () => drop.classList.remove("over"));
-    drop.addEventListener("drop", (e) => {
-      e.preventDefault();
-      drop.classList.remove("over");
-      const f = e.dataTransfer?.files?.[0];
-      if (f) actions.importFile(f);
-    });
-    // Glisser-déposer n'importe où sur la page
-    window.addEventListener("dragover", (e) => e.preventDefault());
-    window.addEventListener("drop", (e) => {
-      if ((e.target as HTMLElement)?.closest?.(".dropzone")) return;
-      e.preventDefault();
-      const f = e.dataTransfer?.files?.[0];
-      if (f) actions.importFile(f);
-    });
-
-    const ta = h("textarea", {
-      class: "paste",
-      rows: "5",
-      spellcheck: "false",
-      placeholder: "Collez ici un tableau copié depuis Excel ou Google Sheets (Ctrl+V)…\nSéparateurs tabulation, « ; » ou « , » — virgule décimale acceptée.",
-      "data-testid": "paste-area",
-    });
-    const pasteBtn = h("button", { class: "btn btn-accent", "data-testid": "paste-apply", onclick: () => ta.value.trim() && actions.importText(ta.value) }, "Utiliser ces données");
-    ta.addEventListener("paste", () => setTimeout(() => ta.value.trim() && actions.importText(ta.value), 0));
-
-    const sampleBtn = (s: Sample) => {
-      const b = h("button", { class: "sample", "data-sample": s.id, "data-testid": `sample-${s.id}`, onclick: () => actions.loadSample(s.id) }, h("strong", null, s.name), h("small", null, s.description));
-      this.sampleBtns.push(b);
-      return b;
-    };
-    const samples = h("div", { class: "samples" }, ...SAMPLES.filter((s) => !s.publicData).map(sampleBtn));
-    // Données publiques : exemples ouverts (licences compatibles avec un usage commercial), groupés par thème
-    const pub = SAMPLES.filter((s) => s.publicData);
-    const themes = PUBLIC_THEMES.filter((t) => pub.some((s) => s.publicData!.theme === t));
-    const publicBlock = h(
-      "div",
-      { class: "block public-data", "data-testid": "public-data" },
-      h("h3", null, h("span", { html: svgIcon(ICONS.globe, 15) }), " Données publiques"),
-      h("p", { class: "public-intro" }, "Données ouvertes, réutilisables y compris commercialement : modifiables comme vos propres données, source et licence déjà dans le cartouche."),
-      ...themes.map((t) =>
-        h(
-          "section",
-          { class: "public-theme", "data-testid": "public-theme", "data-theme": t },
-          h("h4", null, t),
-          h(
-            "div",
-            { class: "samples" },
-            ...pub
-              .filter((s) => s.publicData!.theme === t)
-              .map((s) =>
-                h(
-                  "div",
-                  { class: "public-sample" },
-                  sampleBtn(s),
-                  h("div", { class: "public-meta" },
-                    h("span", { class: "public-licence", title: s.publicData!.sourceLabel }, s.publicData!.licenceShort),
-                    s.publicData!.reel
-                      ? h("button", { class: "btn btn-mini public-reel", type: "button", "data-testid": `public-reel-${s.id}`, title: `Créer un Reel avec l'histoire suggérée (${s.publicData!.reelCount ?? "3 à 5"} snapshots)`, onclick: () => actions.reelSample(s.id) }, h("span", { html: svgIcon(ICONS.reel, 14) }), "Créer un Reel")
-                      : null
-                  )
-                )
-              )
-          )
-        )
-      )
-    );
-
     this.info = h("div", { class: "ds-info", "data-testid": "ds-info" });
     this.table = h("div", { class: "table-wrap", "data-testid": "data-table" });
     const sheetHost = h("div", { class: "sheet-host" });
@@ -149,34 +65,19 @@ export class DataPanel {
         { class: "panel-body" },
         // Variante B : « Explorer mes données » en tête du panneau (il quitte la barre du haut)
         h("button", { type: "button", class: "btn btn-explore-panel", "data-testid": "explore-data", title: "Pistes de graphiques calculées sur vos données (tendance, concentration, écarts, pipeline…)", onclick: () => actions.explore() }, h("span", { html: svgIcon(ICONS.explore, 16) }), "Explorer mes données"),
+        // Panneau simplifié : jeu courant + « Changer de données » (fichier, collage, récents, exemples, données publiques → fenêtre Données)
         h(
           "div",
-          { class: "block" },
-          h("h3", null, "Importer"),
-          drop,
-          fileInput,
-          h("button", { class: "btn btn-reshape", "data-testid": "reshape-open", title: "Choisir l'onglet, le tableau, les axes X / Y, regrouper des lignes — aperçu en direct", onclick: () => actions.reshape() }, h("span", { html: svgIcon(ICONS.sliders, 15) }), "Mise en forme des données…")
+          { class: "block ds-current", "data-testid": "ds-current" },
+          h("h3", null, "Jeu de données"),
+          this.info,
+          h("button", { type: "button", class: "btn btn-accent ds-change", "data-testid": "data-open", title: "Importer un fichier, coller un tableau, rouvrir un jeu récent, choisir un exemple ou des données publiques", onclick: () => actions.openData?.() }, h("span", { html: svgIcon(ICONS.folder, 16) }), "Changer de données"),
+          h("p", { class: "ds-change-hint" }, "Fichier, collage, récents, exemples, données publiques")
         ),
-        h("div", { class: "block" }, h("h3", null, h("span", { html: svgIcon(ICONS.paste, 15) }), " Coller un tableau"), ta, pasteBtn),
-        h(
-          "div",
-          { class: "block" },
-          h(
-            "div",
-            { class: "ex-head" },
-            h("h3", null, "Exemples"),
-            actions.scenarios
-              ? h("button", { type: "button", class: "btn btn-scenario btn-scenario-sm", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => actions.scenarios?.() }, h("span", { html: svgIcon(ICONS.clapper, 14) }), "Scénarios")
-              : null
-          ),
-          samples
-        ),
-        ...(themes.length ? [publicBlock] : []),
         h(
           "div",
           { class: "block grow" },
           h("h3", { class: "preview-head" }, "Aperçu", this.editBtn),
-          this.info,
           sheetHost,
           this.filterRow,
           this.table
@@ -212,7 +113,6 @@ export class DataPanel {
   update(): void {
     const { ds, dsVersion, sampleId, importNote, sheets, sheet } = this.store.state;
     const key = `${dsVersion}|${this.editing ? 1 : 0}|${this.filter}`;
-    this.sampleBtns.forEach((b) => b.classList.toggle("active", b.dataset.sample === sampleId));
     if (key === this.key) return;
     this.key = key;
     if (!ds) {
@@ -223,7 +123,7 @@ export class DataPanel {
     }
     this.info.replaceChildren(
       h("strong", null, ds.name),
-      h("span", null, ` · ${ds.rows.length.toLocaleString("fr-FR")} lignes × ${ds.columns.length} colonnes`),
+      h("span", { class: "ds-size" }, `${ds.rows.length.toLocaleString("fr-FR")} lignes × ${ds.columns.length} colonnes`),
       ...(importNote ? [h("small", null, importNote)] : [])
     );
     if (sheets && sheets.length > 1) {

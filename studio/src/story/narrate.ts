@@ -10,7 +10,7 @@ import { isRadial } from "../spec";
 import type { Dataset } from "../data/table";
 import { columnOf } from "../data/table";
 import { effectiveDataset } from "../data/transform";
-import { analyzeGoal, ANALYZERS, basisOf, makeCtx, type Analysis, type Ctx, type InsightKind, type StoryContext } from "./insights";
+import { analyzeFocus, analyzeGoal, ANALYZERS, basisOf, makeCtx, type Analysis, type Ctx, type InsightKind, type StoryContext } from "./insights";
 import { capitalize, clip, dayMonthYear, measureLabel, periodLabel } from "./fr";
 import { SCENARIO_LABELS } from "./roles";
 import { normeSubtitle, specScenarios } from "../norme";
@@ -134,20 +134,28 @@ export function narrate(spec: ChartSpec, ds: Dataset | null, sc: StoryContext): 
     a = null;
   }
   if (!a) return null;
+  // Mise en avant active : le titre (et les premiers commentaires) parlent de l'élément ; le sous-titre garde le contexte
+  let f: Analysis | null = null;
+  try {
+    f = analyzeFocus(spec, eff, ctx);
+  } catch {
+    f = null;
+  }
+  const comments = f ? [...f.comments, ...a.comments].slice(0, 3) : a.comments.slice(0, 3);
   return {
-    title: clip(a.title, 200),
+    title: clip(f?.title ?? a.title, 200),
     subtitle: subtitleFor(spec, eff, ctx, a),
-    comments: a.comments.slice(0, 3).map((c) => clip(c, 300)),
+    comments: comments.map((c) => clip(c, 300)),
     kind: a.kind,
     role: a.role,
     why: a.why,
-    facts: a.facts,
+    facts: f ? { ...a.facts, ...f.facts } : a.facts,
   };
 }
 
 /** Clé de recalcul du récit (ne dépend pas des textes affichés). */
 export function narrativeKey(spec: ChartSpec, dsVersion: number, sc: StoryContext): string {
-  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.style.barCap, spec.type === "drill" ? spec.drill : null]);
+  return JSON.stringify([dsVersion, sc.today, sc.entity, spec.type, spec.encoding, spec.transform, spec.variance, spec.axes.y.unit, spec.axes.y.unitCustom, spec.story.kind, spec.story.params, spec.story.basis, spec.norme, spec.style.barCap, spec.style.focus?.key ?? null, spec.type === "drill" ? spec.drill : null]);
 }
 
 /**

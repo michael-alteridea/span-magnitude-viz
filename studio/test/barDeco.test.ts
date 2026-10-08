@@ -128,7 +128,11 @@ describe("récit et panneau des barres racontées", () => {
   });
 
   it("accords : « gestionnaires », « des dossiers », pas de double point", () => {
-    const { ds, spec } = sample("dossiers");
+    const { ds, spec: sp0 } = sample("dossiers");
+    // l'exemple met Julie M. en avant : le titre calculé parle d'elle ; sans mise en avant, titre générique
+    const nf = narrate(sp0, ds, sc as never)!;
+    expect(norm(nf.title)).toMatch(/^Julie M\. : 47 dossiers en retard, \d+ % du total$/);
+    const spec = { ...sp0, style: { ...sp0.style, focus: { ...sp0.style.focus, key: null } } };
     const n = narrate(spec, ds, sc as never)!;
     expect(norm(n.title)).toContain("des dossiers en retard");
     expect(n.comments.join(" ")).toContain("Les 2 premiers gestionnaires");

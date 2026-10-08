@@ -586,15 +586,46 @@ Visibles dans la section Données (pas sous « Plus d'options ») :
   pastilles que l'Explorer (une période = une pastille ; × la retire).
 - Recherche de réglages : « top », « classement », « nombre de barres », « filtre », « autres ».
 - Sous-titre : une période filtrée n'est plus répétée ; données annuelles datées « 2023 » ou « 2000 – 2025 ».
+- Titre calculé en mode *Les plus petits* : il parle du dernier affiché (« Finlande en dernier : 13 %, −14 pts vs la
+  moyenne »), jamais d'un élément masqué par le classement ; pas de lecture « concentration » dans ce mode.
 - Contrat Cadencer inchangé : `topOrder` par défaut (« top ») est exclu de l'empreinte ; empreintes publiées
   identiques.
 
 Tests : `test/model.test.ts` (top / plus petits / Autres), e2e `--topn` (iPad 1024 px, toucher). Captures
 `docs/shots/112` et `113`.
 
+## Fenêtre « Données » (une seule porte d'entrée)
+
+- **Où** : barre du haut › **Ouvrir des données**, ou panneau Données › **Changer de données**. Lien direct :
+  `?donnees=publiques` (onglet Données publiques), `?donnees=ouvrir` (Récents s'il y en a, sinon Importer un fichier) ;
+  aussi `fichier`, `coller`, `recents`, `exemples`. `?reel=exemple` reste valable.
+- **Onglets** (fenêtre pleine page, onglets à gauche ; en haut sur iPad, cibles de 44 px) :
+  1. **Importer un fichier** : zone de dépôt + parcourir (même chemin d'import), « Mise en forme des données… ».
+  2. **Coller un tableau** (Excel, Google Sheets).
+  3. **Récents** : les 10 derniers jeux ouverts ou importés (nom, type, date, lignes × colonnes), rouverts d'un
+     toucher. Gardés dans ce navigateur uniquement (`localStorage`, rien n'est envoyé) ; le tableau n'est gardé que
+     s'il reste raisonnable (≈ 300 000 caractères) — sinon « réimportez le fichier ». Logique pure `data/recents.ts`.
+  4. **Exemples** (données d'entreprise fictives) et « Scénarios ».
+  5. **Données publiques** par thème, puce de licence, « Créer un Reel ».
+- Le panneau Données ne garde que l'essentiel : Explorer, jeu courant, « Changer de données », aperçu (Modifier).
+- Pas d'ouverture automatique à la première visite : un exemple est toujours chargé au démarrage (et les liens
+  directs restent prioritaires).
+
+Tests : `test/recents.test.ts`, e2e `--donnees` (iPad 1024 × 768 tactile puis 1366 × 1024). Captures
+`docs/shots/118` (Données publiques, iPad), `118b` (1366), `119` (Récents), `120` / `121` (panneau simplifié).
+
+## Titre calculé et mise en avant
+
+Quand un élément est mis en avant (`style.focus.key` : barre, part, arc, point, série, point de courbe), le titre
+calculé parle de cet élément — « Occitanie : 3,1 M€, 14 % du total », « Belgique : 14,9 %, −11 pts vs la moyenne »,
+« Julie M. : 47 dossiers en retard, 49 % du total » — et les premiers points à retenir donnent son rang et la moyenne
+des autres ; le sous-titre garde le contexte. Un titre saisi l'emporte toujours. Sans mise en avant, le titre
+générique revient. Le titre de l'annotation, le snapshot, la copie « Dupliquer et mettre en avant » et le chiffre
+clé du Reel suivent l'élément. Logique pure `analyzeFocus` (`story/insights.ts`), tests `test/focusTitle.test.ts`.
+
 ## Menu du haut : variante B « Deux niveaux calmes »
 
-- **Barre du haut (48 px)** : logo Datanime · Studio, puis **Mes revues (n)**, **Fichier ▾** et **Exporter ▾** (seul
+- **Barre du haut (48 px)** : logo Datanime · Studio, puis **Ouvrir des données**, **Mes revues (n)**, **Fichier ▾** et **Exporter ▾** (seul
   bouton accent). Le slogan et le bouton « Snapshot » du haut disparaissent : 📸 Snapshot reste dans le bandeau
   Histoire. Un seul accès PowerPoint : Exporter › PowerPoint de l'histoire.
 - **Bande des types (46 px, une seule ligne, colonne centrale)** : pictogrammes 19 px dans des cibles de 34 px (38 px au
@@ -604,7 +635,7 @@ Tests : `test/model.test.ts` (top / plus petits / Autres), e2e `--topn` (iPad 10
   place, dans l'ordre des familles : 12 pictogrammes dès 1200 px (Plus = Aires empilées, Arcs radiaux, Film 4D),
   7 en dessous (Plus +8). Le type sélectionné reste toujours visible (il prend la place du dernier s'il vient de
   « Plus »). Logique pure `stripVisible` dans `ui/gallery.ts` (testée).
-- **Panneau Données** : « Explorer mes données » en tête du panneau ; « Scénarios » à droite du titre « Exemples ».
+- **Panneau Données** : « Explorer mes données » en tête du panneau ; « Scénarios » à côté des Exemples (fenêtre Données).
 - Réglages › Graphique : « Type Barres · bande du haut ».
 - Aucun débordement à 1024 / 1366 / 1920 px (barre, bande, menu), vérifié par l'e2e. Hauteur au-dessus du graphique
   à 1366 px : 94 px (contre 222 px auparavant).

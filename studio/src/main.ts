@@ -8,6 +8,8 @@ import { Store } from "./state";
 import { chartSize, isSpecial, parseSpec, studioFileSchema, type ChartSpec, type ChartType } from "./spec";
 import { buildDataset, serializableRaw, type Dataset } from "./data/table";
 import { readFile, parseText, type ImportResult } from "./data/files";
+import { DataWindow, tabFromParam } from "./ui/dataWindow";
+import { recentId, rowsToTsv, type RecentEntry } from "./data/recents";
 import { SAMPLES, sampleById, sampleLicence } from "./data/samples";
 import { autoEncode } from "./data/suggest";
 import { Preview } from "./ui/preview";
@@ -174,7 +176,44 @@ function loadSample(id: string): void {
   if (r.ok) store.setSpec(r.spec);
   store.setDataset(ds, { sampleId: sample.id, note: sample.description });
   attachProvenance(sampleProvenance(sample.id));
+  rememberDataset({ kind: sample.publicData ? "public" : "sample", sampleId: sample.id });
   toast(`Exemple chargé : ${sample.name}`, "ok", 2200);
+}
+
+let dataWindowReady = false;
+/** « Données › Récents » : mémorise le jeu courant (localement, jamais envoyé). */
+function rememberDataset(o: { kind: RecentEntry["kind"]; sampleId?: string; fileName?: string; hash?: string | null }): void {
+  const ds = store.state.ds;
+  if (!ds || !dataWindowReady) return;
+  const cols = ds.columns.map((c) => c.name);
+  const tsv = o.sampleId ? null : rowsToTsv(cols, ds.raw as Record<string, unknown>[]);
+  dataWindow.remember({
+    id: recentId(o.kind, o.sampleId ?? ds.name, o.fileName ?? ""),
+    kind: o.kind,
+    name: ds.name,
+    ...(o.fileName ? { fileName: o.fileName } : {}),
+    ...(o.sampleId ? { sampleId: o.sampleId } : {}),
+    at: new Date().toISOString(),
+    rows: ds.rows.length,
+    cols: cols.length,
+    ...(tsv ? { tsv } : {}),
+    ...(o.hash ? { hash: o.hash } : {}),
+  });
+}
+
+/** Rouvre un jeu récent : exemple rechargé, sinon tableau gardé localement (même chemin qu'un import). */
+function reopenRecent(e: RecentEntry): void {
+  if (e.sampleId) {
+    if (sampleById(e.sampleId)) loadSample(e.sampleId);
+    else toast("Cet exemple n'existe plus.", "error");
+    return;
+  }
+  if (!e.tsv) {
+    toast("Réimportez le fichier : il était trop volumineux pour être gardé dans ce navigateur.", "info", 4200);
+    return;
+  }
+  const kind = e.kind === "file" ? "file" : "paste";
+  void applyImport(parseText(e.tsv, e.name), { hash: e.hash ?? null, kind, fileName: e.fileName ?? "" }).catch((err) => toast(String(err instanceof Error ? err.message : err), "error"));
 }
 
 /**
@@ -215,6 +254,7 @@ async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<vo
   if (r.ok) store.setSpec(r.spec);
   const provenance = origin?.hash ? makeProvenance({ hash: origin.hash, kind: origin.kind, fileName: origin.fileName, rows: ds.rows.length, cols: ds.columns.length, sheet: res.sheet ?? null }) : null;
   store.setDataset(ds, { note: res.note ?? null, sheets: res.sheets ?? null, sheet: res.sheet ?? null, provenance });
+  rememberDataset({ kind: origin?.kind === "file" ? "file" : "paste", fileName: origin?.fileName || undefined, hash: origin?.hash ?? null });
   const types = ds.columns.map((c) => c.type);
   toast(`${ds.rows.length} lignes importées · ${types.filter((t) => t === "number").length} mesure(s), ${types.filter((t) => t === "date").length} date(s)`, "ok");
 }
@@ -257,6 +297,7 @@ function applyMapping(a: MappingApply): void {
   const origin = pendingOrigin ?? lastMapping?.origin ?? null;
   const provenance = origin?.hash ? makeProvenance({ hash: origin.hash, kind: origin.kind, fileName: origin.fileName, rows: ds.rows.length, cols: ds.columns.length, sheet: a.sheet }) : null;
   store.setDataset(ds, { note: a.note, sheets: null, sheet: a.sheet, provenance });
+  rememberDataset({ kind: origin?.kind === "file" ? "file" : "paste", fileName: origin?.fileName || undefined, hash: null });
   toast(`Mise en forme appliquée : ${ds.rows.length} lignes · ${a.pivot.y.length + (a.pivot.y2 ? 1 : 0)} série(s)`, "ok");
 }
 
@@ -346,6 +387,9 @@ const actions = {
   },
   scenarios() {
     scenarioDialog.open();
+  },
+  openData() {
+    dataWindow.open();
   },
   reshape() {
     reopenMapping();
@@ -1338,6 +1382,8 @@ makeMenu(
   { testid: "file-menu", label: "Fichier" }
 );
 
+// Fenêtre « Données » : entrée claire dans la barre du haut
+const dataTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-data-top", "data-testid": "data-open-top", title: "Importer un fichier, coller un tableau, rouvrir un jeu récent, choisir un exemple ou des données publiques", onclick: () => dataWindow.open() }, h("span", { html: svgIcon(ICONS.table, 15) }), h("span", { class: "btn-lbl" }, "Ouvrir des données"));
 const reviewsCount = h("span", { class: "btn-count", "data-testid": "reviews-count" });
 const reviewsTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-reviews", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par snapshot, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), h("span", { class: "btn-lbl" }, "Mes revues"), reviewsCount);
 
@@ -1407,10 +1453,21 @@ const header = h(
   h(
     "div",
     { class: "toolbar" },
-    h("div", { class: "tool-group" }, reviewsTopBtn, fileBtn, cfgInput, exportBtn)
+    h("div", { class: "tool-group" }, dataTopBtn, reviewsTopBtn, fileBtn, cfgInput, exportBtn)
   )
 );
 
+/** Fenêtre « Données » : fichier, collage, récents, exemples, données publiques (une seule porte d'entrée). */
+const dataWindow = new DataWindow({
+  loadSample: (id) => actions.loadSample(id),
+  importText: (t) => actions.importText(t),
+  importFile: (f) => actions.importFile(f),
+  reshape: () => reopenMapping(),
+  reelSample: (id) => actions.reelSample(id),
+  scenarios: () => scenarioDialog.open(),
+  reopenRecent: (e) => reopenRecent(e),
+});
+dataWindowReady = true;
 const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
 const settings = new SettingsPanel(store, {
@@ -1577,7 +1634,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root, reelEditBar);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, dataWindow.root, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root, reelEditBar);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -1600,6 +1657,7 @@ store.subscribe((kinds) => {
   if (focusPicking && !focusInfo(store.state.spec, store.state.ds).kind) stopFocusPick();
   gallery.update();
   dataPanel.update();
+  dataWindow.update(store.state.sampleId);
   settings.update();
   if (kinds.has("data") && explorer.isOpen) explorer.open();
   lastUpdate = preview.update(kinds);
@@ -1631,6 +1689,11 @@ void reviewSpace.ensureDemo().then(() => {
   if (location.hash.startsWith("#/") && !parseReadRoute(location.hash)) void reviewSpace.handleHash(location.hash);
 });
 // lien direct vers l'exemple de Reel (?reel=exemple) : un visiteur crée un Reel en 1 clic
+// lien direct vers la fenêtre Données (?donnees=publiques, ?donnees=ouvrir, fichier, coller, recents, exemples)
+{
+  const tab = tabFromParam(params.get("donnees"), dataWindow.recentEntries.length > 0);
+  if (tab && !params.get("reel")) dataWindow.open(tab);
+}
 if (params.get("reel") === "exemple") void openReel("exemple");
 else if (params.get("reel")?.startsWith("public:")) void openReel(params.get("reel")!);
 
@@ -1653,6 +1716,8 @@ const api = {
     setZoomSlowdown(slowdown);
   },
   explore: () => explorer.open(),
+  /** Fenêtre « Données » (onglets, récents). */
+  dataWindow: () => dataWindow,
   /** Panneau de réglages : ouvrir une section, cibler un réglage, menus de la barre du haut. */
   panel: () => settings,
   exportMenu: () => exportMenu,

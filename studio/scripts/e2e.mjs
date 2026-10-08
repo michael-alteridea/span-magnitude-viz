@@ -5,6 +5,7 @@
  *   npm run build:studio && npm run test:e2e:studio            # vérifications
  *   node studio/scripts/e2e.mjs --shots                         # + captures dans studio/docs/shots/
  *   node studio/scripts/e2e.mjs --topn [--shots]                # seulement « Nombre d'éléments » + « Filtrer »
+ *   node studio/scripts/e2e.mjs --donnees [--shots]             # seulement la fenêtre « Données » (iPad)
  *   node studio/scripts/e2e.mjs --public [--shots]              # seulement « Données publiques » + « Modifier le graphique » du Reel
  *
  * Variables : CHROME_PATH (défaut /usr/bin/google-chrome), PUPPETEER_DIR (dossier où
@@ -449,6 +450,8 @@ async function e2eTopN() {
   await sleep(700);
   const bot = await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); return { o: window.r4d.getSpec().encoding.topOrder, labels: [...document.querySelectorAll("[data-testid=chart-svg] text")].map((t) => t.textContent.trim()) }; });
   check("Classement « Les plus petits » : la Belgique et la Finlande apparaissent, la Bulgarie non", bot.o === "bottom" && bot.labels.includes("Belgique") && bot.labels.includes("Finlande") && !bot.labels.includes("Bulgarie"), JSON.stringify(bot));
+  const botTitle = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=chart-svg] .r4d-title")].map((t) => t.textContent.trim()).join(" "));
+  check("Classement « Les plus petits » : le titre calculé parle du dernier affiché (« Finlande en dernier : … »), pas d'un pays masqué", /^Finlande en dernier\u00a0?\s?: /.test(botTitle) && !/Bulgarie/.test(botTitle), botTitle);
   // Exclure UE-27 (recherche + case à cocher)
   await pg.select("[data-testid=filter-col]", "Pays");
   await sleep(250);
@@ -638,6 +641,8 @@ async function e2ePublic() {
   check("Modifier une cellule : « 99,5 » lu comme le nombre 99,5 (colonne toujours numérique, mode édition actif)", parsed.type === "number" && parsed.v === 99.5 && parsed.pays === "Belgique" && parsed.editing === "true", JSON.stringify(parsed));
   await pg.evaluate(() => window.r4d.loadSample("zones-protegees-ue"));
   await sleep(800);
+  await pg.evaluate(() => window.r4d.dataWindow().open("publiques"));
+  await sleep(200);
   await pg.click("[data-testid=public-reel-zones-protegees-ue]");
   await pg.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
   const reel = await pg.evaluate(() => {
@@ -681,9 +686,12 @@ async function e2ePublic() {
   await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
   await pg.evaluate(() => window.r4d.loadSample("renouvelables"));
   await sleep(900);
-  const ipad = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: window.innerWidth, themes: document.querySelectorAll("[data-testid=public-theme]").length }));
-  check("iPad : Données publiques visibles, pas de défilement horizontal", ipad.themes === 4 && ipad.sw <= ipad.vw + 1, JSON.stringify(ipad));
+  await pg.evaluate(() => window.r4d.dataWindow().open("publiques"));
+  await sleep(300);
+  const ipad = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: window.innerWidth, themes: [...document.querySelectorAll("[data-testid=public-theme]")].filter((t) => t.offsetParent !== null).length }));
+  check("iPad : Données publiques visibles (fenêtre Données), pas de défilement horizontal", ipad.themes === 4 && ipad.sw <= ipad.vw + 1, JSON.stringify(ipad));
   await shot("107-donnees-publiques-ipad.png");
+  await pg.evaluate(() => window.r4d.dataWindow().close());
   // iPad, histoire locale : « Modifier le graphique » met aussi à jour le snapshot de l'histoire (même id, même place)
   await pg.evaluate(async () => {
     window.r4d.store.setStory({ ...window.r4d.store.state.story, snapshots: [] });
@@ -969,10 +977,174 @@ async function e2eFocus() {
     if (SHOTS && w === 1024) await fp.screenshot({ path: join(shotsDir, "100-ipad-mise-en-avant.png") });
     await fp.evaluate(() => document.querySelector("[data-testid=focus-pick-cancel]")?.click());
   }
+  // ---- titre calculé : il suit l'élément mis en avant (titre de l'annotation, snapshot, copie, chiffre clé du Reel)
+  {
+    await fp.evaluate(() => { window.r4d.store.setStory({ ...window.r4d.store.state.story, snapshots: [] }); window.r4d.loadSample("ventes"); });
+    await settleF();
+    const t0 = await fp.evaluate(() => ({ title: window.r4d.getSpec().style.title, sub: window.r4d.getSpec().style.subtitle }));
+    await fp.evaluate(() => window.r4d.set("style.focus.key", "Occitanie"));
+    await settleF();
+    await sleep(300);
+    const t1 = await fp.evaluate(() => ({ title: window.r4d.getSpec().style.title, sub: window.r4d.getSpec().style.subtitle, svg: document.querySelector("[data-testid=chart-svg] .r4d-title")?.textContent ?? "", callout: document.querySelector("[data-testid=chart-svg] .r4d-callout")?.textContent ?? "" }));
+    await fp.evaluate(() => window.r4d.snapshot());
+    await sleep(300);
+    const snapT = await fp.evaluate(() => window.r4d.story().snapshots.at(-1)?.spec.style.title ?? "");
+    await fp.evaluate(() => window.r4d.set("style.focus.key", null));
+    await settleF();
+    const t2 = await fp.evaluate(() => window.r4d.getSpec().style.title);
+    check("mise en avant : titre calculé sur l'élément (« Occitanie : … M€, … % du total »), sous-titre = contexte, annotation et snapshot suivent ; sans mise en avant le titre générique revient", /^Occitanie\u00a0: [\d,]+\u00a0M€, \d+\u00a0% du total$/.test(t1.title) && t1.sub === t0.sub && t1.svg.includes("Occitanie") && /Occitanie/.test(t1.callout) && snapT === t1.title && t2 === t0.title && t0.title !== t1.title, JSON.stringify({ t0, t1, snapT, t2 }));
+    // « Dupliquer et mettre en avant » : la copie (@max) porte le titre de l'élément ; chiffre clé du Reel = sa valeur
+    await fp.evaluate(() => window.r4d.snapshot());
+    await sleep(300);
+    const n0 = await fp.evaluate(() => window.r4d.story().snapshots.length);
+    await fp.evaluate(() => [...document.querySelectorAll("[data-testid=story-card-focus]")].at(-1).click());
+    await fp.waitForFunction((n) => window.r4d.story().snapshots.length === n + 1, { timeout: 10000 }, n0).catch(() => {});
+    await sleep(1600);
+    await fp.evaluate(() => document.querySelector("[data-testid=focus-pick-cancel]")?.click());
+    const dupT = await fp.evaluate(() => { const ss = window.r4d.story().snapshots; return { neutral: ss.at(-2)?.spec.style.title, copy: ss.at(-1)?.spec.style.title, key: ss.at(-1)?.spec.style.focus.key }; });
+    await fp.evaluate(() => window.r4d.reel());
+    await fp.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 });
+    const nums = await fp.evaluate(() => { const d = window.r4d.reelDialog(); d.setPlaying(false); return d.currentPlan.scenes.map((x) => x.number); });
+    await fp.keyboard.press("Escape");
+    await sleep(300);
+    check("« Dupliquer et mettre en avant » : la copie porte le titre de l'élément (Île-de-France), l'original garde le titre générique ; chiffre clé du Reel = valeur mise en avant", dupT.key === "@max" && /^Île-de-France\u00a0: /.test(dupT.copy ?? "") && dupT.neutral === t0.title && /M€/.test(nums.at(-1) ?? "") && (dupT.copy ?? "").includes((nums.at(-1) ?? "§").replace(/\u00a0/g, "\u00a0")), JSON.stringify({ dupT, nums }));
+  }
   check("mise en avant : aucune erreur console", fpErr.length === 0, fpErr.slice(0, 3).join(" | "));
   const words = await fp.evaluate(() => document.body.innerText);
   check("mise en avant : aucun mot interdit dans l'interface", !/certifi|conforme|authenticit|preuve/i.test(words));
   await fctx.close();
+}
+
+async function e2eDonnees() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await pg.mouse.move(1, 1).catch(() => {}); await sleep(350); await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 2 : 1, isMobile: true, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await sleep(400);
+  // panneau simplifié : jeu courant + « Changer de données », plus de blocs d'import en double
+  const panel = await pg.evaluate(() => {
+    const p = document.querySelector("[data-testid=data-panel]");
+    return { change: !!p.querySelector("[data-testid=data-open]"), info: p.querySelector("[data-testid=ds-info]")?.textContent ?? "", dup: ["dropzone", "paste-area", "public-data", "sample-ventes", "reshape-open"].filter((t) => p.querySelector(`[data-testid=${t}]`)), sw: document.documentElement.scrollWidth, vw: innerWidth };
+  });
+  check("panneau Données simplifié : jeu courant + « Changer de données », sans blocs d'import ni exemples en double", panel.change && /Ventes mensuelles/.test(panel.info) && panel.dup.length === 0 && panel.sw <= panel.vw, JSON.stringify(panel));
+  await shot("120-panneau-donnees-simplifie-ipad-1024.png");
+  // barre du haut : « Ouvrir des données » (toucher)
+  await pg.tap("[data-testid=data-open-top]");
+  await sleep(300);
+  const w1 = await pg.evaluate(() => ({ open: !document.querySelector("[data-testid=data-window]").hidden, tabs: [...document.querySelectorAll("[data-testid=data-window] [role=tab]")].map((t) => t.textContent.replace(/\s+/g, " ").trim()), sel: document.querySelector("[data-testid=data-window] [role=tab][aria-selected=true]")?.dataset.testid }));
+  check("barre du haut « Ouvrir des données » → fenêtre Données : Importer un fichier, Coller un tableau, Récents, Exemples, Données publiques", w1.open && w1.tabs.length === 5 && /^Importer un fichier/.test(w1.tabs[0]) && /^Coller un tableau/.test(w1.tabs[1]) && /^Récents/.test(w1.tabs[2]) && /^Exemples/.test(w1.tabs[3]) && /^Données publiques/.test(w1.tabs[4]), JSON.stringify(w1));
+  // Données publiques : thèmes, licence, « Créer un Reel », cibles tactiles
+  await pg.tap("[data-testid=dw-tab-publiques]");
+  await sleep(300);
+  const pubT = await pg.evaluate(() => {
+    const p = document.querySelector("[data-testid=dw-panel-publiques]");
+    const reel = p.querySelector("[data-testid^=public-reel-]")?.getBoundingClientRect();
+    const tab = document.querySelector("[data-testid=dw-tab-publiques]").getBoundingClientRect();
+    return { vis: !p.hidden, themes: [...p.querySelectorAll("[data-testid=public-theme]")].map((t) => t.dataset.theme), lic: p.querySelectorAll(".public-licence").length, reels: p.querySelectorAll("[data-testid^=public-reel-]").length, reelH: reel?.height ?? 0, tabH: tab.height, sw: document.documentElement.scrollWidth, vw: innerWidth };
+  });
+  check("onglet Données publiques (iPad) : 4 thèmes, puce de licence, « Créer un Reel », cibles ≥ 36 px, pas de défilement horizontal", pubT.vis && pubT.themes.join("|") === "Dette publique|CO₂ & climat|Démographie|Nature" && pubT.lic >= 9 && pubT.reels >= 3 && pubT.reelH >= 36 && pubT.tabH >= 44 && pubT.sw <= pubT.vw, JSON.stringify(pubT));
+  await shot("118-donnees-publiques-fenetre-ipad-1024.png");
+  // Exemples : toucher un exemple ferme la fenêtre et le charge ; il entre dans « Récents »
+  await pg.tap("[data-testid=dw-tab-exemples]");
+  await sleep(200);
+  await pg.tap("[data-testid=dw-panel-exemples] [data-testid=sample-canaux]");
+  await sleep(700);
+  const ex = await pg.evaluate(() => ({ closed: document.querySelector("[data-testid=data-window]").hidden, sample: window.r4d.store.state.sampleId, rec: window.r4d.dataWindow().recentEntries.map((e) => e.kind + ":" + (e.sampleId ?? e.name)) }));
+  check("Exemples : toucher → exemple chargé, fenêtre fermée, ajouté en tête des Récents", ex.closed && ex.sample === "canaux" && ex.rec[0] === "sample:canaux" && ex.rec.includes("sample:ventes"), JSON.stringify(ex));
+  // Coller un tableau (via « Changer de données » du panneau)
+  await pg.tap("[data-testid=data-open]");
+  await sleep(200);
+  await pg.tap("[data-testid=dw-tab-coller]");
+  await pg.$eval("[data-testid=paste-area]", (el) => { el.value = "Ville\tVisiteurs\nBruxelles\t1200\nLiège\t800\nNamur\t450"; });
+  await pg.tap("[data-testid=paste-apply]");
+  await sleep(900);
+  const pa = await pg.evaluate(() => ({ closed: document.querySelector("[data-testid=data-window]").hidden, n: window.r4d.store.state.ds?.rows.length, rec: window.r4d.dataWindow().recentEntries[0] }));
+  check("Coller un tableau : importé (3 lignes), fenêtre fermée, Récents « Tableau collé » avec son contenu (localStorage, rien d'envoyé)", pa.closed && pa.n === 3 && pa.rec?.kind === "paste" && /Bruxelles/.test(pa.rec?.tsv ?? "") && pa.rec.rows === 3 && pa.rec.cols === 2, JSON.stringify(pa));
+  // Récents : rouvrir d'un geste ; entrée trop volumineuse → « réimporter le fichier »
+  await pg.evaluate(() => {
+    const k = "reporting-4d-studio:recents:v1";
+    const l = JSON.parse(localStorage.getItem(k) ?? "[]");
+    l.push({ id: "file:Grand fichier:grand.xlsx", kind: "file", name: "Grand fichier", fileName: "grand.xlsx", at: "2026-10-08T20:15:00.000Z", rows: 250000, cols: 14 });
+    localStorage.setItem(k, JSON.stringify(l));
+  });
+  await pg.tap("[data-testid=data-open-top]");
+  await sleep(250);
+  await pg.tap("[data-testid=dw-tab-recents]");
+  await sleep(250);
+  const rc = await pg.evaluate(() => {
+    const items = [...document.querySelectorAll("[data-testid=dw-panel-recents] [data-testid=recent-item]")];
+    return { n: items.length, kinds: items.map((i) => i.dataset.kind), big: !!items.find((i) => /Grand fichier/.test(i.textContent))?.querySelector("[data-testid=recent-reimport]"), meta: items[0]?.querySelector("small")?.textContent ?? "" };
+  });
+  check("Récents : jeux listés (type, date, lignes × colonnes) ; fichier trop volumineux → « réimportez le fichier »", rc.n >= 4 && rc.kinds[0] === "paste" && rc.big && /Tableau collé · \d+ \S+ 2026, \d\d:\d\d · 3 lignes × 2 colonnes/.test(rc.meta), JSON.stringify(rc));
+  await shot("119-donnees-recents-ipad-1024.png");
+  await pg.evaluate(() => [...document.querySelectorAll("[data-testid=dw-panel-recents] [data-testid=recent-item]")].find((i) => i.dataset.kind === "sample" && /Ventes/.test(i.textContent))?.querySelector("[data-testid=recent-open]")?.click());
+  await sleep(800);
+  const ro = await pg.evaluate(() => ({ sample: window.r4d.store.state.sampleId, closed: document.querySelector("[data-testid=data-window]").hidden }));
+  await pg.tap("[data-testid=data-open]");
+  await sleep(200);
+  await pg.tap("[data-testid=dw-tab-recents]");
+  await sleep(200);
+  await pg.evaluate(() => [...document.querySelectorAll("[data-testid=dw-panel-recents] [data-testid=recent-item]")].find((i) => i.dataset.kind === "paste")?.querySelector("[data-testid=recent-open]")?.click());
+  await sleep(900);
+  const rp = await pg.evaluate(() => ({ n: window.r4d.store.state.ds?.rows.length, cols: window.r4d.store.state.ds?.columns.map((c) => c.name + ":" + c.type).join(","), sample: window.r4d.store.state.sampleId }));
+  check("Récents : rouvrir un exemple (Ventes) puis le tableau collé (3 lignes, colonnes retypées) d'un toucher", ro.sample === "ventes" && ro.closed && rp.n === 3 && rp.cols === "Ville:category,Visiteurs:number" && rp.sample == null, JSON.stringify({ ro, rp }));
+  // Échap ferme ; liens directs ?donnees=publiques et ?donnees=ouvrir ; ?reel=exemple toujours valable
+  await pg.tap("[data-testid=data-open-top]");
+  await sleep(200);
+  await pg.keyboard.press("Escape");
+  await sleep(200);
+  const esc = await pg.evaluate(() => document.querySelector("[data-testid=data-window]").hidden);
+  await pg.goto(`${origin}${BASE}?donnees=publiques`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.dataWindow, { timeout: 30000 });
+  await sleep(500);
+  const dl1 = await pg.evaluate(() => ({ open: window.r4d.dataWindow().isOpen, tab: window.r4d.dataWindow().currentTab }));
+  await pg.goto(`${origin}${BASE}?donnees=ouvrir`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.dataWindow, { timeout: 30000 });
+  await sleep(500);
+  const dl2 = await pg.evaluate(() => ({ open: window.r4d.dataWindow().isOpen, tab: window.r4d.dataWindow().currentTab }));
+  await pg.goto(`${origin}${BASE}?reel=exemple`, { waitUntil: "networkidle0" });
+  const reelOk = await pg.waitForSelector("[data-testid=reel-frame]", { timeout: 15000 }).then(() => true).catch(() => false);
+  const dl3 = await pg.evaluate(() => window.r4d.dataWindow().isOpen);
+  check("Échap ferme la fenêtre ; ?donnees=publiques → onglet Données publiques ; ?donnees=ouvrir → Récents (déjà des jeux) ; ?reel=exemple ouvre toujours le Reel", esc && dl1.open && dl1.tab === "publiques" && dl2.open && dl2.tab === "recents" && reelOk && !dl3, JSON.stringify({ esc, dl1, dl2, reelOk, dl3 }));
+  // 1366 × 1024 : fenêtre (onglets à gauche) et panneau simplifié, sans débordement
+  await pg.goto(`${origin}${BASE}?donnees=publiques`, { waitUntil: "networkidle0" });
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+  await pg.waitForFunction(() => !!window.r4d?.dataWindow?.().isOpen, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await sleep(600);
+  const big = await pg.evaluate(() => {
+    const bad = [];
+    for (const e of document.querySelectorAll("[data-testid=data-window] *")) {
+      if (e.offsetParent === null) continue;
+      const r = e.getBoundingClientRect();
+      if (r.right > innerWidth + 0.5 || r.left < -0.5) bad.push(e.className || e.tagName);
+    }
+    return { bad: bad.slice(0, 5), sw: document.documentElement.scrollWidth, vw: innerWidth, side: getComputedStyle(document.querySelector(".dw-tabs")).flexDirection };
+  });
+  check("fenêtre Données 1366 × 1024 : onglets à gauche, rien ne déborde", big.bad.length === 0 && big.sw <= big.vw && big.side === "column", JSON.stringify(big));
+  await shot("118b-donnees-publiques-fenetre-1366.png");
+  await pg.evaluate(() => window.r4d.dataWindow().close());
+  await sleep(300);
+  await shot("121-panneau-donnees-simplifie-1366.png");
+  check("fenêtre Données : aucune erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("fenêtre Données : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  await ctx.close();
+}
+
+if (process.argv.includes("--donnees")) {
+  try { await e2eDonnees(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--topn")) {
@@ -1135,11 +1307,11 @@ try {
       snap: !!document.querySelector("[data-testid=snapshot-top]"), pptx: !!document.querySelector("[data-testid=story-pptx]"), storySnap: !!document.querySelector("[data-testid=snapshot]"),
       tagline: !!document.querySelector(".brand .tagline"),
       explore: (() => { const e = document.querySelector("[data-testid=data-panel] .panel-body > [data-testid=explore-data]"); return !!e && e === e.parentElement.firstElementChild; })(),
-      scen: !!document.querySelector("[data-testid=data-panel] .ex-head [data-testid=scenario-open]") && /Exemples/.test(document.querySelector("[data-testid=data-panel] .ex-head h3")?.textContent ?? ""),
+      scen: !!document.querySelector("[data-testid=data-window] [data-testid=dw-panel-exemples] [data-testid=scenario-open]"),
       exportPptx: !!document.querySelector("[data-testid=export-pptx]"),
       hint: document.querySelector(".acc-type small")?.textContent ?? "",
     }));
-    check("barre du haut : logo, Mes revues, Fichier, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios à droite d'« Exemples » ; un seul PowerPoint (Exporter)", top.buttons.length === 3 && /^Mes revues/.test(top.buttons[0]) && /Fichier/.test(top.buttons[1]) && /Exporter/.test(top.buttons[2]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
+    check("barre du haut : logo, Ouvrir des données, Mes revues, Fichier, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios dans l'onglet Exemples de la fenêtre Données ; un seul PowerPoint (Exporter)", top.buttons.length === 4 && /^Ouvrir des données/.test(top.buttons[0]) && /^Mes revues/.test(top.buttons[1]) && /Fichier/.test(top.buttons[2]) && /Exporter/.test(top.buttons[3]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
     // « Plus » : un type rangé dedans est choisi par le menu, puis reste visible dans la bande
     await page.click("[data-testid=type-more]");
     await sleep(200);
@@ -3313,6 +3485,9 @@ try {
 
   /* 23. Réglages › Données : Nombre d'éléments et Filtrer : voir e2eTopN() */
   await e2eTopN();
+
+  /* 24. Fenêtre « Données » (fichier, collage, récents, exemples, données publiques), iPad : voir e2eDonnees() */
+  await e2eDonnees();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

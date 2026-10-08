@@ -53,6 +53,7 @@ export const ICONS = {
   map: `<path d="M9 4 L3 6 V20 L9 18 L15 20 L21 18 V4 L15 6 Z" opacity=".5"/><path d="M9 4 V18 M15 6 V20" opacity=".5"/><circle cx="12" cy="10" r="2.3" fill="currentColor" stroke="none"/>`,
   drill: `<rect x="3.5" y="12" width="3.2" height="8" rx=".8" fill="currentColor" stroke="none" opacity=".5"/><rect x="8.5" y="8" width="3.2" height="12" rx=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="8" r="4"/><path d="M20 11 L22 13"/><path d="M15.5 8 H18.5 M17 6.5 V9.5" stroke-width="1.4"/>`,
   globe: `<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12 H20.5 M12 3.5 C9 7 9 17 12 20.5 C15 17 15 7 12 3.5"/>`,
+  clock: `<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5 V12 L15 14"/>`,
   history: `<path d="M3 20 H21" opacity=".5"/><path d="M4 16 L8 11 L12 13 L16 7 L20 9"/><circle cx="16" cy="7" r="1.6" fill="currentColor" stroke="none"/>`,
   split: `<path d="M4 6 H11 M4 12 H17 M4 18 H8"/><path d="M14 4 V8 M20 10 V14 M11 16 V20" opacity=".55"/>`,
   back: `<path d="M10 6 L4 12 L10 18 M4 12 H20"/>`,
