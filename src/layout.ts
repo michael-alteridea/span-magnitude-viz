@@ -1,4 +1,5 @@
-import { scaleLinear, scaleOrdinal, scaleSqrt } from "d3";
+import { scaleLinear, scaleSqrt } from "d3";
+import { resolveMarkColor } from "./colors.js";
 import type {
   GeometryMode,
   LayoutMark,
@@ -6,21 +7,6 @@ import type {
   NormalizedMark,
   VizOptions,
 } from "./types.js";
-
-const WARM_PALETTE = [
-  "#f5a623",
-  "#e8913a",
-  "#d4762c",
-  "#c45c28",
-  "#a84a32",
-  "#e8c547",
-  "#f0b429",
-  "#d97706",
-  "#b45309",
-  "#92400e",
-];
-
-const MUTED = "#6b7280";
 
 export interface LayoutResult {
   marks: LayoutMark[];
@@ -41,25 +27,6 @@ function hashId(id: string): number {
     h = (h * 31 + id.charCodeAt(i)) | 0;
   }
   return Math.abs(h);
-}
-
-function colorFor(
-  group: string,
-  groups: string[],
-  scheme: string
-): string {
-  if (scheme === "muted") return MUTED;
-  const palette =
-    scheme === "observable10"
-      ? [
-          "#4269d0", "#efb118", "#ff725c", "#6cc5b0", "#3ca951",
-          "#ff8ab7", "#a463f2", "#97bbf5", "#9c6b4e", "#9498a0",
-        ]
-      : WARM_PALETTE;
-  const scale = scaleOrdinal<string, string>()
-    .domain(groups)
-    .range(palette);
-  return scale(group);
 }
 
 /** Quadratic Bézier arc from (x0,y) to (x1,y) with control at midpoint raised by bulge*side. */
@@ -103,10 +70,15 @@ export function computeLayout(
   const magMax = Math.max(...marks.map((m) => m.magnitude), doc.magnitudeMax, 1);
   const strokeScale = scaleSqrt()
     .domain([0, magMax])
-    .range([0.45, geometry === "arc" ? 2.1 : 1]);
+    .range([0.45, geometry === "arc" ? 2.1 : geometry === "point" ? 2.4 : 1]);
   const barHeightScale = scaleLinear()
     .domain([0, magMax])
     .range([4, innerHeight * 0.42]);
+  const pointRadiusScale = scaleSqrt()
+    .domain([0, magMax])
+    .range([2.2, Math.min(18, innerHeight * 0.06)]);
+  const pointStyle = options.pointStyle ?? "radius";
+  const fixedPointR = 4.5;
 
   const mirrorSplit = options.mirrorSplit ?? false;
   const mirrorCohort = options.mirrorCohort ?? null;
@@ -137,10 +109,25 @@ export function computeLayout(
 
     const strokeWidth = strokeScale(mark.magnitude);
     const barHeight = barHeightScale(mark.magnitude);
-    const color = colorFor(mark.group, doc.groups, scheme);
+    const color = resolveMarkColor(mark, marks, {
+      colorScheme: scheme,
+      colorBy: options.colorBy ?? "group",
+      groups: doc.groups,
+      cohorts: doc.cohorts,
+    });
     const pathD = arcPath(x0, x1, yBase, bulge, side);
     const barY =
       side === 1 ? yBase - barHeight - (i % 5) * 1.5 : yBase + (i % 5) * 1.5;
+
+    // Point: span midpoint on x; vertical jitter forms a loose cloud (geo map deferred)
+    const cx = (x0 + x1) / 2;
+    const cloudJitter =
+      ((hashId(mark.id + ":pt") % 1000) / 1000 - 0.5) * innerHeight * 0.42;
+    const cy = yBase - cloudJitter * side;
+    const pointR =
+      pointStyle === "stroke" ? fixedPointR : pointRadiusScale(mark.magnitude);
+    const pointStroke =
+      pointStyle === "stroke" ? Math.max(0.8, strokeScale(mark.magnitude)) : 0.9;
 
     return {
       mark,
@@ -158,6 +145,12 @@ export function computeLayout(
         y: barY,
         width: Math.max(x1 - x0, 1),
         height: barHeight,
+      },
+      point: {
+        cx,
+        cy,
+        r: pointR,
+        strokeWidth: pointStroke,
       },
     };
   });

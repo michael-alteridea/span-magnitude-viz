@@ -19,7 +19,16 @@
     "rootDir": ".",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "span-magnitude-viz": [
+        "./src/index.ts"
+      ],
+      "span-magnitude-viz/*": [
+        "./src/*"
+      ]
+    },
+    "baseUrl": "."
   },
   "include": [
     "src/**/*",

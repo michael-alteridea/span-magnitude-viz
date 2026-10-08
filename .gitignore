@@ -1,5 +1,6 @@
 node_modules/
 dist/
 demo-dist/
-*.log
+*.tsbuildinfo
 .DS_Store
+geo-raw/

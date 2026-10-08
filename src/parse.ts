@@ -26,7 +26,7 @@ const markSchemaLoose = z.object({
 
 const defaultsSchema = z
   .object({
-    geometry: z.enum(["arc", "bar", "lane"]).optional(),
+    geometry: z.enum(["arc", "bar", "lane", "point"]).optional(),
     colorScheme: z.string().optional(),
     animate: z.boolean().optional(),
     tickers: z
@@ -225,7 +225,7 @@ export function parseDocument(
     countLabel: doc.countLabel ?? "Items",
     defaults: {
       geometry: d.geometry ?? "arc",
-      colorScheme: d.colorScheme ?? "warm",
+      colorScheme: d.colorScheme ?? "altairady",
       animate: d.animate ?? true,
       tickers: d.tickers ?? ["count", "magnitudeSum"],
     },

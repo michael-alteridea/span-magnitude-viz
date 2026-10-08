@@ -25,7 +25,10 @@
     "dev": "vite --config demo/vite.config.ts",
     "demo": "vite --config demo/vite.config.ts",
     "preview": "vite preview --config demo/vite.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:standalone": "node scripts/build-standalone-offline.mjs",
+    "build:geo": "node scripts/build-europe-geo.mjs",
+    "build:maps": "node scripts/build-map-svgs.mjs && python3 scripts/render-map-previews.py"
   },
   "keywords": [
     "visualization",
@@ -39,11 +42,16 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^7.9.0",
+    "topojson-client": "^3.1.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/node": "^26.6.4",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "mapshaper": "^0.7.80",
     "tsup": "^8.3.0",
     "typescript": "^5.6.2",
     "vite": "^5.4.8"

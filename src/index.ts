@@ -10,6 +10,11 @@ import type {
 export type {
   SpanUnit,
   GeometryMode,
+  PersistenceMode,
+  ViewMode,
+  MapRegion,
+  MapLevel,
+  ColorByField,
   TickerKind,
   SpanEndpoints,
   SpanMark,
@@ -36,10 +41,44 @@ export {
   buildRevealSchedule,
   createAnimation,
   markProgress,
+  persistenceFactor,
+  effectiveDrawProgress,
+  FINALE_START,
   tickerAt,
   prefersReducedMotion,
 } from "./animate.js";
 export { mountSvg } from "./render/svg.js";
+
+export {
+  ALTAIRADY_REDS,
+  ALTERIDEA_REDS,
+  WARM_PALETTE,
+  COLD_HOT,
+  BRAND,
+  resolveMarkColor,
+  discoverColorByAxes,
+} from "./colors.js";
+
+export {
+  computeFacetSummaries,
+  computeYearSummaries,
+  yearsForMark,
+  keysForMark,
+  discoverFacetAxes,
+  defaultFacetBy,
+  resolveFacetBy,
+  quantileSorted,
+  formatAvgSpan,
+  createFacetSummaryDom,
+} from "./facetSummary.js";
+
+export type {
+  FacetAxis,
+  FacetSummaryRow,
+  FacetQuartileArc,
+  FacetSummaryElements,
+  FacetSummaryDomOptions,
+} from "./facetSummary.js";
 
 /**
  * Create a span-magnitude visualization inside `container`.
@@ -67,3 +106,52 @@ export function createSpanMagnitudeViz(
 export const mount = createSpanMagnitudeViz;
 
 export default createSpanMagnitudeViz;
+
+export {
+  parseCsv,
+  guessMapping,
+  isIdLikeColumnName,
+  rowsToDocument,
+  columnsFromRows,
+  analyzeColumns,
+  validateMapping,
+  rememberMapping,
+  loadRememberedMapping,
+  resolveInitialMapping,
+  computeSpanPreview,
+  spanPreviewFormulaFr,
+  formatSpanLengthFr,
+  FIELD_ROLES,
+  FIELD_ROLE_LABELS_FR,
+} from "./fileImport.js";
+export type {
+  ColumnMapping,
+  ImportDocumentOptions,
+  DetectedType,
+  Suitability,
+  FieldRole,
+  RoleSuitability,
+  ColumnAnalysis,
+  MappingValidation,
+  SpanPreviewMode,
+  SpanPreviewStats,
+} from "./fileImport.js";
+
+export {
+  lookupPostal,
+  lookupLatLon,
+  resolveMarkGeo,
+  normalizePostal,
+  frDepartmentFromPostal,
+  beProvinceFromPostal,
+} from "./geo/postalLookup.js";
+export type { GeoPoint } from "./geo/postalLookup.js";
+export { documentHasGeo, marksWithGeo, computeMapLayout } from "./render/map.js";
+export {
+  europeLayer,
+  europeRegionIdAt,
+  featureAtPoint,
+  EUROPE_ATTRIBUTION_EN,
+  EUROPE_ATTRIBUTION_FR,
+} from "./geo/europe.js";
+export type { EuropeFeature, EuropeCollection, EuropeRegionProps } from "./geo/europe.js";

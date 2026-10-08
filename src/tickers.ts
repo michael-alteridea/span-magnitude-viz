@@ -112,9 +112,9 @@ export const TICKER_CSS = `
   opacity: 0.65;
   margin-top: 2px;
 }
-.smv-tickers--dark .smv-ticker-value { color: #f5a623; }
-.smv-tickers--dark .smv-ticker-label { color: #c4b5a0; }
-.smv-tickers--dark .smv-ticker--count .smv-ticker-value { color: #fde68a; }
-.smv-tickers--light .smv-ticker-value { color: #b45309; }
+.smv-tickers--dark .smv-ticker-value { color: #d62839; }
+.smv-tickers--dark .smv-ticker-label { color: #c4a4a8; }
+.smv-tickers--dark .smv-ticker--count .smv-ticker-value { color: #e9374a; }
+.smv-tickers--light .smv-ticker-value { color: #9a1c28; }
 .smv-tickers--light .smv-ticker-label { color: #78716c; }
 `;
