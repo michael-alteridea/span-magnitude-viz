@@ -24,6 +24,7 @@ import {
 } from "./model";
 import { avatar, chartBox, ic } from "./view";
 import { LOCAL_NOTE, brandIcon } from "./list";
+import { snapshotIndexOf } from "../story/scenarios";
 
 let animated = "";
 let replyTo: string | null = null;
@@ -50,7 +51,7 @@ export function participantPage(ctx: Ctx, r: Review, snapId: string | null, opts
   const n = r.snapshots.length;
   const me = ctx.me(r);
   const meP = person(r, me);
-  let k = snapId ? r.snapshots.findIndex((s) => s.id === snapId) : -1;
+  let k = snapId ? snapshotIndexOf(r.snapshots, snapId) : -1;
   if (k < 0) k = Math.max(0, r.snapshots.findIndex((s) => !hasSeen(r, me, s.id)));
   const s = r.snapshots[k]!;
   const seenHere = hasSeen(r, me, s.id);

@@ -40,4 +40,4 @@ Revue partagée : dans le Studio, bouton **Revues** → « Revue pipeline — oc
 construite à partir des 7 snapshots du scénario, avec participants, lectures, questions, décisions et actions fictifs.
 
 Mode lecture (sur n'importe quel appareil : l'histoire est recalculée à partir de ces mêmes données) :
-https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap
+https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus

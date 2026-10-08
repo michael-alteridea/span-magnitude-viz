@@ -45,8 +45,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   curseur, vitesse, barre espace).
 - **Style** : titre, sous-titre, source, fond sombre / clair / perso, palettes (bleu pétrole par défaut, préréglage « Alteridea (rouge) » conservé),
   5 polices embarquées (OFL, sous-ensembles latin + français), formats 16:9, 1:1, 4:5, perso.
-- **Export** : SVG autonome (polices en base64), PNG 1× / 2× / 3×, vidéo WebM (MediaRecorder, côté navigateur),
-  configuration JSON (spec validé Zod, données en option). GIF : bouton prévu, V2.
+- **Export** (menu **Exporter** de la barre du haut, ou Réglages › ⑤ Export) : SVG autonome (polices en base64),
+  PNG 1× / 2× / 3×, vidéo WebM (MediaRecorder, côté navigateur), PowerPoint de l'histoire. Menu **Fichier** :
+  configuration JSON (spec validé Zod, données en option), Ouvrir…, Réinitialiser. GIF : entrée prévue, V2.
 - Dernière session conservée dans `localStorage` (`reporting-4d-studio:session:v1`).
 
 ## Récit (étape 1)
@@ -73,7 +74,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 ## Mode norme (étape 2)
 
 Notation **inspirée d’IBCS® et de la notation ISO 24896** (« Notation for business reporting ») ;
-IBCS® est une marque déposée. Activable dans **Réglages › Mode norme** (`spec.norme.enabled`), badge « Norme » dans
+IBCS® est une marque déposée. Activable dans **Réglages › ④ Style › Rendu « Norme (IBCS) »** (`spec.norme.enabled`), badge « Norme » dans
 l'en-tête et bouton **ℹ Notation** (légende en français : scénarios, écarts). Module pur `norme.ts`, rendu `charts/norme.ts`.
 
 - **Scénarios** détectés d'après les noms de colonnes (Réel / Actual / AC, Budget / Plan / PL, N-1 / PY / Année
@@ -120,7 +121,7 @@ ou personnalisé et en mode norme (gris ; pétrole seulement sur l'empreinte et 
 
 Placement : sous la colonne « À retenir » quand elle existe (le graphique garde toute sa hauteur), sinon dans une bande
 réservée sur toute la largeur ; jamais sur les axes, la légende ni la barre d'échelle des cartes. Offre gratuite : cartouche
-obligatoire. **Réglages › Style › « QR d'empreinte des données »** (`style.authQr`, activé par défaut) masque seulement le QR.
+obligatoire. **Réglages › ⑤ Export › « QR d'empreinte des données »** (`style.authQr`, activé par défaut) masque seulement le QR.
 Le PowerPoint reprend le cartouche dans l'image de chaque diapositive et ajoute un lien natif « Vérifier l'empreinte des données ».
 
 **Empreinte** (`provenance.ts`, WebCrypto `crypto.subtle.digest`) calculée à l'import et enregistrée dans `spec.provenance`
@@ -301,8 +302,8 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
   identifiants de snapshots) : le lien s'ouvre sur **n'importe quel appareil**. `histoire` = histoire courante du Studio,
   `<id de revue>` = revue (les revues Norvia de démonstration existent sur tout appareil) : ces liens-là restent sur
   l'appareil qui les a créés (stockage local) ; ailleurs, un message l'explique et propose les démos.
-  Exemples : `https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap`,
-  `https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois-1051jsm`.
+  Exemples : `https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus`,
+  `https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois`.
 - **PowerPoint** : le QR du cartouche de chaque graphique (bas droite) et le lien de l'image / du pied de page
   (« Mode lecture › ») ouvrent la diapositive en mode lecture ; le lien natif « Vérifier l'empreinte des données » reste
   dans le pied de page.
@@ -354,8 +355,35 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
   le film ni dans les exports : `composeSvg` retire `data-tip` et les attributs d'accessibilité (SVG, PNG, PowerPoint,
   Morph, manifestes publiés).
 - **iPad 1366 / 1180 / 1024 px** : aucun débordement horizontal (barre du haut compacte — libellés des boutons Récit en
-  infobulle sous 1440 px —, galerie des types sur plusieurs lignes, panneau de réglages entièrement visible). Vérifié par
+  infobulle sous 1180 px —, galerie des types sur plusieurs lignes, panneau de réglages entièrement visible). Vérifié par
   les tests de bout en bout. Carte « spéciale » (bibliothèque) : infobulle sur chaque région ; les points et le film 4D gardent l'infobulle de la bibliothèque. Aires empilées : une colonne invisible par catégorie (toutes les séries).
+
+## Panneau de réglages en accordéon (étape H)
+
+- **Cinq sections dans l'ordre du travail** : ① Données → ② Graphique → ③ Récit → ④ Style → ⑤ Export. Une seule
+  section ouverte à la fois ; chaque en-tête affiche un **résumé d'une ligne** (« Région → Chiffre d'affaires (€) · Somme »,
+  « Barres · tri décroissant · étiquettes · M€ », « Sombre · Bleu pétrole »…), Données coché quand les colonnes minimales
+  sont choisies. L'essentiel en haut, le reste dans **« Plus d'options · N »** (aperçu des réglages repliés).
+- **Aucun doublon** : un réglage = un seul contrôle (vérifié par les tests : chaque `data-path` est unique).
+  « Sens favorable » remplace les anciennes cases « Hausse = défavorable » ; unité et décimales sur une ligne (− auto +).
+- **Recherche de réglages** (« décimales », « légende », « unité »…) : sans accents, préfixes acceptés, les sections et
+  options concernées s'ouvrent, le reste est masqué ; Échap efface.
+- **Toucher un élément du graphique** ouvre la bonne section et met le réglage en surbrillance : titre / sous-titre /
+  point à retenir → Récit, axe → Graphique › Axe X ou Y, légende → Légende, barre → tri / étiquettes / unité,
+  cartouche ou QR → Export › QR, fond → Style › Fond. Les éléments explorables (zoom) gardent leur clic ; le double-clic
+  sur un texte le modifie toujours directement. Logique pure dans `ui/panelMap.ts` (testée).
+- **Barre du haut** : Explorer mes données, Scénarios, Snapshot, Revues, menu **Fichier** et bouton **Exporter** (menu)
+  remplacent les 13 boutons et cases d'export et de configuration. Menus au clavier (↓ ↑, Échap).
+
+## Identifiants de snapshots stables
+
+Un snapshot de scénario garde le **même identifiant d'une génération à l'autre** : préfixe du scénario + position +
+intitulé de l'étape (`dircom-03-mois-focus`, `daf-01-cascade`), **sans empreinte des données**. Cadencer rattache
+ses points d'ordre du jour et ses accusés « J'ai vu » à cet identifiant : id stable dans une revue ; le contenu change
+→ `empreinte` et `?v=` des images. Même identifiant pour les manifestes, les liens `#/lire/<histoire>/<snapshot>`,
+les QR (cartouche, PowerPoint) et les noms d'images publiées (`publie/<revue>/<snapshot>.png?v=…`). Les anciens liens
+à suffixe d'empreinte (`…-88z5ap`, `…-14j5oil`, `…-1051jsm`) ouvrent toujours la bonne diapositive
+(`matchSnapshotId`, `story/scenarios.ts`).
 
 ## Architecture (`studio/src`)
 

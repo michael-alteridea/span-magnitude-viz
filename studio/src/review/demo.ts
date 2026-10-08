@@ -44,7 +44,7 @@ export async function scenarioSnapshots(sampleId: string, sc: Scenario, generate
     } as ChartSpec;
     const { width, height } = chartSize(spec);
     return {
-      id: scenarioSnapshotId(sc, f.step, hash),
+      id: scenarioSnapshotId(sc, f.step),
       name: f.story?.title ?? f.step.name,
       createdAt: generatedAt,
       spec,

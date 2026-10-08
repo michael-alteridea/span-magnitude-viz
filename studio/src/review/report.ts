@@ -8,6 +8,7 @@ import { buildReport, frDate, frDateTime, frTime, person, reportSlideComments, t
 import { avatar, chartBox, dots, download, ic, ring } from "./view";
 import { brandIcon } from "./list";
 import { wordmarkMarkup } from "../brand";
+import { snapshotIndexOf } from "../story/scenarios";
 
 export function reportPage(ctx: Ctx, r: Review): HTMLElement {
   const rep = buildReport(r);
@@ -40,7 +41,7 @@ export function reportPage(ctx: Ctx, r: Review): HTMLElement {
   const kpi = (v: string, label: string, testid: string) => h("div", { class: "rv-kpi", "data-testid": testid }, h("b", null, v), h("small", null, label));
   const who = (pid: string | null) => person(r, pid)?.name ?? "—";
   const snapNo = (id: string | null) => {
-    const j = id ? r.snapshots.findIndex((s) => s.id === id) : -1;
+    const j = id ? snapshotIndexOf(r.snapshots, id) : -1;
     return j >= 0 ? `S${j + 1}` : "—";
   };
   const pptxBtn = h("button", { class: "btn", type: "button", "data-testid": "rv-report-pptx" }, ic("screen", 15), "PowerPoint") as HTMLButtonElement;

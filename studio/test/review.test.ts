@@ -47,16 +47,37 @@ beforeAll(async () => {
   F = await demoFinanceReview();
 });
 
-async function scenarioIds(sampleId: string, sc: typeof SCENARIO_DIRCOM) {
+async function scenarioIds(sampleId: string, sc: typeof SCENARIO_DIRCOM, alter?: (rows: Record<string, unknown>[]) => Record<string, unknown>[]) {
   const s = sampleById(sampleId)!;
-  const rows = s.rows();
+  const rows0 = s.rows();
+  const rows = alter ? (alter(rows0 as Record<string, unknown>[]) as typeof rows0) : rows0;
   const ds = buildDataset(s.name, rows);
   const hash = await hashRows(rows);
   const run = runScenario(sc, ds, guessBinding(sc, ds));
-  return { ids: run.frames.map((f) => scenarioSnapshotId(sc, f.step, hash)), titles: run.frames.map((f) => f.story?.title ?? "") };
+  return { ids: run.frames.map((f) => scenarioSnapshotId(sc, f.step)), titles: run.frames.map((f) => f.story?.title ?? ""), hash };
+}
+
+/** Données différentes : montants multipliés, une ligne sur cinq retirée. */
+function autresDonnees(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows
+    .filter((_, i) => i % 5 !== 4)
+    .map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 1.37 * 100) / 100 : v])));
 }
 
 describe("revues de démonstration Norvia", () => {
+  it("ids stables : régénérer avec d'autres données garde exactement les mêmes identifiants (seule l'empreinte change)", async () => {
+    for (const [sample, sc] of [["demo-pipeline", SCENARIO_DIRCOM], [F.snapshots[0]!.sampleId!, SCENARIO_DAF]] as const) {
+      const a = await scenarioIds(sample, sc);
+      const b = await scenarioIds(sample, sc, autresDonnees);
+      expect(b.hash).not.toBe(a.hash);
+      expect(b.ids).toEqual(a.ids);
+      for (const id of a.ids) {
+        expect(id).not.toContain(a.hash);
+        expect(id).toMatch(new RegExp(`^${sc.id}-0\\d-[a-z-]+$`));
+      }
+    }
+  });
+
   it("revue pipeline : les 7 snapshots du Scénario Directeur commercial, ids stables identiques au Studio", async () => {
     expect(P.snapshots[0]!.sampleId).toBe("demo-pipeline");
     const exp = await scenarioIds("demo-pipeline", SCENARIO_DIRCOM);

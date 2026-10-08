@@ -204,7 +204,7 @@ try {
   check("en-tête « Datanime · Studio »", /Datanime\s*·\s*Studio/.test(header) && !/Reporting 4D/.test(header));
   // Identité Datanime bleu pétrole : bouton principal, logo « Bulle + barres », palette par défaut, titre, favicon
   const brand = await page.evaluate(() => ({
-    btn: getComputedStyle(document.querySelector("[data-testid=export-svg]")).backgroundColor,
+    btn: getComputedStyle(document.querySelector("[data-testid=export-menu]")).backgroundColor,
     logo: document.querySelector(".brand .logo stop")?.getAttribute("stop-color"),
     bars: document.querySelectorAll(".brand .logo svg rect").length,
     palette: window.r4d.getSpec().style.palette,
@@ -226,6 +226,68 @@ try {
       return { svg: await get("link[rel=icon]"), png: await get("link[rel=apple-touch-icon]") };
     });
     check("favicon SVG + apple-touch-icon 180 px servis", icons.svg.ok && icons.png.ok && /svg/.test(icons.svg.type) && /png/.test(icons.png.type), JSON.stringify(icons));
+  }
+
+  /* H. Panneau en accordéon, menus « Exporter » / « Fichier », toucher un élément → réglage */
+  {
+    const top = await page.evaluate(() => ({
+      btns: document.querySelectorAll("header .toolbar > .tool-group > button").length,
+      direct: !!document.querySelector("header [data-testid=export-svg], header [data-testid=save-config]"),
+      exp: document.querySelector("[data-testid=export-menu]")?.textContent?.trim(),
+      file: document.querySelector("[data-testid=file-menu]")?.textContent?.trim(),
+    }));
+    check("barre du haut : un menu « Exporter » et un menu « Fichier » remplacent les boutons d'export et de configuration", top.btns <= 7 && !top.direct && top.exp === "Exporter" && top.file === "Fichier", JSON.stringify(top));
+    await page.click("[data-testid=export-menu]");
+    await sleep(300);
+    const menu = await page.evaluate(() => {
+      const pop = document.querySelector("[data-testid=export-menu-pop]");
+      const r = pop.getBoundingClientRect();
+      return { open: !pop.hidden, inView: r.right <= innerWidth && r.bottom <= innerHeight && r.left >= 0, items: [...pop.querySelectorAll("[data-testid]")].map((e) => e.dataset.testid) };
+    });
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "69-menu-exporter.png") });
+    await page.keyboard.press("Escape");
+    await sleep(150);
+    const closed = await page.evaluate(() => document.querySelector("[data-testid=export-menu-pop]").hidden);
+    check("menu « Exporter » : SVG, PNG + résolution, vidéo, GIF (V2), PowerPoint ; Échap le ferme", menu.open && menu.inView && closed && ["export-svg", "export-png", "png-scale", "export-webm", "export-gif", "export-pptx"].every((t) => menu.items.includes(t)), menu.items.join(" "));
+    const acc = await page.evaluate(() => ({
+      ids: [...document.querySelectorAll("[data-testid=settings-panel] .acc-s")].map((e) => e.dataset.section),
+      open: [...document.querySelectorAll("[data-testid=settings-panel] .acc-s.open")].map((e) => e.dataset.section),
+      sums: [...document.querySelectorAll("[data-testid=settings-panel] .acc-sum")].map((e) => e.textContent.trim()),
+      dup: (() => {
+        const seen = {};
+        for (const e of document.querySelectorAll("[data-testid=settings-panel] [data-path]")) seen[e.dataset.path] = (seen[e.dataset.path] ?? 0) + 1;
+        return Object.entries(seen).filter(([, n]) => n > 1).map(([k]) => k);
+      })(),
+      dl: ["svg", "png", "webm", "pptx"].every((k) => document.querySelector(`[data-testid=panel-export-${k}]`)),
+    }));
+    await domClick("[data-testid=acc-recit]");
+    await sleep(200);
+    const acc2 = await page.evaluate(() => [...document.querySelectorAll("[data-testid=settings-panel] .acc-s.open")].map((e) => e.dataset.section));
+    check("accordéon : Données → Graphique → Récit → Style → Export, une seule section ouverte, un résumé par section, aucun doublon", acc.ids.join() === "donnees,graphique,recit,style,export" && acc.open.length === 1 && acc2.join() === "recit" && acc.sums.length === 5 && acc.sums.every((t) => t.length > 3) && acc.dup.length === 0 && acc.dl, `${acc.open} → ${acc2} · ${acc.sums.join(" | ")}${acc.dup.length ? " · doublons " + acc.dup.join(",") : ""}`);
+    await page.type("[data-testid=settings-search]", "deci");
+    await sleep(250);
+    const sr = await page.evaluate(() => ({
+      info: document.querySelector("[data-testid=settings-search-info]").textContent,
+      vis: [...document.querySelectorAll("[data-testid=settings-panel] [data-item]")].filter((e) => e.offsetParent !== null).map((e) => e.textContent.trim().slice(0, 30)),
+    }));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "71-recherche-reglage.png") });
+    await page.evaluate(() => window.r4d.panel().clearSearch());
+    check("recherche de réglages : « deci » → Unité et décimales", /^\d+ réglages? pour « deci »$/.test(sr.info) && sr.vis.length >= 1 && sr.vis.some((t) => /décimales/i.test(t)), `${sr.info} · ${sr.vis.join(" / ")}`);
+    // toucher (clic réel) l'axe Y puis le titre du graphique
+    const tapAt = async (sel) => {
+      const r = await page.$eval(sel, (e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; });
+      await page.mouse.click(r.x, r.y);
+      await sleep(350);
+      return page.evaluate(() => ({ rev: document.querySelector("[data-testid=settings-panel]").getAttribute("data-revealed"), open: document.querySelector("[data-testid=settings-panel] .acc-s.open")?.dataset.section, flash: !!document.querySelector("[data-testid=settings-panel] .flash"), more: !!document.querySelector('[data-more="graphique"].open') }));
+    };
+    const ty = await tapAt("[data-testid=chart-svg] .r4d-axis-y .tick text");
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "70-toucher-axe-reglage.png") });
+    const tt = await tapAt("[data-testid=chart-svg] .r4d-title");
+    check("toucher le graphique : axe Y → Graphique › Axe Y (déplié, en surbrillance) ; titre → Récit › Titre", ty.rev === "graphique:axe-y" && ty.open === "graphique" && ty.flash && ty.more && tt.rev === "recit:style.title" && tt.open === "recit", JSON.stringify({ ty, tt }));
+    await page.evaluate(() => window.r4d.panel().open("graphique"));
+    await page.mouse.move(1, 1);
+    await sleep(2000);
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "72-panneau-accordeon.png") });
   }
 
   /* 1. Collage type Excel (tabulations, virgule décimale, mois FR) */
@@ -611,8 +673,7 @@ try {
   await sleep(400);
   if (SHOTS) {
     await page.evaluate(() => {
-      document.querySelector('[data-section="recit"]')?.setAttribute("open", "");
-      document.querySelector('[data-section="recit"]')?.scrollIntoView();
+      window.r4d.panel().open("recit");
     });
     await sleep(300);
     await page.screenshot({ path: join(shotsDir, "13-titre-commentaires.png") });
@@ -741,7 +802,7 @@ try {
   await page.evaluate(() => window.r4d.store.setStory({ title: "Revue mensuelle — mode norme", snapshots: [] }));
   await domClick("[data-testid=sample-business-review]");
   await sleep(700);
-  await domClick('[data-path="norme.enabled"]');
+  await domClick('[data-testid=norme-toggle] [data-value="true"]');
   await sleep(800);
   const nOn = await page.evaluate(() => {
     const b = document.querySelector("[data-testid=norme-badge]");
@@ -751,17 +812,16 @@ try {
   const v1 = await chartAudit();
   check("mode norme : sous-titre qui · quoi · quand (« Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget »)", v1.sub === "Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget", v1.sub);
   check("mode norme : rouge / vert uniquement sur les écarts ; signature présente", v1.bad.length === 0 && v1.rgCount > 0 && v1.varBars > 0 && v1.cartouche, `${v1.rgCount} éléments rouge/vert, ${v1.bad.length} hors écarts ${v1.bad.slice(0, 3).join(" ")} · ${v1.varBars} barres d'écart`);
-  await domClick("[data-testid=norme-up-is-bad]");
+  await domClick('[data-testid=polarity] [data-value="lower"]');
   await sleep(600);
   const v1b = await chartAudit();
   const swapped = v1.varFills.length > 0 && v1.varFills.every((f, i) => v1b.varFills[i] === (f === RG[1] ? RG[0] : RG[1]));
-  await domClick("[data-testid=norme-up-is-bad]");
+  await domClick('[data-testid=polarity] [data-value="higher"]');
   await sleep(500);
   check("« Hausse = défavorable » inverse rouge et vert", swapped && (await page.evaluate(() => window.r4d.getSpec().variance.polarity)) === "higher", `${v1.varFills.length} écarts inversés`);
   if (SHOTS) {
     await page.evaluate(() => {
-      document.querySelector('[data-section="norme"]')?.setAttribute("open", "");
-      document.querySelector('[data-section="norme"]')?.scrollIntoView({ block: "start" });
+      window.r4d.panel().open("graphique");
     });
     await sleep(300);
     await page.screenshot({ path: join(shotsDir, "16-norme-ecarts.png") });
@@ -885,7 +945,7 @@ try {
     }
     check("PowerPoint en mode norme : légende de notation, même échelle", ok, detail);
   }
-  await domClick('[data-path="norme.enabled"]');
+  await domClick('[data-testid=norme-toggle] [data-value="false"]');
   await sleep(600);
   const nOff = await page.evaluate(() => ({ on: window.r4d.getSpec().norme.enabled, badge: document.querySelector("[data-testid=norme-badge]").hidden, pie: document.querySelector("[data-testid=type-pie]").getAttribute("aria-disabled") }));
   check("mode norme désactivable (badge masqué, camembert de nouveau permis)", !nOff.on && nOff.badge && nOff.pie === null, JSON.stringify(nOff));
@@ -1294,7 +1354,7 @@ try {
     const story = await page.evaluate(() => window.r4d.story());
     const ids = story.snapshots.map((s) => s.id);
     globalThis.__dircom = { ids, titles: story.snapshots.map((s) => s.title) };
-    check("scénario : 7 snapshots (ids stables, chemin, commentaires) puis film", story.snapshots.length === 7 && ids.every((id) => /^dircom-0\d-/.test(id)) && story.snapshots[3].path.join(" › ") === "Tout › T2 2026 › Juin 2026" && story.snapshots.every((s) => s.comments.length >= 2 && s.svg && s.thumb) && story.title === "Revue du pipeline — octobre 2026", ids.join(" "));
+    check("scénario : 7 snapshots (ids stables, chemin, commentaires) puis film", story.snapshots.length === 7 && ids.join(",") === "dircom-01-trimestres,dircom-02-mois,dircom-03-mois-focus,dircom-04-carte,dircom-05-historique,dircom-06-region,dircom-07-commerciaux" && story.snapshots[3].path.join(" › ") === "Tout › T2 2026 › Juin 2026" && story.snapshots.every((s) => s.comments.length >= 2 && s.svg && s.thumb) && story.title === "Revue du pipeline — octobre 2026", ids.join(" "));
     await sleep(2200);
     const film = await page.evaluate(() => ({ open: window.r4d.film().isOpen, marks: document.querySelectorAll("[data-testid=film-svg] .r4d-drill-mark").length, counter: document.querySelector("[data-testid=film-counter]").textContent }));
     check("film : rejoue l'histoire (construction animée, compteur)", film.open && film.marks > 0 && film.counter === "1 / 7", JSON.stringify(film));
@@ -1448,7 +1508,7 @@ try {
     await page.evaluate(() => window.r4d.film().close());
     const story = await page.evaluate(() => window.r4d.story());
     const ids = story.snapshots.map((s) => s.id);
-    check("scénario DAF : 7 snapshots (ids stables, commentaires)", story.snapshots.length === 7 && ids.every((id) => /^daf-0\d-/.test(id)) && story.snapshots.every((s) => s.comments.length >= 2 && s.svg) && story.title === "Budget 2026 vs réel 2025 — revue financière", ids.join(" "));
+    check("scénario DAF : 7 snapshots (ids stables, commentaires)", story.snapshots.length === 7 && ids.join(",") === "daf-01-cascade,daf-02-hausse,daf-03-hausse-mois,daf-04-baisse,daf-05-baisse-mois,daf-06-carte,daf-07-tableau-croise" && story.snapshots.every((s) => s.comments.length >= 2 && s.svg) && story.title === "Budget 2026 vs réel 2025 — revue financière", ids.join(" "));
     const b64 = await page.evaluate(() => window.r4d.pptxBase64());
     const slides = new Set(Buffer.from(b64, "base64").toString("latin1").match(/ppt\/slides\/slide\d+\.xml/g) ?? []).size;
     check("scénario DAF : PowerPoint 9 diapositives", slides === 9, `${slides} diapositives`);

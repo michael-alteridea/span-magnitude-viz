@@ -11,6 +11,7 @@ import { laggards, newId, parseRoute, routeHash, startMeeting, type Review, type
 import { participantPage, sizeClass } from "./participant";
 import { reportPage } from "./report";
 import "./review.css";
+import { snapshotIndexOf } from "../story/scenarios";
 
 export class ReviewSpace {
   readonly root: HTMLElement;
@@ -230,7 +231,7 @@ export class ReviewSpace {
     if (rt.page === "meeting") {
       this.ctx.save({ ...r, meeting: { ...r.meeting, current: Math.max(0, Math.min(r.snapshots.length - 1, r.meeting.current + d)) } });
     } else {
-      const cur = rt.snapId ? r.snapshots.findIndex((s) => s.id === rt.snapId) : 0;
+      const cur = rt.snapId ? snapshotIndexOf(r.snapshots, rt.snapId) : 0;
       const k = Math.max(0, Math.min(r.snapshots.length - 1, Math.max(0, cur) + d));
       this.go({ page: "participant", id: r.id, snapId: r.snapshots[k]!.id });
     }

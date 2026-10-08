@@ -225,7 +225,7 @@ describe("cartouche Datanime", () => {
     expect(draw({ ...BAR, branding: "pro", style: { ...BAR.style, brandMark: false } }).svg.querySelector(".r4d-cartouche")).toBeNull();
   });
   it("QR vers le mode lecture (diapositives PowerPoint) : remplace le QR d'empreinte, décodable", () => {
-    const url = "https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus-88z5ap";
+    const url = "https://alteridea-dashboard.web.app/reporting/#/lire/demo-dircom/dircom-03-mois-focus";
     const { svg } = draw(BAR, { qrUrl: url, bare: true });
     const qr = svg.querySelector(".r4d-cartouche svg.r4d-qr")!;
     expect(qr.getAttribute("data-url")).toBe(url);

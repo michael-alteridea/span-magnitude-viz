@@ -65,5 +65,12 @@ export const ICONS = {
   table: `<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9 H21 M3 14.5 H21 M9 4 V20"/>`,
   sliders: `<path d="M4 6 H14 M18 6 H20 M4 12 H8 M12 12 H20 M4 18 H16 M20 18 H20"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>`,
   film2: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5 V19 M17 5 V19 M3 9 H7 M3 15 H7 M17 9 H21 M17 15 H21"/>`,
+  search: `<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L20.5 20.5"/>`,
+  check: `<path d="M5 12.5 L10 17.5 L19 7" stroke-width="2.4"/>`,
+  chevronD: `<path d="M6 9 L12 15 L18 9"/>`,
+  image: `<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3.5 17.5 L9 12.5 L13 16 L16 13 L20.5 17"/>`,
+  save: `<path d="M5 4 H16 L20 8 V20 H4 V5 Z"/><path d="M8 4 V9 H15 V4"/><rect x="7.5" y="13" width="9" height="5" rx="1"/>`,
+  folder: `<path d="M3 7 V18.5 H21 V8.5 H11.5 L9.5 6 H4 Z"/>`,
+  export: `<path d="M12 15 V4 M7.5 8.5 L12 4 L16.5 8.5"/><path d="M5 13 V20 H19 V13"/>`,
   paste: `<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4 V3 H15 V4"/><path d="M9 10 H15 M9 14 H15"/>`,
 };

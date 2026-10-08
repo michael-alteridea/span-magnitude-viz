@@ -24,6 +24,7 @@ import {
   type ReviewStatus,
 } from "./model";
 import { avatar, chartBox, dots, download, ic, qrSvg, ring } from "./view";
+import { snapshotIndexOf } from "../story/scenarios";
 
 type Filter = "toutes" | ReviewStatus;
 let filter: Filter = "toutes";
@@ -242,7 +243,7 @@ function detail(ctx: Ctx, r: Review): HTMLElement {
 
 export function shareDialog(ctx: Ctx, r: Review, snapId: string | null): HTMLElement {
   const base = ctx.deps.baseUrl();
-  const k = snapId ? r.snapshots.findIndex((s) => s.id === snapId) : -1;
+  const k = snapId ? snapshotIndexOf(r.snapshots, snapId) : -1;
   const target = k >= 0 ? r.snapshots[k]! : null;
   const url = shareUrl(base, r, target?.id ?? null);
   const close = () => ctx.go({ page: "list", id: r.id });

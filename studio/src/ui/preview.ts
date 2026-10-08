@@ -94,7 +94,7 @@ export class Preview {
       if (el && this.onDrill) {
         e.preventDefault();
         this.onDrill(el);
-      }
+      } else if (!el && this.onPick && e.target instanceof Element && !this.svg.hasAttribute("data-zoom")) this.onPick(e.target);
     });
     document.addEventListener("keydown", (e) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -422,6 +422,8 @@ export class Preview {
 
   /** Clic sur un élément d'exploration (data-drill-*) : branché par main. */
   onDrill: ((el: Element) => void) | null = null;
+  /** Clic / toucher hors exploration : élément du graphique → réglage correspondant (panneau). */
+  onPick: ((el: Element) => void) | null = null;
 
   /** Infobulle des marques (souris, toucher, clavier). */
   readonly tooltip: ChartTooltip;

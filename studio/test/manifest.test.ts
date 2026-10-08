@@ -61,11 +61,11 @@ describe("adresses du manifeste", () => {
     expect(VERIFY_URL).toBe(`${PLATFORM_URL}verifier.html`);
     expect(indexUrl()).toBe("https://alteridea-dashboard.web.app/reporting/publie/index.json");
     expect(manifestUrl("demo-dircom")).toBe("https://alteridea-dashboard.web.app/reporting/publie/demo-dircom/manifeste.json");
-    expect(imageUrl("norvia-budget-2026", "daf-05-baisse-mois-1051jsm", "png")).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-1051jsm.png");
+    expect(imageUrl("norvia-budget-2026", "daf-05-baisse-mois", "png")).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois.png");
     // 1.1 : adresse versionnée par l'empreinte du snapshot (12 premiers caractères), nom de fichier inchangé
-    const v = imageUrl("norvia-budget-2026", "daf-05-baisse-mois-1051jsm", "png", PLATFORM_URL, "3e82fc50fa44e17e93562b50");
-    expect(v).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois-1051jsm.png?v=3e82fc50fa44");
-    expect(imageFileOf(v)).toBe("daf-05-baisse-mois-1051jsm.png");
+    const v = imageUrl("norvia-budget-2026", "daf-05-baisse-mois", "png", PLATFORM_URL, "3e82fc50fa44e17e93562b50");
+    expect(v).toBe("https://alteridea-dashboard.web.app/reporting/publie/norvia-budget-2026/daf-05-baisse-mois.png?v=3e82fc50fa44");
+    expect(imageFileOf(v)).toBe("daf-05-baisse-mois.png");
     expect(CONTRACT_REVISION).toBe("1.1");
     // futur domaine : une seule base à changer
     expect(manifestUrl("demo-daf", "https://datanime.io/")).toBe("https://datanime.io/publie/demo-daf/manifeste.json");
@@ -95,7 +95,7 @@ describe("construction du manifeste", () => {
     expect(m.snapshots).toHaveLength(7);
     const s3 = m.snapshots[2]!;
     expect(s3.position).toBe(3);
-    expect(s3.id).toBe("dircom-03-mois-focus-88z5ap");
+    expect(s3.id).toBe("dircom-03-mois-focus");
     expect(s3.chemin).toBe("Pipeline créé › T2 2026 › Juin 2026");
     expect(s3.a_retenir).toHaveLength(3);
     // 1.1 : synthèse en une phrase (message du snapshot), distincte des puces
@@ -106,15 +106,15 @@ describe("construction du manifeste", () => {
     expect(s3.commentaire_genere.match(/[.!?…](\s|$)/g)?.length ?? 0).toBeLessThanOrEqual(1);
     expect(s3.commentaire_animateur).toMatch(/Pas d'incident CRM/);
     const v = s3.empreinte.slice(0, 12);
-    expect(s3.image_png).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.png?v=${v}`);
-    expect(s3.image_svg).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap.svg?v=${v}`);
+    expect(s3.image_png).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus.png?v=${v}`);
+    expect(s3.image_svg).toBe(`${PLATFORM_URL}publie/${DEMO_PIPELINE_ID}/dircom-03-mois-focus.svg?v=${v}`);
     // 1.1 : texte alternatif (type de graphique, périmètre, chiffre clé)
     expect(s3.alt).toMatch(/^Courbe du cumul jour par jour/);
     expect(s3.alt).toContain("Pipeline créé › T2 2026 › Juin 2026");
     expect(s3.alt).toMatch(/\d/);
     for (const s of m.snapshots) expect(s.alt.length).toBeGreaterThan(20);
     expect(m.snapshots[3]!.alt).toMatch(/^Carte des régions France · Belgique/);
-    expect(s3.lien_lecture).toBe(`${PLATFORM_URL}#/lire/${DEMO_PIPELINE_ID}/dircom-03-mois-focus-88z5ap`);
+    expect(s3.lien_lecture).toBe(`${PLATFORM_URL}#/lire/${DEMO_PIPELINE_ID}/dircom-03-mois-focus`);
     expect(s3.empreinte).toMatch(/^[0-9a-f]{64}$/);
     expect(new Set(m.snapshots.map((s) => s.empreinte)).size).toBe(7);
   });

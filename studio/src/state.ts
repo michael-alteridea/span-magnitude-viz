@@ -20,6 +20,8 @@ export interface UiState {
   leftCollapsed: boolean;
   rightCollapsed: boolean;
   openSections: Record<string, boolean>;
+  /** Panneau de réglages en accordéon : section ouverte (« » = toutes repliées). */
+  panelSection?: string;
   pngScale: 1 | 2 | 3;
   includeData: boolean;
 }

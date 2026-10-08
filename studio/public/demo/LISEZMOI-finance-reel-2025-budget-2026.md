@@ -35,4 +35,4 @@ Utilisation : exemple intégré « Démo : réel vs budget » du Studio, puis **
 (automatique ou pas à pas). Le CSV peut aussi être importé tel quel : l'exploration devine la version, la nature et les niveaux.
 
 Mode lecture (sur n'importe quel appareil : l'histoire est recalculée à partir de ces mêmes données) :
-https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois-1051jsm
+https://alteridea-dashboard.web.app/reporting/#/lire/demo-daf/daf-05-baisse-mois

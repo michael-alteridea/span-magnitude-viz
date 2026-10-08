@@ -5,6 +5,7 @@
  * décisions et actions captées en réunion, et de quoi produire le compte rendu.
  */
 import type { Snapshot } from "../story/snapshots";
+import { snapshotIndexOf } from "../story/scenarios";
 
 export type ReviewStatus = "brouillon" | "partagee" | "en-reunion" | "terminee";
 export const STATUS_LABEL: Record<ReviewStatus, string> = { brouillon: "Brouillon", partagee: "Partagée", "en-reunion": "En réunion", terminee: "Terminée" };
@@ -167,7 +168,7 @@ export function questionQueue(r: Review): ReviewComment[] {
 }
 
 export function snapIndex(r: Review, snapId: string | null): number {
-  return snapId ? r.snapshots.findIndex((s) => s.id === snapId) : -1;
+  return snapId ? snapshotIndexOf(r.snapshots, snapId) : -1;
 }
 
 /* ------------------------------------------------------------------ écriture (copies) */

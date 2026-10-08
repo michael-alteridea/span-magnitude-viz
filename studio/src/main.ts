@@ -12,6 +12,8 @@ import { SAMPLES, sampleById } from "./data/samples";
 import { autoEncode } from "./data/suggest";
 import { Preview } from "./ui/preview";
 import { SettingsPanel } from "./ui/settings";
+import { chartTarget } from "./ui/panelMap";
+import { makeMenu, menuHead, menuItem, menuSep } from "./ui/menu";
 import { DataPanel } from "./ui/dataPanel";
 import { Gallery } from "./ui/gallery";
 import { toast } from "./ui/toast";
@@ -50,7 +52,7 @@ import { ScenarioDialog } from "./ui/scenarioDialog";
 import { drillInto, drillPathLabels, initDrill, rootGrain } from "./data/drill";
 import type { DrillGrain } from "./spec";
 import { columnOf } from "./data/table";
-import { runScenario, scenarioSnapshotId, type RoleBinding, type Scenario } from "./story/scenarios";
+import { runScenario, scenarioSnapshotId, snapshotIndexOf, type RoleBinding, type Scenario } from "./story/scenarios";
 import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
 
 const store = new Store();
@@ -801,11 +803,18 @@ async function openCadencer(storyId: string): Promise<void> {
   cadencer.open(t);
 }
 
+/** Texte de progression posé sur un bouton (libellé seul si le bouton en a un, icône conservée). */
+function busyText(btn: HTMLButtonElement, text: string): void {
+  const l = btn.querySelector<HTMLElement>("[data-busy], .btn-lbl, .mi-l");
+  if (l) l.textContent = text;
+  else btn.textContent = text;
+}
+
 async function exportPptx(btn: HTMLButtonElement): Promise<void> {
   if (!store.state.story.snapshots.length) return;
-  const label = btn.textContent;
+  const label = btn.innerHTML;
   btn.disabled = true;
-  btn.textContent = "PowerPoint…";
+  busyText(btn, "PowerPoint…");
   try {
     const morph = storyStrip.morph;
     const blob = (await buildStoryPptx("blob", store.state.story, { morph, build: morph, storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID })) as Blob;
@@ -815,7 +824,7 @@ async function exportPptx(btn: HTMLButtonElement): Promise<void> {
     toast("Export PowerPoint impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
   } finally {
     btn.disabled = false;
-    btn.textContent = label;
+    btn.innerHTML = label;
   }
 }
 
@@ -887,7 +896,7 @@ function guideMatch(): SnapOpts | null {
   if (!guide || spec.type !== "drill") return null;
   const cur = JSON.stringify({ ...spec.drill });
   const f = guide.frames.find((x) => JSON.stringify({ ...x.drill }) === cur);
-  return f ? { id: scenarioSnapshotId(guide.sc, f.step, guide.dataKey), scenario: guide.sc.id, step: f.step.id } : null;
+  return f ? { id: scenarioSnapshotId(guide.sc, f.step), scenario: guide.sc.id, step: f.step.id } : null;
 }
 
 function guideText(): string | null {
@@ -945,7 +954,7 @@ async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean):
   for (const f of run.frames) {
     store.setSpec(scenarioSpec(f.drill));
     await settle();
-    await takeSnapshot({ id: scenarioSnapshotId(sc, f.step, guide.dataKey), scenario: sc.id, step: f.step.id, quiet: true });
+    await takeSnapshot({ id: scenarioSnapshotId(sc, f.step), scenario: sc.id, step: f.step.id, quiet: true });
   }
   toast(`${sc.label} : ${run.frames.length} snapshots créés — lecture du film`, "ok", 3000);
   film.open(store.state.story.snapshots, 0);
@@ -978,7 +987,7 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
     return;
   }
   const { width, height } = chartSize(store.state.spec);
-  const label = btn.textContent;
+  const label = btn.innerHTML;
   btn.disabled = true;
   preview.setRecording(true);
   try {
@@ -987,7 +996,7 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
       height,
       durationMs: preview.exportDuration(),
       bg: themeFor(store.state.spec).bg,
-      onProgress: (p) => (btn.textContent = `Vidéo… ${Math.round(p * 100)} %`),
+      onProgress: (p) => busyText(btn, `Vidéo… ${Math.round(p * 100)} %`),
     });
     download(blob, `${baseName()}.webm`);
     toast("Vidéo WebM exportée", "ok");
@@ -996,7 +1005,7 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
   } finally {
     preview.setRecording(false);
     btn.disabled = false;
-    btn.textContent = label;
+    btn.innerHTML = label;
     preview.restart(false);
     preview.seek(1);
   }
@@ -1061,14 +1070,55 @@ cfgInput.addEventListener("change", () => {
 
 const pngScale = h(
   "select",
-  { class: "mini-select", title: "Résolution PNG", "data-testid": "png-scale" },
+  { title: "Résolution PNG", "aria-label": "Résolution PNG", "data-testid": "png-scale" },
   ...[1, 2, 3].map((v) => h("option", { value: String(v), selected: store.state.ui.pngScale === v }, `${v}×`))
 );
-pngScale.addEventListener("change", () => store.setUi({ pngScale: Number(pngScale.value) as 1 | 2 | 3 }));
+pngScale.addEventListener("change", () => {
+  store.setUi({ pngScale: Number(pngScale.value) as 1 | 2 | 3 });
+  pngItem.querySelector(".mi-l")!.textContent = `Image PNG ${pngScale.value}×`;
+});
 
-const webmBtn: HTMLButtonElement = h("button", { class: "btn", "data-testid": "export-webm", title: webmSupported() ? "Vidéo WebM de l'animation (côté navigateur)" : "MediaRecorder indisponible dans ce navigateur", onclick: () => void exportWebm(webmBtn) }, "Vidéo WebM");
 const includeData = h("input", { type: "checkbox", checked: store.state.ui.includeData, "data-testid": "include-data" });
 includeData.addEventListener("change", () => store.setUi({ includeData: includeData.checked }));
+
+/* ---- menus « Exporter » et « Fichier » (remplacent les 9 boutons d'export et de configuration) */
+const ic = (k: keyof typeof ICONS, n = 16) => svgIcon(ICONS[k], n);
+const exportBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-accent btn-export menu-btn", title: "Exporter le graphique (SVG, PNG, vidéo) ou l'histoire (PowerPoint)" }, h("span", { html: ic("export") }), h("span", { class: "btn-lbl", "data-busy": "" }, "Exporter"));
+const pngItem = menuItem(ic("image"), `Image PNG ${store.state.ui.pngScale}×`, { testid: "export-png", hint: "Présentations, documents", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) });
+const webmBtn = menuItem(ic("film2"), "Vidéo WebM", { testid: "export-webm", hint: webmSupported() ? "Animation d'entrée ou 4D" : "MediaRecorder indisponible dans ce navigateur", onclick: () => void exportWebm(exportBtn) });
+const pptxItem = menuItem(ic("story"), "PowerPoint de l'histoire", { testid: "export-pptx", hint: "Un snapshot par diapositive", onclick: () => void exportPptx(exportBtn) });
+const exportMenu = makeMenu(
+  exportBtn,
+  [
+    menuHead("Télécharger le graphique"),
+    menuItem(ic("download"), "Image SVG", { testid: "export-svg", hint: "Vectoriel, polices intégrées", onclick: () => void exportSvg().catch((e) => toast(String(e), "error")) }),
+    pngItem,
+    h("div", { class: "menu-row" }, h("span", null, "Résolution PNG"), pngScale),
+    webmBtn,
+    menuItem(ic("film"), "GIF animé", { testid: "export-gif", hint: "Prévu en V2", disabled: true, title: "Export GIF animé : prévu en V2", onclick: () => void exportGif().catch((e) => toast(e.message, "info")) }),
+    menuSep(),
+    menuHead("Histoire"),
+    pptxItem,
+  ],
+  { testid: "export-menu", label: "Exporter" }
+);
+exportBtn.addEventListener("click", () => {
+  const n = store.state.story.snapshots.length;
+  pptxItem.disabled = n === 0;
+  pptxItem.querySelector("small")!.textContent = n ? `${n} snapshot${n > 1 ? "s" : ""} · une diapositive chacun` : "Ajoutez d'abord des snapshots (📸)";
+});
+const fileBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-ghost menu-btn", title: "Enregistrer, ouvrir ou réinitialiser la configuration" }, h("span", { html: ic("folder") }), h("span", { class: "btn-lbl" }, "Fichier"), h("span", { class: "menu-car", html: ic("chevronD", 12) }));
+makeMenu(
+  fileBtn,
+  [
+    menuItem(ic("save"), "Enregistrer la configuration", { testid: "save-config", hint: "Fichier .r4d.json (spec validé)", onclick: saveConfig }),
+    h("div", { class: "menu-row" }, h("label", { class: "check mini", title: "Inclure les données importées dans le fichier JSON" }, includeData, h("span", null, "Inclure les données importées"))),
+    menuItem(ic("folder"), "Ouvrir…", { testid: "load-config", hint: "Configuration .r4d.json", onclick: () => cfgInput.click() }),
+    menuSep(),
+    menuItem(ic("refresh"), "Réinitialiser", { testid: "reset-config", hint: "Effacer la session et repartir de l'exemple", onclick: () => { store.clearSession(); loadSample(SAMPLES[0]!.id); } }),
+  ],
+  { testid: "file-menu", label: "Fichier" }
+);
 
 const exploreTopBtn = h("button", { class: "btn btn-explore-top", "data-testid": "explore-open", title: "Pistes de graphiques calculées sur vos données", onclick: () => explorer.toggle() }, h("span", { html: svgIcon(ICONS.explore, 16) }), h("span", { class: "btn-lbl" }, "Explorer mes données"));
 const scenarioTopBtn = h("button", { class: "btn btn-scenario", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: () => scenarioDialog.open() }, h("span", { html: svgIcon(ICONS.clapper, 16) }), h("span", { class: "btn-lbl" }, "Scénarios"));
@@ -1143,26 +1193,20 @@ const header = h(
   h(
     "div",
     { class: "toolbar" },
-    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Récit"), exploreTopBtn, scenarioTopBtn, snapTopBtn, reviewsTopBtn),
-    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Exporter"),
-      h("button", { class: "btn btn-accent", "data-testid": "export-svg", onclick: () => void exportSvg().catch((e) => toast(String(e), "error")) }, h("span", { html: svgIcon(ICONS.download, 16) }), "SVG"),
-      h("span", { class: "split" }, h("button", { class: "btn", "data-testid": "export-png", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) }, "PNG"), pngScale),
-      webmBtn,
-      h("button", { class: "btn", disabled: true, title: "Export GIF animé : prévu en V2", "data-testid": "export-gif", onclick: () => void exportGif().catch((e) => toast(e.message, "info")) }, "GIF ", h("small", null, "V2"))
-    ),
-    h("div", { class: "tool-group" }, h("span", { class: "group-label" }, "Configuration"),
-      h("button", { class: "btn", "data-testid": "save-config", onclick: saveConfig, title: "Enregistrer le spec JSON (validé Zod)" }, "Enregistrer"),
-      h("label", { class: "check mini", title: "Inclure les données importées dans le fichier JSON" }, includeData, h("span", null, "+ données")),
-      h("button", { class: "btn", "data-testid": "load-config", onclick: () => cfgInput.click() }, "Ouvrir…"),
-      cfgInput,
-      h("button", { class: "btn btn-ghost", title: "Effacer la session et repartir de l'exemple", onclick: () => { store.clearSession(); loadSample(SAMPLES[0]!.id); } }, "Réinitialiser")
-    )
+    h("div", { class: "tool-group" }, exploreTopBtn, scenarioTopBtn, snapTopBtn, reviewsTopBtn),
+    h("div", { class: "tool-group" }, fileBtn, cfgInput, exportBtn)
   )
 );
 
 const gallery = new Gallery(store, (t) => void pickType(t));
 const dataPanel = new DataPanel(store, actions);
-const settings = new SettingsPanel(store);
+const settings = new SettingsPanel(store, {
+  exportSvg: () => void exportSvg().catch((e) => toast(String(e), "error")),
+  exportPng: () => void exportPng().catch((e) => toast(String(e), "error")),
+  exportWebm: (b) => void exportWebm(b),
+  exportPptx: (b) => void exportPptx(b),
+  snapshots: () => store.state.story.snapshots.length,
+});
 const explorer = new Explorer(store, storyContext, openInsight);
 const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID) });
 const cadencer = new CadencerDialog({ download: (id) => downloadManifest(id), copy: (text, label) => void copyText(text, label) });
@@ -1230,7 +1274,7 @@ async function openReading(rt: ReadRoute): Promise<void> {
     );
     return;
   }
-  let k = rt.snapId ? story.snapshots.findIndex((s) => s.id === rt.snapId) : 0;
+  let k = rt.snapId ? snapshotIndexOf(story.snapshots, rt.snapId) : 0;
   if (k < 0) {
     k = 0;
     toast("Diapositive introuvable dans cette histoire : lecture depuis le début", "info", 4500);
@@ -1263,6 +1307,11 @@ async function route(hash: string): Promise<void> {
 }
 const drillBar = new DrillBar(store, { snapshot: () => void takeSnapshot(), guide: () => guideText(), guideNext: () => guideNext() });
 preview.onDrill = (el) => onDrillClick(el);
+// Toucher / cliquer un élément du graphique : ouvre la section du panneau et met le réglage en avant
+preview.onPick = (el) => {
+  const t = chartTarget(el, store.state.spec.type, store.state.spec.norme.enabled);
+  if (t) settings.reveal(t);
+};
 const scenarioDialog = new ScenarioDialog(store, { loadSample: (id) => loadSample(id), start: (sc, b, auto) => void startScenario(sc, b, auto) });
 preview.onEditText = (field, value) => {
   if (field === "title") store.set("style.title", value);
@@ -1329,6 +1378,7 @@ store.subscribe((kinds) => {
 
 preview.onModeChange = (m) => {
   webmBtn.classList.toggle("dim", m === "none");
+  webmBtn.title = m === "none" ? "Passez en « Entrée animée » ou « 4D » (Réglages › Export) pour exporter une vidéo" : "";
 };
 
 /* ------------------------------------------------------------------ démarrage */
@@ -1371,6 +1421,9 @@ const api = {
     setZoomSlowdown(slowdown);
   },
   explore: () => explorer.open(),
+  /** Panneau de réglages : ouvrir une section, cibler un réglage, menus de la barre du haut. */
+  panel: () => settings,
+  exportMenu: () => exportMenu,
   mapping: () => mappingWindow,
   reshape: () => reopenMapping(),
   closeExplorer: () => explorer.close(),

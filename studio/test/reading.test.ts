@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 import { DEMO_STORIES, LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, snapshotReadUrl } from "../src/story/reading";
+import { matchSnapshotId, scenarioSnapshotId, SCENARIO_DAF } from "../src/story/scenarios";
 import { parseRoute } from "../src/review/model";
 import { demoPipelineReview, demoReadingStory, scenarioSnapshots } from "../src/review/demo";
 import { SCENARIO_DIRCOM } from "../src/story/scenarios";
@@ -44,7 +45,7 @@ describe("liens du mode lecture", () => {
     const d = await demoReadingStory("demo-dircom");
     expect(d?.title).toBe(SCENARIO_DIRCOM.storyTitle);
     const ids = d!.snapshots.map((s) => s.id);
-    expect(ids).toContain("dircom-03-mois-focus-88z5ap");
+    expect(ids).toContain("dircom-03-mois-focus");
     expect(ids).toHaveLength(7);
     // identifiants stables : indépendants de la date de génération
     const again = await scenarioSnapshots("demo-pipeline", SCENARIO_DIRCOM, "2030-01-01T00:00:00Z");
@@ -53,9 +54,21 @@ describe("liens du mode lecture", () => {
     // chaque snapshot renvoie vers sa démo (QR universel)
     for (const s of d!.snapshots) expect(readingStoryIdFor(s)).toBe("demo-dircom");
     const f = await demoReadingStory("demo-daf");
-    expect(f!.snapshots.map((s) => s.id).every((id) => /^daf-\d\d-.+-1051jsm$/.test(id))).toBe(true);
+    expect(f!.snapshots.map((s) => s.id)).toEqual(["daf-01-cascade","daf-02-hausse","daf-03-hausse-mois","daf-04-baisse","daf-05-baisse-mois","daf-06-carte","daf-07-tableau-croise"]);
     expect(await demoReadingStory("inconnue")).toBeNull();
     expect(DEMO_STORIES.map((x) => x.id)).toEqual(["demo-dircom", "demo-daf"]);
+  });
+
+  
+  it("identifiants stables : pas d'empreinte ; anciens ids à suffixe d'empreinte toujours reconnus", () => {
+    const id = scenarioSnapshotId(SCENARIO_DAF, SCENARIO_DAF.steps[0]!);
+    expect(id).toBe("daf-01-cascade");
+    const ids = ["daf-01-cascade", "daf-02-hausse", "dircom-03-mois-focus"];
+    expect(matchSnapshotId(ids, "daf-01-cascade")).toBe("daf-01-cascade");
+    expect(matchSnapshotId(ids, "daf-01-cascade-14j5oil")).toBe("daf-01-cascade");
+    expect(matchSnapshotId(ids, "daf-01-cascade-1051jsm")).toBe("daf-01-cascade");
+    expect(matchSnapshotId(ids, "dircom-03-mois-focus-88z5ap")).toBe("dircom-03-mois-focus");
+    expect(matchSnapshotId(ids, "inconnue")).toBeNull();
   });
 
   it("format adapté à l'écran : 16:9 en paysage, portrait sur téléphone / tablette", () => {

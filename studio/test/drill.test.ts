@@ -152,10 +152,11 @@ describe("Scénario Directeur commercial", () => {
 
   it("rôle obligatoire manquant signalé ; identifiants de snapshot stables", () => {
     expect(missingRoles(SCENARIO_DIRCOM, ds, { ...b, region: null }).map((r) => r.id)).toEqual(["region"]);
-    const id = scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!, "abc");
-    expect(id).toBe(scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!, "abc"));
-    expect(id).toMatch(/^dircom-04-carte-/);
-    expect(id).not.toBe(scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!, "abd"));
+    const id = scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!);
+    expect(id).toBe("dircom-04-carte");
+    expect(id).toBe(scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!));
+    // mêmes données ou données différentes : l'identifiant ne change pas (le contenu se lit dans l'empreinte)
+    expect(id).toBe(scenarioSnapshotId(SCENARIO_DIRCOM, SCENARIO_DIRCOM.steps[3]!));
   });
 
   it("narration intégrée (kind « drill ») et exemple intégré", () => {

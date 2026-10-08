@@ -3,6 +3,8 @@
  * renseignées sur 3 snapshots chacune pour que Cadencer puisse tester l'affichage de `commentaire_animateur`
  * (les autres snapshots restent à null, comme dans une vraie revue). Données de démonstration Norvia uniquement.
  */
+import { matchSnapshotId } from "../story/scenarios";
+
 export const DEMO_ANIMATOR_NOTES: Record<string, Record<string, string>> = {
   "demo-dircom": {
     "dircom-02-mois": "Juin est le seul mois en retrait : on regarde d'où vient l'écart avant de parler du T3.",
@@ -16,8 +18,10 @@ export const DEMO_ANIMATOR_NOTES: Record<string, Record<string, string>> = {
   },
 };
 
-/** Clé stable d'un snapshot de démonstration (« dircom-02-mois-88z5ap » → « dircom-02-mois »). */
-export const demoNoteKey = (snapId: string): string => snapId.replace(/-[a-z0-9]{5,8}$/, "");
+const NOTE_KEYS: Record<string, true> = Object.fromEntries(Object.values(DEMO_ANIMATOR_NOTES).flatMap((t) => Object.keys(t).map((k) => [k, true as const])));
+
+/** Clé d'un snapshot de démonstration : l'identifiant stable (un ancien suffixe d'empreinte est ignoré). */
+export const demoNoteKey = (snapId: string): string => matchSnapshotId(Object.keys(NOTE_KEYS), snapId) ?? snapId;
 
 /** Notes d'une démonstration, indexées par identifiant de snapshot. */
 export function demoNotesFor(storyId: string, snapIds: string[]): Record<string, string> {

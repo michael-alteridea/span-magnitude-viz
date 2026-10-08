@@ -57,7 +57,7 @@ CORS non nécessaire (import côté serveur).
   "empreinte": "<64 hex>",               // empreinte des données (voir plus bas)
   "lien_lecture": "<PLATFORM_URL>#/lire/<reviewId>" | null,   // null : manifeste téléchargé (1.1)
   "snapshots": [ {
-    "id": "<snapshotId>",                // stable d'une publication à l'autre, unique DANS la revue seulement (1.1)
+    "id": "<snapshotId>",                // stable dans une revue (sans empreinte), unique DANS la revue seulement (1.1)
     "position": 1,                       // 1, 2, 3… dans l'ordre du récit
     "titre": "…",                        // titre d'action
     "commentaire_genere": "…",           // synthèse narrative en une phrase (message du snapshot) (1.1)
@@ -85,6 +85,14 @@ CORS non nécessaire (import côté serveur).
 - **Identifiants (1.1).** Un `id` de snapshot n'est unique **qu'au sein d'une revue** : le même snapshot peut
   figurer dans plusieurs revues (ex. `demo-dircom` et `norvia-pipeline-oct-2026` partagent leurs 7 identifiants).
   Côté Cadencer, la clé d'un point d'ordre du jour est **(`reviewId`, `snapshotId`)**, jamais `snapshotId` seul.
+- **Id stable dans une revue ; le contenu change → `empreinte` et `?v=` (1.1).** L'`id` d'un snapshot ne contient
+  jamais l'empreinte des données : préfixe du scénario + position + intitulé de l'étape (`dircom-03-mois-focus`,
+  `daf-01-cascade`). Republier la même revue avec d'autres données garde **exactement les mêmes identifiants** :
+  points d'ordre du jour et accusés « J'ai vu » restent attachés. Un changement de contenu se lit uniquement dans
+  `empreinte` (snapshot et revue) et dans le paramètre `?v=` des images ; le nom du fichier image (`<snapshotId>.png`),
+  le `lien_lecture` et le QR ne changent pas. Compatibilité : les anciens identifiants à suffixe d'empreinte
+  (`dircom-03-mois-focus-88z5ap`, `daf-01-cascade-14j5oil`, `daf-05-baisse-mois-1051jsm`…) ouvrent toujours le bon
+  snapshot dans `#/lire/…` (suffixe retiré puis rapproché de l'identifiant stable).
 - **Commentaires (1.1).** `commentaire_genere` = synthèse narrative **en une phrase** : rôle dans le récit
   (« Pour situer », « Point d'attention », « Ce que montre l'analyse », « À décider »), périmètre (`chemin`) et message
   (titre d'action). `a_retenir` = les puces détaillées. Les deux ne sont jamais identiques (contrôlé par le schéma) :
@@ -126,7 +134,7 @@ CORS non nécessaire (import côté serveur).
   "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026",
   "snapshots": [
     {
-      "id": "dircom-01-trimestres-88z5ap",
+      "id": "dircom-01-trimestres",
       "position": 1,
       "titre": "T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse",
       "commentaire_genere": "Pour situer (Pipeline créé) — T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse.",
@@ -137,11 +145,11 @@ CORS non nécessaire (import côté serveur).
         "T3 2026 repart (+13 %) : à quel mois tient le recul ?"
       ],
       "chemin": "Pipeline créé",
-      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.png?v=f077caff5f0f",
-      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap.svg?v=f077caff5f0f",
+      "image_png": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.png?v=9b22a2cc7b9c",
+      "image_svg": "https://alteridea-dashboard.web.app/reporting/publie/norvia-pipeline-oct-2026/dircom-01-trimestres.svg?v=9b22a2cc7b9c",
       "alt": "Graphique en barres par période : Pipeline créé. T2 2026 : seul trimestre en recul (−3,8 %) après 4 trimestres de hausse.",
-      "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026/dircom-01-trimestres-88z5ap",
-      "empreinte": "f077caff5f0f5df61b747b172c0a0d33fa84ba9d4ea1f0924ee0ffb9b0c92864"
+      "lien_lecture": "https://alteridea-dashboard.web.app/reporting/#/lire/norvia-pipeline-oct-2026/dircom-01-trimestres",
+      "empreinte": "9b22a2cc7b9cb6b2ce6374855f6ec023a6e7c3d1847cc72f6db5a2d45c69e0f9"
     }
   ]
 }
@@ -217,6 +225,11 @@ Suite à la revue du contrat par Cadencer :
 6. Index : `empreinte`, `genere_le`, `nb_snapshots` par revue.
 7. Manifeste téléchargé : `lien_lecture` = `null` (liens propres à l'appareil, non partagés) ; ne garder que les liens `https://`.
 8. Manifeste téléchargé : 800 000 caractères au plus par image intégrée, 12 Mo au plus par fichier.
+9. « id stable dans une revue ; le contenu change → empreinte et ?v= » : les identifiants de snapshots ne contiennent
+   plus l'empreinte des données (`dircom-01-trimestres` au lieu de `dircom-01-trimestres-88z5ap`) ; les anciens liens
+   `#/lire/…` restent valides.
 
 Un consommateur 1.0 reste compatible : il ignore `alt` et les nouveaux champs d'index, et charge les adresses
-d'images telles quelles. Seul changement à prévoir : `lien_lecture` peut être `null` dans un manifeste téléchargé.
+d'images telles quelles. Changements à prévoir : `lien_lecture` peut être `null` dans un manifeste téléchargé ; au
+premier import après le point 9, les points déjà créés avec un ancien identifiant (suffixe d'empreinte) sont à
+rapprocher une fois de l'identifiant stable (même règle : retirer le suffixe `-<empreinte>`), ensuite plus jamais.

@@ -1,5 +1,9 @@
 /**
- * Panneau de réglages (droite) : encodages, axes, mode / 4D, style, format, film & carte.
+ * Panneau de réglages (droite), en accordéon (étape H) :
+ * ① Données → ② Graphique → ③ Récit → ④ Style → ⑤ Export, une seule section ouverte à la fois,
+ * un résumé d'une ligne par section, l'essentiel en haut et « Plus d'options » replié,
+ * une recherche de réglages, plus aucun doublon (un réglage = un seul contrôle, cf. `data-path` unique).
+ * Toucher un élément du graphique ouvre la bonne section et met le réglage en avant (`reveal`).
  * Chaque contrôle est lié à un chemin du spec ; le panneau n'est reconstruit que lorsque
  * la structure change (type, colonnes, options qui affichent / masquent des champs).
  */
@@ -7,7 +11,6 @@ import type { Store } from "../state";
 import {
   AGGREGATES,
   AGGREGATE_LABELS,
-  CHART_TYPE_LABELS,
   FONT_KEYS,
   PALETTE_KEYS,
   UNITS,
@@ -17,7 +20,6 @@ import {
   isRadial,
   isSpecial,
   isVariance,
-  SIZE_PRESETS,
   type ChartSpec,
 } from "../spec";
 import type { Column } from "../data/table";
@@ -29,20 +31,56 @@ import { effectiveDataset, describeTransform } from "../data/transform";
 import { KIND_LABELS, type InsightKind } from "../story/insights";
 import { PRODUCT_LABEL } from "../brand";
 import { detectScenario, NORME_WORDING_F, SCENARIO_CODES, SCENARIO_NAMES, type ScenarioCode } from "../norme";
+import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
 
 type Opt = [string, string];
+type Kid = Node | null | false | undefined;
+
+/** Actions d'export branchées par main (boutons « Télécharger » de la section Export). */
+export interface PanelActions {
+  exportSvg: () => void;
+  exportPng: () => void;
+  exportWebm: (btn: HTMLButtonElement) => void;
+  exportPptx: (btn: HTMLButtonElement) => void;
+  snapshots: () => number;
+}
+
+interface Sec {
+  root: HTMLElement;
+  head: HTMLButtonElement;
+  bd: HTMLElement;
+  sum: HTMLElement;
+  num: HTMLElement;
+  more: HTMLElement | null;
+}
 
 export class SettingsPanel {
   readonly root: HTMLElement;
   private body: HTMLElement;
   private store: Store;
+  private actions: PanelActions | null;
   private key = "";
+  private secs = new Map<SectionId, Sec>();
+  private moreOpen = new Set<SectionId>();
+  readonly search: HTMLInputElement;
+  private searchInfo: HTMLElement;
+  private flashTimer = 0;
 
-  constructor(store: Store) {
+  constructor(store: Store, actions: PanelActions | null = null) {
     this.store = store;
-    this.body = h("div", { class: "panel-body settings-body" });
+    this.actions = actions;
+    this.body = h("div", { class: "panel-body settings-body acc" });
+    this.search = h("input", { type: "search", class: "acc-search-in", placeholder: "Rechercher un réglage…", title: "Rechercher un réglage (ex. « décimales », « légende », « unité »)", "aria-label": "Rechercher un réglage", "data-testid": "settings-search", autocomplete: "off", spellcheck: "false" });
+    this.search.addEventListener("input", () => this.applySearch());
+    this.search.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.search.value) {
+        e.stopPropagation();
+        this.clearSearch();
+      }
+    });
+    this.searchInfo = h("p", { class: "acc-search-info", "data-testid": "settings-search-info", hidden: true, "aria-live": "polite" });
     this.root = h(
       "aside",
       { class: "panel panel-right", "data-testid": "settings-panel" },
@@ -51,10 +89,17 @@ export class SettingsPanel {
         { class: "panel-head" },
         h("span", { class: "panel-icon", html: svgIcon(ICONS.sliders, 18) }),
         h("h2", null, "Réglages"),
-        h("button", { class: "icon-btn collapse-btn", title: "Replier le panneau", html: svgIcon(ICONS.chevronR, 18), onclick: () => store.setUi({ rightCollapsed: !store.state.ui.rightCollapsed }) })
+        h("button", { class: "icon-btn collapse-btn", title: "Replier le panneau", "aria-label": "Replier le panneau", html: svgIcon(ICONS.chevronR, 18), onclick: () => store.setUi({ rightCollapsed: !store.state.ui.rightCollapsed }) })
       ),
+      h("div", { class: "acc-search" }, h("span", { class: "acc-search-ic", html: svgIcon(ICONS.search, 16) }), this.search),
       this.body
     );
+  }
+
+  /** Section ouverte (ou null : toutes repliées). */
+  get openSection(): SectionId | null {
+    const s = this.store.state.ui.panelSection;
+    return s === "" ? null : isSectionId(s) ? s : DEFAULT_SECTION;
   }
 
   update(): void {
@@ -80,18 +125,197 @@ export class SettingsPanel {
       spec.variance,
       spec.norme.enabled,
       spec.norme.autoSwitch,
+      spec.special.mapRegion,
       ds?.columns.map((c) => c.type),
     ]);
-    if (key === this.key) {
-      this.syncStory();
-      return;
+    if (key !== this.key) {
+      this.key = key;
+      const scroll = this.body.scrollTop;
+      const cols = ds ? effectiveDataset(spec, ds).columns : [];
+      this.secs.clear();
+      this.body.replaceChildren(...this.build(spec, cols), this.searchInfo);
+      this.indexItems();
+      this.applyOpen();
+      if (this.search.value.trim()) this.applySearch();
+      this.body.scrollTop = scroll;
     }
-    this.key = key;
-    const scroll = this.body.scrollTop;
-    const cols = ds ? effectiveDataset(spec, ds).columns : [];
-    this.body.replaceChildren(...this.build(spec, cols));
-    this.body.scrollTop = scroll;
+    this.syncControls();
     this.syncStory();
+    this.syncSummaries();
+  }
+
+  /* ------------------------------------------------------------ accordéon */
+
+  /** Ouvre une section (les autres se replient) ; `null` replie tout. */
+  open(id: SectionId | null, scroll = true): void {
+    this.store.state.ui.panelSection = id ?? "";
+    this.store.save();
+    this.applyOpen();
+    if (id && scroll) this.secs.get(id)?.root.scrollIntoView?.({ block: "nearest" });
+  }
+
+  private applyOpen(): void {
+    const cur = this.openSection;
+    for (const [id, s] of this.secs) {
+      const on = id === cur;
+      s.root.classList.toggle("open", on);
+      s.head.setAttribute("aria-expanded", on ? "true" : "false");
+      s.bd.hidden = !on;
+      if (s.more) this.paintMore(id);
+    }
+  }
+
+  private setMore(id: SectionId, on: boolean): void {
+    if (on) this.moreOpen.add(id);
+    else this.moreOpen.delete(id);
+    this.paintMore(id);
+  }
+
+  private paintMore(id: SectionId): void {
+    const m = this.secs.get(id)?.more;
+    if (!m) return;
+    const on = this.moreOpen.has(id);
+    m.classList.toggle("open", on);
+    m.querySelector(".more-btn")?.setAttribute("aria-expanded", on ? "true" : "false");
+    const bd = m.querySelector<HTMLElement>(".more-bd");
+    if (bd) bd.hidden = !on;
+  }
+
+  /**
+   * Toucher / cliquer un élément du graphique : ouvre la section, déplie « Plus d'options » au besoin,
+   * fait défiler jusqu'au réglage et le met brièvement en surbrillance (sans prendre le focus).
+   */
+  reveal(t: PanelTarget): Element | null {
+    if (this.store.state.ui.rightCollapsed) this.store.setUi({ rightCollapsed: false });
+    if (this.search.value) this.clearSearch();
+    this.open(t.section, false);
+    const sec = this.secs.get(t.section);
+    if (!sec) return null;
+    let el: Element | null = t.group ? sec.root.querySelector(`[data-group="${t.group}"]`) : null;
+    let which = t.group ?? "";
+    if (!el)
+      for (const p of t.paths) {
+        const c = sec.root.querySelector(`[data-path="${p}"], [data-target="${p}"]`);
+        if (c) {
+          el = c.closest("[data-item]") ?? c;
+          which = p;
+          break;
+        }
+      }
+    if (!el) el = sec.head;
+    if (el.closest(".more")) this.setMore(t.section, true);
+    this.root.setAttribute("data-revealed", `${t.section}:${which}`);
+    for (const x of this.root.querySelectorAll(".flash, .flash-sec")) x.classList.remove("flash", "flash-sec");
+    void (el as HTMLElement).offsetWidth;
+    el.classList.add("flash");
+    sec.root.classList.add("flash-sec");
+    clearTimeout(this.flashTimer);
+    this.flashTimer = window.setTimeout(() => {
+      el?.classList.remove("flash");
+      sec.root.classList.remove("flash-sec");
+    }, 1900);
+    const target = el;
+    // après l'éventuel dépliage du panneau (mise en page)
+    window.setTimeout(() => (target as HTMLElement).scrollIntoView?.({ block: "center" }), 30);
+    return el;
+  }
+
+  /* ------------------------------------------------------------ recherche */
+
+  clearSearch(): void {
+    this.search.value = "";
+    this.applySearch();
+  }
+
+  private applySearch(): void {
+    const q = this.search.value.trim();
+    this.body.classList.toggle("searching", !!q);
+    let total = 0;
+    for (const s of this.secs.values()) {
+      let n = 0;
+      for (const it of s.root.querySelectorAll<HTMLElement>("[data-item]")) {
+        const ok = !q || searchMatch(it.dataset.kw ?? "", q);
+        it.classList.toggle("s-miss", !ok);
+        if (ok) n++;
+      }
+      for (const g of s.root.querySelectorAll<HTMLElement>("[data-group]")) g.classList.toggle("s-miss", !!q && !g.querySelector("[data-item]:not(.s-miss)"));
+      s.more?.classList.toggle("s-hit", !!q && !!s.more.querySelector("[data-item]:not(.s-miss)"));
+      s.root.classList.toggle("s-hit", !!q && n > 0);
+      s.root.classList.toggle("s-none", !!q && n === 0);
+      total += q ? n : 0;
+    }
+    this.searchInfo.hidden = !q;
+    this.searchInfo.textContent = !q ? "" : total ? `${total} réglage${total > 1 ? "s" : ""} pour « ${q} »` : `Aucun réglage ne correspond à « ${q} » — essayez « unité », « légende », « couleurs », « format »…`;
+    this.searchInfo.classList.toggle("empty", !!q && !total);
+  }
+
+  /** Mots-clés de recherche : libellés et aides visibles (sans les options des listes) + synonymes. */
+  private indexItems(): void {
+    const mark = (parent: Element) => {
+      for (const c of [...parent.children]) {
+        if (!(c instanceof HTMLElement)) continue;
+        if (c.matches(".more")) {
+          const bd = c.querySelector(".more-bd");
+          if (bd) mark(bd);
+          continue;
+        }
+        if (c.matches("[data-group]")) {
+          mark(c);
+          continue;
+        }
+        if (c.matches("h4, .acc-search-info")) continue;
+        c.setAttribute("data-item", "");
+      }
+    };
+    for (const s of this.secs.values()) mark(s.bd);
+    for (const it of this.body.querySelectorAll<HTMLElement>("[data-item]")) {
+      const clone = it.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll("select, textarea, input, .swatches, .tile-sw").forEach((x) => x.remove());
+      const group = it.closest("[data-group]")?.querySelector("h4")?.textContent ?? "";
+      const sec = it.closest<HTMLElement>("[data-section]")?.dataset.section as SectionId | undefined;
+      it.dataset.kw = [it.dataset.kw ?? "", clone.textContent ?? "", group, sec ? SECTION_TITLES[sec] : ""].join(" ").replace(/\s+/g, " ").trim();
+    }
+    // « Plus d'options · N » et l'aperçu des réglages repliés
+    for (const s of this.secs.values()) {
+      if (!s.more) continue;
+      const bd = s.more.querySelector(".more-bd")!;
+      // les notes (paragraphes d'aide) ne comptent pas comme des réglages
+      const n = bd.querySelectorAll("[data-item]:not(p)").length;
+      const opts = [...bd.children].filter((c) => !c.matches("p"));
+      const names: string[] = [];
+      for (const c of opts) {
+        const t = c.matches("[data-group]") ? c.querySelector("h4")?.textContent : (c.querySelector(".field-label, .check > span") ?? c.querySelector("b, strong"))?.textContent;
+        if (t && names.length < 6) names.push(t.replace(/\s*\(.*?\)\s*/g, " ").trim().toLowerCase());
+      }
+      const note = bd.querySelector("p")?.textContent?.trim() ?? "";
+      s.more.querySelector(".more-n")!.textContent = n ? `Plus d’options · ${n}` : "À savoir";
+      s.more.querySelector(".more-list")!.textContent = n ? names.join(", ") + (opts.length > names.length ? "…" : "") : note.length > 64 ? `${note.slice(0, 62).replace(/\s+\S*$/, "")}…` : note;
+    }
+  }
+
+  /* ------------------------------------------------------------ synchronisation */
+
+  /** Contrôles reflétant le spec même sans reconstruction (choix faits ailleurs : toucher, Explorer…). */
+  private syncControls(): void {
+    for (const g of this.body.querySelectorAll<HTMLElement>("[role=radiogroup][data-path]")) {
+      const cur = String(this.store.get(g.dataset.path!));
+      for (const b of g.querySelectorAll<HTMLElement>("[data-value]")) {
+        const on = b.dataset.value === cur;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-checked", on ? "true" : "false");
+      }
+    }
+    for (const c of this.body.querySelectorAll<HTMLInputElement>("input[type=checkbox][data-path]")) c.checked = !!this.store.get(c.dataset.path!);
+    for (const s of this.body.querySelectorAll<HTMLSelectElement>("select[data-path]")) {
+      if (document.activeElement === s || s.dataset.path!.startsWith("encoding.y")) continue;
+      const v = String(this.store.get(s.dataset.path!) ?? "");
+      if (s.value !== v && [...s.options].some((o) => o.value === v)) s.value = v;
+    }
+    for (const st of this.body.querySelectorAll<HTMLElement>(".stepper[data-path]")) {
+      const v = this.store.get(st.dataset.path!) as number | null;
+      const out = st.querySelector("output");
+      if (out) out.textContent = v == null ? "auto" : String(v);
+    }
   }
 
   /** Recopie les textes calculés dans les champs (sauf celui en cours de saisie) et les badges. */
@@ -118,20 +342,74 @@ export class SettingsPanel {
     if (k) k.textContent = spec.story.kind && KIND_LABELS[spec.story.kind as InsightKind] ? `Piste : ${KIND_LABELS[spec.story.kind as InsightKind]}` : "Récit générique (selon la forme du graphique)";
   }
 
-  /* ------------------------------------------------------------ contrôles */
-
-  private section(id: string, title: string, ...content: (Node | null | false)[]): HTMLElement {
-    const open = this.store.state.ui.openSections[id] ?? false;
-    const d = h("details", { class: "section", open, "data-section": id }, h("summary", null, title), h("div", { class: "section-body" }, ...content));
-    d.addEventListener("toggle", () => {
-      this.store.state.ui.openSections[id] = d.open;
-      this.store.save();
-    });
-    return d;
+  private syncSummaries(): void {
+    const { spec, ds } = this.store.state;
+    const sums = sectionSummaries(spec, !!ds);
+    const done = dataComplete(spec, !!ds);
+    for (const [id, s] of this.secs) {
+      const txt = s.sum.querySelector<HTMLElement>(".acc-sum-t") ?? s.sum;
+      if (txt.textContent !== sums[id]) txt.textContent = sums[id];
+      s.sum.title = sums[id];
+      const isDone = id === "donnees" && done;
+      s.root.classList.toggle("done", isDone);
+      s.num.innerHTML = isDone ? svgIcon(ICONS.check, 15) : String(SECTION_IDS.indexOf(id) + 1);
+    }
+    const sw = this.secs.get("style")?.sum.querySelector(".acc-sum-sw");
+    if (sw) sw.replaceChildren(...this.swatchList(spec, 3));
   }
 
-  private row(label: string, control: Node, hint?: string): HTMLElement {
-    return h("label", { class: "field" }, h("span", { class: "field-label" }, label), control, hint ? h("small", { class: "hint" }, hint) : null);
+  /* ------------------------------------------------------------ contrôles */
+
+  private sectionEl(id: SectionId, main: Kid[], more: Kid[]): HTMLElement {
+    const bid = `acc-${id}-h`;
+    const pid = `acc-${id}-p`;
+    const sum = h("small", { class: "acc-sum", "data-summary": id }, id === "style" ? h("span", { class: "acc-sum-sw", "aria-hidden": "true" }) : null, h("span", { class: "acc-sum-t" }));
+    const num = h("span", { class: "acc-num", "aria-hidden": "true" }, String(SECTION_IDS.indexOf(id) + 1));
+    const head = h(
+      "button",
+      { type: "button", class: "acc-hd", id: bid, "aria-controls": pid, "aria-expanded": "false", "data-testid": `acc-${id}`, onclick: () => this.open(this.openSection === id ? null : id) },
+      num,
+      h("span", { class: "acc-t" }, h("b", null, SECTION_TITLES[id]), sum),
+      h("span", { class: "acc-chev", html: svgIcon(ICONS.chevronD, 16) })
+    );
+    const moreKids = more.filter(Boolean) as Node[];
+    let moreEl: HTMLElement | null = null;
+    if (moreKids.length) {
+      moreEl = h(
+        "div",
+        { class: "more", "data-more": id },
+        h(
+          "button",
+          { type: "button", class: "more-btn", "aria-expanded": "false", "data-testid": `more-${id}`, onclick: () => this.setMore(id, !this.moreOpen.has(id)) },
+          h("span", { class: "more-car", html: svgIcon(ICONS.chevronR, 14) }),
+          h("span", { class: "more-txt" }, h("b", { class: "more-n" }, "Plus d’options"), h("small", { class: "more-list" }))
+        ),
+        h("div", { class: "more-bd", hidden: true }, ...moreKids)
+      );
+    }
+    const bd = h("div", { class: "acc-bd", id: pid, role: "region", "aria-labelledby": bid, hidden: true }, ...(main.filter(Boolean) as Node[]), moreEl);
+    const root = h("section", { class: "acc-s", "data-section": id }, h("h3", { class: "acc-h3" }, head), bd);
+    this.secs.set(id, { root, head, bd, sum, num, more: moreEl });
+    return root;
+  }
+
+  private group(id: string, title: string, ...kids: Kid[]): HTMLElement {
+    return h("div", { class: "acc-group", "data-group": id }, h("h4", null, title), ...(kids.filter(Boolean) as Node[]));
+  }
+
+  private kw<T extends HTMLElement>(el: T, words: string): T {
+    el.dataset.kw = `${el.dataset.kw ?? ""} ${words}`.trim();
+    return el;
+  }
+
+  private row(label: string, control: Node, hint?: string, kw?: string): HTMLElement {
+    const el = h("label", { class: "field" }, h("span", { class: "field-label" }, label), control, hint ? h("small", { class: "hint" }, hint) : null);
+    return kw ? this.kw(el, kw) : el;
+  }
+
+  /** Ligne avec plusieurs contrôles (pas de <label> englobant : un clic ne doit pas activer le premier bouton). */
+  private line(label: string, ...controls: Node[]): HTMLElement {
+    return h("div", { class: "field" }, h("span", { class: "field-label" }, label), h("div", { class: "field-line" }, ...controls));
   }
 
   private select(path: string, opts: Opt[], nullable = false, after?: (v: string | null) => void): HTMLSelectElement {
@@ -174,6 +452,7 @@ export class SettingsPanel {
       max: opts.max != null ? String(opts.max) : null,
       step: String(opts.step ?? "any"),
       placeholder: opts.placeholder ?? (opts.nullable ? "auto" : ""),
+      inputmode: "decimal",
       "data-path": path,
     });
     inp.addEventListener("change", () => {
@@ -192,18 +471,21 @@ export class SettingsPanel {
     return inp;
   }
 
-  private check(path: string, label: string, hint?: string): HTMLElement {
-    const inp = h("input", { type: "checkbox", checked: !!this.store.get(path), "data-path": path });
+  /** Interrupteur (case à cocher stylée). */
+  private check(path: string, label: string, hint?: string, kw?: string): HTMLElement {
+    const inp = h("input", { type: "checkbox", role: "switch", checked: !!this.store.get(path), "data-path": path });
     inp.addEventListener("change", () => this.store.set(path, inp.checked));
-    return h("label", { class: "check" }, inp, h("span", null, label), hint ? h("small", { class: "hint" }, hint) : null);
+    const el = h("label", { class: "check" }, inp, h("span", null, label), hint ? h("small", { class: "hint" }, hint) : null);
+    return kw ? this.kw(el, kw) : el;
   }
 
-  private segmented(path: string, opts: Opt[], after?: (v: string) => void): HTMLElement {
+  /** Choix exclusif (boutons) ; `parse` convertit la valeur (booléens). */
+  private segmented(path: string, opts: (Opt | [string, string, string])[], o: { after?: (v: string) => void; parse?: (v: string) => unknown; cls?: string; testid?: string } = {}): HTMLElement {
     const cur = String(this.store.get(path));
     return h(
       "div",
-      { class: "segmented", role: "radiogroup", "data-path": path },
-      ...opts.map(([v, l]) =>
+      { class: `segmented ${o.cls ?? ""}`.trim(), role: "radiogroup", "data-path": path, "data-testid": o.testid ?? null },
+      ...opts.map(([v, l, title]) =>
         h(
           "button",
           {
@@ -212,9 +494,10 @@ export class SettingsPanel {
             role: "radio",
             "aria-checked": v === cur ? "true" : "false",
             "data-value": v,
+            title: title ?? null,
             onclick: () => {
-              this.store.set(path, v);
-              after?.(v);
+              this.store.set(path, o.parse ? o.parse(v) : v);
+              o.after?.(v);
             },
           },
           l
@@ -223,147 +506,152 @@ export class SettingsPanel {
     );
   }
 
-  /* -------------------------------------------------------------- sections */
+  /** Décimales : − / auto / + (0 à 4 ; « auto » = format par défaut). */
+  private stepper(path: string, max = 4): HTMLElement {
+    const get = () => this.store.get(path) as number | null;
+    const out = h("output", null, get() == null ? "auto" : String(get()));
+    const set = (d: number) => {
+      const v = get();
+      const n = v == null ? (d > 0 ? 1 : 0) : v + d;
+      this.store.set(path, n < 0 ? null : Math.min(max, n));
+    };
+    return h(
+      "div",
+      { class: "stepper", "data-path": path, role: "group", "aria-label": "Décimales" },
+      h("button", { type: "button", title: "Moins de décimales", "aria-label": "Moins de décimales", onclick: () => set(-1) }, "−"),
+      out,
+      h("button", { type: "button", title: "Plus de décimales", "aria-label": "Plus de décimales", onclick: () => set(1) }, "+")
+    );
+  }
 
   private colOpts(cols: Column[], filter?: (c: Column) => boolean): Opt[] {
     return cols.filter((c) => !filter || filter(c)).map((c) => [c.name, `${c.name} · ${COLUMN_TYPE_LABELS[c.type].toLowerCase()}`]);
   }
 
+  /* -------------------------------------------------------------- sections */
+
   private build(spec: ChartSpec, cols: Column[]): HTMLElement[] {
+    return [this.buildDonnees(spec, cols), this.buildGraphique(spec, cols), this.buildRecit(spec), this.buildStyle(spec), this.buildExport(spec, cols)];
+  }
+
+  /* ① Données : quoi montrer */
+  private buildDonnees(spec: ChartSpec, cols: Column[]): HTMLElement {
     const t = spec.type;
-    const out: HTMLElement[] = [];
     const num = (c: Column) => c.type === "number";
-    const special = isSpecial(t);
-
-    /* ---- Encodages */
-    const enc: (Node | null)[] = [];
-    enc.push(h("p", { class: "section-intro" }, `Type : ${CHART_TYPE_LABELS[t]}`));
-    if (!cols.length) enc.push(h("p", { class: "muted" }, "Chargez des données pour choisir les colonnes."));
-    else if (t === "drill") {
-      enc.push(this.row("Date (axe du temps)", this.select("drill.date", this.colOpts(cols, (c) => c.type === "date"), true), "Date de création, de commande…"));
-      enc.push(this.row("Mesure", this.select("drill.measure", this.colOpts(cols, num), true), "Vide : nombre de lignes"));
-      enc.push(this.row("Nom de la mesure", this.text("drill.label", "ex. Pipeline créé", 60)));
-      enc.push(this.row("Répartir / détailler par", this.select("drill.by", this.colOpts(cols, (c) => c.type === "category" || (c.type === "text" && c.cardinality <= 60)), true), "Région → carte ; commercial, produit… → barres"));
-      enc.push(this.row("Version (Réel / Budget…)", this.select("drill.version", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Vide : exploration temporelle simple"));
-      enc.push(this.row("De (référence)", this.text("drill.from", "Réel 2025", 40)));
-      enc.push(this.row("À (comparé)", this.text("drill.to", "Budget 2026", 40)));
-      enc.push(this.row("Nature (Revenus / Coûts)", this.select("drill.nature", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Les coûts sont soustraits"));
-      enc.push(this.row("Référence : moyenne des", this.number("drill.compare", { min: 1, max: 12, step: 1 }), "périodes précédentes (hors comparaison de versions)"));
-      enc.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → mois), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
-    } else if (isVariance(t)) {
-      enc.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true)));
-      const xc = cols.find((c) => c.name === spec.encoding.x);
-      if (xc?.type === "date") enc.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]])));
-      enc.push(this.row("Réel (Y1)", this.yAt(cols, 0)));
-      enc.push(this.row("Référence (Y2)", this.yAt(cols, 1), "Budget (contour), N-1 (gris) ou prévision (hachuré)"));
-      enc.push(this.row("Sens favorable", this.segmented("variance.polarity", [["higher", "Plus = mieux"], ["lower", "Moins = mieux"]]), "Coûts, délais : « Moins = mieux »"));
-      enc.push(this.row("Écarts", this.segmented("variance.show", [["abs", "Absolus (barres)"], ["rel", "Relatifs % (épingles)"]])));
-      enc.push(this.check("variance.total", "Ligne « Total »"));
-      enc.push(h("p", { class: "muted small" }, "Rouge et vert sont réservés aux écarts (IBCS)."));
-    } else if (special) {
-      enc.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true)));
-      enc.push(this.row("Fin (optionnel)", this.select("encoding.end", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Sans fin : événements ponctuels"));
-      enc.push(this.row("Magnitude (épaisseur)", this.ySingle(cols)));
-      enc.push(this.row("Groupe / couleur", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 20), true)));
-      enc.push(this.row("Libellé", this.select("encoding.label", this.colOpts(cols), true)));
-      enc.push(this.row("Code postal FR/BE", this.select("encoding.postal", this.colOpts(cols), true)));
-      enc.push(this.row("Latitude", this.select("encoding.lat", this.colOpts(cols, num), true)));
-      enc.push(this.row("Longitude", this.select("encoding.lon", this.colOpts(cols, num), true)));
-    } else {
-      const xFilter = t === "scatter" ? (c: Column) => c.type !== "text" || c.cardinality <= 60 : undefined;
-      enc.push(this.row(isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Axe X", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v))));
-      const xc = cols.find((c) => c.name === spec.encoding.x);
-      if (xc?.type === "date")
-        enc.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Aucun (valeurs brutes)"], ["day", "Jour"], ["week", "Semaine"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]])));
-      enc.push(this.row(t === "scatter" ? "Axe Y" : isRadial(t) ? "Valeur(s)" : "Mesure(s) — axe Y", t === "scatter" ? this.ySingle(cols) : this.yMulti(cols)));
-      if (t !== "scatter") enc.push(this.row("Agrégat", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt))));
-      if (!isRadial(t)) {
-        const multiY = spec.encoding.y.length > 1;
-        enc.push(this.row("Série / couleur", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 24), true), multiY ? "Ignoré : plusieurs mesures forment déjà les séries" : undefined));
-      }
-      if (isCartesian(t) && t !== "scatter") {
-        enc.push(this.row("Axe Y secondaire (droite)", this.select("encoding.y2", this.colOpts(cols, num), true, (v) => this.hintUnit("axes.y2", v)), "Seconde série, échelle indépendante, tracée en ligne"));
-        if (spec.encoding.y2) enc.push(this.row("Agrégat Y secondaire", this.select("encoding.y2Aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt))));
-      }
-      if (t === "scatter") {
-        enc.push(this.row("Taille des bulles", this.select("encoding.size", this.colOpts(cols, num), true)));
-        enc.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true)));
-      }
-    }
-    if (cols.length && !special && spec.norme.enabled && spec.encoding.y.length) enc.push(this.scenarioRows(spec));
-    if (cols.length && !special && !isVariance(t) && t !== "drill")
-      enc.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), "Active la 4D dans « Mode & animation »"));
-    out.push(this.section("encodage", "Encodages", ...enc));
-
-    /* ---- Filtres & calculs (posés par l'Explorer) */
+    const main: Kid[] = [];
+    const more: Kid[] = [];
     const tr = spec.transform;
     if (tr.filters.length || tr.calculate.length) {
       const chips: HTMLElement[] = [];
       const labels = describeTransform(tr);
       tr.filters.forEach((f, i) =>
         chips.push(
-          h("span", { class: "chip", "data-testid": "transform-chip" }, h("span", null, labels[i] || f.field), h("button", { type: "button", class: "chip-x", title: "Retirer ce filtre", onclick: () => this.store.set("transform.filters", tr.filters.filter((_, k) => k !== i)) }, "×"))
+          h("span", { class: "chip", "data-testid": "transform-chip" }, h("span", null, labels[i] || f.field), h("button", { type: "button", class: "chip-x", title: "Retirer ce filtre", "aria-label": "Retirer ce filtre", onclick: () => this.store.set("transform.filters", tr.filters.filter((_, k) => k !== i)) }, "×"))
         )
       );
       tr.calculate.forEach((c) => chips.push(h("span", { class: "chip chip-calc", title: "Colonne calculée" }, h("span", null, `ƒ ${c.as}`))));
-      out.push(this.section("transform", "Filtres & calculs", h("div", { class: "chips" }, ...chips), h("p", { class: "muted small" }, "Les colonnes calculées (ƒ) apparaissent dans les listes de colonnes.")));
+      main.push(this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Filtres et calculs (Explorer)"), h("div", { class: "chips" }, ...chips)), "filtre calcul colonne calculée"));
     }
+    if (!cols.length) main.push(h("p", { class: "muted" }, "Chargez des données (panneau de gauche) pour choisir les colonnes."));
+    else if (t === "drill") {
+      main.push(this.row("Date (axe du temps)", this.select("drill.date", this.colOpts(cols, (c) => c.type === "date"), true), "Date de création, de commande…"));
+      main.push(this.row("Mesure", this.select("drill.measure", this.colOpts(cols, num), true), "Vide : nombre de lignes"));
+      main.push(this.row("Répartir / détailler par", this.select("drill.by", this.colOpts(cols, (c) => c.type === "category" || (c.type === "text" && c.cardinality <= 60)), true), "Région → carte ; commercial, produit… → barres"));
+      main.push(this.row("Version (Réel / Budget…)", this.select("drill.version", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Vide : exploration temporelle simple"));
+      more.push(this.row("Nom de la mesure", this.text("drill.label", "ex. Pipeline créé", 60)));
+      more.push(this.row("De (référence)", this.text("drill.from", "Réel 2025", 40)));
+      more.push(this.row("À (comparé)", this.text("drill.to", "Budget 2026", 40)));
+      more.push(this.row("Nature (Revenus / Coûts)", this.select("drill.nature", this.colOpts(cols, (c) => c.type === "category" || c.type === "text"), true), "Les coûts sont soustraits"));
+      more.push(this.row("Référence : moyenne des", this.number("drill.compare", { min: 1, max: 12, step: 1 }), "périodes précédentes (hors comparaison de versions)"));
+    } else if (isVariance(t)) {
+      main.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true), undefined, "axe x"));
+      main.push(this.row("Réel (Y1)", this.yAt(cols, 0), undefined, "mesure"));
+      main.push(this.row("Référence (Y2)", this.yAt(cols, 1), "Budget (contour), N-1 (gris) ou prévision (hachuré)", "mesure budget"));
+      const xc = cols.find((c) => c.name === spec.encoding.x);
+      if (xc?.type === "date") more.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "période mois trimestre année"));
+    } else if (isSpecial(t)) {
+      main.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true)));
+      main.push(this.row("Fin (optionnel)", this.select("encoding.end", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Sans fin : événements ponctuels"));
+      main.push(this.row("Magnitude (épaisseur)", this.ySingle(cols), undefined, "mesure valeur"));
+      main.push(this.row("Groupe / couleur", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 20), true), undefined, "série"));
+      more.push(this.row("Libellé", this.select("encoding.label", this.colOpts(cols), true)));
+      more.push(this.row("Code postal FR/BE", this.select("encoding.postal", this.colOpts(cols), true), undefined, "carte localisation"));
+      more.push(this.row("Latitude", this.select("encoding.lat", this.colOpts(cols, num), true), undefined, "carte gps"));
+      more.push(this.row("Longitude", this.select("encoding.lon", this.colOpts(cols, num), true), undefined, "carte gps"));
+    } else {
+      const xFilter = t === "scatter" ? (c: Column) => c.type !== "text" || c.cardinality <= 60 : undefined;
+      main.push(this.row(isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Catégories (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x"));
+      main.push(this.row(t === "scatter" ? "Axe Y" : isRadial(t) ? "Valeur(s)" : "Mesure(s) — axe Y", t === "scatter" ? this.ySingle(cols) : this.yMulti(cols), undefined, "mesure valeur"));
+      if (t !== "scatter") main.push(this.row("Calcul", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat somme moyenne nombre"));
+      if (!isRadial(t)) {
+        const multiY = spec.encoding.y.length > 1;
+        main.push(this.row("Couleur par (série)", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 24), true), multiY ? "Ignoré : plusieurs mesures forment déjà les séries" : undefined, "série groupe"));
+      }
+      const xc = cols.find((c) => c.name === spec.encoding.x);
+      if (xc?.type === "date")
+        more.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Aucun (valeurs brutes)"], ["day", "Jour"], ["week", "Semaine"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "période jour semaine mois trimestre année"));
+      if (isCartesian(t) && t !== "scatter") {
+        more.push(this.row("Axe Y secondaire (droite)", this.select("encoding.y2", this.colOpts(cols, num), true, (v) => this.hintUnit("axes.y2", v)), "Seconde série, échelle indépendante, tracée en ligne", "y2 deuxième axe"));
+        if (spec.encoding.y2) more.push(this.row("Calcul de l'axe secondaire", this.select("encoding.y2Aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat y2"));
+      }
+      if (t === "scatter") {
+        more.push(this.row("Taille des bulles", this.select("encoding.size", this.colOpts(cols, num), true), undefined, "bulle"));
+        more.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true), undefined, "étiquette"));
+      }
+    }
+    if (cols.length && !isSpecial(t) && spec.norme.enabled && spec.encoding.y.length) more.push(this.scenarioRows(spec));
+    return this.sectionEl("donnees", main, more);
+  }
 
-    /* ---- Axes */
+  /* ② Graphique : forme, tri, unités ; axes et légende dans « Plus d'options » */
+  private buildGraphique(spec: ChartSpec, cols: Column[]): HTMLElement {
+    const t = spec.type;
+    const main: Kid[] = [];
+    const more: Kid[] = [];
+    main.push(this.kw(h("p", { class: "acc-type" }, h("span", { class: "acc-type-k" }, "Type"), h("b", null, typeShort(t)), h("small", null, "· à changer dans la galerie")), "type de graphique"));
+    if (isBarType(t) || isRadial(t))
+      main.push(this.kw(this.line("Trier", this.segmented("style.sort", [["none", "Données", "Ordre des données"], ["desc", "Décr.", "Décroissant"], ["asc", "Croiss.", "Croissant"], ["alpha", "A→Z", "Alphabétique"]])), "tri ordre décroissant croissant alphabétique classement"));
+    if (t === "groupedBar" || t === "stackedBar")
+      main.push(this.kw(this.line("Orientation", this.segmented("style.horizontal", [["false", "Verticales"], ["true", "Horizontales"]], { parse: (v) => v === "true" })), "barres horizontales verticales"));
+    if (isCartesian(t) && t !== "scatter") main.push(this.check("style.valueLabels", "Étiquettes de valeur", undefined, "valeurs libellés chiffres sur les barres"));
+    if (t === "line" || t === "area" || t === "stackedArea" || (isCartesian(t) && spec.encoding.y2)) main.push(this.kw(this.line("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])), "ligne lissage"));
+    if (isCartesian(t) || isRadial(t)) {
+      main.push(this.kw(this.line("Unité et décimales", this.select("axes.y.unit", UNITS.map((u) => [u, UNIT_LABELS[u]] as Opt)), this.stepper("axes.y.decimals")), "unité euros € k€ M€ pourcentage % décimales virgule format nombre"));
+      if (spec.axes.y.unit === "custom") main.push(this.row("Suffixe personnalisé", this.text("axes.y.unitCustom", "ex. t CO₂, h, pts", 12), undefined, "unité"));
+    }
+    // Sens favorable et écarts : un seul contrôle (graphique d'écarts ou mode norme) — plus de doublon « Hausse = défavorable »
+    if (isVariance(t) || (spec.norme.enabled && !isSpecial(t) && t !== "drill")) {
+      main.push(this.row("Sens favorable", this.segmented("variance.polarity", [["higher", "Plus = mieux"], ["lower", "Moins = mieux"]], { testid: "polarity" }), "Coûts, délais, réclamations : « Moins = mieux » (une hausse s'affiche en rouge)", "hausse défavorable baisse rouge vert écart"));
+      main.push(this.row("Écarts", this.segmented("variance.show", [["abs", "Absolus (barres)"], ["rel", "Relatifs % (épingles)"]]), undefined, "écart pourcentage épingle"));
+      if (isVariance(t)) main.push(this.check("variance.total", "Ligne « Total »", undefined, "somme"));
+    }
+    if (t === "film") main.push(this.line("Géométrie", this.segmented("special.geometry", [["arc", "Arcs"], ["bar", "Barres"], ["point", "Points"]])));
+    if (t === "map") main.push(this.kw(this.line("Fond de carte", this.segmented("special.mapRegion", [["fr-be", "France · Belgique"], ["europe", "Europe (pays)"]])), "carte pays régions"));
+    if (isSpecial(t)) {
+      main.push(this.row("Persistance", this.select("special.persistence", [["keep", "Garder (keep)"], ["ephemeral", "Éphémère"], ["finale", "Final en nuage"]])));
+      main.push(this.check("special.tickers", "Compteurs (nombre, somme)"));
+    }
+    if (t === "drill") main.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → jour), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
+
+    if (!isSpecial(t)) more.push(this.row("Légende", this.select("style.legend", [["auto", "Auto"], ["top", "En haut"], ["bottom", "En bas"], ["right", "À droite"], ["none", "Aucune"]]), undefined, "légende position"));
+    if (t === "stackedBar" || t === "stackedArea") more.push(this.check("style.normalize", "Empilement 100 %", undefined, "pourcentage part"));
     if (isCartesian(t)) {
       const xc = cols.find((c) => c.name === spec.encoding.x);
       const xContinuous = (t === "scatter" || t === "line" || t === "area" || t === "stackedArea") && (xc?.type === "number" || xc?.type === "date");
-      out.push(this.axisSection("x", isBarType(t) ? "Axe X (catégories)" : "Axe X", { scale: xContinuous, scaleOpts: xc?.type === "date" ? [["auto", "Temps (auto)"]] : [["auto", "Auto"], ["linear", "Linéaire"], ["log", "Logarithmique"]], numeric: xContinuous && xc?.type === "number" }));
-      out.push(this.axisSection("y", isBarType(t) ? "Axe Y (valeurs)" : "Axe Y", { scale: true, scaleOpts: [["auto", "Linéaire (auto)"], ["log", "Logarithmique"]], numeric: true }));
-      if (spec.encoding.y2) out.push(this.axisSection("y2", "Axe Y secondaire", { scale: true, scaleOpts: [["auto", "Linéaire (auto)"], ["log", "Logarithmique"]], numeric: true }));
-    } else if (isRadial(t)) {
-      out.push(this.axisSection("y", "Valeurs (format)", { scale: false, scaleOpts: [], numeric: true, formatOnly: true }));
+      more.push(this.axisGroup("x", isBarType(t) ? "Axe X (catégories)" : "Axe X", { scale: xContinuous, scaleOpts: xc?.type === "date" ? [["auto", "Temps (auto)"]] : [["auto", "Auto"], ["linear", "Linéaire"], ["log", "Logarithmique"]], numeric: xContinuous && xc?.type === "number", format: true }));
+      more.push(this.axisGroup("y", isBarType(t) ? "Axe Y (valeurs)" : "Axe Y", { scale: true, scaleOpts: [["auto", "Linéaire (auto)"], ["log", "Logarithmique"]], numeric: true, format: false }));
+      if (spec.encoding.y2) more.push(this.axisGroup("y2", "Axe Y secondaire", { scale: true, scaleOpts: [["auto", "Linéaire (auto)"], ["log", "Logarithmique"]], numeric: true, format: true }));
     }
+    if (isCartesian(t) || isRadial(t)) more.push(h("p", { class: "muted small" }, "Format français : 1 234 567,8 — espace pour les milliers, virgule décimale."));
+    return this.sectionEl("graphique", main, more);
+  }
 
-    /* ---- Mode & animation */
-    const mode: (Node | null)[] = [];
-    mode.push(this.segmented("mode.kind", [["static", "Fixe"], ["dynamic", "Dynamique"]]));
-    if (spec.mode.kind === "dynamic") {
-      if (special) {
-        mode.push(this.row("Durée du film (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 })));
-      } else {
-        mode.push(this.check("mode.buildIn", "Animation d'entrée"));
-        if (spec.mode.buildIn) mode.push(this.row("Durée d'entrée (s)", this.number("mode.buildInMs", { min: 0.2, max: 10, step: 0.1, scale: 1000 })));
-        mode.push(h("div", { class: "fourd-title" }, h("span", { class: "badge-4d" }, "4D"), " Animation dans le temps"));
-        if (!spec.encoding.time) mode.push(h("p", { class: "muted" }, "Choisissez un champ « Temps » dans les encodages pour activer la 4D."));
-        else {
-          mode.push(this.check("mode.fourD.enabled", `Animer selon « ${spec.encoding.time} »`));
-          if (spec.mode.fourD.enabled) {
-            mode.push(this.row("Mode", this.segmented("mode.fourD.mode", [["cumulative", "Cumulatif"], ["snapshot", "Instantané"]]), spec.encoding.time === spec.encoding.x ? "X = temps : révélation le long de l'axe" : undefined));
-            mode.push(this.row("Pas de temps", this.select("mode.fourD.step", [["auto", "Auto"], ["raw", "Valeurs brutes"], ["day", "Jour"], ["week", "Semaine"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]])));
-            mode.push(this.row("Durée (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 })));
-            mode.push(this.check("mode.fourD.loop", "Lecture en boucle"));
-            mode.push(this.check("mode.fourD.stamp", "Tampon de date (filigrane)"));
-            mode.push(this.check("mode.fourD.freezeScales", "Échelles figées (pas de sauts)"));
-          }
-        }
-      }
-    }
-    out.push(this.section("mode", "Mode & animation", ...mode));
-
-    /* ---- Spécial */
-    if (special) {
-      const sp: (Node | null)[] = [];
-      if (t === "film") {
-        sp.push(this.row("Géométrie", this.segmented("special.geometry", [["arc", "Arcs"], ["bar", "Barres"], ["point", "Points"]])));
-      } else {
-        sp.push(this.row("Fond de carte", this.segmented("special.mapRegion", [["fr-be", "France · Belgique"], ["europe", "Europe"]])));
-      }
-      sp.push(this.row("Persistance", this.select("special.persistence", [["keep", "Garder (keep)"], ["ephemeral", "Éphémère"], ["finale", "Final en nuage"]])));
-      sp.push(this.check("special.tickers", "Compteurs (nombre, somme)"));
-      out.push(this.section("special", t === "film" ? "Film 4D" : "Carte", ...sp));
-    }
-
-    /* ---- Récit : titres et commentaires calculés, modifiables */
+  /* ③ Récit : titre, sous-titre, points à retenir */
+  private buildRecit(spec: ChartSpec): HTMLElement {
     const labelWithBadge = (label: string, which: "title" | "subtitle" | "comments") => h("span", { class: "field-label" }, label, " ", h("span", { class: "story-badge", "data-badge": which }, ""));
     const fieldB = (label: string, which: "title" | "subtitle" | "comments", control: Node) => h("label", { class: "field" }, labelWithBadge(label, which), control);
     const comments = [0, 1, 2].map((i) => {
-      const ta = h("textarea", { rows: "2", placeholder: `Commentaire ${i + 1}`, maxlength: "300", "data-path": `story.comments.${i}`, "data-testid": `story-comment-${i}` });
+      const ta = h("textarea", { rows: "2", placeholder: `Point à retenir ${i + 1}`, maxlength: "300", "data-path": `story.comments.${i}`, "data-testid": `story-comment-${i}` });
       ta.value = spec.story.comments[i] ?? "";
       ta.addEventListener("input", () => {
         const vals = [0, 1, 2].map((k) => (this.body.querySelector<HTMLTextAreaElement>(`[data-path="story.comments.${k}"]`)?.value ?? "").slice(0, 300));
@@ -377,79 +665,177 @@ export class SettingsPanel {
     titleInp.setAttribute("data-testid", "story-title");
     const subInp = this.textarea("style.subtitle", "Entité · mesure · unité · période");
     subInp.setAttribute("data-testid", "story-subtitle");
-    out.push(
-      this.section(
-        "recit",
-        "Récit",
-        h("div", { class: "story-head" }, h("small", { class: "muted", "data-story-kind": "" }, ""), regen),
-        fieldB("Titre (message)", "title", titleInp),
-        fieldB("Sous-titre (IBCS)", "subtitle", subInp),
-        h("div", { class: "field" }, labelWithBadge("À retenir (1 à 3 points)", "comments"), ...comments),
-        this.check("story.showComments", "Afficher les commentaires sur le graphique"),
-        this.row("Source / note", this.text("style.source", "Source : …", 300)),
-        h("p", { class: "muted small" }, "Double-cliquez sur le titre, le sous-titre ou un commentaire du graphique pour le modifier directement.")
+    const main: Kid[] = [
+      this.kw(h("div", { class: "story-head" }, h("small", { class: "muted", "data-story-kind": "" }, ""), regen), "régénérer recalculer piste"),
+      this.kw(fieldB("Titre (message)", "title", titleInp), "titre message"),
+      this.kw(fieldB("Sous-titre", "subtitle", subInp), "sous-titre ibcs unité période"),
+      this.kw(h("div", { class: "field" }, labelWithBadge("À retenir (1 à 3 points)", "comments"), ...comments), "commentaires points à retenir"),
+      this.check("story.showComments", "Afficher sur le graphique", undefined, "commentaires à retenir"),
+    ];
+    const more: Kid[] = [this.row("Source / note", this.text("style.source", "Source : …", 300), undefined, "source note pied")];
+    if (spec.norme.enabled) {
+      more.push(this.row("Entité (qui)", this.text("norme.entity", "ex. Norvia SA (sinon : nom de l'organisation)", 80), "Alimente le sous-titre de la norme", "norme sous-titre"));
+      more.push(this.row("Mesure (quoi)", this.text("norme.measure", "ex. Chiffre d’affaires (sinon : nom de colonne)", 80), undefined, "norme sous-titre"));
+    }
+    more.push(h("p", { class: "muted small" }, "Double-cliquez sur le titre, le sous-titre ou un point à retenir du graphique pour le modifier directement ; un simple clic (ou toucher) ouvre son réglage ici."));
+    return this.sectionEl("recit", main, more);
+  }
+
+  /* ④ Style : rendu libre / norme, fond, couleurs */
+  private buildStyle(spec: ChartSpec): HTMLElement {
+    const main: Kid[] = [];
+    const more: Kid[] = [];
+    main.push(
+      this.kw(
+        h(
+          "div",
+          { class: "field" },
+          h("span", { class: "field-label" }, "Rendu"),
+          this.segmented("norme.enabled", [["false", "Libre"], ["true", "Norme (IBCS)"]], { parse: (v) => v === "true", testid: "norme-toggle" }),
+          h("small", { class: "hint", "data-testid": "norme-wording" }, `Notation ${NORME_WORDING_F}. IBCS® est une marque déposée.`)
+        ),
+        "norme ibcs notation scénarios réel budget n-1 prévision"
       )
     );
-
-    /* ---- Mode norme (inspiré d'IBCS® / de la notation ISO 24896) */
-    const nm: (Node | null)[] = [];
-    nm.push(this.check("norme.enabled", "Activer le mode norme", "Scénarios Réel / N-1 / Budget / Prévision, écarts rouge/vert, unités et échelles communes"));
-    if (spec.norme.enabled) {
-      const upBad = h("input", { type: "checkbox", checked: spec.variance.polarity === "lower", "data-testid": "norme-up-is-bad" });
-      upBad.addEventListener("change", () => this.store.set("variance.polarity", upBad.checked ? "lower" : "higher"));
-      nm.push(h("label", { class: "check" }, upBad, h("span", null, "Hausse = défavorable"), h("small", { class: "hint" }, "Coûts, délais, réclamations : une hausse s'affiche en rouge")));
-      nm.push(this.row("Écarts", this.segmented("variance.show", [["abs", "Absolus (barres)"], ["rel", "Relatifs % (épingles)"]])));
-      nm.push(this.row("Entité (qui)", this.text("norme.entity", "ex. Alteridea SA (sinon : nom de l'organisation)", 80)));
-      nm.push(this.row("Mesure (quoi)", this.text("norme.measure", "ex. Chiffre d’affaires (sinon : nom de colonne)", 80)));
-      nm.push(this.check("norme.autoSwitch", "Orientation automatique", "Temps à l'horizontale (colonnes, lignes), structure à la verticale (barres)"));
-      nm.push(h("p", { class: "muted small" }, "Gris pour les données, pétrole pour l'interface, rouge et vert réservés aux écarts. Camemberts, anneaux et arcs sont remplacés par des barres."));
-    }
-    nm.push(h("p", { class: "muted small", "data-testid": "norme-wording" }, `Notation ${NORME_WORDING_F}. IBCS® est une marque déposée.`));
-    out.push(this.section("norme", "Mode norme", ...nm));
-
-    /* ---- Style */
-    const st: (Node | null)[] = [];
-    st.push(this.row("Fond", this.segmented("style.background", [["dark", "Sombre"], ["light", "Clair"], ["custom", "Perso"]])));
+    main.push(this.kw(this.line("Fond", this.segmented("style.background", [["dark", "Sombre"], ["light", "Clair"], ["custom", "Perso"]])), "fond thème sombre clair arrière-plan"));
     if (spec.style.background === "custom") {
       const c = h("input", { type: "color", value: spec.style.backgroundCustom, "data-path": "style.backgroundCustom" });
       c.addEventListener("input", () => this.store.set("style.backgroundCustom", c.value));
-      st.push(this.row("Couleur de fond", c));
+      main.push(this.row("Couleur de fond", c, undefined, "fond perso pipette"));
     }
-    st.push(this.row("Palette", this.select("style.palette", PALETTE_KEYS.map((p) => [p, PALETTE_LABELS[p]] as Opt))));
-    st.push(this.swatches(spec));
-    if (spec.style.palette === "custom") {
-      const inp = h("input", { type: "text", value: spec.style.paletteCustom.join(", "), placeholder: "#0E6E8C, #3FA7C4, #8A9BA3, …" });
-      inp.addEventListener("change", () => {
-        const list = inp.value.split(/[\s,;]+/).map((x) => x.trim()).filter((x) => /^#[0-9a-fA-F]{6}$/.test(x));
-        this.store.set("style.paletteCustom", list);
-        this.key = "";
-        this.update();
+    if (spec.norme.enabled) main.push(this.kw(h("p", { class: "muted small" }, "Mode norme : données en gris, pétrole pour l'interface, rouge et vert réservés aux écarts. Camemberts, anneaux et arcs sont remplacés par des barres."), "couleurs palette norme"));
+    else {
+      const theme = themeFor(spec);
+      const tiles = PALETTE_KEYS.map((p) => {
+        const cols = paletteColors({ ...spec, style: { ...spec.style, palette: p } }, theme).slice(0, 4);
+        return h(
+          "button",
+          { type: "button", class: `pal${p === spec.style.palette ? " active" : ""}`, role: "radio", "aria-checked": p === spec.style.palette ? "true" : "false", "data-value": p, title: PALETTE_LABELS[p], onclick: () => this.store.set("style.palette", p) },
+          h("span", { class: "tile-sw" }, ...(cols.length ? cols : ["#3FA7C4", "#8A9BA3"]).map((c) => h("i", { style: `background:${c}` }))),
+          h("span", { class: "pal-l" }, PALETTE_LABELS[p].replace(/\s*\(défaut\)/, ""))
+        );
       });
-      st.push(this.row("Couleurs (hex, séparées par des virgules)", inp));
+      main.push(this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Couleurs"), h("div", { class: "pals", role: "radiogroup", "aria-label": "Palette", "data-path": "style.palette" }, ...tiles)), "palette couleurs teintes"));
+      if (spec.style.palette === "custom") {
+        const inp = h("input", { type: "text", value: spec.style.paletteCustom.join(", "), placeholder: "#0E6E8C, #3FA7C4, #8A9BA3, …" });
+        inp.addEventListener("change", () => {
+          const list = inp.value.split(/[\s,;]+/).map((x) => x.trim()).filter((x) => /^#[0-9a-fA-F]{6}$/.test(x));
+          this.store.set("style.paletteCustom", list);
+          this.key = "";
+          this.update();
+        });
+        main.push(this.row("Couleurs perso (hex, séparées par des virgules)", inp, undefined, "palette personnalisée"));
+      }
     }
-    st.push(this.row("Police", this.select("style.font", FONT_KEYS.map((f) => [f, FONTS[f].label] as Opt))));
-    st.push(this.row("Légende", this.select("style.legend", [["auto", "Auto"], ["top", "En haut"], ["bottom", "En bas"], ["right", "À droite"], ["none", "Aucune"]])));
-    if (isCartesian(t) && t !== "scatter") st.push(this.check("style.valueLabels", "Étiquettes de valeur"));
-    if (t === "line" || t === "area" || t === "stackedArea" || spec.encoding.y2) st.push(this.row("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])));
-    if (isBarType(t) || isRadial(t)) st.push(this.row("Tri des catégories", this.select("style.sort", [["none", "Ordre des données"], ["desc", "Décroissant"], ["asc", "Croissant"], ["alpha", "Alphabétique"]])));
-    if (t === "groupedBar" || t === "stackedBar") st.push(this.check("style.horizontal", "Barres horizontales"));
-    if (t === "stackedBar" || t === "stackedArea") st.push(this.check("style.normalize", "Empilement 100 %"));
-    st.push(this.check("style.accentBar", "Filet d'accent devant le titre"));
-    st.push(this.check("style.authQr", "QR d'empreinte des données", "Lien « Vérifier l'empreinte » vers la page de vérification"));
-    st.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Cartouche ${PRODUCT_LABEL} toujours présent : logo, lien vers la plateforme, date de génération, date d'import des données, source et empreinte. L'option ci-dessus masque seulement le QR.`));
-    out.push(this.section("style", "Style", ...st));
+    more.push(this.row("Police", this.select("style.font", FONT_KEYS.map((f) => [f, FONTS[f].label] as Opt)), undefined, "typographie font"));
+    more.push(this.check("style.accentBar", "Filet d'accent devant le titre", undefined, "trait titre"));
+    if (spec.norme.enabled) more.push(this.check("norme.autoSwitch", "Orientation automatique (norme)", "Temps à l'horizontale (colonnes, lignes), structure à la verticale (barres)", "norme barres colonnes"));
+    return this.sectionEl("style", main, more);
+  }
 
-    /* ---- Format */
-    const fm: (Node | null)[] = [];
-    fm.push(this.segmented("style.size.preset", [["16:9", "16:9"], ["1:1", "1:1"], ["4:5", "4:5"], ["custom", "Perso"]]));
-    if (spec.style.size.preset === "custom") {
-      fm.push(h("div", { class: "two" }, this.row("Largeur (px)", this.number("style.size.width", { min: 320, max: 4000, step: 10 })), this.row("Hauteur (px)", this.number("style.size.height", { min: 240, max: 4000, step: 10 }))));
-    } else {
-      const p = SIZE_PRESETS[spec.style.size.preset];
-      fm.push(h("p", { class: "muted" }, `${p.width} × ${p.height} px (PNG 2× = ${p.width * 2} × ${p.height * 2})`));
+  /* ⑤ Export : format, téléchargements, animation, QR */
+  private buildExport(spec: ChartSpec, cols: Column[]): HTMLElement {
+    const t = spec.type;
+    const special = isSpecial(t);
+    const main: Kid[] = [];
+    const more: Kid[] = [];
+    const ratio: Record<string, [number, number]> = { "16:9": [30, 17], "1:1": [20, 20], "4:5": [18, 22], custom: [26, 18] };
+    const fmt = h(
+      "div",
+      { class: "segmented tiles-fmt", role: "radiogroup", "data-path": "style.size.preset", "aria-label": "Format" },
+      ...(["16:9", "1:1", "4:5", "custom"] as const).map((p) =>
+        h(
+          "button",
+          { type: "button", role: "radio", class: p === spec.style.size.preset ? "active" : "", "aria-checked": p === spec.style.size.preset ? "true" : "false", "data-value": p, onclick: () => this.store.set("style.size.preset", p) },
+          h("i", { class: "fmt-ic", style: `width:${ratio[p]![0]}px;height:${ratio[p]![1]}px` }),
+          p === "custom" ? "Perso" : p
+        )
+      )
+    );
+    main.push(this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Format"), fmt, spec.style.size.preset === "custom" ? null : h("small", { class: "hint" }, sizeNote(spec))), "taille format dimensions 16:9 carré portrait"));
+    if (spec.style.size.preset === "custom")
+      main.push(this.kw(h("div", { class: "two" }, this.row("Largeur (px)", this.number("style.size.width", { min: 320, max: 4000, step: 10 })), this.row("Hauteur (px)", this.number("style.size.height", { min: 240, max: 4000, step: 10 }))), "taille largeur hauteur px pixels"));
+    if (this.actions) {
+      const a = this.actions;
+      const webm: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-webm", onclick: () => a.exportWebm(webm) }, h("span", { html: svgIcon(ICONS.film2, 15) }), "Vidéo");
+      const pptx: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-pptx", disabled: a.snapshots() === 0, title: a.snapshots() ? "PowerPoint de l'histoire (snapshots)" : "Ajoutez d'abord des snapshots à l'histoire", onclick: () => a.exportPptx(pptx) }, h("span", { html: svgIcon(ICONS.story, 15) }), "PowerPoint");
+      main.push(
+        this.kw(
+          h(
+            "div",
+            { class: "field" },
+            h("span", { class: "field-label" }, "Télécharger"),
+            h(
+              "div",
+              { class: "dl-grid" },
+              h("button", { type: "button", class: "btn btn-accent", "data-testid": "panel-export-svg", onclick: () => a.exportSvg() }, h("span", { html: svgIcon(ICONS.download, 15) }), "SVG"),
+              h("button", { type: "button", class: "btn", "data-testid": "panel-export-png", onclick: () => a.exportPng() }, h("span", { html: svgIcon(ICONS.image, 15) }), `PNG ${this.store.state.ui.pngScale}×`),
+              webm,
+              pptx
+            )
+          ),
+          "télécharger exporter svg png image vidéo webm powerpoint pptx"
+        )
+      );
     }
-    out.push(this.section("format", "Format", ...fm));
-    return out;
+    // Animation : fixe, entrée animée, 4D (dans le temps)
+    const cur = animKind(spec);
+    const timeCol = this.timeCandidate(spec, cols);
+    const can4d = !special && !isVariance(t) && t !== "drill" && !!timeCol;
+    const setAnim = (k: "static" | "build" | "4d") => {
+      if (k === "static") return void this.store.set("mode.kind", "static");
+      this.store.set("mode.kind", "dynamic");
+      if (k === "build") {
+        if (!this.store.state.spec.mode.buildIn) this.store.set("mode.buildIn", true);
+        this.store.set("mode.fourD.enabled", false);
+      } else {
+        if (!this.store.state.spec.encoding.time && timeCol) this.store.set("encoding.time", timeCol);
+        this.store.set("mode.fourD.enabled", true);
+      }
+    };
+    const opts: ["static" | "build" | "4d", string, string][] = special ? [["static", "Fixe", "Image fixe"], ["build", "Animé", "Film / carte animés"]] : [["static", "Fixe", "Image fixe"], ["build", "Entrée animée", "Les marques apparaissent"], ["4d", "4D", can4d ? "Animation dans le temps" : "Indisponible : il faut une colonne de date, de période ou de catégorie"]];
+    main.push(
+      this.kw(
+        h(
+          "div",
+          { class: "field", "data-target": "anim" },
+          h("span", { class: "field-label" }, "Animation"),
+          h(
+            "div",
+            { class: "segmented", role: "radiogroup", "aria-label": "Animation", "data-testid": "anim-mode" },
+            ...opts.map(([k, l, title]) => h("button", { type: "button", role: "radio", class: k === cur ? "active" : "", "aria-checked": k === cur ? "true" : "false", "data-anim": k, title, disabled: k === "4d" && !can4d, onclick: () => setAnim(k) }, k === "4d" ? h("span", { class: "badge-4d" }, "4D") : l))
+          )
+        ),
+        "animation fixe dynamique entrée 4d temps vidéo mode"
+      )
+    );
+    if (cur === "4d") main.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), undefined, "4d date période"));
+    main.push(this.check("style.authQr", "QR d’empreinte des données", "Lien « Vérifier l'empreinte » vers la page de vérification", "qr code empreinte vérification"));
+    if (spec.mode.kind === "dynamic") {
+      if (special) more.push(this.row("Durée du film (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 }), undefined, "durée secondes"));
+      else {
+        if (cur === "4d") more.push(this.check("mode.buildIn", "Animation d'entrée avant la 4D", undefined, "entrée"));
+        if (spec.mode.buildIn || cur === "build") more.push(this.row("Durée d'entrée (s)", this.number("mode.buildInMs", { min: 0.2, max: 10, step: 0.1, scale: 1000 }), undefined, "durée secondes animation"));
+        if (cur === "4d") {
+          more.push(this.row("Mode 4D", this.segmented("mode.fourD.mode", [["cumulative", "Cumulatif"], ["snapshot", "Instantané"]]), spec.encoding.time === spec.encoding.x ? "X = temps : révélation le long de l'axe" : undefined, "4d cumul"));
+          more.push(this.row("Pas de temps", this.select("mode.fourD.step", [["auto", "Auto"], ["raw", "Valeurs brutes"], ["day", "Jour"], ["week", "Semaine"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "4d"));
+          more.push(this.row("Durée de la 4D (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 }), undefined, "durée secondes"));
+          more.push(this.check("mode.fourD.loop", "Lecture en boucle", undefined, "4d"));
+          more.push(this.check("mode.fourD.stamp", "Tampon de date (filigrane)", undefined, "4d"));
+          more.push(this.check("mode.fourD.freezeScales", "Échelles figées (pas de sauts)", undefined, "4d axes"));
+        }
+      }
+    }
+    more.push(h("p", { class: "muted small", "data-testid": "signature-note" }, `Cartouche ${PRODUCT_LABEL} toujours présent : logo, lien vers la plateforme, date de génération, date d'import des données, source et empreinte. L'option QR masque seulement le QR.`));
+    return this.sectionEl("export", main, more);
+  }
+
+  /** Colonne de temps pour la 4D : celle déjà choisie, sinon X si c'est une date, sinon la 1re date. */
+  private timeCandidate(spec: ChartSpec, cols: Column[]): string | null {
+    if (spec.encoding.time) return spec.encoding.time;
+    const x = cols.find((c) => c.name === spec.encoding.x);
+    if (x?.type === "date") return x.name;
+    return cols.find((c) => c.type === "date")?.name ?? cols.find((c) => c.type === "category" && /ann[ée]e|year|mois|month|p[ée]riode|trimestre/i.test(c.name))?.name ?? null;
   }
 
   /** Notation des scénarios par mesure : détection automatique d'après le nom, forçage manuel. */
@@ -469,12 +855,12 @@ export class SettingsPanel {
       });
       return h("label", { class: "field field-inline" }, h("span", { class: "field-label" }, m), sel);
     });
-    return h("div", { class: "field scenario-rows", "data-testid": "scenario-rows" }, h("span", { class: "field-label" }, "Notation des scénarios"), ...rows, h("small", { class: "hint" }, "Réel plein foncé · N-1 gris · Budget contour · Prévision hachurée"));
+    return this.kw(h("div", { class: "field scenario-rows", "data-testid": "scenario-rows" }, h("span", { class: "field-label" }, "Notation des scénarios"), ...rows, h("small", { class: "hint" }, "Réel plein foncé · N-1 gris · Budget contour · Prévision hachurée")), "norme scénarios réel budget");
   }
 
-  private swatches(spec: ChartSpec): HTMLElement {
+  private swatchList(spec: ChartSpec, n: number): HTMLElement[] {
     const colors = paletteColors(spec, themeFor(spec));
-    return h("div", { class: "swatches" }, ...colors.slice(0, 10).map((c) => h("span", { class: "swatch", style: `background:${c}`, title: c })));
+    return colors.slice(0, n).map((c) => h("i", { style: `background:${c}` }));
   }
 
   /** Devine l'unité d'axe d'après le nom de colonne (« (€) », « % »). */
@@ -510,7 +896,7 @@ export class SettingsPanel {
     return sel;
   }
 
-  /** Mesures multiples : cases à cocher (ordre de sélection conservé). */
+  /** Mesures multiples : puces à cocher (ordre de sélection conservé). */
   private yMulti(cols: Column[]): HTMLElement {
     const cur = this.store.state.spec.encoding.y;
     const numeric = cols.filter((c) => c.type === "number");
@@ -524,29 +910,27 @@ export class SettingsPanel {
           const now = this.store.state.spec.encoding.y.filter((f) => f !== c.name);
           if (inp.checked) now.push(c.name);
           this.store.set("encoding.y", now);
-          if (now.length === 1 || (inp.checked && now.length === 1)) this.hintUnit("axes.y", now[0]);
+          if (now.length === 1) this.hintUnit("axes.y", now[0]);
         });
         return h("label", { class: "check" }, inp, h("span", null, c.name), c.idLike ? h("small", { class: "hint" }, "identifiant ?") : null);
       })
     );
   }
 
-  private axisSection(axis: "x" | "y" | "y2", title: string, o: { scale: boolean; scaleOpts: Opt[]; numeric: boolean; formatOnly?: boolean }): HTMLElement {
+  /** Axe (Plus d'options) : afficher, grille, titre, échelle, min / max ; unité et décimales si `format`. */
+  private axisGroup(axis: "x" | "y" | "y2", title: string, o: { scale: boolean; scaleOpts: Opt[]; numeric: boolean; format: boolean }): HTMLElement {
     const p = `axes.${axis}`;
     const a = this.store.state.spec.axes[axis];
-    const rows: (Node | null)[] = [];
-    if (!o.formatOnly) {
-      rows.push(h("div", { class: "two" }, this.check(`${p}.show`, "Afficher"), this.check(`${p}.grid`, "Grille")));
-      rows.push(this.row("Titre d'axe", this.text(`${p}.title`, "", 120)));
-    }
-    if (o.scale && o.scaleOpts.length > 1) rows.push(this.row("Échelle", this.segmented(`${p}.scale`, o.scaleOpts)));
+    const k = `axe ${axis === "y2" ? "y2 secondaire droite" : axis}`;
+    const rows: Kid[] = [];
+    rows.push(this.kw(h("div", { class: "two" }, this.check(`${p}.show`, "Afficher"), this.check(`${p}.grid`, "Grille")), `${k} afficher grille quadrillage`));
+    rows.push(this.row("Titre d'axe", this.text(`${p}.title`, "", 120), undefined, k));
+    if (o.scale && o.scaleOpts.length > 1) rows.push(this.row("Échelle", this.segmented(`${p}.scale`, o.scaleOpts), undefined, `${k} log logarithmique linéaire`));
     if (o.numeric) {
-      if (!o.formatOnly) rows.push(h("div", { class: "two" }, this.row("Min", this.number(`${p}.min`, { nullable: true })), this.row("Max", this.number(`${p}.max`, { nullable: true }))));
-      rows.push(this.row("Unité", this.select(`${p}.unit`, UNITS.map((u) => [u, UNIT_LABELS[u]] as Opt))));
-      if (a.unit === "custom") rows.push(this.row("Suffixe personnalisé", this.text(`${p}.unitCustom`, "ex. t CO₂, h, pts", 12)));
-      rows.push(this.row("Décimales", this.select(`${p}.decimals`, [["0", "0"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]].map(([v, l]) => [v, l] as Opt), true, (v) => this.store.set(`${p}.decimals`, v == null ? null : Number(v)))));
-      rows.push(h("p", { class: "muted small" }, "Format français : 1 234 567,8 — espace pour les milliers, virgule décimale."));
+      rows.push(this.kw(h("div", { class: "two" }, this.row("Min", this.number(`${p}.min`, { nullable: true })), this.row("Max", this.number(`${p}.max`, { nullable: true }))), `${k} minimum maximum bornes`));
+      if (o.format) rows.push(this.kw(this.line("Unité et décimales", this.select(`${p}.unit`, UNITS.map((u) => [u, UNIT_LABELS[u]] as Opt)), this.stepper(`${p}.decimals`)), `${k} unité € k€ M€ % décimales format`));
+      if (o.format && a.unit === "custom") rows.push(this.row("Suffixe personnalisé", this.text(`${p}.unitCustom`, "ex. t CO₂, h, pts", 12), undefined, k));
     }
-    return this.section(`axe-${axis}`, title, ...rows);
+    return this.group(`axe-${axis}`, title, ...rows);
   }
 }

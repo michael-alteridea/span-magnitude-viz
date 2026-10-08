@@ -235,9 +235,36 @@ export function runScenario(sc: Scenario, ds: Dataset, b: RoleBinding): { frames
   return { frames, stoppedAt: null };
 }
 
-/** Identifiant stable d'un snapshot de scénario (même scénario, même étape, mêmes données → même id). */
-export function scenarioSnapshotId(sc: Scenario, step: ScenarioStep, dataKey: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < dataKey.length; i++) h = Math.imul(h ^ dataKey.charCodeAt(i), 16777619);
-  return `${sc.id}-${step.id}-${(h >>> 0).toString(36)}`;
+/**
+ * Identifiant STABLE d'un snapshot de scénario : préfixe du persona + position + libellé de l'étape
+ * (« daf-01-cascade », « dircom-03-mois-focus »). Il ne contient pas l'empreinte des données : Cadencer y
+ * rattache ses points d'ordre du jour et ses accusés « J'ai vu » ; un changement de contenu se lit dans
+ * `empreinte` et dans le `?v=` des images, jamais dans l'identifiant.
+ */
+export function scenarioSnapshotId(sc: Scenario, step: ScenarioStep): string {
+  return `${sc.id}-${step.id}`;
+}
+
+/** Suffixe d'empreinte des anciens identifiants (« dircom-03-mois-focus-88z5ap », « daf-01-cascade-1051jsm »). */
+const OLD_HASH = /^[0-9a-z]{4,8}$/;
+
+/**
+ * Retrouve un snapshot d'après un identifiant reçu (lien, QR, accusé) : identique, sinon ancien identifiant
+ * à suffixe d'empreinte (`<id stable>-<empreinte>`) ↔ identifiant stable, dans les deux sens.
+ */
+export function matchSnapshotId(ids: readonly string[], want: string | null | undefined): string | null {
+  if (!want) return null;
+  if (ids.includes(want)) return want;
+  let best: string | null = null;
+  for (const id of ids) {
+    const [long, short] = want.length > id.length ? [want, id] : [id, want];
+    if (long.startsWith(`${short}-`) && OLD_HASH.test(long.slice(short.length + 1)) && (!best || id.length > best.length)) best = id;
+  }
+  return best;
+}
+
+/** Index d'un snapshot (identifiant stable ou ancien) ; -1 s'il est introuvable. */
+export function snapshotIndexOf(snaps: readonly { id: string }[], want: string | null | undefined): number {
+  const id = matchSnapshotId(snaps.map((s) => s.id), want);
+  return id ? snaps.findIndex((s) => s.id === id) : -1;
 }

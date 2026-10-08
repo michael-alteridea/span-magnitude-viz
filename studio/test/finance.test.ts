@@ -179,9 +179,9 @@ describe("Scénario Directeur financier", () => {
     expect(run3.stoppedAt).toBeNull();
     expect(run3.frames.map((f) => f.step.id)).not.toContain("06-carte");
     expect(missingRoles(SCENARIO_DAF, ds, { ...b, compte: null }).map((r) => r.id)).toEqual(["compte"]);
-    const id = scenarioSnapshotId(SCENARIO_DAF, SCENARIO_DAF.steps[0]!, "abc");
-    expect(id).toBe(scenarioSnapshotId(SCENARIO_DAF, SCENARIO_DAF.steps[0]!, "abc"));
-    expect(id).toMatch(/^daf-01-cascade-/);
+    const id = scenarioSnapshotId(SCENARIO_DAF, SCENARIO_DAF.steps[0]!);
+    expect(id).toBe("daf-01-cascade");
+    expect(id).toBe(scenarioSnapshotId(SCENARIO_DAF, SCENARIO_DAF.steps[0]!));
   });
 
   it("exemple intégré « Démo : réel vs budget »", () => {
