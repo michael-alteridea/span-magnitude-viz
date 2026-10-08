@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 10 — Tout assembler → span-magnitude · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 10 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Tout assembler → span-magnitude</h1>
+    <p class="lead">Mini-viz : chaque projet = une marque durée (span) × intensité (magnitude), révélée dans le temps.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar mike">M</div>
+          <div class="bubble">On a scales, joins, transitions, couleur, interaction… on monte le set !</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><strong>span</strong> = largeur (durée) · <strong>magnitude</strong> = hauteur · <strong>reveal</strong> = animation. Bienvenue chez span-magnitude-viz.</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 3">
+        <div class="bubble tip">La lib TypeScript du repo fait ça en durci (schéma Zod, axes, tickers…). Ici : la grammaire visuelle en 40 lignes.</div>
+      </div>
+    </div>
+
+    <h2>Labo live — mini span-magnitude</h2>
+    <div class="controls">
+      <button type="button" id="btn-play10">▶ Révéler</button>
+      <button type="button" class="ghost" id="btn-reset10">Reset</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">x = calendrier · width = durée · height = magnitude</div>
+      <svg id="svg10" width="360" height="260" viewBox="0 0 360 260"></svg>
+      <p id="tot10" style="font-weight:800;color:#d62839;margin:0.5rem 0 0">Total magnitude : 0</p>
+    </div>
+    <pre><code>// grammaire
+mark.width  ← scaleTime(end) - scaleTime(start)  // SPAN
+mark.height ← scaleLinear(magnitude)             // MAGNITUDE
+mark.y      ← lane / stack
+// + transition delay selon start → storytelling</code></pre>
+
+    <div class="exo">
+      <h3>Exercices finaux</h3>
+      <label class="check"><input type="checkbox"> Lance ▶ et regarde l’accumulation du total.</label>
+      <label class="check"><input type="checkbox"> Touche une marque pour le détail.</label>
+      <label class="check"><input type="checkbox"> Relie mentalement chaque leçon 1→9 à un bout de ce labo.</label>
+      <label class="check"><input type="checkbox"> Prochaine étape : ouvrir le demo <code>span-magnitude-viz</code> du repo !</label>
+      <p><strong>Bravo Michael</strong> — tu as la grammaire. Le reste, c’est de la pratique et la lib. 💪</p>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-09.html">← Leçon 9</a>
+      <a href="index.html">🏁 Retour au sommaire</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+const events = [
+  {id:"a", nom:"Kickoff", start:0, end:3, mag:20, lane:0},
+  {id:"b", nom:"Research", start:2, end:8, mag:45, lane:1},
+  {id:"c", nom:"Build", start:6, end:14, mag:80, lane:2},
+  {id:"d", nom:"Pilot", start:12, end:18, mag:55, lane:0},
+  {id:"e", nom:"Scale", start:16, end:22, mag:70, lane:1}
+];
+const margin = {t:24, r:16, b:36, l:16};
+const W=360, H=260;
+const x = d3.scaleLinear().domain([0, 24]).range([margin.l, W-margin.r]);
+const h = d3.scaleLinear().domain([0, 100]).range([14, 48]);
+const laneY = [50, 110, 170];
+
+function setup10() {
+  const svg = d3.select("#svg10");
+  svg.selectAll("*").remove();
+  svg.append("g").attr("transform", `translate(0,${H-margin.b})`)
+    .call(d3.axisBottom(x).ticks(6).tickFormat(d => "t"+d)).attr("font-size", 11);
+  // baseline lanes
+  laneY.forEach((yy,i) => {
+    svg.append("line").attr("x1", margin.l).attr("x2", W-margin.r)
+      .attr("y1", yy+50).attr("y2", yy+50).attr("stroke", "#e8ddd8").attr("stroke-width", 2);
+  });
+  d3.select("#tot10").text("Total magnitude : 0");
+}
+
+function play10() {
+  setup10();
+  const svg = d3.select("#svg10");
+  let running = 0;
+  const marks = svg.selectAll("rect.mark").data(events, d => d.id).join("rect")
+    .attr("class", "mark")
+    .attr("x", d => x(d.start))
+    .attr("y", d => laneY[d.lane] + 50 - h(d.mag))
+    .attr("height", d => h(d.mag))
+    .attr("width", 0)
+    .attr("rx", 6)
+    .attr("fill", "#d62839")
+    .attr("opacity", 0.9)
+    .style("cursor", "pointer")
+    .on("pointerdown", (event, d) => {
+      d3.select("#tot10").text(`${d.nom} · span ${d.end-d.start} · mag ${d.mag}`);
+      svg.selectAll("rect.mark").attr("stroke", "transparent");
+      d3.select(event.currentTarget).attr("stroke", "#1a1a1a").attr("stroke-width", 3);
+    });
+
+  marks.transition().duration(700)
+    .delay((d,i) => i * 280)
+    .ease(d3.easeCubicOut)
+    .attr("width", d => Math.max(4, x(d.end) - x(d.start)))
+    .on("start", (event, d) => {
+      // called per element differently in d3 — use tween end instead
+    })
+    .on("end", function(event, d) {
+      running += d.mag;
+      d3.select("#tot10").text("Total magnitude : " + running);
+    });
+}
+document.getElementById("btn-reset10").onclick = setup10;
+document.getElementById("btn-play10").onclick = play10;
+setup10();
+
+  </script>
+</body>
+</html>

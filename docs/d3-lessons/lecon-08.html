@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 8 — Couleur · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 8 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Couleur</h1>
+    <p class="lead">scaleOrdinal, interpolateRgb, palettes — encoder des catégories ou une intensité.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar mike">M</div>
+          <div class="bubble">Équipe Design vs Ops vs Prod — comment colorer sans chaos ?</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>scaleOrdinal</code> pour catégories. <code>interpolate</code> pour un dégradé quantitatif (magnitude).</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <div class="controls">
+      <button type="button" id="btn-cat">Catégories</button>
+      <button type="button" class="ghost" id="btn-grad">Dégradé magnitude</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">couleur = encodage</div>
+      <svg id="svg8" width="340" height="140" viewBox="0 0 340 140"></svg>
+    </div>
+    <pre><code>const col = d3.scaleOrdinal()
+  .domain(["Design","Ops","Prod"])
+  .range(["#d62839","#2b2d42","#e09f3e"]);
+const mag = d3.scaleLinear().domain([0,100])
+  .range(["#f8e8ea", "#d62839"]);</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Catégorie → ordinal ; intensité → interpolate / linear.</label>
+      <label class="check"><input type="checkbox"> Alteridea rouge #d62839 comme ancre de palette.</label>
+      <label class="check"><input type="checkbox"> Trop de couleurs = bruit. 3–5 max pour commencer.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-07.html">← Leçon 7</a>
+      <a href="lecon-09.html">Suite → Leçon 9</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+const teams = [
+  {n:"Design", v:70}, {n:"Ops", v:45}, {n:"Prod", v:90},
+  {n:"Design", v:55}, {n:"Ops", v:80}, {n:"Prod", v:30}
+];
+const col = d3.scaleOrdinal().domain(["Design","Ops","Prod"]).range(["#d62839","#2b2d42","#e09f3e"]);
+const mag = d3.scaleLinear().domain([0,100]).range(["#f8e8ea","#d62839"]);
+function drawCat() {
+  const svg = d3.select("#svg8"); svg.selectAll("*").remove();
+  svg.selectAll("circle").data(teams).join("circle")
+    .attr("cx", (d,i) => 40 + i*50).attr("cy", 70).attr("r", 22)
+    .attr("fill", d => col(d.n));
+  svg.selectAll("text").data(teams).join("text")
+    .attr("x", (d,i) => 40 + i*50).attr("y", 115)
+    .attr("text-anchor","middle").attr("font-size",11).attr("font-weight",700)
+    .attr("fill","#5a5a5a").text(d => d.n.slice(0,3));
+}
+function drawGrad() {
+  const svg = d3.select("#svg8"); svg.selectAll("*").remove();
+  svg.selectAll("rect").data(teams).join("rect")
+    .attr("x", (d,i) => 20 + i*52).attr("y", 40)
+    .attr("width", 44).attr("height", 50).attr("rx", 8)
+    .attr("fill", d => mag(d.v));
+  svg.selectAll("text").data(teams).join("text")
+    .attr("x", (d,i) => 42 + i*52).attr("y", 115)
+    .attr("text-anchor","middle").attr("font-size",12).attr("font-weight",800)
+    .attr("fill","#1a1a1a").text(d => d.v);
+}
+document.getElementById("btn-cat").onclick = drawCat;
+document.getElementById("btn-grad").onclick = drawGrad;
+drawCat();
+
+  </script>
+</body>
+</html>

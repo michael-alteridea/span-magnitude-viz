@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 6 — Joins enter / update / exit · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 6 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Joins enter / update / exit</h1>
+    <p class="lead">Le cœur de D3 : synchroniser la troupe DOM avec le tableau de données.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><strong>enter</strong> = nouveaux · <strong>update</strong> = déjà là · <strong>exit</strong> = plus dans les data → on retire.</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="bubble tip"><code>.data(arr).join("circle")</code> gère les trois cas. Avec une <code>key</code>, l’identité survit au reorder.</div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <div class="controls">
+      <button type="button" id="btn-add">+ Ajouter</button>
+      <button type="button" class="ghost" id="btn-rm">− Retirer</button>
+      <button type="button" class="ghost" id="btn-shuffle6">Mélanger</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">cercles liés par id</div>
+      <svg id="svg6" width="340" height="120" viewBox="0 0 340 120"></svg>
+      <p style="margin:0.5rem 0 0;font-size:0.9rem" id="msg6">n = 3</p>
+    </div>
+    <pre><code>svg.selectAll("circle").data(items, d => d.id)
+  .join(
+    enter => enter.append("circle").attr("r", 0)
+      .call(e => e.transition().attr("r", 18)),
+    update => update,
+    exit => exit.transition().attr("r", 0).remove()
+  );</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Ajoute puis retire : observe enter / exit.</label>
+      <label class="check"><input type="checkbox"> Mélange : les couleurs suivent l’id (key function).</label>
+      <label class="check"><input type="checkbox"> En span-magnitude, chaque événement a un id stable.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-05.html">← Leçon 5</a>
+      <a href="lecon-07.html">Suite → Leçon 7</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+let items = [{id:1,c:"#d62839"},{id:2,c:"#2b2d42"},{id:3,c:"#e09f3e"}];
+let nextId = 4;
+const colors = ["#d62839","#2b2d42","#e09f3e","#3a86ff","#8338ec"];
+function render6() {
+  const svg = d3.select("#svg6");
+  const x = d3.scalePoint().domain(items.map(d=>d.id)).range([40, 300]).padding(0.5);
+  svg.selectAll("circle").data(items, d => d.id)
+    .join(
+      enter => enter.append("circle")
+        .attr("cy", 55).attr("cx", d => x(d.id)).attr("r", 0).attr("fill", d => d.c)
+        .call(e => e.transition().duration(400).attr("r", 18)),
+      update => update.call(u => u.transition().duration(400).attr("cx", d => x(d.id))),
+      exit => exit.transition().duration(300).attr("r", 0).remove()
+    );
+  document.getElementById("msg6").textContent = "n = " + items.length;
+}
+document.getElementById("btn-add").onclick = () => {
+  if (items.length >= 6) return;
+  items.push({id: nextId++, c: colors[items.length % colors.length]});
+  render6();
+};
+document.getElementById("btn-rm").onclick = () => {
+  items.pop();
+  render6();
+};
+document.getElementById("btn-shuffle6").onclick = () => {
+  items = d3.shuffle(items.slice());
+  render6();
+};
+render6();
+
+  </script>
+</body>
+</html>

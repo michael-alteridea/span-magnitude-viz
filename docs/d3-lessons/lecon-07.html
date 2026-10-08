@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 7 — Transitions · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 7 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Transitions</h1>
+    <p class="lead">Faire bouger les marques : duration, ease, delay — le storytelling animé.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>.transition().duration(800).attr("…")</code> — D3 interpole pour toi.</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="bubble tip">En span-magnitude, on révèle les marques une à une (<code>delay((d,i)=>i*80)</code>) pour raconter l’accumulation.</div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <div class="controls">
+      <button type="button" id="btn-go7">Animer la cascade</button>
+      <button type="button" class="ghost" id="btn-reset7">Reset</button>
+    </div>
+    <div class="stage">
+      <div class="stage-label">reveal échelonné</div>
+      <svg id="svg7" width="340" height="160" viewBox="0 0 340 160"></svg>
+    </div>
+    <pre><code>bars.attr("width", 0)
+  .transition().duration(600)
+  .delay((d,i) => i * 100)
+  .ease(d3.easeCubicOut)
+  .attr("width", d => x(d));</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Lance la cascade deux fois — sens le rythme.</label>
+      <label class="check"><input type="checkbox"> delay(i) = storytelling temporel.</label>
+      <label class="check"><input type="checkbox"> easeCubicOut = accélère puis freine (naturel).</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-06.html">← Leçon 6</a>
+      <a href="lecon-08.html">Suite → Leçon 8</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+const vals = [40, 70, 55, 90, 35, 60];
+const x = d3.scaleLinear().domain([0, 100]).range([0, 260]);
+function reset7() {
+  const svg = d3.select("#svg7");
+  svg.selectAll("*").remove();
+  svg.selectAll("rect").data(vals).join("rect")
+    .attr("x", 40).attr("y", (d,i) => 15 + i*24)
+    .attr("height", 18).attr("rx", 4)
+    .attr("width", 0).attr("fill", "#d62839");
+}
+function go7() {
+  d3.select("#svg7").selectAll("rect")
+    .attr("width", 0)
+    .transition().duration(650)
+    .delay((d,i) => i * 110)
+    .ease(d3.easeCubicOut)
+    .attr("width", d => x(d));
+}
+document.getElementById("btn-reset7").onclick = reset7;
+document.getElementById("btn-go7").onclick = () => { reset7(); go7(); };
+reset7();
+
+  </script>
+</body>
+</html>

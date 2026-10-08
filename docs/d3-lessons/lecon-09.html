@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#d62839" />
+  <title>Leçon 9 — Interaction · D3 crash course</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="dot"></span> D3 · Alteridea</a>
+    <span class="pill">Leçon 9 / 10 · ~15 min</span>
+  </header>
+  <main class="wrap">
+    <h1>Interaction</h1>
+    <p class="lead">Clics & survols (et doigts iPad) : pointer events + tooltips.</p>
+
+    <div class="bd">
+      <div class="panel" data-n="case 1">
+        <div class="chars">
+          <div class="avatar d3">D3</div>
+          <div class="bubble narrator"><code>.on("pointerdown", …)</code> marche souris + doigt. Ideal iPad.</div>
+        </div>
+      </div>
+      <div class="panel" data-n="case 2">
+        <div class="bubble tip">Agrandis la cible (≥44px) et donne un feedback immédiat (stroke, tooltip).</div>
+      </div>
+    </div>
+
+    <h2>Labo live</h2>
+    <p>Touche une barre : le détail s’affiche en bas.</p>
+    <div class="stage">
+      <div class="stage-label">pointerdown / pointerenter</div>
+      <svg id="svg9" width="340" height="160" viewBox="0 0 340 160"></svg>
+      <p id="tip9" style="min-height:1.5em;font-weight:800;color:#d62839;margin:0.6rem 0 0">Touche une barre…</p>
+    </div>
+    <pre><code>bars.on("pointerdown", (event, d) => {
+  tip.text(`${d.nom} — ${d.mois} mois`);
+  d3.select(event.currentTarget).attr("stroke", "#1a1a1a");
+});</code></pre>
+
+    <div class="exo">
+      <h3>Exercices</h3>
+      <label class="check"><input type="checkbox"> Touche chaque barre — lis le tip.</label>
+      <label class="check"><input type="checkbox"> pointer* > mouse* sur tactile.</label>
+      <label class="check"><input type="checkbox"> En prod : aria-label + focus clavier bonus.</label>
+    </div>
+
+    <nav class="nav-lesson" aria-label="Navigation">
+      <a class="back" href="lecon-08.html">← Leçon 8</a>
+      <a href="lecon-10.html">Suite → Leçon 10</a>
+    </nav>
+  </main>
+  <script src="vendor/d3.min.js"></script>
+  <script>
+
+const data9 = [
+  {nom:"Bridge", mois:10, budget:60},
+  {nom:"Pulse", mois:6, budget:35},
+  {nom:"Orbit", mois:14, budget:85},
+  {nom:"Nest", mois:4, budget:20}
+];
+const x9 = d3.scaleLinear().domain([0, 16]).range([0, 260]);
+const svg9 = d3.select("#svg9");
+svg9.selectAll("rect").data(data9).join("rect")
+  .attr("x", 40).attr("y", (d,i) => 18 + i*34)
+  .attr("height", 28).attr("rx", 6)
+  .attr("width", d => x9(d.mois))
+  .attr("fill", "#d62839").attr("stroke-width", 3).attr("stroke", "transparent")
+  .style("cursor", "pointer")
+  .on("pointerenter pointerdown", (event, d) => {
+    svg9.selectAll("rect").attr("stroke", "transparent").attr("opacity", 0.45);
+    d3.select(event.currentTarget).attr("stroke", "#1a1a1a").attr("opacity", 1);
+    d3.select("#tip9").text(`${d.nom} · ${d.mois} mois · budget ${d.budget}`);
+  })
+  .on("pointerleave", () => {
+    svg9.selectAll("rect").attr("stroke", "transparent").attr("opacity", 1);
+  });
+
+  </script>
+</body>
+</html>
