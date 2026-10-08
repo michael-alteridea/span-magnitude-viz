@@ -163,8 +163,8 @@ sinon l'import reste direct. Bouton **Données › « Mise en forme des données
   SOMME.SI(S), DATE, FIN.MOIS, ARRONDI…). Ordre topologique itératif, **Web Worker** avec progression au-delà de 3 000
   formules (Blob en version hors ligne), repli sur le fil principal. **Rapport de couverture** en français : nombre de
   formules non évaluées, fonctions non prises en charge, exemples (cellule, formule, raison) — jamais de graphique vide en silence.
-  Validation : sur `fichier-michael.xlsx` (29 848 formules), **100 % des cellules identiques** au même fichier recalculé
-  par LibreOffice (tolérance relative 1e-6), en ≈ 0,3 s.
+  Validation : sur un plan d'affaires réel de 29 848 formules (hors dépôt), **100 % des cellules identiques** au même
+  fichier recalculé par LibreOffice (tolérance relative 1e-6), en ≈ 0,3 s ; dans le dépôt, sur le classeur fictif de test.
 - **Choix de l'onglet** : vignette des premières cellules, score « tableau de données » (grille chiffrée, en-têtes M1…M60),
   onglet conseillé ; Lisez-moi, Sources, Notes… relégués en dernier.
 - **Structure détectée** (`data/structure.ts`) : vraie ligne d'en-têtes (titres, notes, lignes vides ignorés), ligne
@@ -183,19 +183,19 @@ sinon l'import reste direct. Bouton **Données › « Mise en forme des données
 - iPad : cibles ≥ 34 px, aucun survol nécessaire, disposition empilée en portrait ; clavier : Entrée (regrouper,
   renommer), Échap (fermer le menu puis la fenêtre) — aucun raccourci lettre, donc indifférent à l'AZERTY.
 
-Démonstration (fichier de Michaël) : filtre Indicateur « en poste (1/0) » → tout cocher → Regrouper (Somme) → courbe en
-escalier « Commerciaux en poste par mois » (0 → 24, 2027–2031) ; « productivité (ramp) » → « Capacité commerciale
-équivalent temps plein » ; lignes « MRR Produit A » + « MRR Produit B » ; onglet Synthèse, bloc « Tableau annuel » :
-CA HT, EBITDA, Résultat net par année.
+Démonstration (classeur fictif `test/fixtures/plan-mini.xlsx`, « Exemple SA ») : filtre Indicateur « en poste (1/0) » →
+tout cocher → Regrouper (Somme) → courbe en escalier « Commerciaux en poste par mois » (0 → 24, 2027–2031) ;
+« productivité (ramp) » → « Capacité commerciale équivalent temps plein » ; lignes « MRR Produit A » + « MRR Produit B » ;
+onglet Synthèse, bloc « Tableau annuel » : CA HT, EBITDA, Résultat net par année.
 
 Limites : INDIRECT / DECALER (références dynamiques), références structurées (Table1[Col]), formules matricielles
 dynamiques et macros ne sont pas évaluées (signalées dans le rapport) ; seules les 36 premières périodes sont affichées
 dans la grille (toutes sont importées).
 
-Tests : `test/smartImport.test.ts` (analyse, moteur, feuilles croisées, couverture, validation contre LibreOffice sur la
-fixture réduite `test/fixtures/plan-mini.xlsx` + `plan-mini.expected.json`, structure, large → long, Entité + Indicateur,
-nombres français, regroupements, X ⇄ Y ; fichier complet testé s'il est présent hors dépôt). Fixture réduite régénérable :
-`npx vite-node --config vitest.config.ts studio/scripts/make-test-fixtures.ts`. e2e : dépôt du classeur, onglet conseillé,
+Tests : `test/smartImport.test.ts` (analyse, moteur, feuilles croisées, couverture, validation contre LibreOffice sur le
+classeur fictif `test/fixtures/plan-mini.xlsx` + `plan-mini.expected.json`, structure, large → long, Entité + Indicateur,
+nombres français, regroupements, X ⇄ Y, onglets Lisez-moi / Sources, Synthèse à deux variantes). Fixtures fictives
+régénérables (LibreOffice requis) : `npx vite-node --config vitest.config.ts studio/scripts/make-test-fixtures.ts`. e2e : dépôt du classeur, onglet conseillé,
 recalcul (Worker), 4 graphiques construits dans la fenêtre, ⇄, regroupement, Appliquer, collage large, version hors ligne.
 Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-poste.png`, `25-mrr-produits.png`.
 

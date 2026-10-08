@@ -992,9 +992,10 @@ try {
 
   /* 13. Import intelligent : onglets, recalcul des formules, tableau large, fenêtre « Mise en forme des données » */
   {
-    const FULL = process.env.R4D_SMART_XLSX ?? "/workspace/fixtures/fichier-michael.xlsx";
-    const full = existsSync(FULL);
-    const xf = full ? FULL : join(repo, "studio/test/fixtures/plan-mini.xlsx");
+    // Classeur FICTIF (Exemple SA, Produit A / Produit B) : studio/scripts/make-test-fixtures.ts
+    const xf = join(repo, "studio/test/fixtures/plan-mini.xlsx");
+    const xfExpected = JSON.parse(readFileSync(join(repo, "studio/test/fixtures/plan-mini.expected.json"), "utf8"));
+    const PLAN = "Plan 60m — Exemple";
     const mw = () => page.evaluate(() => window.r4d.mapping().state);
     const waitMw = async () => {
       await page.waitForFunction(() => window.r4d.mapping().isOpen && window.r4d.mapping().state.report && window.r4d.mapping().state.mapping, { timeout: 30000 }).catch(() => {});
@@ -1016,15 +1017,15 @@ try {
     const visible = await page.$eval("[data-testid=mapping-window]", (e) => !e.classList.contains("hidden"));
     check(
       "import intelligent : fenêtre ouverte, onglet « plan mensuel » proposé (Lisez-moi / Sources en dernier)",
-      visible && /^Plan 60m — Exemple$/.test(st.sheet) && (!full || ["Lisez-moi", "Sources"].every((n) => st.guesses.slice().sort((a, b) => a.score - b.score).slice(0, 2).some((g) => g.name === n))),
+      visible && st.sheet === PLAN && (["Lisez-moi", "Sources"].every((n) => st.guesses.slice().sort((a, b) => a.score - b.score).slice(0, 2).some((g) => g.name === n))),
       `${st.sheet} · ${st.guesses.map((g) => `${g.name}:${g.score}`).join(", ")}`
     );
     check(
       "recalcul des formules dans le navigateur (Web Worker) : toutes évaluées, aucune en échec",
-      st.report && st.report.failed === 0 && st.report.evaluated === st.report.formulas && st.report.formulas > (full ? 29000 : 7000) && st.where === "worker" && /formules recalculées/.test(await page.$eval("[data-testid=mw-status]", (e) => e.textContent)),
+      st.report && st.report.failed === 0 && st.report.evaluated === st.report.formulas && st.report.formulas > 7000 && st.where === "worker" && /formules recalculées/.test(await page.$eval("[data-testid=mw-status]", (e) => e.textContent)),
       `${st.report?.evaluated}/${st.report?.formulas} en ${st.report?.ms} ms (${st.where})`
     );
-    check("structure : tableau large daté, sections, totaux annuels et résumé proposés à part", st.tables.length >= (full ? 3 : 2) && st.tables.some((t) => /totaux annuels/.test(t)) && (!full || st.tables.some((t) => t.startsWith("summary:"))), st.tables.join(" | "));
+    check("structure : tableau large daté, sections, totaux annuels et résumé proposés à part", st.tables.length >= 3 && st.tables.some((t) => /totaux annuels/.test(t)) && st.tables.some((t) => t.startsWith("summary:")), st.tables.join(" | "));
     await shotWindow("22-choix-onglet.png");
 
     // Graphique 1 : commerciaux en poste = somme des lignes « en poste (1/0) », courbe en escalier
@@ -1054,7 +1055,7 @@ try {
     let sp = await page.evaluate(() => ({ spec: window.r4d.getSpec(), n: window.r4d.store.state.ds?.rows.length, prov: window.r4d.provenance(), open: window.r4d.mapping().isOpen }));
     check(
       "Appliquer : chargé dans le Studio (courbe en escalier, provenance = empreinte du fichier brut, cartouche)",
-      !sp.open && sp.n === 60 && sp.spec.encoding.y[0] === "Commerciaux en poste" && sp.spec.style.curve === "step" && sp.spec.style.title === "Commerciaux en poste par mois" && sp.prov?.kind === "file" && sp.prov.hash === sha256(readFileSync(xf)) && sp.prov.sheet === "Plan 60m — Exemple" && !!(await cartoucheInfo()),
+      !sp.open && sp.n === 60 && sp.spec.encoding.y[0] === "Commerciaux en poste" && sp.spec.style.curve === "step" && sp.spec.style.title === "Commerciaux en poste par mois" && sp.prov?.kind === "file" && sp.prov.hash === sha256(readFileSync(xf)) && sp.prov.sheet === PLAN && !!(await cartoucheInfo()),
       `${sp.spec.type} ${sp.spec.encoding.x} → ${sp.spec.encoding.y.join(",")} · ${sp.prov?.hash?.slice(0, 12)}…`
     );
     await page.evaluate(() => window.r4d.seek(1));
@@ -1092,7 +1093,7 @@ try {
     sp = await page.evaluate(() => ({ y: window.r4d.getSpec().encoding.y, n: window.r4d.store.state.ds?.rows.length }));
     check("capacité ETP appliquée", sp.y[0] === "Capacité commerciale (ETP)" && sp.n === 60, JSON.stringify(sp));
 
-    if (full) {
+    {
       // Graphique 3 : MRR Produit A vs MRR Produit B (deux lignes du tableau large)
       await domClick("[data-testid=reshape-open]");
       await waitMw();
@@ -1129,12 +1130,12 @@ try {
       await sleep(400);
       p = await pv();
       const ca = p?.rows.map((r) => r["Chiffre d'affaires HT"]) ?? [];
-      check("Synthèse : CA / EBITDA / Résultat net 2027–2031 (5 années, une variante)", p?.xGrain === "year" && p.rows.length === 5 && p.y.length === 3 && Math.abs(ca[0] - 0) < 0.01, `${p?.rows.length} ans · CA 2027 ${ca[0]?.toFixed(0)} · ${p?.y.join(", ")}`);
+      check("Synthèse : CA / EBITDA / Résultat net 2027–2031 (5 années, une variante)", p?.xGrain === "year" && p.rows.length === 5 && p.y.length === 3 && Math.abs(ca[0] - xfExpected["Synthèse"].B6) < 0.01, `${p?.rows.length} ans · CA 2027 ${ca[0]?.toFixed(0)} · ${p?.y.join(", ")}`);
       await domClick("[data-testid=mw-apply]");
       await sleep(700);
       sp = await page.evaluate(() => ({ t: window.r4d.getSpec().type, g: window.r4d.getSpec().encoding.xGrain, n: window.r4d.store.state.ds?.rows.length, sheet: window.r4d.provenance()?.sheet }));
       check("Synthèse appliquée (barres groupées par année)", sp.t === "groupedBar" && sp.g === "year" && sp.n === 5 && sp.sheet === "Synthèse", JSON.stringify(sp));
-    } else results.push("(fichier complet absent : graphiques MRR et Synthèse non testés)");
+    }
 
     // Collage d'un tableau large (temps en colonnes) → fenêtre proposée
     const tsvWide = readFileSync(join(repo, "studio/test/fixtures/plan-commercial.tsv"), "utf8");

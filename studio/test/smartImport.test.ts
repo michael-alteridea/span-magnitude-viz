@@ -4,7 +4,7 @@
  * large → long, découpage Entité + Indicateur, nombres français, regroupements / agrégats, X ⇄ Y.
  */
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as XLSX from "xlsx";
 import * as formulajs from "@formulajs/formulajs";
@@ -18,8 +18,6 @@ import { parseDelimitedMatrix } from "span-magnitude-viz/fileImport";
 
 const FX = join(__dirname, "fixtures");
 const MONTHLY = "Plan 60m — Exemple";
-const FULL = "/workspace/fixtures/fichier-michael.xlsx";
-const FULL_REF = "/workspace/fixtures/recalc/fichier-michael.xlsx";
 
 /** Petit classeur à la main : { feuille: { A1: valeur | "=formule" } }. */
 function wbOf(spec: Record<string, Record<string, number | string | boolean | null>>): WorkbookIn {
@@ -119,7 +117,7 @@ describe("moteur de recalcul", () => {
   });
 });
 
-describe("recalcul validé contre LibreOffice (fixture réduite, formules sans valeur en cache)", () => {
+describe("recalcul validé contre LibreOffice (classeur fictif, formules sans valeur en cache)", () => {
   const data = loadData(join(FX, "plan-mini.xlsx"));
   const expected = JSON.parse(readFileSync(join(FX, "plan-mini.expected.json"), "utf8")) as Record<string, Record<string, number | string>>;
   it("toutes les formules sont sans valeur en cache", () => {
@@ -148,37 +146,23 @@ describe("recalcul validé contre LibreOffice (fixture réduite, formules sans v
   it("productivité n°1 (ligne 12) et « dont commerciaux salariés » de la Synthèse", () => {
     const m = data.sheets.findIndex((s) => s.name === MONTHLY);
     const row12 = ["C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"].map((c) => val(res, m, `${c}12`) ?? data.sheets[m]!.model.cells.get(11 * KEY_COLS + 2)?.v);
-    expect(row12.map((v) => Math.round(Number(v) * 10000) / 10000)).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0.2667, 0.5333, 0.8, 1, 1]);
+    expect(row12.map((v) => Math.round(Number(v) * 10000) / 10000)).toEqual([0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1, 1, 1]);
     const syn = data.sheets.findIndex((s) => s.name === "Synthèse");
-    expect(["B10", "C10", "D10", "E10", "F10"].map((a) => val(res, syn, a))).toEqual([2, 7, 13, 19, 24]);
+    expect(["B10", "C10", "D10", "E10", "F10"].map((a) => val(res, syn, a))).toEqual([3, 9, 15, 20, 24]);
   });
 });
 
-describe.skipIf(!existsSync(FULL) || !existsSync(FULL_REF))("fichier complet de Michaël (hors dépôt)", () => {
-  it("29 848 formules recalculées, 100 % conformes à LibreOffice ; CA HT 2027 ≈ (valeur retirée)", () => {
-    const data = loadData(FULL);
-    const ref = XLSX.read(readFileSync(FULL_REF), { type: "buffer" });
+describe("classeur fictif complet : onglets, résumé, Synthèse à deux variantes", () => {
+  it("Synthèse (CA HT, effectifs) conforme à LibreOffice ; onglet conseillé = plan mensuel, Lisez-moi / Sources en dernier", () => {
+    const data = loadData(join(FX, "plan-mini.xlsx"));
+    const expected = JSON.parse(readFileSync(join(FX, "plan-mini.expected.json"), "utf8")) as Record<string, Record<string, number>>;
     const res = recalcWorkbook(toWorkbookIn(data), { fallback: formulajs as never });
-    let n = 0;
-    let ok = 0;
-    data.sheets.forEach((s, i) => {
-      for (const [key, cell] of s.model.cells) {
-        if (!cell.f) continue;
-        const a = addrOf(Math.floor(key / KEY_COLS), key % KEY_COLS);
-        const e = ref.Sheets[s.name]?.[a] as XLSX.CellObject | undefined;
-        if (!e) continue;
-        n++;
-        const got = res.values[i]!.get(key);
-        if (e.t === "n" ? close(got, e.v as number) : String(got ?? "") === String(e.v ?? "")) ok++;
-      }
-    });
-    expect(data.missingCached).toBe(29848);
-    expect(ok / n).toBe(1);
+    expect(data.sheets.map((s) => s.name)).toEqual(["Lisez-moi", "Hypothèses", MONTHLY, "Synthèse", "Sources"]);
     const syn = data.sheets.findIndex((s) => s.name === "Synthèse");
-    expect(val(res, syn, "B6")).toBeCloseTo(0, 1);
-    // Choix de l'onglet : plans mensuels d'abord, Lisez-moi / Sources en dernier
+    expect(val(res, syn, "B6")).toBeCloseTo(expected["Synthèse"]!.B6!, 6);
+    expect(val(res, syn, "G10")).toBe(3); // variante prudente : ROUND(3 × 0,85)
     const guesses = data.sheets.map((s, i) => guessSheet(s.name, sheetMatrix(s, res.values[i]), s.formulas)).sort((a, b) => b.score - a.score);
-    expect(guesses[0]!.name).toMatch(/^Autof\. 60m — 1|^Autof\. 60m — 2/);
+    expect(guesses[0]!.name).toBe(MONTHLY);
     expect(guesses.slice(-2).map((g) => g.name).sort()).toEqual(["Lisez-moi", "Sources"]);
   });
 });
@@ -220,7 +204,7 @@ describe("détection de structure", () => {
     expect(t2.unitCol).toBe(1);
     expect(t2.split).toBe(true);
     const r = t2.rows.find((x) => x.label === "Commercial salarié n°1 — productivité (ramp)")!;
-    r.values.slice(6, 10).forEach((v, i) => expect(v).toBeCloseTo([0.267, 0.533, 0.8, 1][i]!, 9));
+    r.values.slice(3, 7).forEach((v, i) => expect(v).toBeCloseTo([0.25, 0.5, 0.75, 1][i]!, 9));
     expect(new Date(t2.timeCols[0]!.date!).toISOString().slice(0, 7)).toBe("2027-01");
   });
   it("résumé « RÉSUMÉ DU SCÉNARIO » proposé comme tableau séparé (feuille synthétique)", () => {
@@ -266,8 +250,8 @@ describe("détection de structure", () => {
   it("large → long : Section, Poste, Entité, Indicateur, Unité, Date, Période, Valeur", () => {
     expect(lt.fields.map((f) => f.name)).toEqual([F.section, F.poste, F.entity, F.indicator, F.unit, F.date, F.period, F.value]);
     expect(lt.rows).toHaveLength(t.rows.length * 61);
-    const r = lt.rows.find((x) => x[F.poste] === "Commercial salarié n°1 — productivité (ramp)" && x[F.period] === "oct. 2027")!;
-    expect(r[F.value]).toBeCloseTo(0.8);
+    const r = lt.rows.find((x) => x[F.poste] === "Commercial salarié n°1 — productivité (ramp)" && x[F.period] === "juin 2027")!;
+    expect(r[F.value]).toBeCloseTo(0.75);
     expect(lt.rows.find((x) => x[F.period] === "Ouverture")?.[F.date]).toBeNull();
     expect(lt.wide?.cols[0]?.opening).toBe(true);
   });
