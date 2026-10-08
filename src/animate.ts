@@ -1,4 +1,4 @@
-import type { NormalizedMark, TickerState } from "./types.js";
+import type { NormalizedMark, PersistenceMode, TickerState } from "./types.js";
 
 export interface RevealSchedule {
   /** mark id → reveal progress start/end on [0,1] clock */
@@ -11,13 +11,23 @@ export interface RevealSchedule {
   durationMs: number;
 }
 
+export interface RevealScheduleOptions {
+  durationMs?: number;
+  slowFirst?: number;
+  /** Fraction of timeline for the slow open (0–0.5). Default 0.28. */
+  slowOpen?: number;
+  /** Cascade packing after the slow open. Default `"normal"`. */
+  cascadeSpeed?: "slow" | "normal" | "fast";
+}
+
 /**
  * Build a staggered reveal timeline:
  * first `slowFirst` marks get a slow annotated window; rest cascade.
+ * Film rhythm: ease-in density on the cascade, optional slower open / faster cascade.
  */
 export function buildRevealSchedule(
   marks: NormalizedMark[],
-  options: { durationMs?: number; slowFirst?: number } = {}
+  options: RevealScheduleOptions = {}
 ): RevealSchedule {
   const n = marks.length;
   const slowFirst = Math.min(options.slowFirst ?? 2, n);
@@ -29,28 +39,35 @@ export function buildRevealSchedule(
     return { entries: [], durationMs };
   }
 
-  // Map revealAt domain to a base order already sorted.
   const entries: RevealSchedule["entries"] = [];
 
-  // Slow phase: first k marks occupy ~28% of timeline
-  const slowEnd = slowFirst > 0 ? 0.28 : 0;
+  const slowOpen = Math.max(0, Math.min(0.5, options.slowOpen ?? 0.28));
+  const speed = options.cascadeSpeed ?? "normal";
+  // Per-mark draw window (clock fraction)
+  const slowWindow = speed === "fast" ? 0.055 : speed === "slow" ? 0.1 : 0.08;
+  const cascadeWindow =
+    speed === "fast" ? 0.016 : speed === "slow" ? 0.038 : 0.025;
+  // Ease power: higher → denser finish (faster cascade feel)
+  const easePower = speed === "fast" ? 2.6 : speed === "slow" ? 1.35 : 2;
+
+  const slowEnd = slowFirst > 0 ? slowOpen : 0;
   for (let i = 0; i < slowFirst; i++) {
     const slot = slowFirst === 1 ? 0 : i / (slowFirst - 1);
-    const t0 = slot * slowEnd * 0.85;
-    const t1 = Math.min(1, t0 + 0.08);
+    // Ease-out on the open so the first beat breathes
+    const easedSlot = 1 - Math.pow(1 - slot, 1.4);
+    const t0 = easedSlot * slowEnd * 0.82;
+    const t1 = Math.min(1, t0 + slowWindow);
     entries.push({ id: marks[i].id, t0, t1, mark: marks[i] });
   }
 
-  // Cascade: remaining marks from slowEnd → 0.95
   const rest = marks.slice(slowFirst);
   const cascadeStart = slowEnd;
   const cascadeEnd = 0.95;
   for (let i = 0; i < rest.length; i++) {
     const u = rest.length === 1 ? 0 : i / (rest.length - 1);
-    // ease-in density: more marks later
-    const eased = u * u;
+    const eased = Math.pow(u, easePower);
     const t0 = cascadeStart + eased * (cascadeEnd - cascadeStart);
-    const t1 = Math.min(1, t0 + 0.025);
+    const t1 = Math.min(1, t0 + cascadeWindow);
     entries.push({ id: rest[i].id, t0, t1, mark: rest[i] });
   }
 
@@ -68,8 +85,58 @@ export function markProgress(
   if (t < e.t0) return 0;
   if (t >= e.t1) return 1;
   const u = (t - e.t0) / (e.t1 - e.t0);
-  // smoothstep
-  return u * u * (3 - 2 * u);
+  // smootherstep (film ease)
+  return u * u * u * (u * (u * 6 - 15) + 10);
+}
+
+/** Fraction of timeline where finale cloud reappears (PersistenceMode `"finale"`). */
+export const FINALE_START = 0.92;
+
+/**
+ * Multiplier on mark opacity after the draw window, for persistence modes.
+ * - `keep`: always 1 (marks stay)
+ * - `ephemeral`: 1 through reveal, then fades to 0
+ * - `finale`: like ephemeral during the film, then all marks ramp back in at the end
+ */
+export function persistenceFactor(
+  schedule: RevealSchedule,
+  id: string,
+  t: number,
+  mode: PersistenceMode = "keep"
+): number {
+  if (mode === "keep") return 1;
+
+  const e = schedule.entries.find((x) => x.id === id);
+  if (!e) return 0;
+
+  if (mode === "finale" && t >= FINALE_START) {
+    const u = (t - FINALE_START) / Math.max(1e-6, 1 - FINALE_START);
+    const s = Math.max(0, Math.min(1, u));
+    return s * s * (3 - 2 * s);
+  }
+
+  // Ephemeral (and finale before cloud): fade after each reveal window
+  const fadeDur = 0.055;
+  if (t < e.t1) return 1;
+  const fadeT = (t - e.t1) / fadeDur;
+  if (fadeT >= 1) return 0;
+  return Math.max(0, 1 - fadeT);
+}
+
+/**
+ * Effective draw progress for sizing/dash, boosting to full size during finale cloud.
+ */
+export function effectiveDrawProgress(
+  schedule: RevealSchedule,
+  id: string,
+  t: number,
+  mode: PersistenceMode = "keep"
+): number {
+  const draw = markProgress(schedule, id, t);
+  if (mode === "finale" && t >= FINALE_START) {
+    return Math.max(draw, persistenceFactor(schedule, id, t, mode));
+  }
+  return draw;
 }
 
 export function tickerAt(
