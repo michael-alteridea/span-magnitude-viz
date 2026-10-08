@@ -574,6 +574,25 @@ gardant titre, chiffre clé, légende et durée retouchés, le rythme, l'ordre e
 inchangé et rend à l'éditeur son état d'avant. Boutons de 44 px au toucher (iPad). e2e `--public` ; captures
 `docs/shots/109` à `111`.
 
+## Nombre d'éléments et Filtrer (Réglages › Données)
+
+Visibles dans la section Données (pas sous « Plus d'options ») :
+
+- **Nombre d'éléments** (barres, horizontales, groupées, empilées, secteurs, anneau, arcs, écarts ; catégories non
+  temporelles) : *Tous / Top 5 / Top 10 / Top 20 / Perso* (1 à 100), **Classement** *Les plus grands* (valeur
+  absolue) ou *Les plus petits* (`encoding.topOrder: "bottom"`), case **Regrouper le reste en « Autres »** (sommes et
+  comptages), indication « 10 sur 27 pays affichés ».
+- **Filtrer** : une colonne → *Garder* ou *Exclure* des valeurs (liste à cocher avec recherche, nombre de lignes par
+  valeur) ; colonne de dates ou d'années → une année ou une période (*De … À …*). Écrit dans `transform.filters`, mêmes
+  pastilles que l'Explorer (une période = une pastille ; × la retire).
+- Recherche de réglages : « top », « classement », « nombre de barres », « filtre », « autres ».
+- Sous-titre : une période filtrée n'est plus répétée ; données annuelles datées « 2023 » ou « 2000 – 2025 ».
+- Contrat Cadencer inchangé : `topOrder` par défaut (« top ») est exclu de l'empreinte ; empreintes publiées
+  identiques.
+
+Tests : `test/model.test.ts` (top / plus petits / Autres), e2e `--topn` (iPad 1024 px, toucher). Captures
+`docs/shots/112` et `113`.
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |

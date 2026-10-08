@@ -4,6 +4,7 @@
  *
  *   npm run build:studio && npm run test:e2e:studio            # vérifications
  *   node studio/scripts/e2e.mjs --shots                         # + captures dans studio/docs/shots/
+ *   node studio/scripts/e2e.mjs --topn [--shots]                # seulement « Nombre d'éléments » + « Filtrer »
  *   node studio/scripts/e2e.mjs --public [--shots]              # seulement « Données publiques » + « Modifier le graphique » du Reel
  *
  * Variables : CHROME_PATH (défaut /usr/bin/google-chrome), PUPPETEER_DIR (dossier où
@@ -398,6 +399,108 @@ async function e2eReel() {
 }
 
 /* Mise en avant généralisée (étape L) : parts, arcs, points, courbes, carte ; toucher pour choisir ; « Dupliquer et mettre en avant » ; film, Reel, PowerPoint Morph ; iPad */
+
+/** Réglages › Données : « Nombre d'éléments » (top N / plus petits / Autres) et « Filtrer » (valeurs, année, période). */
+async function e2eTopN() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await sleep(300); await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 2 : 1, isMobile: true, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.evaluate(() => window.r4d.loadSample("zones-protegees-ue"));
+  await sleep(700);
+  // barres horizontales, tous les pays, 2023 choisi par « Filtrer »
+  await pg.evaluate(() => {
+    window.r4d.pickType("barH");
+    window.r4d.set("encoding.x", "Pays");
+    window.r4d.set("encoding.y", ["Surface protégée (%)"]);
+    window.r4d.set("encoding.aggregate", "mean");
+    window.r4d.set("encoding.topN", null);
+    window.r4d.set("transform.filters", []);
+    window.r4d.set("style.sort", "desc");
+    window.r4d.panel().open("donnees");
+  });
+  await sleep(600);
+  const ctl = await pg.evaluate(() => ({ topn: !!document.querySelector("[data-testid=topn]"), active: document.querySelector("[data-testid=topn] .active")?.textContent, filter: !!document.querySelector("[data-testid=filter-block]"), hint: document.querySelector("[data-testid=topn-hint]")?.textContent.replace(/[\u00a0\u202f]/g, " ") }));
+  check("Réglages › Données : « Nombre d'éléments » (Tous actif) et « Filtrer » visibles sans « Plus d'options »", ctl.topn && ctl.active === "Tous" && ctl.filter && /^28 pays, tous affichés$/.test(ctl.hint ?? ""), JSON.stringify(ctl));
+  await pg.select("[data-testid=filter-col]", "Année");
+  await sleep(250);
+  await pg.select("[data-testid=filter-year]", "2023");
+  await sleep(500);
+  const yr = await pg.evaluate(() => ({ f: window.r4d.getSpec().transform.filters.map((x) => [x.field, x.op, x.label]), chips: [...document.querySelectorAll("[data-testid=transform-chip]")].map((c) => c.firstChild.textContent) }));
+  check("Filtrer › Année 2023 : bornes ≥ / < écrites dans transform.filters, une seule pastille", yr.f.length === 2 && yr.f[0][1] === "gte" && yr.f[1][1] === "lt" && yr.chips.join("|") === "Année : 2023", JSON.stringify(yr));
+  await pg.tap("[data-testid=topn] [data-value='10']");
+  await sleep(600);
+  const t10 = await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); return { n: window.r4d.getSpec().encoding.topN, hint: document.querySelector("[data-testid=topn-hint]")?.textContent.replace(/[\u00a0\u202f]/g, " "), bars: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks rect").length, labels: [...document.querySelectorAll("[data-testid=chart-svg] text")].map((t) => t.textContent.trim()) }; });
+  check("Top 10 : 10 barres (moyenne : pas d'« Autres »), indication « 10 sur 28 pays affichés »", t10.n === 10 && t10.hint === "10 sur 28 pays affichés" && t10.labels.includes("Bulgarie") && !t10.labels.some((l) => /^Autres/.test(l)), JSON.stringify({ ...t10, labels: t10.labels.slice(12, 40) }));
+  await pg.tap("[data-testid=topn-order] [data-value=bottom]");
+  await sleep(700);
+  const bot = await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); return { o: window.r4d.getSpec().encoding.topOrder, labels: [...document.querySelectorAll("[data-testid=chart-svg] text")].map((t) => t.textContent.trim()) }; });
+  check("Classement « Les plus petits » : la Belgique et la Finlande apparaissent, la Bulgarie non", bot.o === "bottom" && bot.labels.includes("Belgique") && bot.labels.includes("Finlande") && !bot.labels.includes("Bulgarie"), JSON.stringify(bot));
+  // Exclure UE-27 (recherche + case à cocher)
+  await pg.select("[data-testid=filter-col]", "Pays");
+  await sleep(250);
+  await pg.tap("[data-testid=filter-mode] [data-value=notIn]");
+  await sleep(250);
+  await pg.type("[data-testid=filter-search]", "ue-2");
+  await sleep(200);
+  const nvals = await pg.evaluate(() => document.querySelectorAll("[data-testid=filter-values] input").length);
+  await pg.tap('[data-testid=filter-values] input[data-value="UE-27"]');
+  await sleep(600);
+  const ex = await pg.evaluate(() => ({ f: window.r4d.getSpec().transform.filters.map((x) => [x.field, x.op, x.values.join(","), x.label]), chips: [...document.querySelectorAll("[data-testid=transform-chip]")].map((c) => c.firstChild.textContent), q: document.querySelector("[data-testid=filter-search]")?.value }));
+  check("Filtrer › Pays : recherche (1 valeur) puis « Exclure UE-27 » → pastille « Pays : sauf UE-27 »", nvals === 1 && ex.f.some((f) => f[0] === "Pays" && f[1] === "notIn" && f[2] === "UE-27") && ex.chips.includes("Pays : sauf UE-27") && ex.q === "ue-2", JSON.stringify({ nvals, ex }));
+  // Perso : 7
+  await pg.tap("[data-testid=topn] [data-value=custom]");
+  await sleep(400);
+  await pg.evaluate(() => { const i = document.querySelector("[data-testid=topn-custom]"); i.value = "7"; i.dispatchEvent(new Event("change", { bubbles: true })); });
+  await sleep(500);
+  const perso = await pg.evaluate(() => ({ n: window.r4d.getSpec().encoding.topN, hint: document.querySelector("[data-testid=topn-hint]")?.textContent.replace(/[\u00a0\u202f]/g, " "), active: document.querySelector("[data-testid=topn] .active")?.textContent }));
+  check("Perso : 7 → « 7 sur 27 pays affichés » (UE-27 exclue)", perso.n === 7 && perso.active === "Perso" && perso.hint === "7 sur 27 pays affichés", JSON.stringify(perso));
+  await pg.tap("[data-testid=topn-order] [data-value=top]");
+  await sleep(500);
+  await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); (document.querySelector("[data-testid=transform-chips]") ?? document.querySelector("[data-testid=topn]"))?.scrollIntoView({ block: "start" }); });
+  await sleep(300);
+  await shot("112-top-n-filtrer-ipad.png");
+  // « Autres » avec une somme (km²)
+  await pg.evaluate(() => { window.r4d.set("encoding.y", ["Surface protégée (km²)"]); window.r4d.set("encoding.aggregate", "sum"); window.r4d.set("axes.y.unit", "none"); window.r4d.set("axes.y.decimals", 0); });
+  await sleep(700);
+  const oth = await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); return { checked: document.querySelector('[data-path="encoding.others"]')?.checked, labels: [...document.querySelectorAll("[data-testid=chart-svg] text")].map((t) => t.textContent.trim()) }; });
+  check("Somme : « Regrouper le reste en Autres » ajoute « Autres (20) »", oth.checked === true && oth.labels.some((l) => /^Autres \(20\)$/.test(l)), JSON.stringify(oth));
+  // Donut : Top 5 + Autres
+  await pg.evaluate(() => window.r4d.pickType("donut"));
+  await sleep(700);
+  await pg.tap("[data-testid=topn] [data-value='5']");
+  await sleep(700);
+  const dn = await pg.evaluate(() => ({ n: window.r4d.getSpec().encoding.topN, slices: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path").length, hint: document.querySelector("[data-testid=topn-hint]")?.textContent }));
+  check("Anneau : Top 5 + Autres → 6 parts", dn.n === 5 && dn.slices === 6, JSON.stringify(dn));
+  await pg.evaluate(() => { window.r4d.settle(); window.r4d.seek(1); });
+  await shot("113-top-n-anneau-ipad.png");
+  // recherche de réglages
+  for (const q of ["top", "classement", "nombre de barres", "filtre", "autres"]) {
+    const hit = await pg.evaluate(async (q) => {
+      const s = document.querySelector("[data-testid=settings-search]");
+      s.value = q;
+      s.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 120));
+      const vis = [...document.querySelectorAll("[data-testid=topn], [data-testid=filter-block], [data-path='encoding.others']")].filter((el) => el.offsetParent !== null).length;
+      s.value = "";
+      s.dispatchEvent(new Event("input", { bubbles: true }));
+      return vis;
+    }, q);
+    check(`Recherche de réglages « ${q} » : trouve Nombre d'éléments / Filtrer`, hit > 0, String(hit));
+  }
+  // type sans catégories (courbe) : pas de « Nombre d'éléments », « Filtrer » toujours là
+  await pg.evaluate(() => { window.r4d.pickType("line"); window.r4d.set("encoding.x", "Année"); });
+  await sleep(600);
+  const ln = await pg.evaluate(() => ({ topn: !!document.querySelector("[data-testid=topn]"), filter: !!document.querySelector("[data-testid=filter-block]"), sw: document.documentElement.scrollWidth }));
+  check("Courbe : pas de « Nombre d'éléments », « Filtrer » présent, pas de débordement iPad", !ln.topn && ln.filter && ln.sw <= 1025, JSON.stringify(ln));
+  check("Nombre d'éléments / Filtrer : aucune erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
 
 /** « Modifier le graphique » d'une scène du Reel : éditeur, barre Valider / Annuler, retour au Reel (même id, même place). */
 async function reelEditChecks(pg, shot, tag, ipad = false, mode = "type") {
@@ -864,6 +967,14 @@ async function e2eFocus() {
   await fctx.close();
 }
 
+if (process.argv.includes("--topn")) {
+  try { await e2eTopN(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
 if (process.argv.includes("--public")) {
   try { await e2ePublic(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -3122,6 +3233,9 @@ try {
 
   /* 22. Données publiques + « Modifier le graphique » d'une scène du Reel : voir e2ePublic() */
   await e2ePublic();
+
+  /* 23. Réglages › Données : Nombre d'éléments et Filtrer : voir e2eTopN() */
+  await e2eTopN();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

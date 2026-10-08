@@ -815,3 +815,27 @@ svg .r4d-tip-on > .r4d-drill-mark, svg rect.r4d-tip-on, svg path.r4d-tip-on, svg
 .icon-pick-pop .ip-l { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .icon-pick-pop .ip-sep { height: 1px; margin: 4px 6px; background: var(--line); }
 .hint.warn { color: #e0b05c; }
+
+/* Réglages › Données : « Nombre d'éléments » et « Filtrer » */
+.seg-topn button { padding: 0 4px; }
+.topn-hint { margin: -2px 0 2px; }
+.filter-block { display: flex; flex-direction: column; gap: 8px; }
+.filter-block > select, .filter-search { width: 100%; box-sizing: border-box; }
+.filter-search { height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel); color: var(--text); font: inherit; font-size: 12.5px; }
+.filter-values { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: var(--panel); overscroll-behavior: contain; }
+.filter-val { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
+.filter-val:hover { background: rgba(63, 167, 196, .08); }
+.filter-val span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-val small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.filter-val input { accent-color: var(--accent); margin: 0; }
+.filter-years { display: grid; grid-template-columns: 1fr auto 1fr 1fr; gap: 6px; align-items: end; }
+.filter-y { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+.filter-y select { width: 100%; }
+.filter-or { font-size: 11px; color: var(--muted); padding-bottom: 8px; }
+.filter-clear { align-self: flex-start; }
+@media (pointer: coarse) {
+  .filter-val { min-height: 40px; }
+  .filter-val input { width: 20px; height: 20px; }
+  .filter-search { height: 40px; font-size: 14px; }
+  .seg-topn button { height: 36px; }
+}

@@ -165,6 +165,8 @@ export const encodingSchema = z.object({
   topN: z.number().int().min(1).max(100).nullable().default(null),
   /** Avec topN : regrouper le reste en « Autres ». */
   others: z.boolean().default(true),
+  /** Avec topN : « top » = les plus grands (valeur absolue), « bottom » = les plus petits. */
+  topOrder: z.enum(["top", "bottom"]).default("top"),
   aggregate: z.enum(AGGREGATES).default("sum"),
   y2Aggregate: z.enum(AGGREGATES).default("mean"),
   /**

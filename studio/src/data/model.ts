@@ -286,10 +286,12 @@ export function buildCatModel(spec: ChartSpec, ds: Dataset, rows: WRow[], opts: 
   const topN = enc.topN;
   if (topN && xKind === "band" && !(xCol && (xCol.type === "date" || xCol.type === "number")) && keys.length > topN && !opts.fixedKeys) {
     const tot = (i: number) => values.reduce((s, row) => s + (Number.isFinite(row[i]!) ? row[i]! : 0), 0);
-    const ranked = keys.map((_, i) => i).sort((a, b) => Math.abs(tot(b)) - Math.abs(tot(a)));
+    const bottom = enc.topOrder === "bottom";
+    // les plus grands : rang par valeur absolue (écarts négatifs compris) ; les plus petits : valeurs signées croissantes
+    const ranked = keys.map((_, i) => i).sort((a, b) => (bottom ? tot(a) - tot(b) : Math.abs(tot(b)) - Math.abs(tot(a))));
     const keepSet = new Set(ranked.slice(0, topN));
     const kept = keys.map((_, i) => i).filter((i) => keepSet.has(i));
-    if (spec.style.sort === "none") kept.sort((a, b) => tot(b) - tot(a));
+    if (spec.style.sort === "none") kept.sort((a, b) => (bottom ? tot(a) - tot(b) : tot(b) - tot(a)));
     const rest = keys.map((_, i) => i).filter((i) => !keepSet.has(i));
     const additive = enc.aggregate === "sum" || enc.aggregate === "count";
     const nk = kept.map((i) => keys[i]!);

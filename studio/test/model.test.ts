@@ -107,3 +107,29 @@ describe("auto encoding", () => {
     expect(e.series).toBe("Région");
   });
 });
+
+describe("Nombre d'éléments : top N / N plus petits / « Autres »", () => {
+  const pays = buildDataset(
+    "pays",
+    ["A", "B", "C", "D", "E", "F"].map((p, i) => ({ Pays: p, Valeur: String([50, 10, 40, 5, 30, 20][i]) }))
+  );
+  it("top 3 (les plus grands) + Autres", () => {
+    const m = buildCatModel(spec({ type: "bar", encoding: { x: "Pays", y: ["Valeur"], topN: 3 }, style: { sort: "desc" } }), pays, allRows(pays));
+    expect(m.labels).toEqual(["A", "C", "E", "Autres (3)"]);
+    expect(m.values[0]).toEqual([50, 40, 30, 35]);
+  });
+  it("3 plus petits, sans Autres", () => {
+    const m = buildCatModel(spec({ type: "barH", encoding: { x: "Pays", y: ["Valeur"], topN: 3, topOrder: "bottom", others: false }, style: { sort: "asc" } }), pays, allRows(pays));
+    expect(m.labels).toEqual(["D", "B", "F"]);
+    expect(m.values[0]).toEqual([5, 10, 20]);
+  });
+  it("plus petits, ordre des données : du plus petit au plus grand", () => {
+    const m = buildCatModel(spec({ type: "bar", encoding: { x: "Pays", y: ["Valeur"], topN: 2, topOrder: "bottom", others: false }, style: { sort: "none" } }), pays, allRows(pays));
+    expect(m.labels).toEqual(["D", "B"]);
+  });
+  it("défaut : classement « top », aucun regroupement sans topN", () => {
+    const s = spec({ type: "bar", encoding: { x: "Pays", y: ["Valeur"] } });
+    expect(s.encoding.topOrder).toBe("top");
+    expect(buildCatModel(s, pays, allRows(pays)).labels).toHaveLength(6);
+  });
+});

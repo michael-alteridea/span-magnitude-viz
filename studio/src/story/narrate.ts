@@ -84,14 +84,20 @@ export function subtitleFor(spec: ChartSpec, eff: Dataset, ctx: Ctx, a: Analysis
     let lo = Infinity;
     let hi = -Infinity;
     const yf = spec.type === "variance" ? y[0] : null;
+    let yearly = true;
     for (const r of eff.rows) {
       const t = r[dateField];
       if (typeof t !== "number") continue;
       if (yf && typeof r[yf] !== "number") continue;
       if (t < lo) lo = t;
       if (t > hi) hi = t;
+      if (yearly) {
+        const d = new Date(t);
+        yearly = d.getUTCMonth() === 0 && d.getUTCDate() === 1 && d.getUTCHours() === 0;
+      }
     }
-    if (lo <= hi) period = periodLabel(lo, hi);
+    // données annuelles (1er janvier) : « 2024 » ou « 2000 – 2025 » plutôt que « janv. 2024 »
+    if (lo <= hi) period = yearly ? (new Date(lo).getUTCFullYear() === new Date(hi).getUTCFullYear() ? String(new Date(lo).getUTCFullYear()) : `${new Date(lo).getUTCFullYear()} – ${new Date(hi).getUTCFullYear()}`) : periodLabel(lo, hi);
   }
   if (spec.norme?.enabled) {
     // Message IBCS : qui · quoi en unité · quand + scénarios (« Alteridea SA · Chiffre d’affaires en k€ · 2026 Réel vs Budget »)
@@ -102,7 +108,9 @@ export function subtitleFor(spec: ChartSpec, eff: Dataset, ctx: Ctx, a: Analysis
   const scope = a?.scope && spec.type !== "variance" ? a.scope : "";
   if (scope) parts.push(scope);
   else {
-    const labels = spec.transform.filters.map((f) => f.label).filter((l) => l && !/^\d{4}$/.test(l));
+    // période filtrée sur une colonne de dates (« Année : 2024 », bornes ≥ / <) : déjà dite par la période
+    const periodFilter = (f: (typeof spec.transform.filters)[number]) => f.op !== "in" && f.op !== "notIn" && f.op !== "notNull" && columnOf(eff, f.field)?.type === "date" && /\d{4}/.test(f.label);
+    const labels = [...new Set(spec.transform.filters.filter((f) => !periodFilter(f)).map((f) => f.label).filter((l) => l && !/^\d{4}$/.test(l)))];
     if (labels.length) parts.push(labels.join(", "));
   }
   if (period && !/au \d/.test(scope)) parts.push(period);

@@ -72,6 +72,7 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
     if (t !== "scatter") donnees += ` · ${AGGREGATE_LABELS[e.aggregate]}`;
     if (e.series && !isRadial(t) && e.y.length <= 1) donnees += ` · par ${e.series}`;
   }
+  if (hasData && e.topN && (isBarType(t) || isRadial(t) || isVariance(t))) donnees += e.topOrder === "bottom" ? ` · ${e.topN} plus petits` : ` · top ${e.topN}`;
   const nf = spec.transform.filters.length;
   if (hasData && nf) donnees += ` · ${nf} filtre${nf > 1 ? "s" : ""}`;
   /* Graphique */

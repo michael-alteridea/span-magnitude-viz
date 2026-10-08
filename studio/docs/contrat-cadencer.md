@@ -1,5 +1,9 @@
 # Contrat Datanime → Cadencer : « manifeste de revue » (V1, révision 1.1)
 
+> **Contrat 1.1 FIGÉ le 2026-10-08.** Vérifié de bout en bout avec Cadencer le 8 octobre 2026 vers 23 h : tout passe.
+> Plus aucun ajout dans la révision 1.1 ; toute évolution ira dans une révision ultérieure (compatible) ou dans
+> `version: 2` (incompatible). Voir « Contrat 1.1 figé » en fin de document.
+
 *Version 1, révision 1.1 — 8 octobre 2026 (ajouts compatibles : `version` reste `1`, voir « Révision 1.1 » en fin de
 document). Côté Datanime : `studio/src/publish/manifest.ts` (schéma Zod, adresses, construction),
 `studio/scripts/publish-manifests.mjs` (publication à la construction), tests `studio/test/manifest.test.ts`.*
@@ -258,6 +262,18 @@ Complément 1.1 (8 octobre 2026, soir) — toujours `version: 1`, ajouts compati
     (identifiants inchangés) : Cadencer rafraîchit chaque point une fois.
 12. Anciennes adresses d'images (identifiants à suffixe) servies comme images ; identifiant de snapshot inconnu dans
     `#/lire/…` : message explicite au lieu d'une ouverture silencieuse de la diapositive 1.
+
+### Contrat 1.1 figé (2026-10-08)
+
+La révision 1.1 (points 1 à 12) est **figée** à la date du 8 octobre 2026 (vérification Cadencer vers 23 h : tout
+passe). Note de clôture :
+
+- Les **28 empreintes de snapshots** publiées (4 revues × 7 snapshots) ont changé **une seule fois** avec ce
+  complément (point 11 ; identifiants inchangés) : chaque point d'ordre du jour Cadencer a été rafraîchi une fois.
+- **Cadencer ne compare plus que l'empreinte du snapshot** pour décider d'un ré-import, et **affiche
+  `empreinte_donnees` dans le PV** (empreinte des données du cartouche).
+- Les réglages ajoutés ensuite dans le Studio (ex. « Nombre d'éléments » : `encoding.topOrder`) laissent les
+  empreintes publiées inchangées à leurs valeurs par défaut.
 
 Un consommateur 1.0 reste compatible : il ignore `alt` et les nouveaux champs d'index, et charge les adresses
 d'images telles quelles. Changements à prévoir : `lien_lecture` peut être `null` dans un manifeste téléchargé ; au

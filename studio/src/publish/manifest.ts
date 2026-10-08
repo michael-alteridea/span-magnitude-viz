@@ -286,6 +286,13 @@ function dataHashOf(spec: unknown): string | null {
  * (étape I : extrémité des barres, icônes par catégorie, mise en avant).
  */
 function fingerprintSpec(spec: unknown): unknown {
+  const enc0 = (spec as { encoding?: Record<string, unknown> } | null)?.encoding;
+  if (enc0 && typeof enc0 === "object" && enc0.topOrder === "top") {
+    // « Nombre d'éléments » (étape filtres) : classement par défaut absent de l'empreinte (empreintes publiées inchangées)
+    const encoding = { ...enc0 };
+    delete encoding.topOrder;
+    spec = { ...(spec as object), encoding };
+  }
   const st = (spec as { style?: Record<string, unknown> } | null)?.style;
   if (!st || typeof st !== "object") return spec;
   const style = { ...st };

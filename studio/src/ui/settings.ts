@@ -35,6 +35,8 @@ import { iconFor, iconSvg } from "../charts/icons";
 import { iconPickLabel, openIconPicker } from "./iconPicker";
 import { focusInfo, type FocusInfo } from "./focusUi";
 import { FOCUS_LABELS } from "../charts/focus";
+import { count, nounOf } from "../story/fr";
+import type { FilterSpec } from "../spec";
 import { DEFAULT_SECTION, SECTION_IDS, SECTION_TITLES, animKind, dataComplete, isSectionId, searchMatch, sectionSummaries, sizeNote, typeShort, type PanelTarget, type SectionId } from "./panelMap";
 
 const STORY_TEXT_PATHS = ["style.title", "style.subtitle", "story.comments.0", "story.comments.1", "story.comments.2"];
@@ -73,6 +75,8 @@ export class SettingsPanel {
   readonly search: HTMLInputElement;
   private searchInfo: HTMLElement;
   private flashTimer = 0;
+  /** Contrôle « Filtrer » : colonne choisie et recherche (conservées quand le panneau se reconstruit). */
+  private filterUi: { field: string | null; q: string; mode: "in" | "notIn" } = { field: null, q: "", mode: "in" };
 
   constructor(store: Store, actions: PanelActions | null = null) {
     this.store = store;
@@ -554,13 +558,21 @@ export class SettingsPanel {
     if (tr.filters.length || tr.calculate.length) {
       const chips: HTMLElement[] = [];
       const labels = describeTransform(tr);
-      tr.filters.forEach((f, i) =>
+      // une période (≥ début et < fin, même libellé) = une seule pastille
+      const seen = new Map<string, number[]>();
+      tr.filters.forEach((f, i) => {
+        const k = f.label ? `${f.field}|${f.label}` : `#${i}`;
+        seen.set(k, [...(seen.get(k) ?? []), i]);
+      });
+      for (const idx of seen.values()) {
+        const i = idx[0]!;
+        const f = tr.filters[i]!;
         chips.push(
-          h("span", { class: "chip", "data-testid": "transform-chip" }, h("span", null, labels[i] || f.field), h("button", { type: "button", class: "chip-x", title: "Retirer ce filtre", "aria-label": "Retirer ce filtre", onclick: () => this.store.set("transform.filters", tr.filters.filter((_, k) => k !== i)) }, "×"))
-        )
-      );
+          h("span", { class: "chip", "data-testid": "transform-chip" }, h("span", null, labels[i] || f.field), h("button", { type: "button", class: "chip-x", title: "Retirer ce filtre", "aria-label": `Retirer le filtre « ${labels[i] || f.field} »`, onclick: () => this.store.set("transform.filters", tr.filters.filter((_, k) => !idx.includes(k))) }, "×"))
+        );
+      }
       tr.calculate.forEach((c) => chips.push(h("span", { class: "chip chip-calc", title: "Colonne calculée" }, h("span", null, `ƒ ${c.as}`))));
-      main.push(this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Filtres et calculs (Explorer)"), h("div", { class: "chips" }, ...chips)), "filtre calcul colonne calculée"));
+      main.push(this.kw(h("div", { class: "field", "data-testid": "transform-chips" }, h("span", { class: "field-label" }, tr.calculate.length ? "Filtres et calculs actifs" : "Filtres actifs"), h("div", { class: "chips" }, ...chips)), "filtre filtrer calcul colonne calculée"));
     }
     if (!cols.length) main.push(h("p", { class: "muted" }, "Chargez des données (panneau de gauche) pour choisir les colonnes."));
     else if (t === "drill") {
@@ -577,6 +589,7 @@ export class SettingsPanel {
       main.push(this.row("Catégories ou période (X)", this.select("encoding.x", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 40), true), undefined, "axe x"));
       main.push(this.row("Réel (Y1)", this.yAt(cols, 0), undefined, "mesure"));
       main.push(this.row("Référence (Y2)", this.yAt(cols, 1), "Budget (contour), N-1 (gris) ou prévision (hachuré)", "mesure budget"));
+      main.push(...this.topNRows(spec, cols));
       const xc = cols.find((c) => c.name === spec.encoding.x);
       if (xc?.type === "date") more.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "période mois trimestre année"));
     } else if (isSpecial(t)) {
@@ -593,6 +606,7 @@ export class SettingsPanel {
       main.push(this.row(isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Catégories (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x"));
       main.push(this.row(t === "scatter" ? "Axe Y" : isRadial(t) ? "Valeur(s)" : "Mesure(s) — axe Y", t === "scatter" ? this.ySingle(cols) : this.yMulti(cols), undefined, "mesure valeur"));
       if (t !== "scatter") main.push(this.row("Calcul", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat somme moyenne nombre"));
+      main.push(...this.topNRows(spec, cols));
       if (!isRadial(t)) {
         const multiY = spec.encoding.y.length > 1;
         main.push(this.row("Couleur par (série)", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 24), true), multiY ? "Ignoré : plusieurs mesures forment déjà les séries" : undefined, "série groupe"));
@@ -609,8 +623,205 @@ export class SettingsPanel {
         more.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true), undefined, "étiquette"));
       }
     }
+    if (cols.length && t !== "drill") main.push(this.filterBlock(spec));
     if (cols.length && !isSpecial(t) && spec.norme.enabled && spec.encoding.y.length) more.push(this.scenarioRows(spec));
     return this.sectionEl("donnees", main, more);
+  }
+
+  /**
+   * « Nombre d'éléments » (Tous / Top 5 / 10 / 20 / Perso), « Classement » (plus grands / plus petits),
+   * « Autres » : graphiques à catégories (barres, secteurs, anneau, arcs, écarts), axe non temporel.
+   */
+  private topNRows(spec: ChartSpec, cols: Column[]): HTMLElement[] {
+    const t = spec.type;
+    if (!(isBarType(t) || isRadial(t) || isVariance(t))) return [];
+    const x = spec.encoding.x;
+    const xc = cols.find((c) => c.name === x);
+    if (!xc || xc.type === "date" || xc.type === "number") return [];
+    const ds = this.store.state.ds;
+    const eff = ds ? effectiveDataset(spec, ds) : null;
+    const total = eff ? new Set(eff.rows.map((r) => r[x!]).filter((v) => v != null && v !== "")).size : xc.cardinality;
+    const n = spec.encoding.topN;
+    const presets = [5, 10, 20];
+    const mode = n == null ? "all" : presets.includes(n) ? String(n) : "custom";
+    const kw = "top nombre d'éléments nombre de barres classement premiers derniers plus grands plus petits autres limiter";
+    const setN = (v: number | null) => this.store.set("encoding.topN", v);
+    const seg = h(
+      "div",
+      { class: "segmented seg-topn", role: "radiogroup", "aria-label": "Nombre d'éléments", "data-target": "encoding.topN", "data-testid": "topn" },
+      ...([["all", "Tous"], ["5", "Top 5"], ["10", "Top 10"], ["20", "Top 20"], ["custom", "Perso"]] as Opt[]).map(([v, l]) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: v === mode ? "active" : "",
+            role: "radio",
+            "aria-checked": v === mode ? "true" : "false",
+            "data-value": v,
+            onclick: () => setN(v === "all" ? null : v === "custom" ? (n != null && !presets.includes(n) ? n : Math.min(100, Math.max(1, Math.min(total - 1, 15)) || 15)) : Number(v)),
+          },
+          l
+        )
+      )
+    );
+    const out: HTMLElement[] = [this.kw(this.line("Nombre d'éléments", seg), kw)];
+    if (n != null) {
+      if (mode === "custom") {
+        const inp = h("input", { type: "number", min: "1", max: "100", step: "1", value: String(n), inputmode: "numeric", "aria-label": "Nombre d'éléments affichés (1 à 100)", "data-testid": "topn-custom" }) as HTMLInputElement;
+        inp.addEventListener("change", () => {
+          const v = Math.round(Number(inp.value.replace(",", ".")));
+          if (Number.isFinite(v)) setN(Math.max(1, Math.min(100, v)));
+          else inp.value = String(n);
+        });
+        out.push(this.kw(this.row("Nombre perso (1 à 100)", inp), kw));
+      }
+      out.push(this.kw(this.line("Classement", this.segmented("encoding.topOrder", [["top", "Les plus grands"], ["bottom", "Les plus petits"]], { testid: "topn-order" })), kw));
+      const additive = spec.encoding.aggregate === "sum" || spec.encoding.aggregate === "count";
+      out.push(this.check("encoding.others", "Regrouper le reste en « Autres »", additive ? undefined : "Sommes et comptages seulement (une moyenne ne s'additionne pas)", kw));
+    }
+    const noun = nounOf(x!);
+    const shown = n != null ? Math.min(n, total) : total;
+    const hint = n != null && n < total ? `${shown} sur ${count(total, noun.sg, noun.pl)} ${shown > 1 ? "affichés" : "affiché"}`.replace(/affichés$/, noun.f ? "affichées" : "affichés").replace(/affiché$/, noun.f ? "affichée" : "affiché") : `${count(total, noun.sg, noun.pl)}, ${total > 1 ? (noun.f ? "toutes affichées" : "tous affichés") : noun.f ? "affichée" : "affiché"}`;
+    out.push(this.kw(h("p", { class: "hint topn-hint", "data-testid": "topn-hint" }, hint), kw));
+    return out;
+  }
+
+  /** Colonnes filtrables : catégories / texte (≤ 500 valeurs), dates, années numériques. */
+  private filterColumns(): Column[] {
+    const ds = this.store.state.ds;
+    if (!ds) return [];
+    return ds.columns.filter((c) => ((c.type === "category" || c.type === "text") && c.cardinality <= 500) || c.type === "date" || (c.type === "number" && this.yearLike(c.name)));
+  }
+
+  private yearLike(col: string): boolean {
+    const ds = this.store.state.ds;
+    if (!ds || !/ann[ée]e|year|exercice|mill[ée]sime/i.test(col)) return false;
+    return ds.rows.every((r) => r[col] == null || (Number.isInteger(r[col]) && (r[col] as number) >= 1800 && (r[col] as number) <= 2200));
+  }
+
+  /**
+   * « Filtrer » : une colonne → garder / exclure des valeurs (liste à cocher avec recherche) ; date ou année →
+   * une année ou une période. Écrit dans `transform.filters` (mêmes pastilles que l'Explorer).
+   */
+  private filterBlock(spec: ChartSpec): HTMLElement {
+    const ds = this.store.state.ds!;
+    const cols = this.filterColumns();
+    const ui = this.filterUi;
+    if (ui.field && !cols.some((c) => c.name === ui.field)) ui.field = null;
+    const filters = spec.transform.filters;
+    const kw = "filtre filtrer garder exclure valeurs année période sauf seulement";
+    const colSel = h(
+      "select",
+      { "aria-label": "Colonne à filtrer", "data-testid": "filter-col" },
+      h("option", { value: "" }, "— choisir une colonne —"),
+      ...cols.map((c) => {
+        const active = filters.some((f) => f.field === c.name);
+        return h("option", { value: c.name, selected: c.name === ui.field }, `${c.name}${active ? " · filtré" : ""}`);
+      })
+    ) as HTMLSelectElement;
+    colSel.addEventListener("change", () => {
+      ui.field = colSel.value || null;
+      ui.q = "";
+      const ex = filters.find((f) => f.field === ui.field && (f.op === "in" || f.op === "notIn"));
+      ui.mode = ex?.op === "notIn" ? "notIn" : "in";
+      this.key = "";
+      this.update();
+    });
+    const kids: Node[] = [colSel];
+    const col = cols.find((c) => c.name === ui.field);
+    const setFilters = (next: FilterSpec[]) => this.store.set("transform.filters", next);
+    if (col && (col.type === "date" || col.type === "number")) {
+      const isDate = col.type === "date";
+      const years = [...new Set(ds.rows.map((r) => r[col.name]).filter((v): v is number => typeof v === "number" && Number.isFinite(v)).map((v) => (isDate ? new Date(v).getUTCFullYear() : v)))].sort((a, b) => a - b);
+      const mine = filters.filter((f) => f.field === col.name && (f.op === "gte" || f.op === "gt" || f.op === "lt" || f.op === "lte"));
+      const yOf = (v: number | null) => (v == null ? null : isDate ? new Date(v).getUTCFullYear() : v);
+      const lo = mine.find((f) => f.op === "gte" || f.op === "gt");
+      const hi = mine.find((f) => f.op === "lt" || f.op === "lte");
+      let from = yOf(lo?.value ?? null);
+      let to = hi ? (hi.op === "lt" ? yOf(hi.value)! - (isDate ? 1 : 1) : yOf(hi.value)) : null;
+      if (lo?.op === "gt" && from != null) from += 1;
+      const apply = (a: number | null, b: number | null) => {
+        const rest = filters.filter((f) => !mine.includes(f));
+        if (a == null && b == null) return setFilters(rest);
+        const lab = a != null && b != null ? (a === b ? `${col.name} : ${a}` : `${col.name} : ${a} → ${b}`) : a != null ? `${col.name} : depuis ${a}` : `${col.name} : jusqu'à ${b}`;
+        const add: FilterSpec[] = [];
+        if (a != null) add.push({ field: col.name, op: "gte", values: [], value: isDate ? Date.UTC(a, 0, 1) : a, label: lab });
+        if (b != null) add.push(isDate ? { field: col.name, op: "lt", values: [], value: Date.UTC(b + 1, 0, 1), label: lab } : { field: col.name, op: "lte", values: [], value: b, label: lab });
+        setFilters([...rest, ...add]);
+      };
+      const ySel = (cur: number | null, testid: string, label: string, onPick: (v: number | null) => void) => {
+        const sel = h("select", { "aria-label": label, "data-testid": testid }, h("option", { value: "" }, "—"), ...years.map((y) => h("option", { value: String(y), selected: y === cur }, String(y)))) as HTMLSelectElement;
+        sel.addEventListener("change", () => onPick(sel.value ? Number(sel.value) : null));
+        return sel;
+      };
+      const single = from != null && from === to;
+      const one = ySel(single ? from : null, "filter-year", "Une seule année", (v) => apply(v, v));
+      kids.push(
+        h("div", { class: "filter-years" },
+          h("label", { class: "filter-y" }, h("span", null, "Année"), one),
+          h("span", { class: "filter-or" }, "ou période"),
+          h("label", { class: "filter-y" }, h("span", null, "De"), ySel(from, "filter-from", "Période : de", (v) => apply(v, to != null && v != null && to < v ? v : to))),
+          h("label", { class: "filter-y" }, h("span", null, "À"), ySel(to, "filter-to", "Période : à", (v) => apply(from != null && v != null && from > v ? v : from, v)))
+        )
+      );
+      if (mine.length) kids.push(h("button", { type: "button", class: "btn btn-mini filter-clear", "data-testid": "filter-clear", onclick: () => apply(null, null) }, "Toutes les années"));
+    } else if (col) {
+      const counts = new Map<string, number>();
+      for (const r of ds.rows) {
+        const v = r[col.name];
+        if (v == null || v === "") continue;
+        counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
+      }
+      const values = [...counts.keys()].sort((a, b) => a.localeCompare(b, "fr"));
+      const ex = filters.find((f) => f.field === col.name && (f.op === "in" || f.op === "notIn"));
+      if (ex) ui.mode = ex.op as "in" | "notIn";
+      const picked = new Set(ex?.values ?? []);
+      const write = (mode: "in" | "notIn", set: Set<string>) => {
+        const rest = filters.filter((f) => f !== ex);
+        if (!set.size) return setFilters(rest);
+        const vals = values.filter((v) => set.has(v));
+        const head = vals.slice(0, 3).join(", ") + (vals.length > 3 ? ` (+${vals.length - 3})` : "");
+        const label = mode === "in" ? `${col.name} : ${head}` : `${col.name} : sauf ${head}`;
+        const at = ex ? filters.indexOf(ex) : -1;
+        const f: FilterSpec = { field: col.name, op: mode, values: vals, value: null, label };
+        setFilters(at >= 0 ? filters.map((x, k) => (k === at ? f : x)) : [...rest, f]);
+      };
+      const modeSeg = h(
+        "div",
+        { class: "segmented", role: "radiogroup", "aria-label": "Garder ou exclure", "data-testid": "filter-mode" },
+        ...([["in", "Garder"], ["notIn", "Exclure"]] as ["in" | "notIn", string][]).map(([v, l]) =>
+          h("button", { type: "button", class: ui.mode === v ? "active" : "", role: "radio", "aria-checked": ui.mode === v ? "true" : "false", "data-value": v, onclick: () => { ui.mode = v; if (picked.size) write(v, picked); else { this.key = ""; this.update(); } } }, l)
+        )
+      );
+      const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const search = h("input", { type: "search", class: "filter-search", placeholder: `Rechercher (${values.length} valeurs)…`, value: ui.q, "aria-label": "Rechercher une valeur", "data-testid": "filter-search", autocomplete: "off" }) as HTMLInputElement;
+      const list = h("div", { class: "filter-values", role: "group", "aria-label": `Valeurs de ${col.name}`, "data-testid": "filter-values" });
+      const paint = () => {
+        const q = norm(ui.q.trim());
+        const shown = values.filter((v) => !q || norm(v).includes(q));
+        list.replaceChildren(
+          ...shown.slice(0, 200).map((v) => {
+            const cb = h("input", { type: "checkbox", checked: picked.has(v), "data-value": v }) as HTMLInputElement;
+            cb.addEventListener("change", () => {
+              if (cb.checked) picked.add(v);
+              else picked.delete(v);
+              write(ui.mode, picked);
+            });
+            return h("label", { class: "filter-val" }, cb, h("span", null, v), h("small", null, String(counts.get(v))));
+          }),
+          ...(shown.length ? [] : [h("p", { class: "hint" }, "Aucune valeur ne correspond.")]),
+          ...(shown.length > 200 ? [h("p", { class: "hint" }, `… ${shown.length - 200} de plus : affinez la recherche.`)] : [])
+        );
+      };
+      search.addEventListener("input", () => {
+        ui.q = search.value;
+        paint();
+      });
+      paint();
+      kids.push(modeSeg, search, list);
+      if (picked.size) kids.push(h("button", { type: "button", class: "btn btn-mini filter-clear", "data-testid": "filter-clear", onclick: () => write(ui.mode, new Set()) }, `Retirer ce filtre (${picked.size} ${picked.size > 1 ? "valeurs" : "valeur"})`));
+    }
+    return this.kw(h("div", { class: "field filter-block", "data-testid": "filter-block" }, h("span", { class: "field-label" }, "Filtrer"), ...kids), kw);
   }
 
   /* ② Graphique : forme, tri, unités ; axes et légende dans « Plus d'options » */
