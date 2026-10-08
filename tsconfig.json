@@ -32,12 +32,16 @@
   },
   "include": [
     "src/**/*",
-    "demo/**/*"
+    "demo/**/*",
+    "studio/src/**/*",
+    "studio/test/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "demo/vite.config.ts",
-    "demo-dist"
+    "demo-dist",
+    "studio/vite.config.ts",
+    "studio-dist"
   ]
 }

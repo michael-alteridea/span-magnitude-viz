@@ -4,3 +4,5 @@ demo-dist/
 *.tsbuildinfo
 .DS_Store
 geo-raw/
+studio-dist/
+studio-offline/

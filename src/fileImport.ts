@@ -93,8 +93,11 @@ function coerceEndpoint(v: unknown, unit: "date" | "number"): string | number | 
   return s;
 }
 
-/** Parse CSV text into row objects (header row required). */
-export function parseCsv(text: string): Record<string, unknown>[] {
+/**
+ * Split delimited text (CSV / TSV / « ; ») into a matrix of raw string cells.
+ * RFC-4180 quoting (double quotes, "" escape), CRLF/LF, BOM stripped, blank lines skipped.
+ */
+export function parseDelimitedMatrix(text: string, delimiter = ","): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let cur = "";
@@ -115,11 +118,11 @@ export function parseCsv(text: string): Record<string, unknown>[] {
       }
       continue;
     }
-    if (ch === '"') {
+    if (ch === '"' && cur === "") {
       inQuotes = true;
       continue;
     }
-    if (ch === ",") {
+    if (ch === delimiter) {
       row.push(cur);
       cur = "";
       continue;
@@ -138,9 +141,71 @@ export function parseCsv(text: string): Record<string, unknown>[] {
     row.push(cur);
     if (row.some((c) => c !== "")) rows.push(row);
   }
-  if (rows.length < 2) return [];
-  const headers = rows[0]!.map((h) => h.trim());
-  return rows.slice(1).map((r) => {
+  return rows;
+}
+
+/**
+ * Guess the delimiter of pasted / exported tabular text.
+ * Tab wins when present (Excel / Google Sheets copy), else the most consistent of « ; » and « , ».
+ */
+export function detectDelimiter(text: string): "\t" | ";" | "," {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((l) => l.trim() !== "")
+    .slice(0, 20);
+  if (!lines.length) return ",";
+  const count = (line: string, d: string) => {
+    let n = 0;
+    let q = false;
+    for (const ch of line) {
+      if (ch === '"') q = !q;
+      else if (!q && ch === d) n++;
+    }
+    return n;
+  };
+  if (lines.some((l) => l.includes("\t"))) return "\t";
+  const score = (d: string) => {
+    const counts = lines.map((l) => count(l, d));
+    const head = counts[0]!;
+    if (head === 0) return 0;
+    const consistent = counts.filter((c) => c === head).length / counts.length;
+    return head * consistent;
+  };
+  return score(";") >= score(",") && score(";") > 0 ? ";" : ",";
+}
+
+/** Matrix (header row first) → row objects. Empty / duplicate headers are renamed. */
+export function matrixToRows(matrix: string[][]): Record<string, unknown>[] {
+  if (matrix.length < 2) return [];
+  const seen = new Map<string, number>();
+  const headers = matrix[0]!.map((h, i) => {
+    let name = h.trim() || `Colonne ${i + 1}`;
+    const n = seen.get(name) ?? 0;
+    seen.set(name, n + 1);
+    if (n > 0) name = `${name} (${n + 1})`;
+    return name;
+  });
+  return matrix.slice(1).map((r) => {
+    const obj: Record<string, unknown> = {};
+    headers.forEach((h, i) => {
+      obj[h] = r[i] ?? "";
+    });
+    return obj;
+  });
+}
+
+/** Parse delimited text into row objects (header row required). */
+export function parseDelimited(text: string, delimiter?: string): Record<string, unknown>[] {
+  return matrixToRows(parseDelimitedMatrix(text, delimiter ?? detectDelimiter(text)));
+}
+
+/** Parse CSV text into row objects (header row required). */
+export function parseCsv(text: string): Record<string, unknown>[] {
+  const matrix = parseDelimitedMatrix(text, ",");
+  if (matrix.length < 2) return [];
+  const headers = matrix[0]!.map((h) => h.trim());
+  return matrix.slice(1).map((r) => {
     const obj: Record<string, unknown> = {};
     headers.forEach((h, i) => {
       obj[h] = r[i] ?? "";

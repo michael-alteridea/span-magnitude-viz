@@ -109,6 +109,10 @@ export default createSpanMagnitudeViz;
 
 export {
   parseCsv,
+  parseDelimited,
+  parseDelimitedMatrix,
+  detectDelimiter,
+  matrixToRows,
   guessMapping,
   isIdLikeColumnName,
   rowsToDocument,

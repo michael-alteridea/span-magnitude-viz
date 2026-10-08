@@ -28,7 +28,13 @@
     "typecheck": "tsc --noEmit",
     "build:standalone": "node scripts/build-standalone-offline.mjs",
     "build:geo": "node scripts/build-europe-geo.mjs",
-    "build:maps": "node scripts/build-map-svgs.mjs && python3 scripts/render-map-previews.py"
+    "build:maps": "node scripts/build-map-svgs.mjs && python3 scripts/render-map-previews.py",
+    "dev:studio": "vite --config studio/vite.config.ts",
+    "build:studio": "vite build --config studio/vite.config.ts",
+    "preview:studio": "vite preview --config studio/vite.config.ts",
+    "build:studio:offline": "node studio/scripts/build-offline.mjs",
+    "test": "vitest run",
+    "test:e2e:studio": "node studio/scripts/e2e.mjs"
   },
   "keywords": [
     "visualization",
@@ -54,7 +60,8 @@
     "mapshaper": "^0.7.80",
     "tsup": "^8.3.0",
     "typescript": "^5.6.2",
-    "vite": "^5.4.8"
+    "vite": "^5.4.8",
+    "vitest": "^2.1.9"
   },
   "sideEffects": false
 }
