@@ -91,10 +91,10 @@ export function makeMenu(button: HTMLButtonElement, items: Node[], o: { testid: 
 }
 
 /** Entrée de menu : icône, libellé, aide facultative. */
-export function menuItem(icon: string, label: string, o: { testid?: string; hint?: string; onclick: (btn: HTMLButtonElement) => void; disabled?: boolean; title?: string; accent?: boolean }): HTMLButtonElement {
+export function menuItem(icon: string, label: string, o: { testid?: string; hint?: string; onclick: (btn: HTMLButtonElement) => void; disabled?: boolean; title?: string; accent?: boolean; danger?: boolean }): HTMLButtonElement {
   const b: HTMLButtonElement = h(
     "button",
-    { type: "button", class: `menu-it${o.accent ? " menu-it-accent" : ""}`, role: "menuitem", "data-testid": o.testid ?? null, disabled: !!o.disabled, title: o.title ?? null, onclick: () => o.onclick(b) },
+    { type: "button", class: `menu-it${o.accent ? " menu-it-accent" : ""}${o.danger ? " menu-it-danger" : ""}`, role: "menuitem", "data-testid": o.testid ?? null, disabled: !!o.disabled, title: o.title ?? null, onclick: () => o.onclick(b) },
     h("span", { class: "mi-ic", html: icon }),
     h("span", { class: "mi-t" }, h("span", { class: "mi-l" }, label), o.hint ? h("small", null, o.hint) : null)
   );

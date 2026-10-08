@@ -88,13 +88,13 @@ export function listPage(ctx: Ctx, sel: string | null, actions: { create: () => 
         search,
         h("span", { class: "rv-spacer" }),
         h("button", { class: "btn", type: "button", "data-testid": "rv-reset-demo", title: "Recharge les revues de démonstration Norvia (vos propres revues sont conservées)", onclick: actions.resetDemo }, ic("replay", 15), "Réinitialiser la démo"),
-        h("button", { class: "btn btn-accent", type: "button", "data-testid": "rv-new", title: "Créer une revue à partir des snapshots de l'histoire courante", onclick: actions.create }, ic("plus", 15), "Nouvelle revue")
+        h("button", { class: "btn btn-accent", type: "button", "data-testid": "rv-new", title: "Créer une revue à partir des scènes de la séquence courante", onclick: actions.create }, ic("plus", 15), "Nouvelle revue")
       ),
       h("p", { class: "rv-local-note", "data-testid": "rv-local-note" }, ic("link", 14), LOCAL_NOTE),
       h(
         "div",
         { class: "rv-split" },
-        h("div", { class: "rv-list" }, h("div", { class: "rv-chips" }, ...chips), ...(cards.length ? cards : [h("p", { class: "muted small" }, "Aucune revue. « Nouvelle revue » reprend les snapshots de votre histoire.")])),
+        h("div", { class: "rv-list" }, h("div", { class: "rv-chips" }, ...chips), ...(cards.length ? cards : [h("p", { class: "muted small" }, "Aucune revue. « Nouvelle revue » reprend les scènes de votre séquence.")])),
         cur ? detail(ctx, cur) : h("div", { class: "rv-detail empty" }, h("p", { class: "muted" }, "Sélectionnez une revue."))
       )
     )

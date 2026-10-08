@@ -131,7 +131,7 @@ export class ReviewSpace {
   create(): void {
     const story = this.deps.currentStory();
     if (!story.snapshots.length) {
-      this.deps.toast("Ajoutez d'abord des snapshots à l'histoire (bouton Snapshot ou Scénarios), puis créez la revue.", "info", 5000);
+      this.deps.toast("Ajoutez d'abord des scènes à la séquence (« 📸 Ajouter la scène » ou Scénarios), puis créez la revue.", "info", 5000);
       return;
     }
     const now = this.ctx.now();

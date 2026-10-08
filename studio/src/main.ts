@@ -6,7 +6,7 @@ import { armDrillZoom, setZoomEnabled, setZoomSlowdown } from "./ui/drillZoom";
 import "./styles.css";
 import { Store } from "./state";
 import { chartSize, isSpecial, parseSpec, studioFileSchema, type ChartSpec, type ChartType } from "./spec";
-import { buildDataset, serializableRaw, type Dataset } from "./data/table";
+import { buildDataset, type Dataset } from "./data/table";
 import { readFile, parseText, type ImportResult } from "./data/files";
 import { DataWindow, tabFromParam } from "./ui/dataWindow";
 import { recentId, rowsToTsv, type RecentEntry } from "./data/recents";
@@ -20,7 +20,7 @@ import { DataPanel } from "./ui/dataPanel";
 import { Gallery } from "./ui/gallery";
 import { toast } from "./ui/toast";
 import { h, svgIcon, ICONS } from "./ui/dom";
-import { download, recordWebm, slug, studioFile, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
+import { download, recordWebm, slug, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
 import { themeFor, ensureFont } from "./theme";
 import { PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup } from "./brand";
 import { ReviewSpace } from "./review/space";
@@ -62,6 +62,11 @@ import { runScenario, scenarioSnapshotId, snapshotIndexOf, type RoleBinding, typ
 import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenance, type Provenance, type ProvenanceKind } from "./provenance";
 import { focusInfo } from "./ui/focusUi";
 import { sameExceptFocus } from "./charts/focus";
+import { ProjectController } from "./project/controller";
+import { openProjectRepo, storageUsage, type ProjectRepo } from "./project/repo";
+import { CURRENT_PROJECT_KEY, parseProjectFile, projectFileName, toProjectFile, type Project, type ProjectSource } from "./project/project";
+import { ProjectsDialog } from "./ui/projectsDialog";
+import { confirmDialog } from "./ui/confirm";
 
 const store = new Store();
 const preview = new Preview(store);
@@ -427,14 +432,14 @@ interface SnapOpts {
 async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
   const { spec, ds, sampleId, story } = store.state;
   if (!ds) {
-    toast("Chargez des données avant de prendre un snapshot.", "info");
+    toast("Chargez des données avant d'ajouter une scène.", "info");
     return null;
   }
   const guided = !opts.id && opts.insertAt == null ? guideMatch() : null;
   if (guided) opts = { ...opts, ...guided };
   const replace = opts.id ? story.snapshots.findIndex((x) => x.id === opts.id) : -1;
   if (replace < 0 && story.snapshots.length >= MAX_SNAPSHOTS) {
-    toast(`Histoire limitée à ${MAX_SNAPSHOTS} snapshots.`, "info");
+    toast(`Séquence limitée à ${MAX_SNAPSHOTS} scènes.`, "info");
     return null;
   }
   const snap = await captureSnapshot(opts);
@@ -444,7 +449,7 @@ async function takeSnapshot(opts: SnapOpts = {}): Promise<Snapshot | null> {
   else list.push(snap);
   store.setStory({ ...store.state.story, snapshots: list });
   store.setUi({ openSections: { ...store.state.ui.openSections, histoire: true } });
-  if (!opts.quiet) toast(replace >= 0 ? "Snapshot mis à jour dans l'histoire" : `Snapshot ajouté à l'histoire (${store.state.story.snapshots.length})`, "ok", 1800);
+  if (!opts.quiet) toast(replace >= 0 ? "Scène mise à jour dans la séquence" : `Scène ajoutée à la séquence (${store.state.story.snapshots.length})`, "ok", 1800);
   return snap;
 }
 
@@ -460,7 +465,7 @@ async function captureSnapshot(opts: SnapOpts = {}): Promise<Snapshot> {
   const kind = spec.story.kind ?? n?.kind ?? null;
   const snap: Snapshot = {
     id: opts.id ?? newSnapshotId(),
-    name: opts.name ?? (spec.style.title || `Snapshot ${story.snapshots.length + 1}`),
+    name: opts.name ?? (spec.style.title || `Scène ${story.snapshots.length + 1}`),
     createdAt: new Date().toISOString(),
     spec: structuredClone(spec),
     svg,
@@ -504,7 +509,7 @@ function editReelScene(item: ReelItem, sceneNo: number): void {
   const s = item.snap;
   const sample = s.sampleId ? sampleById(s.sampleId) : undefined;
   // données du snapshot (exemple, ou données du Reel) chargées dans l'éditeur si ce ne sont pas les données courantes
-  if (!sample && item.ds && st.ds !== item.ds && st.ds?.name !== s.dataName) store.setDataset(item.ds, { note: `Données du snapshot « ${s.title || s.name} »` });
+  if (!sample && item.ds && st.ds !== item.ds && st.ds?.name !== s.dataName) store.setDataset(item.ds, { note: `Données de la scène « ${s.title || s.name} »` });
   openSnapshot(s);
   reelEditLabel.textContent = `Modification de la scène ${sceneNo} du Reel`;
   reelEditBar.hidden = false;
@@ -532,7 +537,7 @@ async function validateReelEdit(): Promise<void> {
   if (s.path?.length && !snap.path?.length) snap.path = s.path;
   endReelEdit();
   await reelDialog.resume({ snap, ds: store.state.ds });
-  toast(`Scène ${e.sceneNo} mise à jour${inStory ? " (et dans l'histoire)" : ""}`, "ok", 2200);
+  toast(`Scène ${e.sceneNo} mise à jour${inStory ? " (et dans la séquence)" : ""}`, "ok", 2200);
 }
 
 /** Annuler : l'éditeur retrouve son état d'avant, le Reel revient inchangé. */
@@ -553,7 +558,7 @@ function openSnapshot(s: Snapshot): void {
     store.setDataset(buildDataset(sample.name, sample.rows()), { sampleId: sample.id, note: sample.description });
     attachProvenance(sampleProvenance(sample.id));
   } else if (!sample && store.state.ds?.name !== s.dataName) {
-    toast(`Ce snapshot a été pris sur « ${s.dataName} » : rechargez ces données pour le retrouver à l'identique.`, "info", 5000);
+    toast(`Cette scène a été prise sur « ${s.dataName} » : rechargez ces données pour le retrouver à l'identique.`, "info", 5000);
   }
   const errs = store.setSpec(s.spec);
   if (errs.length) toast(errs.join(" ; "), "error");
@@ -979,12 +984,12 @@ async function fitManifestForDownload(m: Manifest, bg = "#ffffff"): Promise<{ js
 async function downloadManifest(storyId: string): Promise<void> {
   try {
     const p = await publication(storyId, "integre");
-    if (!p) return void toast("Rien à envoyer : l'histoire est vide", "info");
+    if (!p) return void toast("Rien à envoyer : la séquence est vide", "info");
     const fit = await fitManifestForDownload(p.manifest);
     download(new Blob([fit.json], { type: "application/json" }), manifestDownloadName(p.manifest.id));
-    if (fit.over) toast(`Manifeste téléchargé, mais au-delà des limites de Cadencer (12 Mo, 800 000 caractères par image) : retirez des snapshots avant l'envoi.`, "error", 8000);
-    else if (fit.reduced) toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots ; ${fit.reduced} image${fit.reduced > 1 ? "s" : ""} réduite${fit.reduced > 1 ? "s" : ""} pour rester sous 12 Mo)`, "ok", 5000);
-    else toast(`Manifeste téléchargé (${p.manifest.snapshots.length} snapshots, images intégrées)`, "ok", 4000);
+    if (fit.over) toast(`Manifeste téléchargé, mais au-delà des limites de Cadencer (12 Mo, 800 000 caractères par image) : retirez des scènes avant l'envoi.`, "error", 8000);
+    else if (fit.reduced) toast(`Manifeste téléchargé (${p.manifest.snapshots.length} scènes ; ${fit.reduced} image${fit.reduced > 1 ? "s" : ""} réduite${fit.reduced > 1 ? "s" : ""} pour rester sous 12 Mo)`, "ok", 5000);
+    else toast(`Manifeste téléchargé (${p.manifest.snapshots.length} scènes, images intégrées)`, "ok", 4000);
   } catch (e) {
     toast("Manifeste impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
   }
@@ -1023,7 +1028,7 @@ async function openReel(storyId: string = LOCAL_STORY_ID): Promise<void> {
     snaps = r?.snapshots ?? [];
   }
   if (!snaps.length) {
-    toast("Aucun snapshot à raconter : prenez des snapshots pour l'histoire.", "info");
+    toast("Aucune scène à raconter : ajoutez des scènes à la séquence (📸).", "info");
     return;
   }
   // Licence : celle de l'exemple, sinon celle écrite dans la source (données publiques modifiées : « … · Licence : … »)
@@ -1044,9 +1049,9 @@ async function openCadencer(storyId: string): Promise<void> {
       manifestUrl: pub.id ? manifestUrl(pub.id) : null,
       readUrl: pub.id ? readUrl(READING_PUBLIC_BASE, pub.id) : readUrl(linkBase(), LOCAL_STORY_ID),
       note: pub.id
-        ? "Histoire identique à la démonstration publiée : Cadencer importe la version en ligne."
+        ? "Séquence identique à la démonstration publiée : Cadencer importe la version en ligne."
         : pub.demo
-          ? `Ces snapshots viennent de la démonstration publiée, dont le manifeste complet est disponible : ${manifestUrl(pub.demo)}`
+          ? `Ces scènes viennent de la démonstration publiée, dont le manifeste complet est disponible : ${manifestUrl(pub.demo)}`
           : null,
     };
   } else {
@@ -1169,7 +1174,7 @@ function guideText(): string | null {
   const taken = new Set(store.state.story.snapshots.map((s) => s.step).filter(Boolean));
   if (k < 0) return `${guide.sc.label} · hors parcours — « Suggestion » ou le fil d'Ariane pour y revenir`;
   const next = guide.frames[k + 1];
-  return `${guide.sc.label} · étape ${k + 1}/${n} : ${guide.frames[k]!.step.name}${taken.has(guide.frames[k]!.step.id) ? " ✓" : " — 📸 Snapshot"}${next ? ` · ensuite : ${next.step.name}` : " · puis ▶ Film"}`;
+  return `${guide.sc.label} · étape ${k + 1}/${n} : ${guide.frames[k]!.step.name}${taken.has(guide.frames[k]!.step.id) ? " ✓" : " — 📸 Ajouter la scène"}${next ? ` · ensuite : ${next.step.name}` : " · puis ▶ Film"}`;
 }
 
 /** Pas à pas : étape suivante (bouton de piste de la barre d'exploration). */
@@ -1218,7 +1223,7 @@ async function startScenario(sc: Scenario, binding: RoleBinding, auto: boolean):
     await settle();
     await takeSnapshot({ id: scenarioSnapshotId(sc, f.step), scenario: sc.id, step: f.step.id, quiet: true });
   }
-  toast(`${sc.label} : ${run.frames.length} snapshots créés — lecture du film`, "ok", 3000);
+  toast(`${sc.label} : ${run.frames.length} scènes créées — lecture du film`, "ok", 3000);
   film.open(store.state.story.snapshots, 0);
 }
 
@@ -1273,17 +1278,35 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
   }
 }
 
-function saveConfig(): void {
-  const { spec, ds, sampleId, ui } = store.state;
-  const data = ui.includeData && ds && !sampleId ? { name: ds.name, rows: serializableRaw(ds.raw), typeOverrides: ds.typeOverrides } : null;
-  const file = studioFile(spec, { data, sampleId, story: store.state.story.snapshots.length ? store.state.story : undefined });
-  download(new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }), `${baseName()}.r4d.json`);
-  toast(data ? "Configuration + données enregistrées" : "Configuration enregistrée", "ok");
+/** « Ouvrir un fichier » : projet `.datanime`, ou ancienne configuration `.r4d.json` (spec nu accepté). */
+async function openFile(file: File): Promise<void> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await file.text());
+  } catch {
+    toast(`Fichier illisible : ${file.name}`, "error", 6000);
+    return;
+  }
+  let parsed: ReturnType<typeof parseProjectFile>;
+  try {
+    parsed = parseProjectFile(raw);
+  } catch (e) {
+    toast("Projet invalide : " + (e instanceof Error ? e.message : String(e)), "error", 7000);
+    return;
+  }
+  if ("legacy" in parsed) return loadConfig(raw, file.name);
+  if (projects.dirty && !(await confirmDialog({ title: `Ouvrir « ${parsed.project.name} »`, message: "Le projet ouvert a des modifications non enregistrées : elles seront perdues.", confirm: "Ouvrir sans enregistrer", danger: true, testid: "confirm-open" }))) return;
+  try {
+    const p = await projects.importProject(parsed.project);
+    await projects.open(p);
+    toast(`Projet « ${p.name} » importé et ouvert${parsed.withData ? "" : " (sans les données importées)"}`, "ok");
+  } catch (e) {
+    toast("Import impossible : " + (e instanceof Error ? e.message : String(e)), "error", 7000);
+  }
 }
 
-async function loadConfig(file: File): Promise<void> {
+async function loadConfig(raw: any, fileName: string): Promise<void> {
   try {
-    const raw = JSON.parse(await file.text());
     // Accepte aussi un spec « nu »
     const wrapped = raw && raw.kind === "reporting-4d-studio" ? raw : { kind: "reporting-4d-studio", version: 1, spec: raw };
     const f = studioFileSchema.parse(wrapped);
@@ -1305,13 +1328,13 @@ async function loadConfig(file: File): Promise<void> {
     }
     store.setSpec(r.spec);
     if (ds !== store.state.ds) {
-      store.setDataset(ds, { sampleId, note: "Chargé depuis " + file.name, provenance: sampleId || rowsForHash ? null : savedProv });
+      store.setDataset(ds, { sampleId, note: "Chargé depuis " + fileName, provenance: sampleId || rowsForHash ? null : savedProv });
       if (sampleId) attachProvenance(sampleProvenance(sampleId));
       else if (rowsForHash && ds) {
         const rows = rowsForHash;
         const n = ds.rows.length;
         const c = ds.columns.length;
-        attachProvenance(safeHash(() => hashRows(rows)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: file.name, rows: n, cols: c }) : null)));
+        attachProvenance(safeHash(() => hashRows(rows)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName, rows: n, cols: c }) : null)));
       }
     }
     if (f.story && Array.isArray(f.story.snapshots) && f.story.snapshots.length) store.setStory(parseStory(f.story));
@@ -1323,10 +1346,10 @@ async function loadConfig(file: File): Promise<void> {
 
 /* ------------------------------------------------------------------ layout */
 
-const cfgInput = h("input", { type: "file", accept: ".json,application/json", class: "hidden", "data-testid": "config-input" });
+const cfgInput = h("input", { type: "file", accept: ".datanime,.json,application/json", class: "hidden", "data-testid": "config-input" });
 cfgInput.addEventListener("change", () => {
   const f = cfgInput.files?.[0];
-  if (f) void loadConfig(f);
+  if (f) void openFile(f);
   cfgInput.value = "";
 });
 
@@ -1340,15 +1363,13 @@ pngScale.addEventListener("change", () => {
   pngItem.querySelector(".mi-l")!.textContent = `Image PNG ${pngScale.value}×`;
 });
 
-const includeData = h("input", { type: "checkbox", checked: store.state.ui.includeData, "data-testid": "include-data" });
-includeData.addEventListener("change", () => store.setUi({ includeData: includeData.checked }));
 
 /* ---- menus « Exporter » et « Fichier » (remplacent les 9 boutons d'export et de configuration) */
 const ic = (k: keyof typeof ICONS, n = 16) => svgIcon(ICONS[k], n);
-const exportBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-accent btn-export menu-btn", title: "Exporter le graphique (SVG, PNG, vidéo) ou l'histoire (PowerPoint)" }, h("span", { html: ic("export") }), h("span", { class: "btn-lbl", "data-busy": "" }, "Exporter"));
+const exportBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-accent btn-export menu-btn", title: "Exporter le graphique (SVG, PNG, vidéo) ou la séquence (PowerPoint)" }, h("span", { html: ic("export") }), h("span", { class: "btn-lbl", "data-busy": "" }, "Exporter"));
 const pngItem = menuItem(ic("image"), `Image PNG ${store.state.ui.pngScale}×`, { testid: "export-png", hint: "Présentations, documents", onclick: () => void exportPng().catch((e) => toast(String(e), "error")) });
 const webmBtn = menuItem(ic("film2"), "Vidéo WebM", { testid: "export-webm", hint: webmSupported() ? "Animation d'entrée ou 4D" : "MediaRecorder indisponible dans ce navigateur", onclick: () => void exportWebm(exportBtn) });
-const pptxItem = menuItem(ic("story"), "PowerPoint de l'histoire", { testid: "export-pptx", hint: "Un snapshot par diapositive", onclick: () => void exportPptx(exportBtn) });
+const pptxItem = menuItem(ic("story"), "PowerPoint de la séquence", { testid: "export-pptx", hint: "Une scène par diapositive", onclick: () => void exportPptx(exportBtn) });
 const exportMenu = makeMenu(
   exportBtn,
   [
@@ -1359,7 +1380,7 @@ const exportMenu = makeMenu(
     webmBtn,
     menuItem(ic("film"), "GIF animé", { testid: "export-gif", hint: "Prévu en V2", disabled: true, title: "Export GIF animé : prévu en V2", onclick: () => void exportGif().catch((e) => toast(e.message, "info")) }),
     menuSep(),
-    menuHead("Histoire"),
+    menuHead("Séquence"),
     pptxItem,
   ],
   { testid: "export-menu", label: "Exporter" }
@@ -1367,25 +1388,29 @@ const exportMenu = makeMenu(
 exportBtn.addEventListener("click", () => {
   const n = store.state.story.snapshots.length;
   pptxItem.disabled = n === 0;
-  pptxItem.querySelector("small")!.textContent = n ? `${n} snapshot${n > 1 ? "s" : ""} · une diapositive chacun` : "Ajoutez d'abord des snapshots (📸)";
+  pptxItem.querySelector("small")!.textContent = n ? `${n} scène${n > 1 ? "s" : ""} · une diapositive chacune` : "Ajoutez d'abord des scènes (📸)";
 });
-const fileBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-ghost menu-btn", title: "Enregistrer, ouvrir ou réinitialiser la configuration" }, h("span", { html: ic("folder") }), h("span", { class: "btn-lbl" }, "Fichier"), h("span", { class: "menu-car", html: ic("chevronD", 12) }));
+const fileBtn: HTMLButtonElement = h("button", { type: "button", class: "btn btn-ghost menu-btn", title: "Projets : mes projets, enregistrer, exporter, ouvrir un fichier, réinitialiser" }, h("span", { html: ic("folder") }), h("span", { class: "btn-lbl" }, "Projets"), h("span", { class: "menu-car", html: ic("chevronD", 12) }));
 makeMenu(
   fileBtn,
   [
-    menuItem(ic("save"), "Enregistrer la configuration", { testid: "save-config", hint: "Fichier .r4d.json (spec validé)", onclick: saveConfig }),
-    h("div", { class: "menu-row" }, h("label", { class: "check mini", title: "Inclure les données importées dans le fichier JSON" }, includeData, h("span", null, "Inclure les données importées"))),
-    menuItem(ic("folder"), "Ouvrir…", { testid: "load-config", hint: "Configuration .r4d.json", onclick: () => cfgInput.click() }),
+    menuItem(ic("folder"), "Mes projets…", { testid: "projects-open", hint: "Projets enregistrés sur cet appareil", onclick: () => void projectsDialog.open() }),
+    menuItem(ic("save"), "Enregistrer", { testid: "save-project", hint: "Source, graphique et séquence, sur cet appareil", onclick: () => void saveProject() }),
+    menuItem(ic("download"), "Exporter le projet", { testid: "export-project", hint: "Fichier .datanime (données incluses)", onclick: () => void exportCurrentProject() }),
+    menuItem(ic("upload"), "Ouvrir un fichier…", { testid: "load-config", hint: "Projet .datanime ou ancienne configuration .r4d.json", onclick: () => cfgInput.click() }),
     menuSep(),
-    menuItem(ic("refresh"), "Réinitialiser", { testid: "reset-config", hint: "Effacer la session et repartir de l'exemple", onclick: () => { store.clearSession(); loadSample(SAMPLES[0]!.id); } }),
+    menuHead("Réinitialiser"),
+    menuItem(ic("history"), "Revenir au dernier enregistrement", { testid: "reset-revert", hint: "Annule les changements non enregistrés", onclick: () => void revertProject() }),
+    menuItem(ic("story"), "Vider la séquence", { testid: "reset-clear", hint: "Garde la source et le graphique", onclick: () => void clearSequence() }),
+    menuItem(ic("refresh"), "Tout réinitialiser", { testid: "reset-config", hint: "Source, graphique et séquence (projet vide)", danger: true, onclick: () => void resetAll() }),
   ],
-  { testid: "file-menu", label: "Fichier" }
+  { testid: "file-menu", label: "Projets" }
 );
 
 // Fenêtre « Données » : entrée claire dans la barre du haut
 const dataTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-data-top", "data-testid": "data-open-top", title: "Importer un fichier, coller un tableau, rouvrir un jeu récent, choisir un exemple ou des données publiques", onclick: () => dataWindow.open() }, h("span", { html: svgIcon(ICONS.table, 15) }), h("span", { class: "btn-lbl" }, "Ouvrir des données"));
 const reviewsCount = h("span", { class: "btn-count", "data-testid": "reviews-count" });
-const reviewsTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-reviews", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par snapshot, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), h("span", { class: "btn-lbl" }, "Mes revues"), reviewsCount);
+const reviewsTopBtn = h("button", { type: "button", class: "btn btn-ghost btn-reviews", "data-testid": "reviews-open", title: "Revues partagées : liens et QR par scène, page participant, réunion et compte rendu", onclick: () => reviewSpace.go({ page: "list", id: null }) }, h("span", { class: "rv-ic", html: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 C3 16 6 14 9 14 S15 16 15.5 20"/><path d="M16 4.5 A3.5 3.5 0 0 1 16 11.5 M18 14.5 C20 15.3 21.3 17.3 21.5 20"/></svg>` }), h("span", { class: "btn-lbl" }, "Mes revues"), reviewsCount);
 
 /* ---- mode norme : badge, légende de notation */
 const normeBadge = h("span", { class: "norme-badge", hidden: true, "data-testid": "norme-badge", title: `Mode norme actif — notation ${NORME_WORDING_F}` }, "Norme");
@@ -1479,7 +1504,173 @@ const settings = new SettingsPanel(store, {
   pickFocus: () => startFocusPick(),
 });
 const explorer = new Explorer(store, storyContext, openInsight);
-const storyStrip = new StoryStrip(store, { snapshot: () => void takeSnapshot(), open: openSnapshot, duplicateFocus: (s) => void duplicateAndFocus(s), exportPptx: (b) => void exportPptx(b), scales: () => storyScales(), film: () => film.open(store.state.story.snapshots, 0), read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null), cadencer: () => void openCadencer(LOCAL_STORY_ID), reel: () => void openReel(LOCAL_STORY_ID) });
+const storyStrip: StoryStrip = new StoryStrip(store, {
+  snapshot: () => void takeSnapshot(),
+  open: openSnapshot,
+  duplicateFocus: (s) => void duplicateAndFocus(s),
+  exportPptx: (b) => void exportPptx(b),
+  scales: () => storyScales(),
+  film: () => film.open(store.state.story.snapshots, 0),
+  read: () => startReading(demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, null),
+  cadencer: () => void openCadencer(LOCAL_STORY_ID),
+  reel: () => void openReel(LOCAL_STORY_ID),
+  status: () => ({ name: projects.saved?.name ?? null, savedAt: projects.savedAt, dirty: projects.dirty, scenes: projects.sceneStates() }),
+  save: () => void saveProject(),
+  openProjects: () => void projectsDialog.open(),
+  revert: () => void revertProject(),
+  clearSequence: () => void clearSequence(),
+  resetAll: () => void resetAll(),
+  resetScene: (id) => {
+    if (projects.resetScene(id)) toast("Scène réinitialisée (état du dernier enregistrement)", "ok", 2000);
+  },
+});
+settings.setSequenceOptions(storyStrip.sequenceOptions);
+
+/* ---- projets (sur cet appareil, IndexedDB) : Enregistrer, Mes projets, Réinitialiser, état « modifiée » */
+const repoReady = openProjectRepo();
+let repoPersistent = true;
+void repoReady.then((r) => (repoPersistent = r.persistent));
+const projectRepo: ProjectRepo = {
+  get persistent() {
+    return repoPersistent;
+  },
+  list: async () => (await repoReady).list(),
+  get: async (id) => (await repoReady).get(id),
+  put: async (p) => (await repoReady).put(p),
+  delete: async (id) => (await repoReady).delete(id),
+};
+
+/** Charge la source d'un projet (exemple référencé ou lignes copiées), puis son graphique. */
+async function applyProjectSource(src: ProjectSource | null, spec: unknown): Promise<void> {
+  const sample = src?.sampleId ? sampleById(src.sampleId) : undefined;
+  let ds: Dataset | null = null;
+  let meta: Parameters<typeof store.setDataset>[1] = {};
+  if (sample) {
+    ds = buildDataset(sample.name, sample.rows(), src?.typeOverrides ?? {});
+    meta = { sampleId: sample.id, note: sample.description };
+  } else if (src?.rows?.length) {
+    ds = buildDataset(src.name, src.rows, src.typeOverrides ?? {});
+    meta = { note: src.note ?? `Projet : ${src.name}`, provenance: src.provenance };
+  } else if (src) {
+    toast(`Les données « ${src.name} » ne sont pas dans ce projet : les données courantes sont conservées.`, "info", 6000);
+  }
+  if (spec) {
+    const errs = store.setSpec(spec);
+    if (errs.length) toast("Graphique du projet : " + errs.slice(0, 3).join(" ; "), "error", 6000);
+  }
+  if (ds) {
+    store.setDataset(ds, meta);
+    if (sample) attachProvenance(sampleProvenance(sample.id));
+  }
+}
+
+const projects: ProjectController = new ProjectController({
+  store,
+  repo: projectRepo,
+  morph: () => storyStrip.morph,
+  setMorph: (on) => storyStrip.setMorph(on),
+  chartThumb: async () => {
+    const { width, height } = chartSize(store.state.spec);
+    return svgToJpegDataUrl(await preview.finalSvg(), width, height, 320, themeFor(store.state.spec).bg);
+  },
+  applySource: applyProjectSource,
+  loadDefault: () => loadSample(SAMPLES[0]!.id),
+  settle: () => settle(),
+  onChange: () => storyStrip.update(),
+});
+
+const projectsDialog = new ProjectsDialog({
+  list: () => projectRepo.list(),
+  currentId: () => projects.saved?.id ?? null,
+  dirty: () => projects.dirty,
+  persistent: () => projectRepo.persistent,
+  usage: () => storageUsage(),
+  open: async (id) => {
+    const p = await projectRepo.get(id);
+    if (!p) return void toast("Projet introuvable sur cet appareil.", "error");
+    await projects.open(p);
+    toast(`Projet « ${p.name} » ouvert`, "ok", 2200);
+  },
+  duplicate: async (id) => {
+    const c = await projects.duplicate(id);
+    if (c) toast(`Copie créée : « ${c.name} »`, "ok", 2200);
+  },
+  rename: (id, name) => projects.rename(id, name),
+  remove: async (id) => {
+    await projects.remove(id);
+    toast("Projet supprimé de cet appareil", "ok", 2200);
+  },
+  exportFile: async (id) => {
+    const p = await projectRepo.get(id);
+    if (p) downloadProject(p);
+  },
+  importFile: async (file) => {
+    try {
+      const parsed = parseProjectFile(JSON.parse(await file.text()));
+      if ("legacy" in parsed) {
+        toast("Ancienne configuration (.r4d.json) : ouvrez-la avec « Projets ▾ › Ouvrir un fichier… ».", "info", 6000);
+        return;
+      }
+      const p = await projects.importProject(parsed.project);
+      toast(`Projet « ${p.name} » importé`, "ok", 2200);
+    } catch (e) {
+      toast("Import impossible : " + (e instanceof Error ? e.message : String(e)), "error", 7000);
+    }
+  },
+  newProject: async () => {
+    projects.resetAll();
+    toast("Nouveau projet : exemple par défaut, séquence vide", "ok", 2200);
+  },
+});
+
+function downloadProject(p: Project): void {
+  download(new Blob([JSON.stringify(toProjectFile(p, true))], { type: "application/json" }), projectFileName(p.name));
+}
+
+async function saveProject(): Promise<void> {
+  try {
+    const first = !projects.saved;
+    const p = await projects.save();
+    toast(first ? `Projet « ${p.name} » enregistré sur cet appareil` : `Enregistré sur cet appareil · ${projects.savedAt}`, "ok", 2200);
+  } catch (e) {
+    toast("Enregistrement impossible : " + (e instanceof Error ? e.message : String(e)), "error", 7000);
+  }
+}
+
+async function exportCurrentProject(): Promise<void> {
+  const p = await projects.snapshotProject({ id: projects.saved?.id, createdAt: projects.saved?.createdAt, name: projects.saved?.name ?? (store.state.story.title.trim() || "Mon projet") });
+  downloadProject(p);
+  toast("Projet exporté (.datanime)", "ok", 2200);
+}
+
+async function revertProject(): Promise<void> {
+  if (!projects.saved) return void toast("Pas encore d'enregistrement : cliquez « Enregistrer ».", "info");
+  if (!projects.dirty) return void toast("Aucun changement depuis le dernier enregistrement.", "info", 2200);
+  if (!(await confirmDialog({ title: "Revenir au dernier enregistrement ?", message: `Les changements faits depuis ${projects.savedAt} seront annulés (source, graphique et séquence).`, confirm: "Revenir à l'enregistrement", danger: true, testid: "confirm-revert" }))) return;
+  await projects.revert();
+  toast(`Projet revenu à l'enregistrement de ${projects.savedAt}`, "ok", 2200);
+}
+
+async function clearSequence(): Promise<void> {
+  const n = store.state.story.snapshots.length;
+  if (!n) return void toast("La séquence est déjà vide.", "info", 2000);
+  if (!(await confirmDialog({ title: "Vider la séquence ?", message: `Les ${n} scène(s) seront retirées. La source et le graphique sont gardés. « Revenir au dernier enregistrement » reste possible.`, confirm: "Vider la séquence", danger: true, testid: "confirm-clear" }))) return;
+  projects.clearSequence();
+  toast("Séquence vidée", "ok", 2000);
+}
+
+async function resetAll(): Promise<void> {
+  if (!(await confirmDialog({ title: "Tout réinitialiser ?", message: "Source, graphique et séquence repartent de zéro (exemple par défaut). Les projets enregistrés restent dans « Mes projets ».", confirm: "Tout réinitialiser", danger: true, testid: "confirm-reset" }))) return;
+  projects.resetAll();
+  toast("Projet vide : exemple par défaut, séquence vide", "ok", 2200);
+}
+
+// Avertir avant de quitter la page s'il reste des modifications non enregistrées
+window.addEventListener("beforeunload", (e) => {
+  if (!projects.dirty) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
 const reelDialog = new ReelDialog();
 const cadencer = new CadencerDialog({ download: (id) => downloadManifest(id), copy: (text, label) => void copyText(text, label) });
 const film = new StoryFilm((s) => datasetFor(s));
@@ -1536,8 +1727,8 @@ async function openReading(rt: ReadRoute): Promise<void> {
   if (!story) {
     readerStory = null;
     reader.showMessage(
-      "Histoire introuvable sur cet appareil",
-      "Ce lien de lecture désigne une histoire ou une revue enregistrée dans le navigateur d'un autre appareil : pour l'instant, les histoires restent sur l'appareil qui les a créées. Les démonstrations intégrées (Directeur commercial, Directeur financier) s'ouvrent partout.",
+      "Séquence introuvable sur cet appareil",
+      "Ce lien de lecture désigne une séquence ou une revue enregistrée dans le navigateur d'un autre appareil : pour l'instant, les séquences restent sur l'appareil qui les a créées. Les démonstrations intégrées (Directeur commercial, Directeur financier) s'ouvrent partout.",
       [
         { label: "Lire la démo « Directeur commercial »", href: readHash("demo-dircom") },
         { label: "Lire la démo « Directeur financier »", href: readHash("demo-daf") },
@@ -1552,7 +1743,7 @@ async function openReading(rt: ReadRoute): Promise<void> {
     readerStory = null;
     const first = story.snapshots[0]!;
     reader.showMessage(
-      "Ce snapshot n'existe plus ou a été renommé",
+      "Cette scène n'existe plus ou a été renommée",
       `Le lien désigne « ${rt.snapId} », introuvable dans « ${story.title} ». Il a peut-être été retiré ou renommé depuis l'envoi du lien.`,
       [
         { label: "Ouvrir la diapositive 1", href: readHash(rt.storyId, first.id) },
@@ -1671,13 +1862,22 @@ preview.onModeChange = (m) => {
 /* ------------------------------------------------------------------ démarrage */
 
 const params = new URLSearchParams(location.search);
-if (params.has("reset")) store.clearSession();
+if (params.has("reset")) {
+  // ?reset : session neuve, détachée du projet ouvert (les projets enregistrés restent dans « Mes projets »)
+  store.clearSession();
+  try {
+    localStorage.removeItem(CURRENT_PROJECT_KEY);
+  } catch {
+    /* stockage indisponible */
+  }
+}
 store.restoreStory();
 void ensureFont(store.state.spec.style.font).finally(() => {
   if (!store.restore()) loadSample(params.get("sample") ?? SAMPLES[0]!.id);
   else if (store.state.sampleId) attachProvenance(sampleProvenance(store.state.sampleId));
   applyUi();
   storyStrip.update();
+  void settle().then(() => projects.init());
 });
 
 // routes de l'espace Revues (#/revues…, #/r/…) : liens et QR de partage
@@ -1734,6 +1934,10 @@ const api = {
   drill: () => store.state.spec.drill,
   story: () => store.state.story,
   moveSnapshot: (from: number, to: number) => storyStrip.move(from, to),
+  /** Projets (sur cet appareil). */
+  projects: () => projects,
+  projectRepo: () => projectRepo,
+  projectsDialog: () => projectsDialog,
   duplicateFocus: (i: number) => duplicateAndFocus(store.state.story.snapshots[i]!),
   focusPicking: () => focusPicking,
   pptxBase64: async (o: PptxBuildOptions = {}) => (await buildStoryPptx("base64", store.state.story, { storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID, ...o })) as string,

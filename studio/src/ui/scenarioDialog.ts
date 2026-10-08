@@ -112,13 +112,13 @@ export class ScenarioDialog {
       sample && !onSample ? h("button", { class: "btn", type: "button", "data-testid": "scenario-load-sample", onclick: () => (this.actions.loadSample(sample.id), this.open(sc.id)) }, `Charger « ${sample.name} »`) : null,
       h("span", { class: "spacer" }),
       h("button", { class: "btn", type: "button", "data-testid": "scenario-step", disabled: !ds || missing.length > 0, title: "Vous cliquez vous-même ; la barre d'exploration indique l'étape suivante", onclick: () => (this.close(), this.actions.start(sc, this.binding, false)) }, "Pas à pas"),
-      h("button", { class: "btn btn-accent", type: "button", "data-testid": "scenario-run", disabled: !ds || missing.length > 0, title: "Crée les snapshots de chaque étape puis lance le film", onclick: () => (this.close(), this.actions.start(sc, this.binding, true)) }, "▶ Lancer le scénario")
+      h("button", { class: "btn btn-accent", type: "button", "data-testid": "scenario-run", disabled: !ds || missing.length > 0, title: "Crée les scènes de chaque étape puis lance le film", onclick: () => (this.close(), this.actions.start(sc, this.binding, true)) }, "▶ Lancer le scénario")
     );
     const note = !ds
       ? h("p", { class: "sc-warn" }, "Chargez d'abord des données (ou la démo).")
       : missing.length
         ? h("p", { class: "sc-warn" }, `À associer : ${missing.map((r) => r.label).join(", ")}.`)
-        : h("p", { class: "mw-muted" }, `Données : ${ds.name} · ${ds.rows.length.toLocaleString("fr-FR")} lignes. L'histoire courante est remplacée par « ${sc.storyTitle} ».`);
+        : h("p", { class: "mw-muted" }, `Données : ${ds.name} · ${ds.rows.length.toLocaleString("fr-FR")} lignes. La séquence courante est remplacée par « ${sc.storyTitle} ».`);
     this.body.replaceChildren(tabs, h("div", { class: "sc-detail" }, h("h3", null, `${sc.persona} — étapes`), steps, roles, note, actions));
   }
 }

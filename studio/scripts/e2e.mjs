@@ -62,6 +62,13 @@ const browser = await puppeteer.launch({
   headless: true,
   args: ["--no-sandbox", "--font-render-hinting=none"],
 });
+// « Modifications non enregistrées » : la fenêtre beforeunload du navigateur est acceptée (rechargements des tests) ;
+// le gestionnaire lui-même est vérifié par un évènement synthétique (--projets).
+let beforeUnloadSeen = 0;
+const acceptUnload = (pg) => pg?.on("dialog", (d) => (d.type() === "beforeunload" ? (beforeUnloadSeen++, d.accept()) : d.dismiss()).catch(() => {}));
+browser.on("targetcreated", async (t) => {
+  if (t.type() === "page") acceptUnload(await t.page().catch(() => null));
+});
 const page = await browser.newPage();
 await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 1.5 : 1 });
 
@@ -1015,6 +1022,212 @@ async function e2eFocus() {
   await fctx.close();
 }
 
+/** Projets (dataset d'abord, déploiement 1) : bande « Séquence », Enregistrer, Mes projets, Réinitialiser, scènes modifiées (iPad). */
+async function e2eProjets() {
+  const ctx = await browser.createBrowserContext();
+  await cdp.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: dl, browserContextId: ctx.id, eventsEnabled: true }).catch(() => {});
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await pg.mouse.move(1, 1).catch(() => {}); await sleep(400); await pg.screenshot({ path: join(shotsDir, name) }); };
+  const ipad = (w, h) => pg.setViewport({ width: w, height: h, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await ipad(1366, 1024);
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds && window.r4d.projects().ready, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await sleep(300);
+  const st = () => pg.evaluate(() => {
+    const P = window.r4d.projects();
+    return {
+      status: document.querySelector("[data-testid=seq-status]")?.textContent ?? "",
+      dirty: P.dirty,
+      saved: P.saved?.name ?? null,
+      scenes: window.r4d.story().snapshots.map((s) => s.id),
+      badges: [...document.querySelectorAll("[data-testid=story-card]")].map((c) => c.querySelector("[data-testid=story-card-modified]")?.textContent ?? ""),
+      resets: [...document.querySelectorAll("[data-testid=story-card-reset]")].map((b) => !b.disabled),
+    };
+  });
+  const unloadBlocked = () => pg.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+  const confirmIn = async (testid, ok = true) => {
+    await pg.waitForSelector(`[data-testid=${testid}]`, { visible: true, timeout: 3000 });
+    await pg.tap(`[data-testid=${testid}] [data-testid=${ok ? "confirm-ok" : "confirm-cancel"}]`);
+    await sleep(500);
+  };
+  // vocabulaire : « Séquence », « 📸 Ajouter la scène », barre du haut « Projets ▾ »
+  const ui = await pg.evaluate(() => ({
+    toggle: document.querySelector("[data-testid=story-toggle] strong")?.textContent,
+    snap: document.querySelector("[data-testid=snapshot]")?.textContent,
+    btns: ["seq-save", "seq-open", "seq-reset", "story-order", "story-film", "story-read", "story-reel", "story-cadencer"].filter((t) => !document.querySelector(`[data-testid=${t}]`)),
+    file: document.querySelector("[data-testid=file-menu]")?.textContent?.trim(),
+    stripTxt: document.querySelector("[data-testid=story-strip]").innerText,
+    exportOpts: !!document.querySelector("[data-testid=settings-panel] [data-testid=seq-options] [data-testid=story-same-scale]") && !!document.querySelector("[data-testid=settings-panel] [data-testid=seq-options] [data-testid=story-morph]"),
+  }));
+  check("bande « Séquence » : Enregistrer, Ouvrir…, Réinitialiser ▾, « 📸 Ajouter la scène », Ordonner, ▶ Film, Mode lecture, Créer un Reel, Cadencer ; barre du haut « Projets ▾ » ; Même échelle / Morph dans la carte Export", ui.toggle === "Séquence" && ui.snap === "📸 Ajouter la scène" && !ui.btns.length && ui.file === "Projets" && !/snapshot|histoire/i.test(ui.stripTxt) && ui.exportOpts, JSON.stringify({ ...ui, stripTxt: ui.stripTxt.slice(0, 120) }));
+  // 3 scènes (fictives : exemple Norvia intégré)
+  await pg.evaluate(async () => { await window.r4d.snapshot(); });
+  await pg.evaluate(async () => { window.r4d.pickType("line"); await window.r4d.settle(); await window.r4d.snapshot(); });
+  await pg.evaluate(async () => { window.r4d.pickType("barH"); await window.r4d.settle(); await window.r4d.snapshot(); });
+  await sleep(400);
+  const s0 = await st();
+  const block0 = await unloadBlocked();
+  check("3 scènes jamais enregistrées : « Non enregistrée », avertissement avant de quitter la page", s0.scenes.length === 3 && s0.dirty && /Non enregistrée/.test(s0.status) && block0, JSON.stringify({ ...s0, block0 }));
+  // Enregistrer (toucher)
+  await pg.tap("[data-testid=seq-save]");
+  await pg.waitForFunction(() => !!window.r4d.projects().saved, { timeout: 8000 });
+  await sleep(400);
+  const s1 = await st();
+  const list1 = await pg.evaluate(async () => (await window.r4d.projectRepo().list()).map((m) => ({ name: m.name, scenes: m.scenes, thumb: !!m.thumb })));
+  const block1 = await unloadBlocked();
+  check("Enregistrer : « Enregistrée sur cet appareil · HH:MM », projet dans IndexedDB (3 scènes, vignette), plus d'avertissement", /^Enregistrée sur cet appareil · \d\d:\d\d$/.test(s1.status) && !s1.dirty && list1.length === 1 && list1[0].scenes === 3 && list1[0].thumb && !block1 && s1.badges.every((b) => !b), JSON.stringify({ s1, list1, block1 }));
+  const idb = await pg.evaluate(() => new Promise((res) => { const o = indexedDB.open("datanime-studio"); o.onsuccess = () => res([...o.result.objectStoreNames]); o.onerror = () => res(null); }));
+  const lsKeys = await pg.evaluate(() => Object.keys(localStorage).filter((k) => /projet/.test(k)));
+  check("stockage : IndexedDB « datanime-studio » (projets, résumés) ; localStorage ne garde que le pointeur du projet ouvert", JSON.stringify(idb) === JSON.stringify(["projets", "resumes"]) && JSON.stringify(lsKeys) === JSON.stringify(["datanime:projet-courant:v1"]), JSON.stringify({ idb, lsKeys }));
+  // une scène modifiée → badge « modifiée » + ↺ ; les autres intactes
+  const ids = s1.scenes;
+  await pg.evaluate(() => { const st = window.r4d.story(); window.r4d.store.setStory({ ...st, snapshots: st.snapshots.map((s, i) => (i === 1 ? { ...s, title: s.title + " (retouché)", comments: ["Commentaire ajouté pour la réunion"] } : s)) }); });
+  await sleep(300);
+  const s2 = await st();
+  check("scène 2 changée : badge « modifiée » et ↺ sur elle seule, projet « Modifications non enregistrées »", JSON.stringify(s2.badges) === JSON.stringify(["", "modifiée", ""]) && JSON.stringify(s2.resets) === JSON.stringify([false, true, false]) && s2.dirty && /Modifications non enregistrées/.test(s2.status), JSON.stringify(s2));
+  await ipad(1366, 1024);
+  await shot("130-sequence-scene-modifiee-ipad-1366.png");
+  await pg.tap("[data-testid=story-card]:nth-child(2) [data-testid=story-card-reset]");
+  await sleep(400);
+  const s3 = await st();
+  const back = await pg.evaluate(() => { const P = window.r4d.projects(); const a = window.r4d.story().snapshots[1]; const b = P.saved.sequence.snapshots[1]; return a.title === b.title && JSON.stringify(a.comments) === JSON.stringify(b.comments) && a.id === b.id; });
+  check("↺ Réinitialiser la scène : état du dernier enregistrement, même identifiant, plus de badge", back && s3.badges.every((b) => !b) && !s3.dirty && JSON.stringify(s3.scenes) === JSON.stringify(ids), JSON.stringify(s3));
+  // Réinitialiser ▾ : trois choix, chacun confirmé
+  await pg.evaluate(() => window.r4d.pickType("donut"));
+  await sleep(500);
+  await pg.tap("[data-testid=seq-reset]");
+  await sleep(300);
+  const menu = await pg.evaluate(() => {
+    const p = document.querySelector("[data-testid=seq-reset-pop]");
+    return { open: !p.hidden, items: [...p.querySelectorAll(".menu-it .mi-l")].map((x) => x.textContent), revert: !p.querySelector("[data-testid=seq-reset-revert]").disabled, danger: getComputedStyle(p.querySelector("[data-testid=seq-reset-all] .mi-l")).color };
+  });
+  check("Réinitialiser ▾ : dernier enregistrement / vider la séquence / tout réinitialiser (rouge)", menu.open && menu.items.join("|") === "Revenir au dernier enregistrement|Vider la séquence|Tout réinitialiser" && menu.revert && /248, 113, 113/.test(menu.danger), JSON.stringify(menu));
+  await shot("131-sequence-reinitialiser-ipad-1366.png");
+  await pg.tap("[data-testid=seq-reset-revert]");
+  await confirmIn("confirm-revert", false);
+  const kept = await pg.evaluate(() => window.r4d.getSpec().type);
+  await pg.tap("[data-testid=seq-reset]");
+  await sleep(200);
+  await pg.tap("[data-testid=seq-reset-revert]");
+  await sleep(200);
+  if (SHOTS) await shot("132-confirmation-revenir-ipad-1366.png");
+  await confirmIn("confirm-revert", true);
+  await pg.waitForFunction(() => !window.r4d.projects().dirty, { timeout: 8000 }).catch(() => {});
+  const rv = await pg.evaluate(() => ({ type: window.r4d.getSpec().type, dirty: window.r4d.projects().dirty }));
+  check("« Revenir au dernier enregistrement » : Annuler garde les changements ; Confirmer rend le graphique enregistré", kept === "donut" && rv.type === "barH" && !rv.dirty, JSON.stringify({ kept, rv }));
+  await pg.tap("[data-testid=seq-reset]");
+  await sleep(200);
+  await pg.tap("[data-testid=seq-reset-clear]");
+  await confirmIn("confirm-clear", true);
+  const cl = await st();
+  await pg.evaluate(() => window.r4d.projects().revert());
+  await sleep(600);
+  const cl2 = await st();
+  check("« Vider la séquence » (confirmé) : 0 scène, source gardée ; « Revenir » rend les 3 scènes, mêmes ids", cl.scenes.length === 0 && cl.dirty && JSON.stringify(cl2.scenes) === JSON.stringify(ids) && !cl2.dirty, JSON.stringify({ cl: cl.scenes.length, cl2: cl2.scenes }));
+  // rechargement de la page : même projet, toujours « Enregistrée » (référence stable)
+  await sleep(500);
+  await pg.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds && window.r4d.projects().ready, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await sleep(800);
+  const rl = await st();
+  if (rl.dirty) console.log("DEBUG sig", await pg.evaluate(() => { const P = window.r4d.projects(); const a = JSON.parse(P.sig()); const b = JSON.parse(P.saved.sig); return a.map((x, i) => JSON.stringify(x) === JSON.stringify(b[i]) ? "=" : JSON.stringify(x).slice(0, 300) + " ≠ " + JSON.stringify(b[i]).slice(0, 300)); }));
+  check("rechargement : projet rouvert, « Enregistrée sur cet appareil », aucune scène « modifiée »", rl.saved && !rl.dirty && /^Enregistrée sur cet appareil/.test(rl.status) && JSON.stringify(rl.scenes) === JSON.stringify(ids) && rl.badges.every((b) => !b), JSON.stringify(rl));
+  // Mes projets (barre du haut › Projets ▾ › Mes projets…)
+  await pg.tap("[data-testid=file-menu]");
+  await sleep(250);
+  const fm = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=file-menu-pop] .menu-it .mi-l")].map((x) => x.textContent));
+  check("Projets ▾ : Mes projets…, Enregistrer, Exporter le projet, Ouvrir un fichier…, Réinitialiser (3 choix)", fm.slice(0, 4).join("|") === "Mes projets…|Enregistrer|Exporter le projet|Ouvrir un fichier…" && fm.includes("Tout réinitialiser") && fm.includes("Vider la séquence"), fm.join("|"));
+  await pg.tap("[data-testid=projects-open]");
+  await pg.waitForSelector("[data-testid=projects-dialog]:not([hidden]) [data-testid=project-card]", { timeout: 5000 });
+  await pg.tap("[data-testid=project-duplicate]");
+  await sleep(700);
+  const cards = () => pg.evaluate(() => [...document.querySelectorAll("[data-testid=project-card]")].map((c) => ({ name: c.querySelector("[data-testid=project-name]").textContent, date: c.querySelector("[data-testid=project-date]").textContent, chips: c.querySelector(".pj-chips").textContent, img: !!c.querySelector(".pj-thumb img"), cur: c.classList.contains("current") })));
+  const c1 = await cards();
+  check("Mes projets : vignette, nom, date, nombre de scènes, « ouvert » ; Dupliquer crée « (copie) »", c1.length === 2 && c1.some((c) => c.cur && /ouvert/.test(c.date) && /3 scènes/.test(c.chips) && c.img) && c1.some((c) => /\(copie\)$/.test(c.name)) && c1.every((c) => /^Modifié aujourd'hui à \d\d:\d\d/.test(c.date)), JSON.stringify(c1));
+  // renommer la copie
+  const copyIdx = c1.findIndex((c) => /\(copie\)$/.test(c.name));
+  await pg.tap(`[data-testid=project-card]:nth-child(${copyIdx + 1}) [data-testid=project-rename]`);
+  await pg.waitForSelector("[data-testid=prompt-input]", { visible: true });
+  await pg.evaluate(() => { const i = document.querySelector("[data-testid=prompt-input]"); i.value = ""; });
+  await pg.type("[data-testid=prompt-input]", "Revue Norvia T3 — variante");
+  await pg.tap("[data-testid=prompt-ok]");
+  await sleep(600);
+  const c2 = await cards();
+  check("Renommer (fenêtre de saisie) : nouveau nom dans la liste", c2.some((c) => c.name === "Revue Norvia T3 — variante"), c2.map((c) => c.name).join(" | "));
+  await shot("133-mes-projets-ipad-1366.png");
+  // exporter (.datanime) puis supprimer (confirmé) puis importer
+  const b0 = readdirSync(dl);
+  const varIdx = c2.findIndex((c) => c.name === "Revue Norvia T3 — variante");
+  await pg.tap(`[data-testid=project-card]:nth-child(${varIdx + 1}) [data-testid=project-export]`);
+  const f = await waitDownload(".datanime", b0);
+  const fj = f ? JSON.parse(readFileSync(f, "utf8")) : null;
+  check("Exporter (.datanime) : JSON « datanime-project » v1, source, graphique, séquence (mêmes ids de scènes)", !!fj && fj.kind === "datanime-project" && fj.version === 1 && fj.project.name === "Revue Norvia T3 — variante" && JSON.stringify(fj.project.sequence.snapshots.map((s) => s.id)) === JSON.stringify(ids) && !!fj.project.source && !!fj.project.spec, f ?? "pas de fichier");
+  await pg.tap(`[data-testid=project-card]:nth-child(${varIdx + 1}) [data-testid=project-delete]`);
+  await pg.waitForSelector("[data-testid=confirm-delete]", { visible: true });
+  if (SHOTS) await shot("134-confirmation-supprimer-ipad-1366.png");
+  await confirmIn("confirm-delete", false);
+  const c3 = await cards();
+  await pg.tap(`[data-testid=project-card]:nth-child(${varIdx + 1}) [data-testid=project-delete]`);
+  await confirmIn("confirm-delete", true);
+  await sleep(400);
+  const c4 = await cards();
+  check("Supprimer : Annuler garde le projet ; Confirmer le retire de l'appareil", c3.length === 2 && c4.length === 1 && !c4.some((c) => c.name === "Revue Norvia T3 — variante"), `${c3.length} → ${c4.length}`);
+  if (f) {
+    await (await pg.$("[data-testid=projects-import-input]")).uploadFile(f);
+    await sleep(900);
+  }
+  const c5 = await cards();
+  check("Importer un .datanime : le projet revient dans la liste", c5.length === 2 && c5.some((c) => c.name === "Revue Norvia T3 — variante"), c5.map((c) => c.name).join(" | "));
+  // iPad 1024 : Mes projets
+  await ipad(1024, 768);
+  await sleep(400);
+  const ov = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, btnH: document.querySelector("[data-testid=project-open]").getBoundingClientRect().height }));
+  check("Mes projets (iPad 1024) : pas de défilement horizontal, boutons ≥ 34 px", ov.sw <= ov.vw && ov.btnH >= 34, JSON.stringify(ov));
+  await shot("135-mes-projets-ipad-1024.png");
+  // ouvrir l'autre projet (importé) puis revenir
+  const impIdx = c5.findIndex((c) => c.name === "Revue Norvia T3 — variante");
+  await pg.tap(`[data-testid=project-card]:nth-child(${impIdx + 1}) [data-testid=project-open]`);
+  await sleep(1200);
+  const op = await pg.evaluate(() => ({ name: window.r4d.projects().saved?.name, dlg: document.querySelector("[data-testid=projects-dialog]").hidden, ids: window.r4d.story().snapshots.map((s) => s.id), dirty: window.r4d.projects().dirty }));
+  check("Ouvrir : le projet importé devient le projet ouvert (scènes, mêmes ids), fenêtre fermée", op.name === "Revue Norvia T3 — variante" && op.dlg && JSON.stringify(op.ids) === JSON.stringify(ids) && !op.dirty, JSON.stringify(op));
+  await sleep(300);
+  await shot("136-sequence-ipad-1024.png");
+  const ov2 = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, strip: document.querySelector("[data-testid=story-strip]").getBoundingClientRect().height }));
+  check("bande « Séquence » (iPad 1024) : deux rangées de boutons, pas de défilement horizontal", ov2.sw <= ov2.vw && ov2.strip < 330, JSON.stringify(ov2));
+  // Tout réinitialiser (Projets ▾) : projet vide, projets conservés
+  await ipad(1366, 1024);
+  await pg.tap("[data-testid=file-menu]");
+  await sleep(250);
+  await pg.tap("[data-testid=reset-config]");
+  await confirmIn("confirm-reset", true);
+  await sleep(600);
+  const ra = await pg.evaluate(async () => ({ scenes: window.r4d.story().snapshots.length, saved: window.r4d.projects().saved, sample: window.r4d.store.state.sampleId, n: (await window.r4d.projectRepo().list()).length, status: document.querySelector("[data-testid=seq-status]").textContent, ptr: localStorage.getItem("datanime:projet-courant:v1") }));
+  check("Tout réinitialiser (confirmé) : exemple par défaut, séquence vide, plus de projet ouvert ; les 2 projets restent dans Mes projets", ra.scenes === 0 && !ra.saved && ra.sample === "ventes" && ra.n === 2 && !ra.ptr, JSON.stringify(ra));
+  // Liens profonds toujours valides : #/lire/demo-dircom, ?donnees=, ?reset
+  await pg.goto(`${origin}${BASE}?donnees=exemples#/lire/demo-dircom`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => document.querySelector("[data-testid=reader-counter]")?.textContent?.includes("/ 7"), { timeout: 20000 }).catch(() => {});
+  const dl1 = await pg.evaluate(() => ({ counter: document.querySelector("[data-testid=reader-counter]")?.textContent ?? null, hash: location.hash }));
+  check("lien profond #/lire/demo-dircom toujours ouvert (diapositive 1 / 7)", dl1.counter === "1 / 7" && dl1.hash.startsWith("#/lire/demo-dircom"), JSON.stringify(dl1));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("projets : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  check("projets : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
+if (process.argv.includes("--projets")) {
+  try { await e2eProjets(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 async function e2eDonnees() {
   const ctx = await browser.createBrowserContext();
   const pg = await ctx.newPage();
@@ -1230,11 +1443,11 @@ try {
   {
     const top = await page.evaluate(() => ({
       btns: document.querySelectorAll("header .toolbar > .tool-group > button").length,
-      direct: !!document.querySelector("header [data-testid=export-svg], header [data-testid=save-config]"),
+      direct: !!document.querySelector("header [data-testid=export-svg], header [data-testid=save-project]"),
       exp: document.querySelector("[data-testid=export-menu]")?.textContent?.trim(),
       file: document.querySelector("[data-testid=file-menu]")?.textContent?.trim(),
     }));
-    check("barre du haut : un menu « Exporter » et un menu « Fichier » remplacent les boutons d'export et de configuration", top.btns <= 7 && !top.direct && top.exp === "Exporter" && top.file === "Fichier", JSON.stringify(top));
+    check("barre du haut : un menu « Exporter » et un menu « Projets ▾ » remplacent les boutons d'export et de configuration", top.btns <= 7 && !top.direct && top.exp === "Exporter" && top.file === "Projets", JSON.stringify(top));
     await page.click("[data-testid=export-menu]");
     await sleep(300);
     const menu = await page.evaluate(() => {
@@ -1311,7 +1524,7 @@ try {
       exportPptx: !!document.querySelector("[data-testid=export-pptx]"),
       hint: document.querySelector(".acc-type small")?.textContent ?? "",
     }));
-    check("barre du haut : logo, Ouvrir des données, Mes revues, Fichier, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios dans l'onglet Exemples de la fenêtre Données ; un seul PowerPoint (Exporter)", top.buttons.length === 4 && /^Ouvrir des données/.test(top.buttons[0]) && /^Mes revues/.test(top.buttons[1]) && /Fichier/.test(top.buttons[2]) && /Exporter/.test(top.buttons[3]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
+    check("barre du haut : logo, Ouvrir des données, Mes revues, Projets, Exporter (sans Snapshot ni slogan) ; Explorer en tête du panneau Données ; Scénarios dans l'onglet Exemples de la fenêtre Données ; un seul PowerPoint (Exporter)", top.buttons.length === 4 && /^Ouvrir des données/.test(top.buttons[0]) && /^Mes revues/.test(top.buttons[1]) && /Projets/.test(top.buttons[2]) && /Exporter/.test(top.buttons[3]) && !top.snap && !top.pptx && top.storySnap && !top.tagline && top.explore && top.scen && top.exportPptx && (!top.hint || top.hint === "· bande du haut"), JSON.stringify(top));
     // « Plus » : un type rangé dedans est choisi par le menu, puis reste visible dans la bande
     await page.click("[data-testid=type-more]");
     await sleep(200);
@@ -1738,22 +1951,32 @@ try {
     check("option « QR d'empreinte des données » : masque le QR, garde le cartouche (offre gratuite)", !!off && !off.qr && off.brand === "Datanime" && /^Empreinte/.test(off.fp) && !!on?.qr && (await page.evaluate(() => window.r4d.getSpec().style.authQr)) === true, off ? `sans QR : ${Math.round(off.w)}×${Math.round(off.h)} px` : "cartouche absent");
   }
 
-  /* 6. Sauvegarde / chargement de configuration */
+  /* 6. Projet : exporter (.datanime) / ouvrir un fichier (.datanime, ancienne configuration .r4d.json) */
   const b3 = readdirSync(dl);
-  await domClick("[data-testid=save-config]");
-  const cfgFile = await waitDownload(".json", b3);
+  await domClick("[data-testid=export-project]");
+  const cfgFile = await waitDownload(".datanime", b3);
   let cfgOk = false;
+  let legacyOk = false;
   if (cfgFile) {
     const cfg = JSON.parse(readFileSync(cfgFile, "utf8"));
-    cfgOk = cfg.kind === "reporting-4d-studio" && cfg.spec?.$schema === "reporting-4d-studio/spec-v1" && cfg.spec.encoding.y2 === "Marge (%)";
+    cfgOk = cfg.kind === "datanime-project" && cfg.project?.spec?.$schema === "reporting-4d-studio/spec-v1" && cfg.project.spec.encoding.y2 === "Marge (%)" && !!cfg.project.source;
     await clickType("donut");
     await sleep(300);
     const input = await page.$("[data-testid=config-input]");
     await input.uploadFile(cfgFile);
-    await sleep(900);
+    await sleep(1200);
     cfgOk = cfgOk && (await page.evaluate(() => window.r4d.getSpec().type)) === "line";
+    // ancienne configuration .r4d.json : toujours ouverte par « Projets ▾ › Ouvrir un fichier… »
+    const legacy = join(dl, "ancienne-config.r4d.json");
+    writeFileSync(legacy, JSON.stringify({ kind: "reporting-4d-studio", version: 1, spec: cfg.project.spec }));
+    await clickType("donut");
+    await sleep(300);
+    await (await page.$("[data-testid=config-input]")).uploadFile(legacy);
+    await sleep(900);
+    legacyOk = (await page.evaluate(() => window.r4d.getSpec().type)) === "line";
   }
-  check("enregistrer / ouvrir la configuration JSON", cfgOk);
+  check("Projets ▾ › Exporter le projet (.datanime) puis Ouvrir un fichier… : projet rouvert", cfgOk);
+  check("Projets ▾ › Ouvrir un fichier… : ancienne configuration .r4d.json toujours acceptée", legacyOk);
 
   /* 7. Persistance de session */
   await sleep(800); // sauvegarde différée
@@ -3052,7 +3275,7 @@ try {
     await rd.evaluate(() => document.querySelector("[data-testid=reader-msg] a.btn")?.click());
     await sleep(1200);
     const un1 = { ...(await rs()), hash: await rd.evaluate(() => location.hash), msgHidden: await rd.evaluate(() => document.querySelector("[data-testid=reader-msg]")?.hidden) };
-    check("lien vers un snapshot inconnu : « Ce snapshot n'existe plus ou a été renommé », puis « Ouvrir la diapositive 1 » → 1 / 7", !un.hidden && /Ce snapshot n'existe plus ou a été renommé/.test(un.msg) && /dircom-99-retire/.test(un.msg) && un.acts[0] === "Ouvrir la diapositive 1|#/lire/demo-dircom/dircom-01-trimestres" && un1.counter === "1 / 7" && un1.hash === "#/lire/demo-dircom/dircom-01-trimestres" && un1.msgHidden, JSON.stringify({ un, un1 }).slice(0, 300));
+    check("lien vers une scène inconnue : « Cette scène n'existe plus ou a été renommée », puis « Ouvrir la diapositive 1 » → 1 / 7", !un.hidden && /Cette scène n'existe plus ou a été renommée/.test(un.msg) && /dircom-99-retire/.test(un.msg) && un.acts[0] === "Ouvrir la diapositive 1|#/lire/demo-dircom/dircom-01-trimestres" && un1.counter === "1 / 7" && un1.hash === "#/lire/demo-dircom/dircom-01-trimestres" && un1.msgHidden, JSON.stringify({ un, un1 }).slice(0, 300));
     // anciens identifiants à suffixe d'empreinte : toujours résolus comme avant (aucun message)
     await rd.evaluate(() => (location.hash = "#/lire/demo-dircom/dircom-03-mois-focus-88z5ap"));
     await sleep(1200);
@@ -3488,6 +3711,9 @@ try {
 
   /* 24. Fenêtre « Données » (fichier, collage, récents, exemples, données publiques), iPad : voir e2eDonnees() */
   await e2eDonnees();
+
+  /* 25. Projets (Séquence, Enregistrer, Mes projets, Réinitialiser, scènes modifiées), iPad : voir e2eProjets() */
+  await e2eProjets();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

@@ -297,9 +297,9 @@ export class ReelDialog {
     const n = src.items.length;
     const warn =
       n > REEL_MAX_SCENES
-        ? h("p", { class: "rv-hint reel-warn", "data-testid": "reel-warn-count" }, `Cette histoire compte ${n} snapshots : un Reel en raconte ${REEL_MAX_SCENES} au plus (15 à 30 s). Cochez ceux à garder.`)
+        ? h("p", { class: "rv-hint reel-warn", "data-testid": "reel-warn-count" }, `Cette séquence compte ${n} scènes : un Reel en raconte ${REEL_MAX_SCENES} au plus (15 à 30 s). Cochez ceux à garder.`)
         : n < 3
-          ? h("p", { class: "rv-hint", "data-testid": "reel-warn-few" }, "3 à 5 snapshots conviennent le mieux à un Reel ; ajoutez-en à l'histoire si besoin.")
+          ? h("p", { class: "rv-hint", "data-testid": "reel-warn-few" }, "3 à 5 scènes conviennent le mieux à un Reel ; ajoutez-en à la séquence si besoin.")
           : null;
     this.root.replaceChildren(
       h(
@@ -309,7 +309,7 @@ export class ReelDialog {
           "header",
           { class: "rv-dialog-head" },
           h("span", { class: "rv-ic", html: svgIcon(ICONS.reel, 20) }),
-          h("div", null, h("h2", null, "Créer un Reel"), h("small", null, `Mini-film de « ${src.title} » pour Instagram, TikTok ou LinkedIn : ${REEL_MIN_S} à ${REEL_MAX_S} s, une scène par snapshot, carte de fin avec lien et QR.`)),
+          h("div", null, h("h2", null, "Créer un Reel"), h("small", null, `Mini-film de « ${src.title} » pour Instagram, TikTok ou LinkedIn : ${REEL_MIN_S} à ${REEL_MAX_S} s, une scène par plan de la séquence, carte de fin avec lien et QR.`)),
           h("button", { class: "icon-btn", type: "button", "aria-label": "Fermer", "data-testid": "reel-close", onclick: () => !this.abort && this.close() }, "×")
         ),
         h(
@@ -415,7 +415,7 @@ export class ReelDialog {
           class: "btn btn-mini reel-edit-chart",
           "data-testid": "reel-edit-chart",
           disabled: !src.editChart || !it.ds,
-          title: it.ds ? "Ouvrir ce graphique dans l'éditeur (type, couleurs, mise en avant, réglages), puis revenir au Reel" : "Données de ce snapshot non chargées : rechargez-les pour modifier le graphique",
+          title: it.ds ? "Ouvrir ce graphique dans l'éditeur (type, couleurs, mise en avant, réglages), puis revenir au Reel" : "Données de cette scène non chargées : rechargez-les pour modifier le graphique",
           "aria-label": `Modifier le graphique de la scène ${sceneNo}`,
           onclick: () => src.editChart?.(it, sceneNo),
         },

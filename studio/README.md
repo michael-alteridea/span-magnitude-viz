@@ -46,8 +46,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
 - **Style** : titre, sous-titre, source, fond sombre / clair / perso, palettes (bleu pétrole par défaut, préréglage « Alteridea (rouge) » conservé),
   5 polices embarquées (OFL, sous-ensembles latin + français), formats 16:9, 1:1, 4:5, perso.
 - **Export** (menu **Exporter** de la barre du haut, ou Réglages › ⑤ Export) : SVG autonome (polices en base64),
-  PNG 1× / 2× / 3×, vidéo WebM (MediaRecorder, côté navigateur), PowerPoint de l'histoire. Menu **Fichier** :
-  configuration JSON (spec validé Zod, données en option), Ouvrir…, Réinitialiser. GIF : entrée prévue, V2.
+  PNG 1× / 2× / 3×, vidéo WebM (MediaRecorder, côté navigateur), PowerPoint de la séquence. Menu **Projets ▾** :
+  Mes projets…, Enregistrer, Exporter le projet (.datanime), Ouvrir un fichier… (.datanime ou ancienne configuration
+  .r4d.json), Réinitialiser (voir « Projets »). GIF : entrée prévue, V2.
 - Dernière session conservée dans `localStorage` (`reporting-4d-studio:session:v1`).
 
 ## Récit (étape 1)
@@ -65,7 +66,7 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   unité · période), 1 à 3 points « À retenir » au format français. Modifiables dans « Récit » ou par double-clic
   sur le graphique ; les saisies sont marquées (`story.edited`) et survivent aux changements de données ;
   « Régénérer » rétablit le calcul. Interface `NarrativeRewriter` prévue pour une réécriture LLM (non branchée).
-- **Histoire** : « 📸 Snapshot » ajoute le graphique (spec, SVG, vignette, textes) au bandeau ; glisser pour
+- **Séquence** (anciennement « Histoire ») : « 📸 Ajouter la scène » ajoute le graphique (spec, SVG, vignette, textes) au bandeau ; glisser pour
   réordonner, renommer, supprimer, cliquer pour recharger ; « Ordonner en récit » (contexte → tension → révélation →
   recommandation). Persistée dans `localStorage` (`reporting-4d-studio:story:v1`) et dans le JSON enregistré.
 - **Exporter › PowerPoint de l'histoire** (pptxgenjs chargé à la demande) : couverture pétrole, sommaire, une diapositive par
@@ -623,9 +624,45 @@ des autres ; le sous-titre garde le contexte. Un titre saisi l'emporte toujours.
 générique revient. Le titre de l'annotation, le snapshot, la copie « Dupliquer et mettre en avant » et le chiffre
 clé du Reel suivent l'élément. Logique pure `analyzeFocus` (`story/insights.ts`), tests `test/focusTitle.test.ts`.
 
+## Projets (modèle « dataset d'abord », déploiement 1)
+
+Vocabulaire de l'interface : **séquence** (ex-« histoire ») et **scène** (ex-« snapshot »). Le code, le manifeste de
+revue et le contrat Cadencer 1.1 (gelé) gardent « snapshot » : mêmes identifiants, mêmes empreintes
+(`ce2105aa` / `32865c65` / `4a7f3c6c` / `6696d02e` vérifiées à chaque construction).
+
+- **Un projet** = la source de données courante (exemple intégré référencé, ou lignes importées copiées) + l'état du
+  graphique (spec) + la séquence (scènes ordonnées, titre, « Même échelle », « Transitions Morph »).
+- **Stockage sur l'appareil** : IndexedDB `datanime-studio` (magasins `projets` et `resumes`), pas `localStorage`
+  (plafond ~5 Mo). `localStorage` ne garde que le pointeur du projet ouvert (`datanime:projet-courant:v1`) ; la copie
+  de travail reste la session du Studio. Rien n'est envoyé. Sans IndexedDB (navigation privée stricte) : repli en
+  mémoire, l'export `.datanime` reste possible.
+- **Bande « Séquence »** : ligne d'état « ● Enregistrée sur cet appareil · HH:MM » (ou « Modifications non
+  enregistrées »), puis **Enregistrer**, **Ouvrir…** (Mes projets), **Réinitialiser ▾**, **📸 Ajouter la scène**,
+  **Ordonner**, **▶ Film** ; seconde rangée **Mode lecture**, **Créer un Reel**, **Cadencer**. « Même échelle » et
+  « Transitions Morph » sont passées dans Réglages › Export › « Séquence (film et PowerPoint) ».
+- **Réinitialiser ▾** (bande ou Projets ▾), chaque choix confirmé : *Revenir au dernier enregistrement* ;
+  *Vider la séquence* (garde la source et le graphique) ; *Tout réinitialiser* (exemple par défaut, séquence vide,
+  projet détaché ; les projets enregistrés restent dans Mes projets).
+- **Par scène** : badge « modifiée » (ou « nouvelle ») quand la scène diffère du dernier enregistrement (graphique,
+  textes, rôle, nom — pas les rendus ni les dates) ; **↺ Réinitialiser la scène** lui rend son état enregistré, à sa
+  place, même identifiant. L'état « modifiée » se calcule par comparaison : aucun champ n'est ajouté aux scènes ni au
+  spec, donc rien de nouveau dans l'empreinte.
+- **Mes projets** (Projets ▾ › Mes projets…, ou Séquence › Ouvrir…) : vignette, nom, date, nombre de scènes, source ;
+  Ouvrir, Dupliquer, Exporter (.datanime), Renommer, Supprimer (confirmé) ; recherche ; « Importer un .datanime » ;
+  « + Nouveau projet » ; bandeau « Stockés uniquement sur cet appareil » et jauge d'occupation.
+- **Fichier `.datanime`** : JSON `{ kind: "datanime-project", version: 1, exportedAt, withData, project }`.
+  L'ancienne configuration `.r4d.json` s'ouvre toujours (Projets ▾ › Ouvrir un fichier…).
+- **Quitter la page** avec des modifications non enregistrées : avertissement du navigateur (`beforeunload`).
+- `?reset` : session neuve, détachée du projet ouvert. Premier lancement avec une histoire existante : elle devient
+  le projet « Mon projet » (enregistré).
+- Code : `src/project/project.ts` (modèle, signatures, fichier), `src/project/repo.ts` (IndexedDB / mémoire),
+  `src/project/controller.ts` (projet ouvert), `src/ui/projectsDialog.ts`, `src/ui/confirm.ts`.
+  Tests : `test/project.test.ts` ; e2e `node studio/scripts/e2e.mjs --projets [--shots]` (iPad 1024 et 1366,
+  captures `docs/shots/130…136`).
+
 ## Menu du haut : variante B « Deux niveaux calmes »
 
-- **Barre du haut (48 px)** : logo Datanime · Studio, puis **Ouvrir des données**, **Mes revues (n)**, **Fichier ▾** et **Exporter ▾** (seul
+- **Barre du haut (48 px)** : logo Datanime · Studio, puis **Ouvrir des données**, **Mes revues (n)**, **Projets ▾** (ex-« Fichier ») et **Exporter ▾** (seul
   bouton accent). Le slogan et le bouton « Snapshot » du haut disparaissent : 📸 Snapshot reste dans le bandeau
   Histoire. Un seul accès PowerPoint : Exporter › PowerPoint de l'histoire.
 - **Bande des types (46 px, une seule ligne, colonne centrale)** : pictogrammes 19 px dans des cibles de 34 px (38 px au

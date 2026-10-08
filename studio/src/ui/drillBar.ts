@@ -115,7 +115,7 @@ export class DrillBar {
       : sug
       ? h("button", { class: "drill-btn drill-suggest", type: "button", "data-testid": "drill-suggest", title: "Piste suivante calculée sur les données", onclick: () => this.suggest() }, h("span", { html: svgIcon(ICONS.next, 18) }), sug.label)
       : null;
-    const snap = h("button", { class: "drill-btn drill-snap", type: "button", "data-testid": "drill-snapshot", title: "Ajouter cette vue à l'histoire", onclick: () => this.actions.snapshot() }, "📸 Snapshot");
+    const snap = h("button", { class: "drill-btn drill-snap", type: "button", "data-testid": "drill-snapshot", title: "Ajouter cette vue à la séquence", onclick: () => this.actions.snapshot() }, "📸 Ajouter la scène");
     this.root.replaceChildren(
       h("div", { class: "drill-row" }, back, crumbs, h("span", { class: "spacer" }), snap),
       h("div", { class: "drill-row" }, views, sel, h("span", { class: "spacer" }), chip),

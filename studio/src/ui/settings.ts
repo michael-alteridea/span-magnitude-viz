@@ -112,6 +112,15 @@ export class SettingsPanel {
     return s === "" ? null : isSectionId(s) ? s : DEFAULT_SECTION;
   }
 
+  private seqOptions: HTMLElement | null = null;
+
+  /** Options de la séquence (Même échelle, Transitions Morph) affichées dans la carte Export. */
+  setSequenceOptions(el: HTMLElement): void {
+    this.seqOptions = el;
+    this.key = "";
+    this.update();
+  }
+
   update(): void {
     const { spec, ds, dsVersion } = this.store.state;
     const key = JSON.stringify([
@@ -987,7 +996,7 @@ export class SettingsPanel {
     if (this.actions) {
       const a = this.actions;
       const webm: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-webm", onclick: () => a.exportWebm(webm) }, h("span", { html: svgIcon(ICONS.film2, 15) }), "Vidéo");
-      const pptx: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-pptx", disabled: a.snapshots() === 0, title: a.snapshots() ? "PowerPoint de l'histoire (snapshots)" : "Ajoutez d'abord des snapshots à l'histoire", onclick: () => a.exportPptx(pptx) }, h("span", { html: svgIcon(ICONS.story, 15) }), "PowerPoint");
+      const pptx: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-pptx", disabled: a.snapshots() === 0, title: a.snapshots() ? "PowerPoint de la séquence (une diapositive par scène)" : "Ajoutez d'abord des scènes à la séquence (📸)", onclick: () => a.exportPptx(pptx) }, h("span", { html: svgIcon(ICONS.story, 15) }), "PowerPoint");
       main.push(
         this.kw(
           h(
@@ -1007,6 +1016,7 @@ export class SettingsPanel {
         )
       );
     }
+    if (this.seqOptions) main.push(this.kw(h("div", { class: "field", "data-target": "sequence" }, h("span", { class: "field-label" }, "Séquence (film et PowerPoint)"), this.seqOptions), "séquence scènes même échelle transitions morph powerpoint film"));
     // Animation : fixe, entrée animée, 4D (dans le temps)
     const cur = animKind(spec);
     const timeCol = this.timeCandidate(spec, cols);

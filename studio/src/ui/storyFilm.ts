@@ -113,7 +113,7 @@ export class StoryFilm {
     if (o.reading) bottom.append(h("span", { class: "film-help", "data-testid": `${tid}-help` }, "← → naviguer · Espace pause · R rejouer · Début / Fin · Échap fermer"));
     this.root = h(
       "div",
-      { class: `film${o.reading ? " reader" : ""}`, hidden: true, role: "dialog", "aria-label": o.reading ? "Mode lecture" : "Film de l'histoire", "data-testid": tid },
+      { class: `film${o.reading ? " reader" : ""}`, hidden: true, role: "dialog", "aria-label": o.reading ? "Mode lecture" : "Film de la séquence", "data-testid": tid },
       top,
       this.stage,
       bottom
