@@ -15,6 +15,7 @@ import { fmtOf, type Fmt } from "../story/drillStory";
 import { formatInt, formatSignedPct, NBSP } from "../story/fr";
 import { hatchPattern } from "./norme";
 import { regionByNuts } from "../data/regions";
+import { HINT_ZOOM, hintDetail, rows as tipRows, shareRow, tip, toneOf, toneGood, type TipRow } from "./tip";
 
 const LIGHT = "#3FA7C4";
 const DARK = "#08465A";
@@ -98,8 +99,36 @@ export function drillLegend(m: DrillModel | null, ctx: DrawCtx): { label: string
   }
 }
 
+/** Indication de clic d'une catégorie (dépend de la hiérarchie et du mode versions) — fixée au rendu. */
+let catHint: (field: string, value: string) => string = () => hintDetail();
+
+function catHintOf(dctx: DrillCtx): (field: string, value: string) => string {
+  const d = dctx.spec;
+  const used = new Set(d.path.filter((x) => x.kind === "cat").map((x) => x.field));
+  return (field, value) => {
+    if (/^Autres \(/.test(value)) return "";
+    if (d.path.some((x) => x.kind === "cat" && x.field === field && x.value === value)) return "";
+    if (dctx.ver) {
+      const next = d.levels.find((l) => !used.has(l) && l !== field);
+      return next ? hintDetail(next) : "Cliquer pour détailler mois par mois";
+    }
+    return `Cliquer pour détailler « ${value} » par période`;
+  };
+}
+
+/** Ligne de comptage (« 42 opportunités »). */
+const countRow = (f: Fmt, n: number | null | undefined, k = "Nombre"): TipRow | null => (n == null || !Number.isFinite(n) ? null : { k, v: `${formatInt(n)}${NBSP}${Math.abs(n) < 2 ? f.item.sg : f.item.pl}` });
+/** Ligne d'écart vs référence : « −120 k€ · −8 % » colorée selon la règle des ±3 %. */
+const varRow = (f: Fmt, k: string, v: number, ref: number | null | undefined, costs = false): TipRow | null => {
+  if (ref == null || !Number.isFinite(ref) || ref === 0) return null;
+  const r = (v - ref) / Math.abs(ref);
+  return { k, v: `${f.sv(v - ref)} · ${pctTxt(r)}`, tone: toneOf(r, { costs }) };
+};
+const cap = (t: string) => t.replace(/^./, (c) => c.toLocaleUpperCase("fr-FR"));
+
 export function drawDrill(root: G, rect: PlotRect, ctx: DrawCtx, m: DrillModel, dctx: DrillCtx): void {
   const f = fmtOf(dctx);
+  catHint = catHintOf(dctx);
   const g = root.append("g").attr("class", `r4d-drill r4d-drill-${m.view}`).attr("data-drill-view", m.view) as unknown as G;
   if (m.view === "periods") drawPeriods(g, rect, ctx, m, f);
   else if (m.view === "month") drawMonth(g, rect, ctx, m, f);
@@ -154,6 +183,7 @@ function drawPeriods(g: G, r: PlotRect, ctx: DrawCtx, m: PeriodsModel, f: Fmt) {
   const every = Math.max(1, Math.ceil((tickW + 8 * s) / x.step()));
   const tickShown = m.bars.map((_, i) => every === 1 || i === m.focus || (i % every === 0 && (m.focus == null || Math.abs(i - m.focus) >= every)));
   const yearSeen = new Set<string>();
+  const periodTotal = m.bars.reduce((a, b) => a + Math.max(0, b.value), 0);
   m.bars.forEach((b, i) => {
     const p = stagger(frame.build, i, n);
     const x0 = x(b.key)!;
@@ -168,6 +198,13 @@ function drawPeriods(g: G, r: PlotRect, ctx: DrawCtx, m: PeriodsModel, f: Fmt) {
       .attr("data-focus", isF ? "1" : null)
       .style("cursor", "pointer");
     bar.append("rect").attr("class", "r4d-drill-hitbox").attr("x", x0 - (x.step() - bw) / 2).attr("y", r.y).attr("width", x.step()).attr("height", r.h).attr("fill", "transparent");
+    tip(bar, {
+      t: cap(b.label) + (b.partial ? " (en cours)" : ""),
+      sub: f.Measure,
+      v: f.v(b.value),
+      rows: tipRows(shareRow(b.value, periodTotal, "Part de la période affichée"), countRow(f, b.count), varRow(f, isF && m.refLabel ? `vs ${m.refLabel}` : "vs moyenne des périodes préc.", b.value, b.ref)),
+      h: HINT_ZOOM,
+    });
     const v = b.value * p;
     bar.append("rect").attr("class", "r4d-drill-mark").attr("x", x0).attr("y", y(v)).attr("width", bw).attr("height", Math.max(0, base - y(v))).attr("rx", Math.min(4 * s, bw / 6)).attr("fill", fill).attr("stroke", b.partial ? ink.soft : "none").attr("stroke-width", 1.2 * s);
     // libellé de valeur
@@ -294,6 +331,24 @@ function drawMonth(g: G, r: PlotRect, ctx: DrawCtx, m: MonthModel, f: Fmt) {
       g.append("text").attr("class", "r4d-drill-delta").attr("x", xm).attr("y", Math.max(yc, yr) + 40 * s).attr("font-size", 16 * s).attr("font-weight", 700).attr("fill", varColor(ink, rr)).text(`${f.sv(gap)} · ${pctTxt(rr)}`);
     }
   }
+  // colonnes invisibles jour par jour : infobulle « cumul au jour J vs rythme de référence »
+  if (frame.build >= 1) {
+    const gd = g.append("g").attr("class", "r4d-drill-days");
+    const step = x(2) - x(1);
+    for (let i = 0; i < m.days; i++) {
+      const cv = m.cur[i];
+      if (cv == null) break;
+      const rv = m.ref[i] ?? null;
+      const day = new Date(m.start + i * 86400000).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+      const hit = gd.append("rect").attr("class", "r4d-drill-day").attr("x", x(i + 1) - step / 2).attr("y", plot.y).attr("width", step).attr("height", plot.h).attr("fill", "transparent");
+      tip(hit, {
+        t: cap(day),
+        sub: `${f.Measure} cumulé depuis le début de la période`,
+        v: f.v(cv),
+        rows: tipRows(rv != null ? { k: `Rythme ${m.refLabel.replace(/^moy\. /, "moyen ")}`, v: f.v(rv) } : null, varRow(f, "Écart au rythme", cv, rv), shareRow(cv, m.refTotal, "Part de la référence de la période")),
+      });
+    }
+  }
 }
 
 const MONTH_LONG = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -376,7 +431,16 @@ function drawMap(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fmt) {
       .attr("fill", q >= 1 ? colorOf(st.value) : mix(lo, colorOf(st.value), q))
       .attr("stroke", theme.bg)
       .attr("stroke-width", 1.4 * s)
-      .style("cursor", "pointer");
+      .style("cursor", "pointer")
+      .call((sel) =>
+        tip(sel, {
+          t: st.key,
+          sub: m.periodLabel ? `${f.Measure} · ${m.periodLabel}` : f.Measure,
+          v: f.v(st.value),
+          rows: tipRows(shareRow(st.value, m.total), countRow(f, st.count), varRow(f, `vs ${m.refLabel}`, st.value, st.ref)),
+          h: catHint(m.field, st.key),
+        }),
+      );
   });
   const borders = europeCountryBorders("nuts1");
   if (borders) gm.append("path").attr("d", path(borders as unknown as GeoPermissibleObjects)).attr("fill", "none").attr("stroke", theme.dark ? "#71717a" : "#8a9399").attr("stroke-width", 1.3 * s).attr("stroke-dasharray", `${4 * s} ${2.5 * s}`);
@@ -498,6 +562,8 @@ function drawHistory(g: G, r: PlotRect, ctx: DrawCtx, m: HistoryModel, f: Fmt) {
     const py = r.y + row * (ch + gapY);
     const isStd = m.standout === i;
     const gp = g.append("g").attr("class", "r4d-drill-panel r4d-drill-hit").attr("data-drill-kind", "cat").attr("data-drill-field", m.field).attr("data-drill-value", se.key).style("cursor", "pointer");
+    const seTot = se.values.reduce((a, b) => a + b, 0);
+    tip(gp, { t: se.key, sub: `${f.Measure} · ${m.keys.length} périodes`, v: f.v(seTot), rows: tipRows(se.focusRatio != null && m.focus != null ? { k: `${grainLabel(m.keys[m.focus]!, m.grain, true)} vs ${m.refLabel}`, v: pctTxt(se.focusRatio), tone: toneOf(se.focusRatio) } : null), h: catHint(m.field, se.key) });
     gp.append("rect").attr("x", px).attr("y", py).attr("width", cw).attr("height", ch).attr("rx", 8 * s).attr("fill", isStd ? (theme.dark ? "#16262d" : "#f2f8fa") : "transparent").attr("stroke", isStd ? ink.text : theme.grid).attr("stroke-width", (isStd ? 1.6 : 1) * s);
     const head = 40 * s;
     gp.append("text").attr("x", px + 12 * s).attr("y", py + 22 * s).attr("font-size", 15 * s).attr("font-weight", 700).attr("fill", ink.text).text(ellipsize(se.key, Math.min(cw * 0.6, cw - 24 * s - (se.focusRatio != null && m.focus != null ? 66 * s : 0)), 15 * s, font, 700));
@@ -515,7 +581,15 @@ function drawHistory(g: G, r: PlotRect, ctx: DrawCtx, m: HistoryModel, f: Fmt) {
       const q = stagger(frame.build, k, se.values.length, 0.6);
       const isF = m.focus === k;
       const fill = m.partial[k] ? hatch : isF ? ink.strong : seasonalKeys.has(m.keys[k]!) ? ink.ctx : ink.soft;
-      gp.append("rect").attr("class", isF ? "r4d-drill-mark r4d-drill-focus" : "r4d-drill-mark").attr("x", x(m.keys[k]!)!).attr("y", y(v * q)).attr("width", bw).attr("height", Math.max(0, y(0) - y(v * q))).attr("fill", fill).attr("rx", Math.min(2 * s, bw / 4));
+      const hb = gp.append("rect").attr("class", isF ? "r4d-drill-mark r4d-drill-focus" : "r4d-drill-mark").attr("x", x(m.keys[k]!)!).attr("y", y(v * q)).attr("width", bw).attr("height", Math.max(0, y(0) - y(v * q))).attr("fill", fill).attr("rx", Math.min(2 * s, bw / 4));
+      const hTot = se.values.reduce((a, b) => a + Math.max(0, b), 0);
+      tip(hb, {
+        t: `${se.key} · ${grainLabel(m.keys[k]!, m.grain, true)}${m.partial[k] ? " (en cours)" : ""}`,
+        sub: f.Measure,
+        v: f.v(v),
+        rows: tipRows(shareRow(v, hTot, "Part de la série"), isF ? varRow(f, `vs ${m.refLabel}`, v, se.focusRef) : null),
+        h: catHint(m.field, se.key),
+      });
     });
     if (m.focus != null && se.focusRef != null) {
       const xf = x(m.keys[m.focus]!)!;
@@ -570,6 +644,13 @@ function drawBreakdown(g: G, r: PlotRect, ctx: DrawCtx, m: BreakdownModel, f: Fm
     const bh = Math.min(26 * s, rowH * 0.5);
     const gr = g.append("g").attr("class", "r4d-drill-row r4d-drill-hit").attr("data-drill-kind", "cat").attr("data-drill-field", m.field).attr("data-drill-value", st.key).style("cursor", st.key.startsWith("Autres (") ? "default" : "pointer");
     gr.append("rect").attr("x", r.x).attr("y", yc - rowH / 2).attr("width", r.w).attr("height", rowH).attr("fill", isStd ? (theme.dark ? "#16262d" : "#f2f8fa") : "transparent").attr("rx", 6 * s);
+    tip(gr, {
+      t: st.key,
+      sub: m.periodLabel ? `${f.Measure} · ${m.periodLabel}` : f.Measure,
+      v: f.v(st.value),
+      rows: tipRows(shareRow(st.value, m.total), countRow(f, st.count), m.versions ? { k: m.refLabel, v: f.v(st.ref ?? 0) } : null, varRow(f, `vs ${m.refLabel}`, st.value, st.ref)),
+      h: catHint(m.field, st.key),
+    });
     gr.append("text").attr("x", x0 - 10 * s).attr("y", yc).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", 15 * s).attr("font-weight", isStd ? 700 : 500).attr("fill", ink.text).text(ellipsize(st.key, labelW - 14 * s, 15 * s, font, 700));
     const xv = x(st.value * q);
     gr.append("rect").attr("class", "r4d-drill-mark").attr("x", Math.min(xz, xv)).attr("y", yc - bh / 2).attr("width", Math.abs(xv - xz)).attr("height", bh).attr("rx", 3 * s).attr("fill", isStd ? ink.strong : ink.soft);
@@ -610,6 +691,8 @@ function drawBridge(g: G, r: PlotRect, ctx: DrawCtx, m: BridgeModel, f: Fmt) {
   const fs = Math.min(15 * s, Math.max(11 * s, bw * 0.17));
   const totalFill = (it: BridgeItem) => (it.kind === "start" ? GREY_TOTAL(ctx) : it.kind === "subtotal" ? ink.soft : ink.strong);
   const small = (v: number) => Math.abs(v) < Math.abs(m.start || 1) * 0.0005;
+  /** Somme des écarts en valeur absolue (poids de chaque facteur, même quand hausses et baisses se compensent). */
+  const grossMoves = m.items.filter((it) => it.kind === "delta").reduce((acc, it) => acc + Math.abs(it.value), 0);
   m.items.forEach((it, i) => {
     const p = stagger(frame.build, i, n, 0.55);
     const x0 = x(i)!;
@@ -624,6 +707,25 @@ function drawBridge(g: G, r: PlotRect, ctx: DrawCtx, m: BridgeModel, f: Fmt) {
       .attr("data-drill-value", clickable ? it.key : null)
       .style("cursor", clickable ? "pointer" : "default");
     if (clickable) gi.append("rect").attr("class", "r4d-drill-hitbox").attr("x", x0 - (x.step() - bw) / 2).attr("y", r.y).attr("width", x.step()).attr("height", r.h).attr("fill", "transparent");
+    tip(gi, isDelta
+      ? {
+          t: it.label,
+          sub: it.group ? `${it.group} · impact sur le résultat` : "Impact sur le résultat",
+          v: f.sv(it.value),
+          rows: tipRows(
+            { k: m.fromLabel, v: f.v(it.from) },
+            { k: m.toLabel, v: f.v(it.to) },
+            grossMoves > 0 ? shareRow(Math.abs(it.value), grossMoves, "Poids dans les écarts") : null,
+            it.cost ? { k: "dont coûts", v: f.sv(-it.cost), tone: toneGood(it.cost < 0) } : null,
+          ),
+          h: clickable ? catHint(m.field, it.key) : "",
+        }
+      : {
+          t: it.label,
+          sub: it.kind === "subtotal" ? "Sous-total" : it.kind === "start" ? "Point de départ" : "Point d'arrivée",
+          v: f.v(it.value),
+          rows: tipRows(it.kind === "end" ? varRow(f, `vs ${m.fromLabel}`, m.end, m.start) : null),
+        });
     let ya: number;
     let yb: number;
     let fill: string;
@@ -738,6 +840,16 @@ function drawCompare(g: G, r0: PlotRect, ctx: DrawCtx, m: CompareModel, f: Fmt) 
       if (norme) rc.attr("fill", theme.bg).attr("stroke", normeInk(theme).ac).attr("stroke-width", 1.4 * s);
       else rc.attr("fill", toFill);
     }
+    const hitC = g.append("rect").attr("class", "r4d-drill-month-hit").attr("x", x0 - (x.step() - bw) / 2).attr("y", r.y).attr("width", x.step()).attr("height", vy0 + varH - r.y).attr("fill", "transparent");
+    tip(hitC, {
+      t: cap(mo.label),
+      rows: tipRows(
+        mo.from != null ? { k: m.fromLabel, v: f.v(mo.from) } : null,
+        mo.to != null ? { k: m.toLabel, v: f.v(mo.to) } : null,
+        mo.delta != null ? { k: "Écart", v: `${f.sv(mo.delta)}${mo.from ? ` · ${pctTxt(mo.delta / Math.abs(mo.from))}` : ""}`, tone: tiny(mo.delta) ? "neutral" : toneGood(good(mo.delta)) } : null,
+        mo.to != null ? shareRow(mo.to, m.toTotal, `Part de l'année (${m.toLabel})`) : null,
+      ),
+    });
     if (tickShown(i)) g.append("text").attr("x", x0 + bw / 2).attr("y", y(0) + 16 * s).attr("text-anchor", "middle").attr("font-size", 12.5 * s).attr("font-weight", m.breakAt === i ? 700 : 400).attr("fill", m.breakAt === i ? ink.text : ink.muted).text(mo.tick);
     // écart du mois
     if (mo.delta != null) {
@@ -801,6 +913,27 @@ function pivotColors(ctx: DrawCtx, m: PivotModel): string[] {
   return m.series.map((_, i) => ctx.colors[i % ctx.colors.length]!);
 }
 
+/** Infobulle d'une cellule du tableau croisé (catégorie × série). */
+function pivotTip(m: PivotModel, f: Fmt, i: number, j: number, cat: string | null) {
+  const se = m.series[j]!;
+  const v = se.values[i] ?? 0;
+  const colTotal = m.series.reduce((a, x) => a + Math.max(0, x.values[i] ?? 0), 0);
+  const prev = i > 0 && m.xIsTime ? se.values[i - 1] : null;
+  const aggLabel = m.agg === "mean" ? "Moyenne" : m.agg === "count" ? "Nombre" : m.isDelta ? "Écart" : "Total";
+  return {
+    t: m.keys[i]!,
+    sub: m.series.length > 1 ? `${se.key} · ${aggLabel.toLocaleLowerCase("fr-FR")}` : aggLabel,
+    v: m.isDelta ? f.sv(v) : m.agg === "count" ? `${formatInt(v)}${NBSP}${Math.abs(v) < 2 ? f.item.sg : f.item.pl}` : f.v(v),
+    rows: tipRows(
+      m.isDelta ? { k: "Sens", v: Math.abs(v) < 1e-9 ? "stable" : v > 0 ? "hausse" : "baisse", tone: toneGood(Math.abs(v) < 1e-9 ? null : v > 0) } : null,
+      !m.isDelta && m.agg !== "mean" ? shareRow(v, se.total, m.series.length > 1 ? "Part de la série" : "Part du total") : null,
+      !m.isDelta && m.agg !== "mean" && m.series.length > 1 ? shareRow(v, colTotal, `Part de « ${m.keys[i]} »`) : null,
+      !m.isDelta && prev != null ? varRow(f, `vs ${m.keys[i - 1]}`, v, prev) : null,
+    ),
+    h: cat && !cat.startsWith("Autres (") ? catHint(m.x, cat) : "",
+  };
+}
+
 function drawPivot(g: G, r: PlotRect, ctx: DrawCtx, m: PivotModel, f: Fmt) {
   const { s, frame, font, theme } = ctx;
   const ink = inkOf(ctx);
@@ -846,7 +979,8 @@ function drawPivot(g: G, r: PlotRect, ctx: DrawCtx, m: PivotModel, f: Fmt) {
       const p = stagger(frame.build, i * ns + j, totalBars, 0.5);
       const vv = v * p;
       const fill = m.isDelta && ns === 1 ? (Math.abs(v) < 1e-9 ? ink.muted : v > 0 ? ink.pos : ink.neg) : cols[j]!;
-      gk.append("rect").attr("class", "r4d-drill-mark").attr("x", x0 + j * sub + sub * 0.06).attr("y", Math.min(y(vv), y0)).attr("width", sub * 0.88).attr("height", Math.max(0, Math.abs(y(vv) - y0))).attr("rx", Math.min(2.5 * s, sub / 6)).attr("fill", fill);
+      const pr = gk.append("rect").attr("class", "r4d-drill-mark").attr("x", x0 + j * sub + sub * 0.06).attr("y", Math.min(y(vv), y0)).attr("width", sub * 0.88).attr("height", Math.max(0, Math.abs(y(vv) - y0))).attr("rx", Math.min(2.5 * s, sub / 6)).attr("fill", fill);
+      tip(pr, pivotTip(m, f, i, j, cat));
       if (labels && p > 0.8 && sub > 22 * s && labelled.has(se.key)) {
         const fsz = Math.min(12.5 * s, Math.max(10.5 * s, sub * 0.24));
         gk.append("text").attr("x", x0 + j * sub + sub / 2).attr("y", v < 0 ? y(vv) + fsz + 3 * s : y(vv) - 5 * s).attr("text-anchor", "middle").attr("font-size", fsz).attr("font-weight", 600).attr("fill", m.isDelta && ns === 1 ? fill : ink.text).text(compact(v, m.isDelta ? f : { ...f, sv: f.v }));
@@ -863,7 +997,7 @@ function drawPivot(g: G, r: PlotRect, ctx: DrawCtx, m: PivotModel, f: Fmt) {
         d += `${d ? "L" : "M"}${(x(i)! + bw / 2).toFixed(1)},${y(v).toFixed(1)}`;
       });
       g.append("path").attr("class", "r4d-drill-mark").attr("d", d).attr("fill", "none").attr("stroke", cols[j]!).attr("stroke-width", 3 * s).attr("stroke-linejoin", "round");
-      se.values.forEach((v, i) => v != null && i < upto && g.append("circle").attr("cx", x(i)! + bw / 2).attr("cy", y(v)).attr("r", 3.5 * s).attr("fill", cols[j]!));
+      se.values.forEach((v, i) => v != null && i < upto && tip(g.append("circle").attr("class", "r4d-drill-point").attr("cx", x(i)! + bw / 2).attr("cy", y(v)).attr("r", 3.5 * s).attr("fill", cols[j]!), pivotTip(m, f, i, j, m.catValues[i] ?? null)));
       const li = Math.min(upto, se.values.length) - 1;
       const lv = se.values[li];
       if (frame.build > 0.9 && lv != null && ns <= 6) haloText(g, x(li)! + bw / 2 + 8 * s, y(lv) + 4 * s, f.v(lv), 12.5 * s, cols[j]!, ink, { anchor: "start", weight: 700 });

@@ -6,6 +6,7 @@
  *  - vidéo WebM (MediaRecorder sur un canevas alimenté image par image) ;
  *  - GIF : réservé à la V2 (voir `exportGif`).
  */
+import { stripTips } from "./charts/tip";
 import type { ChartSpec, StudioFile } from "./spec";
 import { embeddedFontCss, fontStack } from "./theme";
 import type { PlotRect } from "./charts/context";
@@ -141,6 +142,7 @@ export async function composeSvg(input: ComposeInput): Promise<string> {
     ...(prov ? { data: { sha256: prov.hash, importedAt: prov.importedAt, rows: prov.rows, cols: prov.cols, kind: prov.kind }, verify: verifyUrl(verifyInfoFor(prov, created)) } : {}),
   });
   clone.insertBefore(meta, clone.firstChild);
+  stripTips(clone);
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
 }
 

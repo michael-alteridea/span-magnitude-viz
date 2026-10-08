@@ -1847,6 +1847,231 @@ try {
     await ctx.close();
   }
 
+  /* 19. Infobulles (survol, toucher, clavier) sur toutes les marques + iPad sans débordement horizontal */
+  {
+    const P = "norvia-pipeline-oct-2026";
+    const dc = globalThis.__dircom ?? { ids: [], titles: [] };
+    const shotOn = async (pg, name) => {
+      if (!SHOTS) return;
+      await sleep(150);
+      await pg.screenshot({ path: join(shotsDir, name) });
+    };
+    /** Survole le centre (ou un point relatif) d'un élément et lit l'infobulle affichée. */
+    const hoverTip = async (pg, sel, fy = 0.5) => {
+      const box = await pg.evaluate((s, f) => {
+        const e = document.querySelector(s);
+        if (!e) return null;
+        const r = e.getBoundingClientRect();
+        const hits = (x, y) => { const h = document.elementFromPoint(x, y); return !!h && (h === e || e.contains(h)); };
+        const p0 = { x: r.left + r.width / 2, y: r.top + Math.max(2, r.height * f) };
+        if (hits(p0.x, p0.y)) return p0;
+        // forme non rectangulaire (segment d'anneau) : premier point de la grille qui touche la marque
+        for (let i = 1; i < 10; i++) for (let j = 1; j < 10; j++) { const x = r.left + (r.width * i) / 10; const y = r.top + (r.height * j) / 10; if (hits(x, y)) return { x, y }; }
+        return p0;
+      }, sel, fy);
+      if (!box) return { text: null, sel };
+      await pg.mouse.move(box.x - 40, box.y - 40);
+      await pg.mouse.move(box.x, box.y, { steps: 3 });
+      await sleep(180);
+      return pg.evaluate(() => {
+        const t = document.querySelector("[data-testid=chart-tip]");
+        if (!t || t.hidden || !t.isConnected) return { text: null };
+        const r = t.getBoundingClientRect();
+        return { text: t.innerText.replace(/[\u00a0\u202f]/g, " ").replace(/\n+/g, " | "), tones: [...t.querySelectorAll("dd[class^=tone-]")].map((d) => d.className), inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, bg: getComputedStyle(t).backgroundColor };
+      });
+    };
+    await page.setViewport({ width: 1600, height: 960, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+    await page.evaluate(() => (location.hash = ""));
+    await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await page.evaluate(() => window.r4d.loadSample("ventes"));
+    await sleep(700);
+    await page.evaluate(() => window.r4d.seek(1));
+    const b1 = await hoverTip(page, "[data-testid=chart-svg] .r4d-marks rect", 0.6);
+    check("infobulle : survol d'une barre → catégorie, valeur en M€, part du total (fond pétrole, dans la fenêtre)", /^Île-de-France \| 7,6 M€ \| Part du total \| 35 %/.test(b1.text ?? "") && b1.inside && b1.bg === "rgb(8, 70, 90)", JSON.stringify(b1));
+    if (SHOTS) await page.screenshot({ path: join(shotsDir, "59-infobulle-barre.png"), clip: { x: 200, y: 120, width: 1100, height: 620 } });
+    // pas de <title> natif (double infobulle) ; exports sans attribut d'infobulle
+    const clean = await page.evaluate(async () => {
+      const svg = await window.r4d.currentSvg();
+      return { native: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks title").length, tip: /data-tip|tabindex|aria-describedby/.test(svg), len: svg.length };
+    });
+    check("infobulle : jamais dans l'export (SVG / PNG / PowerPoint / film) ni en double avec l'infobulle native", clean.native === 0 && !clean.tip && clean.len > 1000, JSON.stringify(clean));
+    // bord droit : l'infobulle bascule à gauche du curseur
+    const edge = await hoverTip(page, "[data-testid=chart-svg] .r4d-marks rect:last-of-type", 0.6);
+    check("infobulle : reste dans la fenêtre près du bord", edge.inside && !!edge.text, JSON.stringify(edge));
+    // ligne : points
+    await page.evaluate(() => window.r4d.pickType("line"));
+    await sleep(600);
+    await page.evaluate(() => window.r4d.seek(1));
+    const ln = await hoverTip(page, "[data-testid=chart-svg] .r4d-marks circle");
+    check("infobulle : point d'une courbe", !!ln.text && /M€/.test(ln.text), JSON.stringify(ln));
+    await page.evaluate(() => window.r4d.pickType("donut"));
+    await sleep(600);
+    await page.evaluate(() => window.r4d.seek(1));
+    const dn = await hoverTip(page, "[data-testid=chart-svg] .r4d-marks path", 0.2);
+    check("infobulle : segment d'anneau (part du total)", /Part du total \| \d/.test(dn.text ?? ""), JSON.stringify(dn));
+    // une marque par type de graphique : l'infobulle s'affiche partout
+    const perType = [];
+    for (const [sample, type, sel] of [
+      ["ventes", "bar", "[data-testid=chart-svg] .r4d-marks rect[data-tip]"],
+      ["ventes", "barH", "[data-testid=chart-svg] .r4d-marks rect[data-tip]"],
+      ["business-review", "groupedBar", "[data-testid=chart-svg] [data-tip]"],
+      ["business-review", "stackedBar", "[data-testid=chart-svg] [data-tip]"],
+      ["ventes", "line", "[data-testid=chart-svg] .r4d-marks circle[data-tip]"],
+      ["ventes", "area", "[data-testid=chart-svg] .r4d-marks circle[data-tip]"],
+      ["business-review", "stackedArea", "[data-testid=chart-svg] [data-tip]"],
+      ["pipeline", "scatter", "[data-testid=chart-svg] .r4d-marks circle[data-tip]"],
+      ["ventes", "pie", "[data-testid=chart-svg] .r4d-marks path[data-tip]"],
+      ["ventes", "donut", "[data-testid=chart-svg] .r4d-marks path[data-tip]"],
+      ["ventes", "radialBar", "[data-testid=chart-svg] .r4d-mark[data-tip]"],
+      ["business-review", "variance", "[data-testid=chart-svg] [data-tip]"],
+      ["revue-mensuelle-norme", null, "[data-testid=chart-svg] .r4d-scn-AC[data-tip]"],
+      ["pipeline", "map", "[data-testid=special-host] .smv-map-region[data-tip]:not(.smv-map-region--bg)"],
+    ]) {
+      await page.evaluate((sm) => window.r4d.loadSample(sm), sample);
+      await sleep(500);
+      if (type) await page.evaluate((t) => window.r4d.pickType(t), type);
+      await sleep(600);
+      if (type === "map") await page.waitForFunction(() => document.querySelectorAll("[data-testid=special-host] .smv-map-region").length > 3, { timeout: 10000 }).catch(() => {});
+      await page.evaluate(() => window.r4d.seek(1));
+      await sleep(type === "map" ? 1500 : 150);
+      const r = await hoverTip(page, sel);
+      perType.push(`${type ?? "norme"}:${r.text ? "ok" : "AUCUNE"}${r.text ? "" : ` (${sel})`}`);
+    }
+    check("infobulle sur une marque de CHAQUE type (barres, horizontales, groupées, empilées, lignes, aires, nuage, camembert, anneau, arcs radiaux, écarts, norme, carte)", perType.every((x) => /:ok$/.test(x)), perType.join(" · "));
+    await page.evaluate(() => window.r4d.pickType("bar"));
+    await sleep(300);
+
+    // exploration (démo pipeline) : trimestre, carte, détail
+    await page.evaluate(() => window.r4d.loadSample("demo-pipeline"));
+    await sleep(800);
+    await page.evaluate(() => window.r4d.seek(1));
+    const q = await hoverTip(page, '[data-testid=chart-svg] .r4d-drill-bar[data-focus="1"] .r4d-drill-mark', 0.5);
+    check("exploration : barre T2 2026 → valeur, part, nombre d'opportunités, écart coloré vs T1, « Cliquer pour zoomer »", /^T2 2026/.test(q.text ?? "") && /opportunités/.test(q.text) && /Part de la période affichée/.test(q.text) && /vs T1 2026 \| −[\d ,]+ (k€|M€) · −3,8 %/.test(q.text) && q.tones?.includes("tone-neg") && /Cliquer pour zoomer/.test(q.text), JSON.stringify(q));
+    if (SHOTS) await shotOn(page, "60-infobulle-exploration.png");
+    await page.evaluate(() => window.r4d.seek(1));
+    await sleep(120);
+    // clavier : focus sur la première marque, flèche → suivante, Entrée → zoom
+    const k1 = await page.evaluate(() => {
+      const first = document.querySelector('[data-testid=chart-svg] [data-tip][tabindex="0"]');
+      first?.focus();
+      const t = document.querySelector("[data-testid=chart-tip]");
+      return { ok: !!first, n: document.querySelectorAll('[data-testid=chart-svg] [data-tip][tabindex="0"]').length, label: first?.getAttribute("aria-label") ?? "", shown: !!t && !t.hidden && t.isConnected };
+    });
+    await page.keyboard.press("ArrowRight");
+    await sleep(120);
+    const k2 = await page.evaluate(() => ({ key: document.activeElement?.getAttribute("data-drill-key"), tip: document.querySelector("[data-testid=chart-tip]")?.innerText ?? "" }));
+    const before = await page.evaluate(() => window.r4d.drill().path.length);
+    await page.keyboard.press("Enter");
+    await sleep(500);
+    const after = await page.evaluate(() => window.r4d.drill().path.length);
+    check("infobulle au clavier : une seule marque dans la tabulation (itinérant), libellé lisible, flèches, Entrée = explorer", k1.ok && k1.n === 1 && k1.shown && /Cliquer pour zoomer/.test(k1.label) && !!k2.key && k2.tip.length > 0 && after === before + 1, JSON.stringify({ k1, k2, before, after }));
+    await page.keyboard.press("Escape");
+    await domClick("[data-testid=drill-crumb-0]");
+    await sleep(400);
+    await domClick("[data-testid=drill-view-map]");
+    await sleep(600);
+    await page.evaluate(() => window.r4d.seek(1));
+    const mp = await hoverTip(page, '[data-testid=chart-svg] .r4d-drill-region[data-drill-value="Wallonie"]');
+    check("carte : région → valeur, part du total, nombre, « Cliquer pour détailler « Wallonie » par période »", /^Wallonie/.test(mp.text ?? "") && /Part du total/.test(mp.text) && /opportunit/.test(mp.text) && /Cliquer pour détailler « Wallonie »/.test(mp.text), JSON.stringify(mp));
+    if (SHOTS) await shotOn(page, "61-infobulle-carte.png");
+    await domClick("[data-testid=drill-view-history]");
+    await sleep(500);
+    await page.evaluate(() => window.r4d.seek(1));
+    const hi = await hoverTip(page, "[data-testid=chart-svg] .r4d-drill-panel .r4d-drill-mark");
+    check("historique : barre d'un petit multiple (région · mois)", / · /.test(hi.text ?? "") && /Part de la série/.test(hi.text), JSON.stringify(hi));
+
+    // cascade, mois (versions), tableau croisé (démo finance)
+    await page.evaluate(() => window.r4d.loadSample("demo-finance"));
+    await sleep(800);
+    await page.evaluate(() => window.r4d.seek(1));
+    const cf = await hoverTip(page, '[data-testid=chart-svg] .r4d-drill-bridge-item[data-drill-value="Cloud"] .r4d-drill-mark');
+    check("cascade : marche Cloud → impact signé, Réel 2025 / Budget 2026, poids dans les écarts, hausse des coûts en rouge, « détailler par … »", /^Cloud \| Impact sur le résultat \| \+2,1 M€/.test(cf.text ?? "") && /Réel 2025/.test(cf.text) && /Budget 2026/.test(cf.text) && /Poids dans les écarts \| \d/.test(cf.text) && /dont coûts \| −0,5 M€/.test(cf.text) && cf.tones?.includes("tone-neg") && /Cliquer pour détailler par/.test(cf.text), JSON.stringify(cf));
+    if (SHOTS) await shotOn(page, "62-infobulle-cascade.png");
+    const end = await hoverTip(page, ".r4d-drill-bridge-end .r4d-drill-mark");
+    check("cascade : total d'arrivée → écart vs Réel 2025 (−2,2 % : stable sous ±3 %, gris)", /Point d'arrivée/.test(end.text ?? "") && /vs Réel 2025 \| −0,4 M€ · −2,2 %/.test(end.text) && end.tones?.includes("tone-neutral"), JSON.stringify(end));
+    await domClick("[data-testid=drill-view-compare]");
+    await sleep(600);
+    await page.evaluate(() => window.r4d.seek(1));
+    const cmp = await hoverTip(page, "[data-testid=chart-svg] .r4d-drill-month-hit");
+    check("mois Réel 2025 vs Budget 2026 : colonne d'un mois → deux versions et écart coloré", /Réel 2025/.test(cmp.text ?? "") && /Budget 2026/.test(cmp.text) && /Écart/.test(cmp.text) && cmp.tones?.length > 0, JSON.stringify(cmp));
+    await domClick("[data-testid=drill-view-pivot]");
+    await sleep(600);
+    await page.evaluate(() => window.r4d.seek(1));
+    const pv = await hoverTip(page, "[data-testid=chart-svg] .r4d-drill-pivot-key .r4d-drill-mark");
+    check("tableau croisé : cellule → série, écart signé, sens coloré", /· écart \| [−+]/.test(pv.text ?? "") && /Sens \| (baisse|hausse)/.test(pv.text) && pv.tones?.some((x) => x === "tone-neg" || x === "tone-pos"), JSON.stringify(pv));
+
+    // iPad (toucher) : 1er toucher = infobulle (pas de zoom), 2e toucher = zoom ; aucune barre de défilement horizontale
+    const ctx = await browser.createBrowserContext();
+    const ip = await ctx.newPage();
+    await ip.setViewport({ width: 1180, height: 820, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+    await ip.goto(`${origin}${BASE}`, { waitUntil: "networkidle0" });
+    await ip.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await ip.evaluate(() => window.r4d.loadSample("demo-pipeline"));
+    await sleep(900);
+    await ip.evaluate(() => window.r4d.seek(1));
+    const tapAt = async (sel) => {
+      const b = await ip.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r ? { x: r.left + r.width / 2, y: r.top + r.height * 0.6 } : null; }, sel);
+      if (b) await ip.touchscreen.tap(b.x, b.y);
+      await sleep(450);
+    };
+    const tsel = '[data-testid=chart-svg] .r4d-drill-bar[data-focus="1"] .r4d-drill-mark';
+    await tapAt(tsel);
+    const t1 = await ip.evaluate(() => ({ path: window.r4d.drill().path.length, tip: (() => { const t = document.querySelector("[data-testid=chart-tip]"); return t && !t.hidden && t.isConnected ? t.innerText : ""; })() }));
+    await shotOn(ip, "63-infobulle-ipad-toucher.png");
+    await tapAt(tsel);
+    const t2 = await ip.evaluate(() => window.r4d.drill().path.length);
+    check("iPad : 1er toucher sur une barre → infobulle sans zoom ; 2e toucher → zoom", t1.path === 0 && /Cliquer pour zoomer/.test(t1.tip) && t2 === 1, JSON.stringify({ t1, t2 }));
+    const widths = [];
+    for (const [w, h] of [[1366, 1024], [1180, 820], [1024, 768]]) {
+      await ip.setViewport({ width: w, height: h, deviceScaleFactor: SHOTS ? 1.5 : 1, isMobile: true, hasTouch: true });
+      await sleep(500);
+      const o = await ip.evaluate(() => ({
+        sw: document.documentElement.scrollWidth,
+        bw: document.body.scrollWidth,
+        vw: innerWidth,
+        right: Math.round(document.querySelector(".panel-right")?.getBoundingClientRect().right ?? 0),
+        tb: (() => { const t = document.querySelector(".toolbar"); return t ? t.scrollWidth - t.clientWidth : -1; })(),
+        story: (() => { const s = document.querySelector(".story-bar"); return s ? s.scrollWidth - s.clientWidth : 0; })(),
+      }));
+      widths.push({ w, ...o });
+      if (w === 1366) await shotOn(ip, "64-ipad-1366-sans-debordement.png");
+    }
+    check("iPad 1366 / 1180 / 1024 px : aucun débordement horizontal (page, panneau de réglages entier, barre d'outils, histoire)", widths.every((o) => o.sw <= o.vw && o.bw <= o.vw && o.right <= o.vw && o.tb <= 1 && o.story <= 1), JSON.stringify(widths));
+    await ctx.close();
+
+    // mode lecture : infobulle au survol ; film : aucune infobulle
+    const rctx = await browser.createBrowserContext();
+    const rd = await rctx.newPage();
+    await rd.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 1.5 : 1 });
+    await rd.goto(`${origin}${BASE}#/lire/demo-dircom/${dc.ids[0] ?? ""}`, { waitUntil: "networkidle0" });
+    await sleep(1500);
+    await rd.evaluate(() => window.r4d.reader().finishNow());
+    await sleep(400);
+    const rt = await hoverTip(rd, "[data-testid=reader-svg] .r4d-drill-bar .r4d-drill-mark");
+    const counter = await rd.evaluate(() => document.querySelector("[data-testid=reader-counter]")?.textContent);
+    check("mode lecture : infobulle au survol d'une barre (sans « Cliquer pour zoomer » : le clic y fait défiler)", /opportunit/.test(rt.text ?? "") && !/Cliquer/.test(rt.text) && counter === "1 / 7", JSON.stringify({ rt, counter }));
+    await shotOn(rd, "65-infobulle-lecture.png");
+    await rd.evaluate(() => window.r4d.reader().close?.());
+    await rd.evaluate(() => (location.hash = ""));
+    await sleep(500);
+    await rd.evaluate(() => window.r4d.loadSample("demo-pipeline"));
+    await sleep(600);
+    await rd.evaluate(() => window.r4d.snapshot?.());
+    await sleep(600);
+    await rd.evaluate(() => window.r4d.film().open(window.r4d.story().snapshots, 0));
+    await sleep(2200);
+    const ft = await hoverTip(rd, "[data-testid=film-svg] .r4d-drill-mark");
+    check("film : aucune infobulle (rendu de présentation)", ft.text === null, JSON.stringify(ft));
+    await rd.evaluate(() => window.r4d.film().close());
+    // page participant
+    await rd.evaluate((h2) => (location.hash = h2), `#/r/${P}/${dc.ids[0] ?? ""}`);
+    await rd.waitForSelector("[data-testid=rv-participant]", { timeout: 10000 }).catch(() => {});
+    await sleep(1800);
+    const pt = await hoverTip(rd, "[data-testid=rv-participant] .rv-part-chart svg .r4d-drill-mark");
+    check("page participant : infobulle au survol", !!pt.text && /opportunit/.test(pt.text), JSON.stringify(pt));
+    await rctx.close();
+  }
+
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
     await page.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });

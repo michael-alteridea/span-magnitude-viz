@@ -8,6 +8,7 @@
  *   (tiers gauche = précédent), balayage (iPad, téléphone), flèches, points de progression, pause / rejouer,
  *   lien profond par diapositive, format adapté à l'écran (portrait).
  */
+import { ChartTooltip } from "./tooltip";
 import { parseSpec, type ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
@@ -83,6 +84,8 @@ export class StoryFilm {
     this.stage.addEventListener("pointerdown", (e) => (this.p0 = { x: e.clientX, y: e.clientY }));
     this.stage.addEventListener("pointercancel", () => (this.p0 = null));
     this.stage.addEventListener("pointerup", (e) => this.pointerUp(e));
+    // Mode lecture : infobulles des marques (un toucher sur une marque l'affiche sans changer de diapositive) ; jamais dans le film
+    if (o.reading) new ChartTooltip(this.stage, { swallowTap: true, tapToPreview: false, hints: false });
     this.crumbs = h("div", { class: "film-crumbs", "data-testid": `${tid}-crumbs` });
     this.storyTitle = h("span", { class: "film-story", "data-testid": `${tid}-title` });
     this.counter = h("span", { class: "film-counter", "data-testid": `${tid}-counter` });

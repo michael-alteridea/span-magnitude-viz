@@ -4,6 +4,7 @@ import type { CatModel } from "../data/model";
 import { valueFormatter, formatPercent } from "../format";
 import { easeOut, stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
+import { rows as tipRows, shareRow, tip } from "./tip";
 
 interface Slice {
   label: string;
@@ -50,8 +51,7 @@ export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, 
       .attr("fill", a.data.color)
       .attr("stroke", theme.bg)
       .attr("stroke-width", (donut ? 1.5 : 1.5) * s)
-      .append("title")
-      .text(`${a.data.label} : ${fmt(a.data.value)} (${formatPercent(a.data.value / total, 1)})`);
+      .call((c) => tip(c, { t: a.data.label, v: fmt(a.data.value), rows: tipRows(shareRow(a.data.value, total)) }));
   }
   if (frame.build < 1) return finishCenter();
 
@@ -142,8 +142,7 @@ export function drawRadialBars(root: G, rect: PlotRect, ctx: DrawCtx, model: Cat
       .attr("class", "r4d-mark")
       .attr("d", arc({ innerRadius: innerR, outerRadius: outer, startAngle: 0, endAngle: ang }) ?? "")
       .attr("fill", d.color)
-      .append("title")
-      .text(`${d.label} : ${fmt(d.value)}`);
+      .call((c) => tip(c, { t: d.label, v: fmt(d.value), rows: tipRows(shareRow(d.value, slices.reduce((a, b) => a + Math.max(0, b.value), 0)), Number.isFinite(domMax) && domMax > 0 ? { k: "Part du maximum de l'échelle", v: formatPercent(d.value / domMax, 0) } : null) }));
     const fsz = Math.min(14 * s, thick * 0.62);
     const ly = -(outer - thick / 2);
     const vtxt = fmt(d.value);

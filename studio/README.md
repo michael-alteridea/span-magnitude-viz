@@ -328,6 +328,27 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
   Histoire ou revue locale : **Télécharger le manifeste** (même JSON, PNG intégrés en `data:`) ; la publication en ligne
   des histoires personnelles arrive avec l'enregistrement en ligne.
 
+## Infobulles et iPad (étape infobulles)
+
+- **Partout** : chaque barre, segment, point, région de carte, marche de cascade, mois comparé, cellule du tableau croisé
+  et petit multiple porte une infobulle riche — libellé, valeur au format français (k€ / M€), part du total, nombre
+  d'opportunités / de lignes quand il est connu, écart vs la référence (moyenne des périodes précédentes, Réel 2025, PL / PY…)
+  coloré selon la notation (vert / rouge, gris sous ±3 % ; coûts : une hausse est défavorable) et indication d'action
+  (« Cliquer pour zoomer », « Cliquer pour détailler par … »). Vue jour par jour : cumul au jour J vs rythme de référence.
+- **Données** : les graphiques posent un attribut `data-tip` (JSON compact, `charts/tip.ts`) ; plus de `<title>` natif
+  (pas de double infobulle). `ui/tooltip.ts` affiche l'infobulle pétrole foncé : suit le curseur, reste dans la fenêtre,
+  sans clignotement (contenu changé seulement au changement de marque, cible retrouvée pendant l'animation).
+- **Toucher** (iPad / iPhone) : un toucher affiche l'infobulle ; sur un élément explorable, un second toucher zoome.
+  Mode lecture : un toucher bref sur une marque affiche l'infobulle sans changer de diapositive (le balayage reste actif).
+- **Clavier** : tabindex itinérant (une seule marque dans l'ordre de tabulation), flèches pour passer d'une marque à
+  l'autre, Entrée pour explorer, Échap pour fermer ; libellé `aria-label` lisible.
+- **Où** : prévisualisation du Studio, mode lecture, revues (réunion, compte rendu) et page participant. **Jamais** dans
+  le film ni dans les exports : `composeSvg` retire `data-tip` et les attributs d'accessibilité (SVG, PNG, PowerPoint,
+  Morph, manifestes publiés).
+- **iPad 1366 / 1180 / 1024 px** : aucun débordement horizontal (barre du haut compacte — libellés des boutons Récit en
+  infobulle sous 1440 px —, galerie des types sur plusieurs lignes, panneau de réglages entièrement visible). Vérifié par
+  les tests de bout en bout. Carte « spéciale » (bibliothèque) : infobulle sur chaque région ; les points et le film 4D gardent l'infobulle de la bibliothèque. Aires empilées : une colonne invisible par catégorie (toutes les séries).
+
 ## Architecture (`studio/src`)
 
 | Module | Rôle |
@@ -361,6 +382,7 @@ par URL côté serveur et crée un point d'ordre du jour par snapshot. **Contrat
 | `export.ts` | SVG autonome, PNG, WebM, fichier de configuration ; stub GIF |
 | `ui/drillBar.ts`, `ui/storyFilm.ts`, `ui/scenarioDialog.ts` | Barre d'exploration (fil d'Ariane), film de l'histoire et mode lecture, fenêtre Scénarios |
 | `story/reading.ts`, `story/morph.ts`, `story/morphRender.ts` | Liens `#/lire/…` et démos autonomes ; Morph : noms « !! », injection XML (repli fondu), barres natives extraites du SVG |
+| `charts/tip.ts`, `ui/tooltip.ts` | Infobulles : données `data-tip` par marque (tons d'écart, part, nombre, indication), affichage souris / toucher / clavier, nettoyage des exports |
 | `publish/manifest.ts`, `ui/cadencerDialog.ts` | Pont Cadencer : schéma Zod du manifeste de revue et de l'index, adresses `publie/…`, empreintes ; fenêtre « Envoyer vers Cadencer » |
 | `ui/*`, `main.ts` | Interface trois zones (données · aperçu · réglages), galerie, lecteur, Explorer, bandeau Histoire, édition directe, toasts, fenêtre « Mise en forme des données » (`ui/mapping.ts`) |
 

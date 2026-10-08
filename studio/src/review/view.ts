@@ -1,6 +1,7 @@
 /**
  * Revues : éléments d'interface partagés (avatars, icônes, rendu des graphiques de snapshot, QR).
  */
+import { ChartTooltip } from "../ui/tooltip";
 import { parseSpec, type ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
@@ -92,6 +93,8 @@ export function chartBox(s: Snapshot, ds: Dataset | null, o: ChartOpts = {}): { 
     svg.removeAttribute("height");
   };
   draw(1);
+  // Revue, réunion, compte rendu, page participant : infobulles (pas sur les vignettes)
+  if (!o.thumb) new ChartTooltip(box, { hints: false });
   let raf = 0;
   const stop = () => cancelAnimationFrame(raf);
   const play = (ms = 1300) => {

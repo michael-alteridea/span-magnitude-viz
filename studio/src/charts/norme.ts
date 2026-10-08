@@ -14,6 +14,7 @@ import { deltaLabel, normeInk, normeDeltaFormatter, normeFormatter, scenarioOf, 
 import { formatSignedPct } from "../story/fr";
 import { stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
+import { rows as tipRows, tip, type TipRow } from "./tip";
 
 let hatchSeq = 0;
 
@@ -112,16 +113,22 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
   const head = (x: number, y: number, t: string, anchor = "start") =>
     g.append("text").attr("class", "r4d-variance-head").attr("x", x).attr("y", y).attr("text-anchor", anchor).attr("font-size", 12 * s).attr("font-weight", 700).attr("fill", theme.muted).attr("letter-spacing", 0.4 * s).text(t);
 
-  const mark = (sel: Selection<SVGRectElement, unknown, null, undefined>, code: ScenarioCode, label: string, v: number) => {
+  /** Écart de la valeur principale vs PL / PY (couleur selon le sens favorable de la notation). */
+  const vsRow = (r: Row, v: number, code: ScenarioCode, other: number, oc: ScenarioCode): TipRow | null => {
+    if (code === oc || (code !== "AC" && code !== "FC") || !Number.isFinite(other)) return null;
+    const d = varianceOf(v, other);
+    const col = varianceColor(d.delta, pol);
+    return { k: `vs ${SCENARIO_NAMES[oc]} (${fmt(other)})`, v: `${fmtD(d.delta)}${Number.isFinite(d.rel) ? ` · ${formatSignedPct(d.rel)}` : ""}`, tone: d.delta === 0 ? "neutral" : col === VARIANCE_POS ? "pos" : "neg" };
+  };
+  const mark = (sel: Selection<SVGRectElement, unknown, null, undefined>, code: ScenarioCode, r: Row, v: number) => {
     const st = styleOf(code);
     sel
       .attr("class", `r4d-scn r4d-scn-${code}`)
       .attr("data-scenario", code)
       .attr("fill", st.fill)
       .attr("stroke", st.stroke)
-      .attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s)
-      .append("title")
-      .text(`${label} · ${SCENARIO_NAMES[code]} (${code}) : ${fmt(v)}`);
+      .attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s);
+    tip(sel, { t: r.label, sub: `${SCENARIO_NAMES[code]} (${code})`, v: fmt(v), rows: tipRows(vsRow(r, v, code, r.pl, "PL"), vsRow(r, v, code, r.py, "PY")) });
   };
 
   if (!horizontal) {
@@ -154,7 +161,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
       const bar = (v: number, xx: number, code: ScenarioCode) => {
         if (!Number.isFinite(v)) return;
         const y1 = yV(v * f);
-        mark(g.append("rect").attr("x", xx).attr("y", Math.min(y1, z0)).attr("width", w).attr("height", Math.abs(z0 - y1)), code, r.label, v);
+        mark(g.append("rect").attr("x", xx).attr("y", Math.min(y1, z0)).attr("width", w).attr("height", Math.abs(z0 - y1)), code, r, v);
       };
       bar(r.py, cx - w / 2 - off, "PY");
       bar(r.pl, cx - w / 2 + off, "PL");
@@ -172,10 +179,10 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
           const fc = r.mainCode === "FC";
           if (rel) {
             gv.append("line").attr("class", "r4d-variance-needle").attr("x1", cx).attr("x2", cx).attr("y1", z).attr("y2", yv).attr("stroke", col).attr("stroke-width", 2.2 * s);
-            gv.append("circle").attr("class", "r4d-variance-bar r4d-variance-pin").attr("cx", cx).attr("cy", yv).attr("r", 4.6 * s).attr("fill", varFill(col, fc)).attr("stroke", col).attr("stroke-width", fc ? 1.2 * s : 0).attr("data-favourable", col === VARIANCE_POS ? "1" : "0");
+            gv.append("circle").attr("class", "r4d-variance-bar r4d-variance-pin").attr("cx", cx).attr("cy", yv).attr("r", 4.6 * s).attr("fill", varFill(col, fc)).attr("stroke", col).attr("stroke-width", fc ? 1.2 * s : 0).attr("data-favourable", col === VARIANCE_POS ? "1" : "0").call((c) => tip(c, { t: r.label, sub: `Écart vs ${SCENARIO_NAMES[refCode!]}`, v: `${fmtD(d.delta)} · ${formatSignedPct(d.rel)}`, rows: tipRows({ k: "Sens", v: col === VARIANCE_POS ? "favorable" : "défavorable", tone: col === VARIANCE_POS ? "pos" : "neg" }) }));
           } else {
             gv.append("rect").attr("class", "r4d-variance-bar").attr("x", cx - w / 2).attr("y", Math.min(z, yv)).attr("width", w).attr("height", Math.abs(yv - z)).attr("fill", varFill(col, fc)).attr("stroke", fc ? col : "none").attr("stroke-width", fc ? 1.2 * s : 0).attr("data-favourable", col === VARIANCE_POS ? "1" : "0")
-              .append("title").text(`${r.label} : ${fmtD(d.delta)} (${formatSignedPct(d.rel)}) vs ${SCENARIO_NAMES[refCode!]}`);
+              .call((c) => tip(c, { t: r.label, sub: `Écart vs ${SCENARIO_NAMES[refCode!]}`, v: `${fmtD(d.delta)} · ${formatSignedPct(d.rel)}`, rows: tipRows({ k: "Sens", v: col === VARIANCE_POS ? "favorable" : "défavorable", tone: col === VARIANCE_POS ? "pos" : "neg" }) }));
           }
           if (showLabels && f >= 1 && bw > 24 * s) gv.append("text").attr("class", "r4d-variance-value").attr("x", cx).attr("y", v >= 0 ? yv - 6 * s : yv + 14 * s).attr("text-anchor", "middle").attr("font-size", 10.5 * s).attr("font-weight", 700).attr("fill", col).text(rel ? formatSignedPct(d.rel) : fmtD(d.delta));
         }
@@ -217,7 +224,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     const bar = (v: number, yy: number, code: ScenarioCode) => {
       if (!Number.isFinite(v)) return;
       const x1 = xs(v * f);
-      mark(g.append("rect").attr("x", Math.min(x1, z0)).attr("y", yy).attr("width", Math.abs(x1 - z0)).attr("height", t), code, r.label, v);
+      mark(g.append("rect").attr("x", Math.min(x1, z0)).attr("y", yy).attr("width", Math.abs(x1 - z0)).attr("height", t), code, r, v);
     };
     bar(r.py, cy - t / 2 - off, "PY");
     bar(r.pl, cy - t / 2 + off, "PL");
@@ -234,10 +241,10 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     const xv = ds(v * f);
     if (rel) {
       gv.append("line").attr("class", "r4d-variance-needle").attr("x1", zero).attr("x2", xv).attr("y1", cy).attr("y2", cy).attr("stroke", col).attr("stroke-width", 2.2 * s);
-      gv.append("circle").attr("class", "r4d-variance-bar r4d-variance-pin").attr("cx", xv).attr("cy", cy).attr("r", 4.6 * s).attr("fill", varFill(col, fc)).attr("stroke", col).attr("stroke-width", fc ? 1.2 * s : 0);
+      gv.append("circle").attr("class", "r4d-variance-bar r4d-variance-pin").attr("cx", xv).attr("cy", cy).attr("r", 4.6 * s).attr("fill", varFill(col, fc)).attr("stroke", col).attr("stroke-width", fc ? 1.2 * s : 0).call((c) => tip(c, { t: r.label, sub: `Écart vs ${SCENARIO_NAMES[refCode!]}`, v: `${fmtD(d.delta)} · ${formatSignedPct(d.rel)}`, rows: tipRows({ k: "Sens", v: col === VARIANCE_POS ? "favorable" : "défavorable", tone: col === VARIANCE_POS ? "pos" : "neg" }) }));
     } else {
       gv.append("rect").attr("class", "r4d-variance-bar").attr("x", Math.min(zero, xv)).attr("y", cy - t / 2).attr("width", Math.abs(xv - zero)).attr("height", t).attr("fill", varFill(col, fc)).attr("stroke", fc ? col : "none").attr("stroke-width", fc ? 1.2 * s : 0)
-        .append("title").text(`${r.label} : ${fmtD(d.delta)} (${formatSignedPct(d.rel)})`);
+        .call((c) => tip(c, { t: r.label, sub: `Écart vs ${SCENARIO_NAMES[refCode!]}`, v: `${fmtD(d.delta)} · ${formatSignedPct(d.rel)}`, rows: tipRows({ k: "Sens", v: col === VARIANCE_POS ? "favorable" : "défavorable", tone: col === VARIANCE_POS ? "pos" : "neg" }) }));
     }
     if (f >= 1) {
       const txt = rel ? formatSignedPct(d.rel) : `${fmtD(d.delta)}  ${Number.isFinite(d.rel) ? formatSignedPct(d.rel) : ""}`;

@@ -2,6 +2,7 @@
  * Zone centrale : scène SVG mise à l'échelle, lecteur (lecture / pause / curseur) pour
  * l'animation d'entrée et la 4D, montage des types spéciaux (film, carte).
  */
+import { ChartTooltip } from "./tooltip";
 import type { Store, ChangeKind } from "../state";
 import { chartSize, isSpecial } from "../spec";
 import { fourDActive, prepareCache, renderChart, type PrepCache, type RenderResult } from "../charts/render";
@@ -76,6 +77,10 @@ export class Preview {
     this.root = h("div", { class: "preview" }, this.wrap, this.bar, this.status);
     new ResizeObserver(() => this.fit()).observe(this.wrap);
     this.svg.addEventListener("dblclick", (e) => this.onEditRequest(e));
+    // Infobulles riches (survol, toucher, clavier) ; un premier toucher affiche, un second explore
+    this.tooltip = new ChartTooltip(this.svg);
+    // carte « spéciale » (bibliothèque) : infobulle sur les régions ; les points gardent l'infobulle de la bibliothèque
+    new ChartTooltip(this.specialHost, { adoptTitles: ".smv-map-region", yieldTo: "[data-id]", hints: false });
     // Exploration guidée : clic (ou toucher) sur une barre, une région, une ligne → zoom / focus
     this.svg.addEventListener("click", (e) => {
       const el = (e.target as Element | null)?.closest?.("[data-drill-kind]");
@@ -351,6 +356,9 @@ export class Preview {
 
   /** Clic sur un élément d'exploration (data-drill-*) : branché par main. */
   onDrill: ((el: Element) => void) | null = null;
+
+  /** Infobulle des marques (souris, toucher, clavier). */
+  readonly tooltip: ChartTooltip;
 
   /* ------------------------------------------------------- édition directe */
 

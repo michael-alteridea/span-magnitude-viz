@@ -580,3 +580,53 @@ body.reading-open .app > :not(.reader) { display: none !important; }
 /* bouton « Revues » (barre du haut) */
 .btn-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-deep); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .btn-count:empty { display: none; }
+
+/* ---------------------------------------------------------------- infobulles des graphiques (survol, toucher, clavier) */
+.r4d-tip {
+  position: fixed; left: 0; top: 0; z-index: 2147483000; pointer-events: none;
+  max-width: min(320px, calc(100vw - 16px)); padding: 9px 12px 10px; border-radius: 9px;
+  background: #08465A; color: #f2f8fa; border: 1px solid rgba(63, 167, 196, .55);
+  box-shadow: 0 8px 24px rgba(4, 30, 40, .32); font: 12.5px/1.35 "R4D UI", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums; will-change: transform;
+}
+.r4d-tip[hidden] { display: none; }
+.r4d-tip-t { font-weight: 700; font-size: 13.5px; color: #fff; }
+.r4d-tip-sub { color: #a9d3e0; font-size: 11.5px; margin-top: 1px; }
+.r4d-tip-v { font-weight: 700; font-size: 17px; margin-top: 3px; color: #fff; }
+.r4d-tip-rows { display: grid; grid-template-columns: auto auto; gap: 2px 14px; margin: 6px 0 0; padding-top: 6px; border-top: 1px solid rgba(169, 211, 224, .25); }
+.r4d-tip-rows dt { color: #a9d3e0; }
+.r4d-tip-rows dd { margin: 0; text-align: right; font-weight: 600; white-space: nowrap; }
+/* écarts : vert / rouge éclaircis pour rester lisibles sur le fond pétrole (mêmes teintes que la notation) */
+.r4d-tip-rows dd.tone-pos { color: #7ddc98; }
+.r4d-tip-rows dd.tone-neg { color: #ff8a95; }
+.r4d-tip-rows dd.tone-neutral { color: #d5e6ec; }
+.r4d-tip-h { margin-top: 7px; color: #3FA7C4; font-size: 11.5px; font-weight: 600; }
+.r4d-tip-h::before { content: "↳ "; }
+svg [data-tip]:focus { outline: none; }
+svg [data-tip]:focus-visible { outline: 2px solid #3FA7C4; outline-offset: 1px; }
+svg .r4d-tip-on > .r4d-drill-mark, svg rect.r4d-tip-on, svg path.r4d-tip-on, svg circle.r4d-tip-on { filter: brightness(1.12) saturate(1.05); }
+@media (prefers-reduced-motion: no-preference) { .r4d-tip { transition: opacity .08s ease; } }
+
+/* ---------------------------------------------------------------- iPad (1366 / 1180 / 1024 px) : jamais de débordement horizontal */
+.app { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100vw; }
+.topbar, .workspace { min-width: 0; }
+.brand { flex: 0 1 auto; }
+.toolbar { min-width: 0; flex: 0 1 auto; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.tool-group { flex: 0 0 auto; }
+.gallery { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+@media (max-width: 1500px) {
+  .toolbar { gap: 8px; }
+  .tool-group { gap: 4px; }
+  .topbar .btn { padding: 0 9px; }
+  .brand { gap: 8px; }
+}
+@media (max-width: 1440px) { .topbar .btn-lbl { display: none; } .brand h1 .dot, .brand h1 .studio { display: none; } }
+@media (max-width: 1180px) { .brand h1 { display: none; } .topbar { gap: 10px; padding: 0 10px; } }
+/* galerie des types : sur iPad, les familles passent à la ligne plutôt que de se cacher hors champ */
+@media (max-width: 1400px) { .gallery { flex-wrap: wrap; row-gap: 6px; overflow-x: hidden; } }
+/* iPad 1024 / 1180 : icônes seules (le nom reste dans l'infobulle), familles sans intitulé → 1 à 2 lignes au lieu de 3 */
+@media (max-width: 1200px) {
+  .gallery .family-label { display: none; }
+  .type-tile { width: 40px; padding: 5px 2px; }
+  .type-tile .tile-label { display: none; }
+}

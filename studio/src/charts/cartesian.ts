@@ -28,6 +28,8 @@ import type { CatModel, PointModel } from "../data/model";
 import { valueFormatter, timeTickFormat, unitSuffix } from "../format";
 import { clamp01, easeOut, stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { canOverlapScenarios, drawScenarioBars, hatchPattern, normeActive, seriesScenarios } from "./norme";
+import { rows as tipRows, shareRow, tip, type TipData } from "./tip";
+import { SCENARIO_NAMES } from "../norme";
 import { normeDecimals, scenarioStyle } from "../norme";
 import { ellipsize, measure } from "./text";
 
@@ -142,8 +144,20 @@ export function y2Extent(model: CatModel): [number, number] | undefined {
   return [Math.min(...v), Math.max(...v)];
 }
 
-function seriesTitle(ctx: DrawCtx, key: string, label: string, v: string) {
-  return `${key ? key + " · " : ""}${label} : ${v}`;
+/** Infobulle d'une valeur (catégorie × série) : valeur, part de la série, part de la catégorie (empilé / groupé). */
+function cellTip(model: CatModel, k: number, si: number, v: string, code: string | null): TipData {
+  const raw = model.values[si]![k]!;
+  const nS = model.series.length;
+  const serTot = model.values[si]!.reduce((a, x) => a + (Number.isFinite(x) && x > 0 ? x : 0), 0);
+  const catTot = model.values.reduce((a, row) => a + (Number.isFinite(row[k]!) && row[k]! > 0 ? row[k]! : 0), 0);
+  const scn = code ? (SCENARIO_NAMES as Record<string, string>)[code] : null;
+  const ser = model.series[si]!;
+  return {
+    t: model.labels[k]!,
+    sub: nS > 1 || scn ? [ser, scn && scn !== ser ? scn : null].filter(Boolean).join(" · ") : undefined,
+    v,
+    rows: tipRows(shareRow(raw, serTot, nS > 1 ? `Part de « ${ser} »` : "Part du total"), nS > 1 && !code ? shareRow(raw, catTot, `Part de « ${model.labels[k]} »`) : null),
+  };
 }
 
 /* ===================================================================== */
@@ -406,7 +420,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         if (stacked) r.attr("stroke", theme.bg).attr("stroke-width", Math.max(0.5, 1 * s));
         const st = scn(si);
         if (st) r.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("fill", st.fill).attr("stroke", st.stroke).attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s).attr("rx", 0);
-        r.append("title").text(seriesTitle(ctx, model.labels[k]!, model.series[si]!, fmtV(raw)));
+        tip(r, cellTip(model, k, si, fmtV(raw), st?.code ?? null));
         if (spec.style.valueLabels && f >= 1) {
           const valTxt = normalize ? valueFormatter({ unit: "pct", unitCustom: "", decimals: 0 })(b - a) : fmtV(raw);
           if (stacked) {
@@ -488,14 +502,31 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
             .attr("fill", st ? (st.code === "AC" || st.code === "PY" ? st.fill : theme.bg) : color)
             .attr("stroke", st && (st.code === "PL" || st.code === "FC") ? st.ink : theme.bg)
             .attr("stroke-width", 1.5 * s)
-            .append("title")
-            .text(seriesTitle(ctx, model.labels[k]!, model.series[si]!, fmtV(raw)));
+            .call((c) => tip(c, cellTip(model, k, si, fmtV(raw), st?.code ?? null)));
         });
       }
       if (spec.style.valueLabels && !stacked && pts.length <= 24) {
         model.values[si]!.forEach((raw, k) => {
           if (!Number.isFinite(raw)) return;
           gm.append("text").attr("x", xc(k)).attr("y", v(raw) - 9 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).text(fmtV(raw));
+        });
+      }
+    }
+    // aires empilées (ou séries trop longues pour des marqueurs) : colonne invisible par catégorie, toutes les séries
+    if ((stacked || nK > 60) && build >= 1 && reveal == null && !horizontal) {
+      const gh = g.append("g").attr("class", "r4d-hits");
+      const half = (k: number) => (nK > 1 ? Math.abs(xc(Math.min(k + 1, nK - 1)) - xc(Math.max(k - 1, 0))) / (k === 0 || k === nK - 1 ? 2 : 4) : pw / 2);
+      for (let k = 0; k < nK; k++) {
+        const vals = model.values.map((row) => row[k]!);
+        const tot = vals.reduce((a, x) => a + (Number.isFinite(x) && x > 0 ? x : 0), 0);
+        const x0 = Math.max(0, xc(k) - half(k));
+        const x1 = Math.min(pw, xc(k) + half(k));
+        const rowsK = model.series.map((name, si) => (Number.isFinite(vals[si]!) ? { k: name, v: `${fmtV(vals[si]!)}${tot > 0 && vals[si]! >= 0 && nS > 1 ? ` · ${shareRow(vals[si]!, tot)!.v}` : ""}` } : null));
+        tip(gh.append("rect").attr("class", "r4d-hit").attr("x", x0).attr("y", 0).attr("width", Math.max(1, x1 - x0)).attr("height", ph).attr("fill", "transparent"), {
+          t: model.labels[k]!,
+          sub: nS > 1 ? "Total (toutes séries)" : model.series[0],
+          v: fmtV(nS > 1 ? tot : vals[0]!),
+          rows: tipRows(...rowsK),
         });
       }
     }
@@ -535,7 +566,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       const fmt2 = valueFormatter(spec.axes.y2);
       for (const [x, y, k] of pts) {
         gy2.append("circle").attr("cx", horizontal ? y : x).attr("cy", horizontal ? x : y).attr("r", 4 * s).attr("fill", theme.bg).attr("stroke", y2col).attr("stroke-width", 2 * s)
-          .append("title").text(`${model.labels[k]} · ${model.y2Name} : ${fmt2(model.y2[k]!)}`);
+          .call((c) => tip(c, { t: model.labels[k]!, sub: model.y2Name, v: fmt2(model.y2![k]!) }));
       }
     }
   }
@@ -646,8 +677,7 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
       .attr("stroke", theme.dark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.35)")
       .attr("stroke-opacity", f)
       .attr("stroke-width", 0.8 * s)
-      .append("title")
-      .text(`${p.label || p.series} · ${spec.encoding.y[0] ?? ""} : ${fmtY(p.y)}`);
+      .call((c) => tip(c, { t: p.label || p.series, sub: p.label && model.series.length > 1 ? p.series : undefined, v: fmtY(p.y), rows: tipRows(spec.encoding.x ? { k: spec.encoding.x, v: typeof p.x === "number" ? (model.xKind === "time" ? new Date(p.x).toLocaleDateString("fr-FR") : p.x.toLocaleString("fr-FR")) : p.x } : null, spec.encoding.y[0] ? { k: spec.encoding.y[0], v: fmtY(p.y) } : null, p.size != null && spec.encoding.size ? { k: spec.encoding.size, v: p.size.toLocaleString("fr-FR") } : null) }));
     if (showLabels && p.label)
       gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f).text(p.label);
   });
