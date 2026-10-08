@@ -34,7 +34,9 @@
     "src/**/*",
     "demo/**/*",
     "studio/src/**/*",
-    "studio/test/**/*"
+    "studio/test/**/*",
+    "moteur/src/**/*",
+    "moteur/test/**/*"
   ],
   "exclude": [
     "node_modules",

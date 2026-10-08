@@ -34,6 +34,8 @@
     "publish:manifests": "node studio/scripts/publish-manifests.mjs",
     "preview:studio": "vite preview --config studio/vite.config.ts",
     "build:studio:offline": "node studio/scripts/build-offline.mjs",
+    "build:moteur": "vite build --config moteur/vite.config.ts && node moteur/scripts/banner.mjs",
+    "test:e2e:moteur": "node moteur/scripts/e2e.mjs",
     "test": "vitest run",
     "test:e2e:studio": "node studio/scripts/e2e.mjs"
   },

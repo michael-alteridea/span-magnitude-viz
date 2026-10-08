@@ -12,7 +12,7 @@ export default defineConfig({
     ],
   },
   test: {
-    include: ["studio/test/**/*.test.ts"],
+    include: ["studio/test/**/*.test.ts", "moteur/test/**/*.test.ts"],
     environment: "node",
   },
 });
