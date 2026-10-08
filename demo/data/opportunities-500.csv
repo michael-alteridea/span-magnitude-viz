@@ -1,0 +1,501 @@
+id,name,created_date,close_date,amount,probability,stage,owner,postal_code,account
+OPP-0001,Licence Acme 1,2023-08-17,2023-09-12,30954.27,2,Closed Lost,Chloé Simon,31000,Acme Industrie
+OPP-0002,Audit Bordeaux 2,2026-05-17,2026-06-06,118762.16,98,Closed Won,Léa Petit,4000,Bordeaux Wine
+OPP-0003,Plateforme Marseille 3,2024-07-23,2025-01-12,123984.35,43,Proposal,Hugo Moreau,44000,Marseille Port
+OPP-0004,Licence Charleroi 4,2025-07-29,2026-05-13,141452.49,11,Closed Lost,Noah Leroy,42000,Charleroi Steel
+OPP-0005,CRM Paris 5,2023-06-13,2024-10-15,81813.88,45,Proposal,Hugo Moreau,44000,Paris Retail
+OPP-0006,Plateforme Lille 6,2026-07-24,2026-08-17,66929.2,100,Closed Won,Noah Leroy,25000,Lille Fintech
+OPP-0007,Formation Lille 7,2023-03-07,2024-12-26,743538.48,30,Qualification,Noah Leroy,72000,Lille Fintech
+OPP-0008,Intégration Paris 8,2024-06-26,2024-11-29,320782.05,33,Qualification,Chloé Simon,13001,Paris Retail
+OPP-0009,Intégration Liège 9,2023-07-06,2023-10-24,253988.3,73,Negotiation,Lucas Dupont,51100,Liège Energy
+OPP-0010,Formation Nord 10,2026-02-07,2026-02-26,52600.69,60,Proposal,Hugo Moreau,13008,Nord Logistics
+OPP-0011,Intégration Bruxelles 11,2024-06-23,2025-12-01,219167.03,14,Prospecting,Noah Leroy,13008,Bruxelles Soft
+OPP-0012,CRM Namur 12,2023-01-02,2023-11-18,42142.44,95,Closed Won,Noah Leroy,69001,Namur Public
+OPP-0013,Licence Ghent 13,2025-09-22,2025-11-10,231744.33,5,Closed Lost,Léa Petit,1200,Ghent Media
+OPP-0014,Renewal Lyon 14,2024-02-16,2024-08-07,392723.33,95,Closed Won,Noah Leroy,75001,Lyon Bio
+OPP-0015,Formation Nord 15,2024-04-16,2025-02-25,12707.61,95,Closed Won,Hugo Moreau,44000,Nord Logistics
+OPP-0016,Audit Lyon 16,2026-01-09,2026-03-31,30317.34,35,Qualification,Chloé Simon,42000,Lyon Bio
+OPP-0017,Licence Liège 17,2025-05-17,2026-07-25,587686.96,43,Proposal,Sophie Martin,2018,Liège Energy
+OPP-0018,Plateforme Acme 18,2024-01-25,2026-08-14,9906.38,34,Qualification,Lucas Dupont,87000,Acme Industrie
+OPP-0019,Formation Acme 19,2024-04-29,2024-10-30,19224.49,10,Prospecting,Chloé Simon,7000,Acme Industrie
+OPP-0020,Renewal Charleroi 20,2025-05-16,2026-12-20,28165.5,41,Proposal,Sophie Martin,75008,Charleroi Steel
+OPP-0021,CRM Lille 21,2025-10-26,2026-08-07,10510.15,62,Negotiation,Lucas Dupont,1180,Lille Fintech
+OPP-0022,Migration Namur 22,2024-05-19,2025-03-25,422496.19,99,Closed Won,Hugo Moreau,42000,Namur Public
+OPP-0023,CRM Nantes 23,2024-06-27,2025-08-20,9580.74,20,Qualification,Louis Laurent,2018,Nantes Health
+OPP-0024,Renewal Toulouse 24,2024-03-12,2024-12-10,14282.01,97,Closed Won,Emma Bernard,8000,Toulouse Aero
+OPP-0025,Cloud Namur 25,2025-12-19,2026-01-06,28375.21,8,Closed Lost,Lucas Dupont,87000,Namur Public
+OPP-0026,CRM Antwerp 26,2024-07-31,2026-04-25,77716.83,56,Proposal,Louis Laurent,1050,Antwerp Port
+OPP-0027,Cloud Ghent 27,2025-05-17,2025-10-19,76691.22,14,Closed Lost,Chloé Simon,69001,Ghent Media
+OPP-0028,CRM Lyon 28,2023-03-15,2023-10-04,56290.32,95,Closed Won,Hugo Moreau,42000,Lyon Bio
+OPP-0029,Migration Namur 29,2026-02-20,2026-09-30,39084.3,45,Proposal,Emma Bernard,13008,Namur Public
+OPP-0030,Migration Lyon 30,2026-10-03,2026-11-17,14338.2,75,Negotiation,Noah Leroy,1300,Lyon Bio
+OPP-0031,Intégration Lille 31,2024-04-11,2024-12-09,5828.26,48,Proposal,Hugo Moreau,42000,Lille Fintech
+OPP-0032,Migration Nantes 32,2023-02-26,2023-11-03,68733.67,41,Proposal,Lucas Dupont,57000,Nantes Health
+OPP-0033,Licence Ghent 33,2026-05-26,2026-10-17,9047.6,73,Negotiation,Sophie Martin,2800,Ghent Media
+OPP-0034,Migration Ghent 34,2025-06-02,2025-08-26,555051.02,43,Proposal,Léa Petit,35000,Ghent Media
+OPP-0035,Support Liège 35,2024-08-28,2026-04-01,761236.39,65,Negotiation,Léa Petit,75001,Liège Energy
+OPP-0036,Cloud Ghent 36,2024-03-06,2025-06-03,106732.77,54,Proposal,Noah Leroy,72000,Ghent Media
+OPP-0037,Plateforme Bordeaux 37,2023-06-23,2023-11-29,23040.82,9,Closed Lost,Noah Leroy,75001,Bordeaux Wine
+OPP-0038,Audit Charleroi 38,2025-08-31,2026-07-23,419386.66,38,Qualification,Noah Leroy,21000,Charleroi Steel
+OPP-0039,Formation Bordeaux 39,2023-10-30,2023-11-24,134648.46,27,Qualification,Emma Bernard,1500,Bordeaux Wine
+OPP-0040,Audit Nantes 40,2026-02-15,2026-07-06,53349.45,15,Prospecting,Louis Laurent,1500,Nantes Health
+OPP-0041,CRM Lille 41,2025-07-02,2025-10-05,31027.94,97,Closed Won,Louis Laurent,51100,Lille Fintech
+OPP-0042,CRM Charleroi 42,2024-08-08,2024-12-20,14510.03,7,Closed Lost,Chloé Simon,31000,Charleroi Steel
+OPP-0043,Audit Marseille 43,2025-04-14,2026-04-01,85735.17,72,Negotiation,Sophie Martin,3500,Marseille Port
+OPP-0044,Formation Toulouse 44,2023-01-13,2025-01-16,82898.53,77,Negotiation,Noah Leroy,35000,Toulouse Aero
+OPP-0045,Plateforme Namur 45,2025-03-07,2026-02-28,127795.66,9,Prospecting,Sophie Martin,80000,Namur Public
+OPP-0046,Audit Toulouse 46,2026-08-09,2026-12-10,90786.83,15,Prospecting,Noah Leroy,25000,Toulouse Aero
+OPP-0047,Plateforme Lille 47,2025-05-13,2026-02-09,34221.88,51,Proposal,Noah Leroy,38000,Lille Fintech
+OPP-0048,Migration Toulouse 48,2024-05-21,2024-12-25,108346.92,8,Prospecting,Noah Leroy,25000,Toulouse Aero
+OPP-0049,Renewal Nantes 49,2026-05-25,2026-11-10,38730.72,29,Qualification,Lucas Dupont,59000,Nantes Health
+OPP-0050,CRM Marseille 50,2025-02-07,2025-09-12,534863.61,3,Closed Lost,Léa Petit,14000,Marseille Port
+OPP-0051,Migration Marseille 51,2023-03-26,2023-10-03,194821.88,95,Closed Won,Chloé Simon,35000,Marseille Port
+OPP-0052,Support Liège 52,2025-07-30,2025-10-30,120717.48,15,Closed Lost,Louis Laurent,3500,Liège Energy
+OPP-0053,Migration Paris 53,2024-05-17,2026-09-28,70682.11,58,Proposal,Chloé Simon,49000,Paris Retail
+OPP-0054,Licence Ghent 54,2025-09-25,2026-01-25,331778.02,28,Qualification,Sophie Martin,2000,Ghent Media
+OPP-0055,Licence Nord 55,2025-04-12,2026-01-01,459460.52,14,Closed Lost,Sophie Martin,06000,Nord Logistics
+OPP-0056,Support Paris 56,2026-09-21,2026-12-18,373442.31,57,Proposal,Hugo Moreau,7000,Paris Retail
+OPP-0057,Renewal Lyon 57,2024-04-17,2024-09-01,632872.69,45,Proposal,Noah Leroy,7000,Lyon Bio
+OPP-0058,Plateforme Charleroi 58,2026-05-07,2026-08-01,131589.12,97,Closed Won,Sophie Martin,44000,Charleroi Steel
+OPP-0059,Formation Nantes 59,2026-02-07,2026-07-20,53890.74,8,Prospecting,Sophie Martin,21000,Nantes Health
+OPP-0060,Plateforme Nord 60,2024-01-13,2024-05-11,13836.74,52,Proposal,Louis Laurent,42000,Nord Logistics
+OPP-0061,Formation Bordeaux 61,2023-11-02,2025-07-30,67301.01,39,Qualification,Noah Leroy,51100,Bordeaux Wine
+OPP-0062,CRM Lille 62,2026-04-20,2026-08-21,546260.09,43,Proposal,Noah Leroy,42000,Lille Fintech
+OPP-0063,Support Antwerp 63,2024-05-06,2024-11-13,415536.42,39,Qualification,Louis Laurent,59000,Antwerp Port
+OPP-0064,Cloud Nord 64,2025-07-18,2025-09-06,662088.22,6,Closed Lost,Chloé Simon,38000,Nord Logistics
+OPP-0065,Audit Nord 65,2023-10-19,2024-03-27,536778.62,49,Proposal,Louis Laurent,59000,Nord Logistics
+OPP-0066,Renewal Acme 66,2025-10-21,2026-08-07,48848.6,50,Proposal,Léa Petit,42000,Acme Industrie
+OPP-0067,Formation Bruxelles 67,2023-02-12,2023-07-13,263873.97,98,Closed Won,Léa Petit,1200,Bruxelles Soft
+OPP-0068,Audit Charleroi 68,2025-08-20,2026-02-28,19292.18,15,Prospecting,Chloé Simon,42000,Charleroi Steel
+OPP-0069,Migration Liège 69,2023-03-17,2023-11-18,67763.87,95,Closed Won,Louis Laurent,37000,Liège Energy
+OPP-0070,Renewal Nord 70,2025-10-17,2026-06-14,62391.41,100,Closed Won,Louis Laurent,38000,Nord Logistics
+OPP-0071,Support Lille 71,2023-11-21,2025-09-01,24279.37,34,Qualification,Lucas Dupont,1400,Lille Fintech
+OPP-0072,Cloud Namur 72,2024-07-13,2025-02-24,308425.09,98,Closed Won,Noah Leroy,57000,Namur Public
+OPP-0073,Renewal Antwerp 73,2024-07-19,2026-10-02,757261.46,13,Prospecting,Sophie Martin,3500,Antwerp Port
+OPP-0074,Licence Marseille 74,2025-09-29,2025-12-28,366085.97,14,Closed Lost,Hugo Moreau,54000,Marseille Port
+OPP-0075,Intégration Toulouse 75,2025-02-23,2025-07-06,85185.26,98,Closed Won,Emma Bernard,3000,Toulouse Aero
+OPP-0076,CRM Liège 76,2024-11-10,2025-01-14,88433.68,100,Closed Won,Emma Bernard,3000,Liège Energy
+OPP-0077,Formation Paris 77,2024-06-26,2025-06-21,83723.17,77,Negotiation,Chloé Simon,72000,Paris Retail
+OPP-0078,CRM Bordeaux 78,2023-03-15,2023-05-03,13216.96,98,Closed Won,Lucas Dupont,49000,Bordeaux Wine
+OPP-0079,Audit Liège 79,2023-12-07,2025-08-25,45059.01,71,Negotiation,Hugo Moreau,37000,Liège Energy
+OPP-0080,Formation Lyon 80,2024-01-04,2024-04-14,398653.79,98,Closed Won,Emma Bernard,44000,Lyon Bio
+OPP-0081,Support Toulouse 81,2026-09-27,2026-10-12,336960.58,45,Proposal,Lucas Dupont,3500,Toulouse Aero
+OPP-0082,Support Nantes 82,2025-05-18,2025-10-07,73233.38,7,Closed Lost,Chloé Simon,59000,Nantes Health
+OPP-0083,Licence Marseille 83,2026-09-10,2026-11-13,595769.67,6,Prospecting,Louis Laurent,8000,Marseille Port
+OPP-0084,Plateforme Lille 84,2024-12-22,2025-04-27,590546.9,100,Closed Won,Emma Bernard,38000,Lille Fintech
+OPP-0085,Intégration Bruxelles 85,2025-06-21,2025-08-08,120559.57,50,Proposal,Chloé Simon,14000,Bruxelles Soft
+OPP-0086,Cloud Bordeaux 86,2025-12-23,2026-09-19,131351.99,49,Proposal,Hugo Moreau,69001,Bordeaux Wine
+OPP-0087,Support Paris 87,2025-03-24,2026-10-29,159047.13,23,Qualification,Louis Laurent,42000,Paris Retail
+OPP-0088,Formation Lille 88,2025-02-19,2025-09-11,166266.02,99,Closed Won,Noah Leroy,29200,Lille Fintech
+OPP-0089,Formation Namur 89,2024-09-10,2025-04-21,44988.15,3,Closed Lost,Noah Leroy,06000,Namur Public
+OPP-0090,Support Marseille 90,2026-10-05,2026-12-27,121649.59,60,Proposal,Lucas Dupont,35000,Marseille Port
+OPP-0091,CRM Acme 91,2025-01-28,2025-09-21,20518.41,16,Prospecting,Hugo Moreau,31000,Acme Industrie
+OPP-0092,Intégration Bordeaux 92,2023-07-07,2024-09-27,105686.06,67,Negotiation,Emma Bernard,69001,Bordeaux Wine
+OPP-0093,Intégration Marseille 93,2026-04-15,2026-06-23,653339.58,20,Qualification,Léa Petit,3000,Marseille Port
+OPP-0094,Cloud Acme 94,2023-12-24,2024-08-19,28137.02,58,Proposal,Hugo Moreau,75008,Acme Industrie
+OPP-0095,Plateforme Ghent 95,2025-05-12,2026-02-19,46991.38,3,Closed Lost,Louis Laurent,76000,Ghent Media
+OPP-0096,CRM Toulouse 96,2026-09-11,2026-10-03,110767.48,13,Closed Lost,Lucas Dupont,1300,Toulouse Aero
+OPP-0097,Intégration Nantes 97,2024-10-21,2026-07-19,555806.37,15,Prospecting,Chloé Simon,51100,Nantes Health
+OPP-0098,Formation Namur 98,2025-05-31,2025-08-03,575563.42,98,Closed Won,Louis Laurent,67000,Namur Public
+OPP-0099,Audit Nord 99,2025-05-01,2025-08-20,15939.19,75,Negotiation,Lucas Dupont,2000,Nord Logistics
+OPP-0100,Plateforme Paris 100,2025-02-02,2025-06-29,104511.16,8,Prospecting,Chloé Simon,1200,Paris Retail
+OPP-0101,Intégration Marseille 101,2026-05-14,2026-08-15,288280.22,55,Proposal,Noah Leroy,49000,Marseille Port
+OPP-0102,Plateforme Nantes 102,2023-08-24,2025-03-30,699350.85,59,Proposal,Sophie Martin,7000,Nantes Health
+OPP-0103,Plateforme Nord 103,2024-07-13,2026-07-16,31684.33,24,Qualification,Chloé Simon,38000,Nord Logistics
+OPP-0104,Renewal Namur 104,2025-12-22,2026-04-25,89901.04,15,Prospecting,Lucas Dupont,13008,Namur Public
+OPP-0105,Audit Bordeaux 105,2023-06-17,2025-01-08,86641.63,13,Prospecting,Noah Leroy,34000,Bordeaux Wine
+OPP-0106,Support Nantes 106,2024-08-03,2026-07-12,28747.02,12,Prospecting,Chloé Simon,31000,Nantes Health
+OPP-0107,Intégration Liège 107,2023-10-09,2025-03-29,53198.28,25,Qualification,Emma Bernard,33000,Liège Energy
+OPP-0108,Audit Nantes 108,2026-09-30,2026-10-05,7522.64,95,Closed Won,Hugo Moreau,06000,Nantes Health
+OPP-0109,Licence Nord 109,2023-08-24,2025-12-14,670859.4,54,Proposal,Hugo Moreau,69003,Nord Logistics
+OPP-0110,CRM Bordeaux 110,2026-04-21,2026-08-15,83534.34,67,Negotiation,Hugo Moreau,37000,Bordeaux Wine
+OPP-0111,Renewal Bruxelles 111,2025-11-10,2026-03-03,622796.42,96,Closed Won,Lucas Dupont,13008,Bruxelles Soft
+OPP-0112,Renewal Lille 112,2026-09-04,2026-09-27,471176.07,38,Qualification,Louis Laurent,3500,Lille Fintech
+OPP-0113,Formation Paris 113,2026-07-08,2026-10-10,47511.49,48,Proposal,Sophie Martin,59000,Paris Retail
+OPP-0114,Plateforme Toulouse 114,2023-03-19,2023-07-27,17905.82,79,Negotiation,Chloé Simon,14000,Toulouse Aero
+OPP-0115,CRM Bordeaux 115,2026-03-16,2026-07-04,16253.44,74,Negotiation,Lucas Dupont,9000,Bordeaux Wine
+OPP-0116,Audit Paris 116,2026-08-16,2026-09-10,794140.91,99,Closed Won,Emma Bernard,59000,Paris Retail
+OPP-0117,Support Ghent 117,2024-11-23,2026-11-02,25926.01,70,Negotiation,Lucas Dupont,59000,Ghent Media
+OPP-0118,Support Nantes 118,2026-09-06,2026-09-24,104101.35,12,Closed Lost,Emma Bernard,2000,Nantes Health
+OPP-0119,Migration Lille 119,2025-02-10,2025-08-11,688823.33,99,Closed Won,Lucas Dupont,37000,Lille Fintech
+OPP-0120,CRM Bruxelles 120,2025-01-12,2025-12-08,63561.19,11,Prospecting,Noah Leroy,59000,Bruxelles Soft
+OPP-0121,Renewal Bruxelles 121,2026-01-10,2026-08-25,580254.0,99,Closed Won,Chloé Simon,29200,Bruxelles Soft
+OPP-0122,Licence Bordeaux 122,2025-06-15,2025-08-12,114399.92,39,Qualification,Léa Petit,1300,Bordeaux Wine
+OPP-0123,Intégration Toulouse 123,2024-05-04,2024-10-23,38795.88,100,Closed Won,Louis Laurent,1180,Toulouse Aero
+OPP-0124,CRM Marseille 124,2025-05-07,2025-08-11,128138.51,100,Closed Won,Louis Laurent,86000,Marseille Port
+OPP-0125,Migration Namur 125,2025-11-22,2026-02-07,327314.34,13,Closed Lost,Lucas Dupont,51100,Namur Public
+OPP-0126,Migration Acme 126,2025-04-29,2025-07-06,18875.89,16,Prospecting,Noah Leroy,69003,Acme Industrie
+OPP-0127,Plateforme Nantes 127,2023-10-09,2024-01-09,15040.78,35,Qualification,Louis Laurent,69001,Nantes Health
+OPP-0128,Licence Lyon 128,2024-03-17,2026-08-03,143424.85,43,Proposal,Léa Petit,75008,Lyon Bio
+OPP-0129,Plateforme Charleroi 129,2026-08-01,2026-12-10,474888.99,60,Negotiation,Noah Leroy,35000,Charleroi Steel
+OPP-0130,Audit Liège 130,2024-12-23,2025-05-09,584339.69,95,Closed Won,Sophie Martin,1050,Liège Energy
+OPP-0131,Migration Bordeaux 131,2024-06-03,2026-07-22,374121.62,60,Proposal,Lucas Dupont,25000,Bordeaux Wine
+OPP-0132,CRM Lille 132,2023-04-01,2025-04-05,263807.93,34,Qualification,Louis Laurent,13001,Lille Fintech
+OPP-0133,Plateforme Marseille 133,2025-07-26,2025-08-27,15270.49,9,Closed Lost,Chloé Simon,44000,Marseille Port
+OPP-0134,Audit Liège 134,2024-01-27,2024-07-05,125892.57,3,Closed Lost,Hugo Moreau,1300,Liège Energy
+OPP-0135,Cloud Nord 135,2024-01-18,2026-11-13,80408.16,42,Proposal,Chloé Simon,29200,Nord Logistics
+OPP-0136,Formation Bruxelles 136,2024-08-24,2025-02-18,76071.19,100,Closed Won,Chloé Simon,34000,Bruxelles Soft
+OPP-0137,Cloud Paris 137,2024-12-23,2026-09-27,39935.27,7,Prospecting,Chloé Simon,57000,Paris Retail
+OPP-0138,Formation Nantes 138,2023-10-20,2026-04-18,47395.67,16,Prospecting,Chloé Simon,13001,Nantes Health
+OPP-0139,Cloud Lyon 139,2025-01-31,2026-05-14,103131.4,50,Proposal,Léa Petit,1000,Lyon Bio
+OPP-0140,Formation Nantes 140,2025-11-26,2026-06-26,653726.91,74,Negotiation,Noah Leroy,86000,Nantes Health
+OPP-0141,Intégration Lille 141,2023-09-09,2024-06-26,89724.7,22,Qualification,Hugo Moreau,69001,Lille Fintech
+OPP-0142,Licence Nord 142,2024-08-17,2025-01-31,752760.9,97,Closed Won,Noah Leroy,3000,Nord Logistics
+OPP-0143,Formation Nord 143,2023-02-23,2025-03-17,672380.12,64,Negotiation,Lucas Dupont,54000,Nord Logistics
+OPP-0144,Intégration Lille 144,2025-04-21,2025-11-30,782046.83,98,Closed Won,Louis Laurent,13001,Lille Fintech
+OPP-0145,Licence Bruxelles 145,2026-04-18,2026-06-17,31872.36,4,Closed Lost,Léa Petit,86000,Bruxelles Soft
+OPP-0146,CRM Lille 146,2025-11-28,2026-05-06,562787.11,48,Proposal,Emma Bernard,87000,Lille Fintech
+OPP-0147,Plateforme Marseille 147,2026-08-05,2026-08-29,261280.4,97,Closed Won,Sophie Martin,2000,Marseille Port
+OPP-0148,Licence Lille 148,2026-03-27,2026-06-16,420781.41,15,Closed Lost,Léa Petit,1400,Lille Fintech
+OPP-0149,Migration Paris 149,2025-04-11,2025-09-24,115747.49,14,Closed Lost,Noah Leroy,67000,Paris Retail
+OPP-0150,CRM Antwerp 150,2024-12-08,2025-07-14,80759.42,14,Closed Lost,Lucas Dupont,13001,Antwerp Port
+OPP-0151,Intégration Lyon 151,2024-08-17,2025-09-28,35245.73,15,Prospecting,Hugo Moreau,1400,Lyon Bio
+OPP-0152,Support Nantes 152,2025-10-18,2026-04-07,49905.4,67,Negotiation,Noah Leroy,75008,Nantes Health
+OPP-0153,Audit Namur 153,2026-05-08,2026-12-23,27899.1,73,Negotiation,Emma Bernard,34000,Namur Public
+OPP-0154,Support Ghent 154,2023-04-03,2025-07-15,101799.86,42,Proposal,Chloé Simon,87000,Ghent Media
+OPP-0155,Intégration Lyon 155,2026-06-05,2026-07-04,50634.96,97,Closed Won,Emma Bernard,06000,Lyon Bio
+OPP-0156,Cloud Paris 156,2023-04-03,2023-07-05,76634.48,9,Prospecting,Emma Bernard,9000,Paris Retail
+OPP-0157,Migration Toulouse 157,2026-06-16,2026-09-14,95804.65,78,Negotiation,Léa Petit,1160,Toulouse Aero
+OPP-0158,Renewal Antwerp 158,2023-08-13,2024-03-27,621460.74,0,Closed Lost,Louis Laurent,3500,Antwerp Port
+OPP-0159,CRM Acme 159,2023-04-16,2026-08-07,97665.56,24,Qualification,Noah Leroy,54000,Acme Industrie
+OPP-0160,Cloud Marseille 160,2023-02-08,2025-08-13,56657.44,36,Qualification,Louis Laurent,1050,Marseille Port
+OPP-0161,Support Ghent 161,2024-02-29,2024-12-26,112844.95,98,Closed Won,Hugo Moreau,25000,Ghent Media
+OPP-0162,Formation Charleroi 162,2025-09-18,2026-01-08,70690.7,100,Closed Won,Noah Leroy,9000,Charleroi Steel
+OPP-0163,CRM Antwerp 163,2026-02-21,2026-07-25,103082.45,51,Proposal,Emma Bernard,54000,Antwerp Port
+OPP-0164,Renewal Bruxelles 164,2025-06-24,2026-03-27,63538.55,57,Proposal,Léa Petit,57000,Bruxelles Soft
+OPP-0165,Cloud Paris 165,2024-05-11,2024-07-15,28444.19,23,Qualification,Chloé Simon,2018,Paris Retail
+OPP-0166,CRM Paris 166,2026-02-01,2026-05-06,142853.53,11,Prospecting,Léa Petit,75008,Paris Retail
+OPP-0167,Cloud Marseille 167,2026-03-21,2026-06-02,23730.33,5,Closed Lost,Sophie Martin,21000,Marseille Port
+OPP-0168,Formation Namur 168,2024-08-15,2024-09-17,102475.81,14,Closed Lost,Louis Laurent,1500,Namur Public
+OPP-0169,Renewal Charleroi 169,2024-01-30,2024-09-30,571385.47,45,Proposal,Sophie Martin,59000,Charleroi Steel
+OPP-0170,Cloud Liège 170,2024-01-31,2024-05-13,110259.84,10,Closed Lost,Lucas Dupont,13008,Liège Energy
+OPP-0171,Support Nantes 171,2024-10-24,2025-07-19,82193.18,70,Negotiation,Léa Petit,1000,Nantes Health
+OPP-0172,Migration Lille 172,2025-01-06,2025-05-20,53004.73,9,Closed Lost,Lucas Dupont,8000,Lille Fintech
+OPP-0173,Licence Bordeaux 173,2024-03-28,2024-08-01,445736.14,98,Closed Won,Louis Laurent,42000,Bordeaux Wine
+OPP-0174,Licence Acme 174,2026-05-05,2026-12-28,97805.73,22,Qualification,Lucas Dupont,1500,Acme Industrie
+OPP-0175,Plateforme Nord 175,2026-01-04,2026-04-04,437196.36,100,Closed Won,Louis Laurent,1300,Nord Logistics
+OPP-0176,Licence Liège 176,2023-09-28,2026-08-28,513218.18,69,Negotiation,Sophie Martin,75001,Liège Energy
+OPP-0177,Cloud Antwerp 177,2023-05-30,2023-07-06,19829.41,98,Closed Won,Sophie Martin,25000,Antwerp Port
+OPP-0178,Cloud Lille 178,2026-08-15,2026-09-24,138046.7,2,Closed Lost,Emma Bernard,2018,Lille Fintech
+OPP-0179,Licence Ghent 179,2025-03-15,2025-12-24,9457.15,98,Closed Won,Chloé Simon,33000,Ghent Media
+OPP-0180,Licence Nantes 180,2024-12-09,2025-05-30,14647.74,61,Negotiation,Chloé Simon,1000,Nantes Health
+OPP-0181,Licence Liège 181,2023-05-18,2023-12-24,25788.05,27,Qualification,Sophie Martin,87000,Liège Energy
+OPP-0182,Intégration Lyon 182,2023-10-14,2026-08-24,745658.07,15,Prospecting,Hugo Moreau,13001,Lyon Bio
+OPP-0183,Audit Ghent 183,2025-04-26,2026-03-13,534583.63,25,Qualification,Chloé Simon,34000,Ghent Media
+OPP-0184,Formation Antwerp 184,2024-10-14,2025-05-29,269521.34,96,Closed Won,Noah Leroy,3000,Antwerp Port
+OPP-0185,Formation Paris 185,2026-02-25,2026-10-08,38872.52,13,Prospecting,Noah Leroy,86000,Paris Retail
+OPP-0186,Renewal Marseille 186,2023-07-09,2026-07-23,324500.03,59,Proposal,Sophie Martin,14000,Marseille Port
+OPP-0187,Licence Charleroi 187,2026-02-18,2026-04-28,21778.8,6,Closed Lost,Lucas Dupont,1400,Charleroi Steel
+OPP-0188,Formation Antwerp 188,2026-05-22,2026-09-03,140663.91,14,Closed Lost,Hugo Moreau,37000,Antwerp Port
+OPP-0189,Plateforme Nantes 189,2023-07-21,2026-03-22,75225.66,73,Negotiation,Sophie Martin,3000,Nantes Health
+OPP-0190,Intégration Nantes 190,2026-02-07,2026-12-17,85933.59,47,Proposal,Chloé Simon,1400,Nantes Health
+OPP-0191,Cloud Charleroi 191,2024-11-22,2025-04-16,620312.67,14,Closed Lost,Emma Bernard,4000,Charleroi Steel
+OPP-0192,Plateforme Marseille 192,2026-01-24,2026-06-12,11441.67,1,Closed Lost,Lucas Dupont,25000,Marseille Port
+OPP-0193,Renewal Nantes 193,2023-10-09,2025-02-07,56613.26,71,Negotiation,Sophie Martin,86000,Nantes Health
+OPP-0194,Intégration Ghent 194,2026-09-12,2026-11-27,5550.61,76,Negotiation,Léa Petit,1000,Ghent Media
+OPP-0195,Migration Antwerp 195,2025-05-31,2025-09-13,8745.58,8,Closed Lost,Hugo Moreau,2000,Antwerp Port
+OPP-0196,Intégration Nord 196,2025-07-29,2026-05-28,13512.28,80,Negotiation,Sophie Martin,06000,Nord Logistics
+OPP-0197,Intégration Nantes 197,2023-04-25,2026-12-03,58852.19,80,Negotiation,Hugo Moreau,2018,Nantes Health
+OPP-0198,Renewal Lille 198,2024-04-15,2024-12-01,116151.65,6,Prospecting,Lucas Dupont,2800,Lille Fintech
+OPP-0199,Renewal Antwerp 199,2023-03-09,2023-06-22,774954.97,12,Closed Lost,Lucas Dupont,33000,Antwerp Port
+OPP-0200,CRM Acme 200,2026-01-12,2026-07-14,663823.76,62,Negotiation,Hugo Moreau,33000,Acme Industrie
+OPP-0201,Licence Bordeaux 201,2026-05-24,2026-12-20,105516.95,40,Proposal,Léa Petit,1400,Bordeaux Wine
+OPP-0202,CRM Bordeaux 202,2026-02-06,2026-08-31,20114.68,59,Proposal,Léa Petit,69001,Bordeaux Wine
+OPP-0203,Formation Nord 203,2023-11-12,2026-01-12,109729.1,51,Proposal,Lucas Dupont,59000,Nord Logistics
+OPP-0204,Intégration Nord 204,2024-07-06,2024-11-01,441748.39,56,Proposal,Chloé Simon,34000,Nord Logistics
+OPP-0205,Renewal Charleroi 205,2026-05-07,2026-10-21,135009.0,17,Prospecting,Lucas Dupont,6000,Charleroi Steel
+OPP-0206,CRM Antwerp 206,2023-12-14,2024-07-09,10932.56,96,Closed Won,Chloé Simon,21000,Antwerp Port
+OPP-0207,Migration Antwerp 207,2024-05-30,2025-02-20,94538.27,43,Proposal,Emma Bernard,06000,Antwerp Port
+OPP-0208,Licence Paris 208,2025-02-17,2025-08-18,685297.91,96,Closed Won,Léa Petit,54000,Paris Retail
+OPP-0209,Audit Nantes 209,2024-10-05,2025-04-18,339441.3,80,Negotiation,Louis Laurent,9000,Nantes Health
+OPP-0210,Licence Charleroi 210,2025-03-15,2026-04-06,534947.57,45,Proposal,Sophie Martin,54000,Charleroi Steel
+OPP-0211,Cloud Lille 211,2024-08-19,2026-08-12,666779.66,75,Negotiation,Emma Bernard,44000,Lille Fintech
+OPP-0212,Renewal Bordeaux 212,2025-05-16,2025-12-09,148977.07,13,Closed Lost,Sophie Martin,2800,Bordeaux Wine
+OPP-0213,Audit Bordeaux 213,2023-06-24,2023-09-01,380755.73,1,Closed Lost,Chloé Simon,14000,Bordeaux Wine
+OPP-0214,Renewal Paris 214,2023-01-22,2023-08-25,487218.55,12,Prospecting,Louis Laurent,25000,Paris Retail
+OPP-0215,Licence Paris 215,2025-10-21,2026-01-20,42701.89,3,Closed Lost,Emma Bernard,51100,Paris Retail
+OPP-0216,Migration Bordeaux 216,2025-09-16,2026-03-27,88198.25,97,Closed Won,Sophie Martin,1000,Bordeaux Wine
+OPP-0217,Cloud Toulouse 217,2023-08-12,2023-11-18,485396.04,10,Closed Lost,Chloé Simon,06000,Toulouse Aero
+OPP-0218,Licence Liège 218,2026-08-04,2026-12-06,121112.72,38,Qualification,Chloé Simon,31000,Liège Energy
+OPP-0219,Formation Nord 219,2023-05-09,2026-08-17,135917.73,46,Proposal,Louis Laurent,49000,Nord Logistics
+OPP-0220,Support Marseille 220,2026-08-01,2026-09-04,107243.93,98,Closed Won,Emma Bernard,14000,Marseille Port
+OPP-0221,Cloud Ghent 221,2026-04-23,2026-05-28,28523.85,97,Closed Won,Emma Bernard,76000,Ghent Media
+OPP-0222,Migration Toulouse 222,2025-02-24,2025-10-12,600731.4,99,Closed Won,Emma Bernard,13008,Toulouse Aero
+OPP-0223,Formation Liège 223,2026-06-22,2026-07-19,35293.28,72,Negotiation,Louis Laurent,35000,Liège Energy
+OPP-0224,Formation Ghent 224,2023-12-09,2024-06-09,24788.92,68,Negotiation,Noah Leroy,25000,Ghent Media
+OPP-0225,Licence Bordeaux 225,2025-10-11,2026-08-02,324127.79,99,Closed Won,Sophie Martin,2800,Bordeaux Wine
+OPP-0226,Licence Marseille 226,2023-07-29,2024-12-30,149924.39,62,Negotiation,Louis Laurent,6000,Marseille Port
+OPP-0227,Intégration Bordeaux 227,2026-04-19,2026-07-31,428308.59,6,Closed Lost,Noah Leroy,34000,Bordeaux Wine
+OPP-0228,Plateforme Bruxelles 228,2026-05-07,2026-10-05,340212.55,48,Proposal,Lucas Dupont,1200,Bruxelles Soft
+OPP-0229,Support Toulouse 229,2026-09-05,2026-10-05,54595.99,47,Proposal,Chloé Simon,38000,Toulouse Aero
+OPP-0230,Renewal Toulouse 230,2025-04-28,2025-11-20,20819.71,8,Closed Lost,Hugo Moreau,9000,Toulouse Aero
+OPP-0231,Support Liège 231,2023-07-10,2026-02-16,702569.06,17,Prospecting,Noah Leroy,1400,Liège Energy
+OPP-0232,Formation Nord 232,2024-08-03,2025-07-28,54365.37,41,Proposal,Sophie Martin,29200,Nord Logistics
+OPP-0233,CRM Bruxelles 233,2023-09-12,2024-08-14,20445.01,9,Prospecting,Léa Petit,7000,Bruxelles Soft
+OPP-0234,CRM Liège 234,2025-01-08,2025-05-30,7884.72,9,Closed Lost,Noah Leroy,54000,Liège Energy
+OPP-0235,Audit Charleroi 235,2024-03-13,2025-07-28,105304.74,5,Prospecting,Sophie Martin,69003,Charleroi Steel
+OPP-0236,Cloud Namur 236,2023-09-28,2024-06-12,7478.99,10,Closed Lost,Hugo Moreau,06000,Namur Public
+OPP-0237,Formation Namur 237,2023-10-20,2023-12-08,40932.22,6,Closed Lost,Emma Bernard,42000,Namur Public
+OPP-0238,CRM Bordeaux 238,2023-06-27,2024-02-01,53547.29,33,Qualification,Hugo Moreau,44000,Bordeaux Wine
+OPP-0239,Licence Lyon 239,2026-02-07,2026-12-25,656330.27,20,Qualification,Léa Petit,37000,Lyon Bio
+OPP-0240,CRM Lyon 240,2025-03-13,2025-08-25,27615.94,12,Closed Lost,Lucas Dupont,76000,Lyon Bio
+OPP-0241,CRM Bordeaux 241,2023-01-25,2023-08-11,709529.1,97,Closed Won,Emma Bernard,25000,Bordeaux Wine
+OPP-0242,Intégration Liège 242,2026-04-17,2026-05-18,63731.72,14,Prospecting,Chloé Simon,2000,Liège Energy
+OPP-0243,CRM Liège 243,2026-06-15,2026-07-18,14711.37,99,Closed Won,Hugo Moreau,25000,Liège Energy
+OPP-0244,Cloud Antwerp 244,2025-06-14,2026-02-27,49483.41,59,Proposal,Sophie Martin,42000,Antwerp Port
+OPP-0245,Support Paris 245,2023-01-26,2023-11-17,769460.53,13,Prospecting,Emma Bernard,25000,Paris Retail
+OPP-0246,Formation Toulouse 246,2023-08-30,2023-09-28,87225.7,2,Closed Lost,Louis Laurent,75008,Toulouse Aero
+OPP-0247,Licence Acme 247,2023-12-08,2024-06-27,731274.47,96,Closed Won,Sophie Martin,1000,Acme Industrie
+OPP-0248,Migration Paris 248,2025-08-24,2026-03-12,18404.28,18,Prospecting,Noah Leroy,86000,Paris Retail
+OPP-0249,Support Liège 249,2023-06-09,2026-09-05,18048.29,47,Proposal,Sophie Martin,51100,Liège Energy
+OPP-0250,Licence Toulouse 250,2024-11-01,2025-02-11,280436.25,49,Proposal,Noah Leroy,21000,Toulouse Aero
+OPP-0251,Audit Paris 251,2026-01-24,2026-08-20,32859.07,11,Closed Lost,Sophie Martin,42000,Paris Retail
+OPP-0252,Audit Acme 252,2024-09-21,2024-11-27,12181.8,8,Closed Lost,Lucas Dupont,1500,Acme Industrie
+OPP-0253,Cloud Nantes 253,2025-02-01,2025-10-07,39109.42,12,Closed Lost,Lucas Dupont,35000,Nantes Health
+OPP-0254,Licence Toulouse 254,2024-08-20,2025-05-28,405419.24,30,Qualification,Hugo Moreau,69001,Toulouse Aero
+OPP-0255,Formation Bordeaux 255,2026-04-12,2026-05-23,58081.25,23,Qualification,Hugo Moreau,59000,Bordeaux Wine
+OPP-0256,Cloud Lyon 256,2023-09-03,2024-03-20,687151.35,59,Proposal,Sophie Martin,9000,Lyon Bio
+OPP-0257,Intégration Marseille 257,2024-05-23,2025-06-05,18868.56,5,Prospecting,Chloé Simon,57000,Marseille Port
+OPP-0258,CRM Lyon 258,2023-07-13,2026-02-27,8566.76,27,Qualification,Emma Bernard,1160,Lyon Bio
+OPP-0259,CRM Nord 259,2026-04-15,2026-07-04,37110.0,98,Closed Won,Emma Bernard,9000,Nord Logistics
+OPP-0260,Migration Liège 260,2025-08-02,2025-09-10,103127.26,20,Prospecting,Sophie Martin,13008,Liège Energy
+OPP-0261,Intégration Lille 261,2024-01-19,2025-08-18,172522.14,39,Qualification,Noah Leroy,35000,Lille Fintech
+OPP-0262,Formation Liège 262,2023-05-05,2023-11-14,279647.57,67,Negotiation,Sophie Martin,1160,Liège Energy
+OPP-0263,Plateforme Acme 263,2025-09-19,2026-03-28,36943.7,97,Closed Won,Noah Leroy,7000,Acme Industrie
+OPP-0264,Plateforme Antwerp 264,2025-12-20,2026-07-05,31839.48,67,Negotiation,Noah Leroy,14000,Antwerp Port
+OPP-0265,Renewal Bordeaux 265,2026-03-25,2026-10-23,17418.16,27,Qualification,Hugo Moreau,1160,Bordeaux Wine
+OPP-0266,Licence Toulouse 266,2024-12-21,2026-08-08,101941.98,14,Prospecting,Emma Bernard,75008,Toulouse Aero
+OPP-0267,Plateforme Namur 267,2024-03-24,2024-04-17,23425.7,97,Closed Won,Emma Bernard,9000,Namur Public
+OPP-0268,Migration Nantes 268,2023-10-30,2024-08-29,32102.83,16,Prospecting,Chloé Simon,59000,Nantes Health
+OPP-0269,Cloud Lyon 269,2023-11-19,2026-05-15,32714.49,37,Qualification,Hugo Moreau,29200,Lyon Bio
+OPP-0270,Plateforme Marseille 270,2024-09-20,2026-10-25,623740.12,78,Negotiation,Chloé Simon,3500,Marseille Port
+OPP-0271,Licence Bruxelles 271,2026-05-18,2026-08-21,293581.91,23,Qualification,Louis Laurent,69001,Bruxelles Soft
+OPP-0272,Licence Toulouse 272,2024-10-16,2025-04-19,684080.17,60,Proposal,Hugo Moreau,31000,Toulouse Aero
+OPP-0273,Audit Namur 273,2023-05-19,2023-11-28,51883.81,13,Closed Lost,Emma Bernard,72000,Namur Public
+OPP-0274,Plateforme Toulouse 274,2026-01-23,2026-08-17,711632.97,47,Proposal,Emma Bernard,49000,Toulouse Aero
+OPP-0275,Migration Ghent 275,2023-02-11,2024-12-08,51519.76,45,Proposal,Lucas Dupont,2000,Ghent Media
+OPP-0276,Audit Nord 276,2026-06-10,2026-08-24,574862.86,96,Closed Won,Sophie Martin,31000,Nord Logistics
+OPP-0277,Formation Liège 277,2026-02-08,2026-08-25,99413.8,3,Closed Lost,Sophie Martin,29200,Liège Energy
+OPP-0278,Cloud Lyon 278,2023-04-22,2025-05-13,685533.25,39,Qualification,Louis Laurent,31000,Lyon Bio
+OPP-0279,Migration Lille 279,2024-08-20,2024-10-14,52705.98,8,Closed Lost,Lucas Dupont,13008,Lille Fintech
+OPP-0280,CRM Bruxelles 280,2025-01-26,2025-08-19,20602.13,68,Negotiation,Sophie Martin,2018,Bruxelles Soft
+OPP-0281,Support Nantes 281,2024-12-05,2025-09-22,19489.53,13,Closed Lost,Louis Laurent,1400,Nantes Health
+OPP-0282,Licence Bordeaux 282,2025-03-19,2025-05-07,670292.72,9,Prospecting,Lucas Dupont,13008,Bordeaux Wine
+OPP-0283,CRM Paris 283,2023-09-16,2023-12-26,433005.61,24,Qualification,Léa Petit,2000,Paris Retail
+OPP-0284,Renewal Nord 284,2026-02-13,2026-09-18,24321.9,79,Negotiation,Chloé Simon,13001,Nord Logistics
+OPP-0285,Renewal Antwerp 285,2026-04-08,2026-05-17,101895.21,97,Closed Won,Chloé Simon,21000,Antwerp Port
+OPP-0286,Plateforme Namur 286,2025-08-26,2025-09-28,551858.92,95,Closed Won,Chloé Simon,6000,Namur Public
+OPP-0287,Licence Marseille 287,2025-08-31,2026-01-29,42225.62,8,Closed Lost,Louis Laurent,69003,Marseille Port
+OPP-0288,Audit Lyon 288,2024-09-07,2026-10-22,130840.57,39,Qualification,Lucas Dupont,86000,Lyon Bio
+OPP-0289,Renewal Bruxelles 289,2025-09-19,2026-06-24,35351.61,9,Closed Lost,Chloé Simon,1500,Bruxelles Soft
+OPP-0290,Support Namur 290,2023-12-22,2025-02-02,35631.32,19,Prospecting,Sophie Martin,31000,Namur Public
+OPP-0291,Formation Nantes 291,2025-08-08,2026-05-07,18892.98,51,Proposal,Louis Laurent,49000,Nantes Health
+OPP-0292,Renewal Liège 292,2026-02-03,2026-05-17,318128.95,97,Closed Won,Sophie Martin,49000,Liège Energy
+OPP-0293,Renewal Toulouse 293,2024-03-29,2026-02-03,573531.77,20,Qualification,Sophie Martin,4000,Toulouse Aero
+OPP-0294,Formation Namur 294,2024-04-03,2024-12-31,613281.32,13,Prospecting,Chloé Simon,34000,Namur Public
+OPP-0295,Intégration Ghent 295,2024-03-22,2025-07-26,555343.96,43,Proposal,Sophie Martin,1160,Ghent Media
+OPP-0296,Support Antwerp 296,2026-05-01,2026-07-26,51891.5,10,Closed Lost,Léa Petit,72000,Antwerp Port
+OPP-0297,Formation Lille 297,2023-11-04,2026-10-12,673529.38,32,Qualification,Hugo Moreau,75001,Lille Fintech
+OPP-0298,Formation Charleroi 298,2024-06-15,2025-08-31,528965.41,46,Proposal,Hugo Moreau,2800,Charleroi Steel
+OPP-0299,Intégration Toulouse 299,2025-01-04,2025-10-04,577449.55,9,Closed Lost,Lucas Dupont,44000,Toulouse Aero
+OPP-0300,Formation Paris 300,2024-11-18,2026-10-03,79081.17,33,Qualification,Hugo Moreau,59000,Paris Retail
+OPP-0301,Audit Ghent 301,2025-08-21,2025-10-01,35323.77,20,Prospecting,Noah Leroy,42000,Ghent Media
+OPP-0302,Cloud Bruxelles 302,2024-09-03,2025-04-16,6892.17,98,Closed Won,Louis Laurent,54000,Bruxelles Soft
+OPP-0303,Renewal Lyon 303,2025-09-25,2026-03-28,27086.15,19,Prospecting,Léa Petit,4000,Lyon Bio
+OPP-0304,Plateforme Liège 304,2025-09-29,2026-11-19,549411.83,33,Qualification,Chloé Simon,1180,Liège Energy
+OPP-0305,Licence Lille 305,2025-12-29,2026-04-24,729804.15,11,Prospecting,Sophie Martin,57000,Lille Fintech
+OPP-0306,Intégration Antwerp 306,2024-12-06,2025-11-04,9512.58,22,Qualification,Sophie Martin,1300,Antwerp Port
+OPP-0307,Plateforme Namur 307,2025-12-09,2026-06-13,115545.82,96,Closed Won,Emma Bernard,1180,Namur Public
+OPP-0308,Audit Paris 308,2024-04-04,2026-05-02,164243.63,25,Qualification,Lucas Dupont,1050,Paris Retail
+OPP-0309,Audit Charleroi 309,2024-06-07,2025-03-21,26809.72,0,Closed Lost,Sophie Martin,51100,Charleroi Steel
+OPP-0310,Intégration Liège 310,2026-01-25,2026-06-17,601874.82,5,Prospecting,Léa Petit,42000,Liège Energy
+OPP-0311,Formation Antwerp 311,2026-06-29,2026-12-15,734104.25,59,Proposal,Lucas Dupont,69003,Antwerp Port
+OPP-0312,Licence Bruxelles 312,2026-06-01,2026-08-05,131464.87,33,Qualification,Léa Petit,21000,Bruxelles Soft
+OPP-0313,CRM Nord 313,2025-09-11,2026-03-13,13207.68,15,Closed Lost,Emma Bernard,2000,Nord Logistics
+OPP-0314,Migration Marseille 314,2026-08-12,2026-10-24,20986.29,43,Proposal,Emma Bernard,59000,Marseille Port
+OPP-0315,Renewal Paris 315,2024-10-02,2025-05-22,30848.91,4,Closed Lost,Emma Bernard,51100,Paris Retail
+OPP-0316,Cloud Charleroi 316,2023-07-10,2025-08-25,60115.64,48,Proposal,Chloé Simon,1200,Charleroi Steel
+OPP-0317,Migration Bruxelles 317,2023-09-29,2024-02-10,217413.52,20,Prospecting,Louis Laurent,25000,Bruxelles Soft
+OPP-0318,Intégration Lille 318,2023-03-01,2023-05-20,93693.51,95,Closed Won,Léa Petit,54000,Lille Fintech
+OPP-0319,Migration Lille 319,2026-03-26,2026-08-31,717543.32,3,Closed Lost,Chloé Simon,1400,Lille Fintech
+OPP-0320,Cloud Ghent 320,2026-08-06,2026-09-13,729840.22,0,Closed Lost,Emma Bernard,1400,Ghent Media
+OPP-0321,Formation Marseille 321,2025-10-03,2026-03-30,13431.21,17,Prospecting,Chloé Simon,51100,Marseille Port
+OPP-0322,Intégration Liège 322,2025-07-06,2025-09-03,89177.49,95,Closed Won,Lucas Dupont,87000,Liège Energy
+OPP-0323,Licence Paris 323,2023-07-06,2026-12-08,728572.08,11,Prospecting,Louis Laurent,75008,Paris Retail
+OPP-0324,Plateforme Nord 324,2024-11-10,2026-06-20,105994.63,74,Negotiation,Lucas Dupont,6000,Nord Logistics
+OPP-0325,Audit Namur 325,2024-12-28,2026-10-21,489290.31,43,Proposal,Sophie Martin,13001,Namur Public
+OPP-0326,Audit Charleroi 326,2024-06-04,2026-03-05,11857.25,19,Prospecting,Noah Leroy,25000,Charleroi Steel
+OPP-0327,Intégration Acme 327,2026-07-20,2026-12-31,447302.12,9,Prospecting,Louis Laurent,75008,Acme Industrie
+OPP-0328,Audit Charleroi 328,2026-04-13,2026-08-28,741617.97,78,Negotiation,Emma Bernard,2018,Charleroi Steel
+OPP-0329,Cloud Paris 329,2026-05-14,2026-08-18,786675.49,8,Closed Lost,Chloé Simon,1300,Paris Retail
+OPP-0330,Support Lyon 330,2025-04-25,2026-10-15,709459.9,37,Qualification,Noah Leroy,54000,Lyon Bio
+OPP-0331,Renewal Bordeaux 331,2024-12-08,2025-02-27,772912.19,10,Closed Lost,Lucas Dupont,21000,Bordeaux Wine
+OPP-0332,Plateforme Acme 332,2026-09-28,2026-10-05,138325.26,99,Closed Won,Lucas Dupont,75008,Acme Industrie
+OPP-0333,Migration Lyon 333,2024-06-30,2026-08-21,32493.63,21,Qualification,Léa Petit,1050,Lyon Bio
+OPP-0334,Audit Charleroi 334,2023-07-29,2026-10-05,35269.45,76,Negotiation,Léa Petit,86000,Charleroi Steel
+OPP-0335,Migration Marseille 335,2025-05-03,2026-04-02,38804.16,79,Negotiation,Louis Laurent,38000,Marseille Port
+OPP-0336,CRM Bruxelles 336,2026-01-24,2026-08-15,125376.14,96,Closed Won,Lucas Dupont,1500,Bruxelles Soft
+OPP-0337,Plateforme Toulouse 337,2023-03-25,2025-09-01,69066.36,60,Negotiation,Hugo Moreau,3000,Toulouse Aero
+OPP-0338,CRM Bordeaux 338,2024-10-22,2026-07-09,550145.64,29,Qualification,Louis Laurent,34000,Bordeaux Wine
+OPP-0339,Licence Nord 339,2024-10-12,2025-07-22,194314.7,13,Closed Lost,Chloé Simon,72000,Nord Logistics
+OPP-0340,Renewal Lille 340,2024-11-10,2025-05-12,639226.2,0,Closed Lost,Lucas Dupont,33000,Lille Fintech
+OPP-0341,Intégration Acme 341,2024-05-14,2024-06-17,28889.3,97,Closed Won,Léa Petit,1160,Acme Industrie
+OPP-0342,CRM Bordeaux 342,2025-07-01,2026-03-21,275133.05,95,Closed Won,Emma Bernard,75001,Bordeaux Wine
+OPP-0343,Formation Charleroi 343,2026-10-04,2026-11-14,217552.43,33,Qualification,Lucas Dupont,75001,Charleroi Steel
+OPP-0344,Audit Liège 344,2024-11-10,2024-12-13,666239.61,7,Closed Lost,Léa Petit,38000,Liège Energy
+OPP-0345,CRM Bordeaux 345,2024-10-09,2024-11-09,153834.3,79,Negotiation,Lucas Dupont,1050,Bordeaux Wine
+OPP-0346,Formation Liège 346,2025-10-26,2026-01-02,115446.65,54,Proposal,Chloé Simon,1000,Liège Energy
+OPP-0347,Migration Antwerp 347,2025-12-28,2026-05-03,668365.0,29,Qualification,Emma Bernard,86000,Antwerp Port
+OPP-0348,Licence Lyon 348,2026-02-07,2026-12-02,44595.05,7,Prospecting,Léa Petit,1160,Lyon Bio
+OPP-0349,Plateforme Bruxelles 349,2026-08-15,2026-12-15,57704.98,66,Negotiation,Lucas Dupont,80000,Bruxelles Soft
+OPP-0350,Licence Paris 350,2025-08-02,2026-05-24,7560.06,98,Closed Won,Hugo Moreau,38000,Paris Retail
+OPP-0351,Migration Nantes 351,2024-08-06,2026-05-16,61284.84,14,Prospecting,Emma Bernard,14000,Nantes Health
+OPP-0352,Migration Marseille 352,2023-12-12,2024-01-04,612929.43,73,Negotiation,Léa Petit,42000,Marseille Port
+OPP-0353,Cloud Marseille 353,2025-08-05,2026-04-04,17555.96,80,Negotiation,Lucas Dupont,29200,Marseille Port
+OPP-0354,Renewal Marseille 354,2024-02-07,2024-07-04,30674.06,100,Closed Won,Sophie Martin,06000,Marseille Port
+OPP-0355,Renewal Liège 355,2023-03-17,2026-05-03,500790.13,24,Qualification,Hugo Moreau,25000,Liège Energy
+OPP-0356,Cloud Bordeaux 356,2024-08-18,2024-11-08,407910.35,7,Closed Lost,Emma Bernard,51100,Bordeaux Wine
+OPP-0357,Plateforme Nord 357,2026-03-05,2026-06-01,30757.19,35,Qualification,Noah Leroy,33000,Nord Logistics
+OPP-0358,Support Nord 358,2024-02-28,2024-12-03,79737.65,1,Closed Lost,Hugo Moreau,1500,Nord Logistics
+OPP-0359,Intégration Liège 359,2024-06-23,2025-04-29,59123.48,2,Closed Lost,Léa Petit,6000,Liège Energy
+OPP-0360,Support Bruxelles 360,2024-12-23,2025-12-25,542737.14,64,Negotiation,Louis Laurent,37000,Bruxelles Soft
+OPP-0361,Formation Bordeaux 361,2023-11-04,2024-12-04,681020.8,27,Qualification,Chloé Simon,69003,Bordeaux Wine
+OPP-0362,Intégration Nantes 362,2025-09-07,2026-05-24,12374.64,1,Closed Lost,Emma Bernard,13001,Nantes Health
+OPP-0363,Formation Nord 363,2026-03-18,2026-06-15,68408.56,5,Prospecting,Léa Petit,76000,Nord Logistics
+OPP-0364,Formation Bruxelles 364,2023-12-16,2025-03-23,34062.73,79,Negotiation,Léa Petit,9000,Bruxelles Soft
+OPP-0365,Cloud Marseille 365,2026-04-24,2026-05-25,13043.48,99,Closed Won,Chloé Simon,69003,Marseille Port
+OPP-0366,Intégration Lille 366,2026-06-13,2026-11-27,6366.28,62,Negotiation,Louis Laurent,76000,Lille Fintech
+OPP-0367,Audit Bordeaux 367,2026-08-22,2026-10-30,178234.88,18,Prospecting,Noah Leroy,25000,Bordeaux Wine
+OPP-0368,CRM Antwerp 368,2026-04-21,2026-11-26,30948.79,53,Proposal,Emma Bernard,33000,Antwerp Port
+OPP-0369,Licence Ghent 369,2026-05-10,2026-10-10,19302.63,58,Proposal,Lucas Dupont,38000,Ghent Media
+OPP-0370,Audit Nantes 370,2024-10-08,2025-05-19,57025.64,13,Closed Lost,Hugo Moreau,42000,Nantes Health
+OPP-0371,Audit Antwerp 371,2025-04-26,2026-11-26,390638.43,35,Qualification,Léa Petit,25000,Antwerp Port
+OPP-0372,Renewal Bordeaux 372,2023-10-10,2023-12-23,31173.5,6,Closed Lost,Chloé Simon,87000,Bordeaux Wine
+OPP-0373,CRM Nord 373,2023-04-17,2023-07-22,18618.63,13,Closed Lost,Lucas Dupont,34000,Nord Logistics
+OPP-0374,Licence Lille 374,2023-03-19,2023-10-15,84070.93,95,Closed Won,Emma Bernard,75001,Lille Fintech
+OPP-0375,Cloud Paris 375,2025-11-27,2026-05-06,481856.1,5,Closed Lost,Sophie Martin,75001,Paris Retail
+OPP-0376,Intégration Namur 376,2024-07-19,2026-10-09,18980.18,5,Prospecting,Lucas Dupont,59000,Namur Public
+OPP-0377,CRM Antwerp 377,2024-12-13,2025-06-22,38715.07,98,Closed Won,Sophie Martin,37000,Antwerp Port
+OPP-0378,Renewal Charleroi 378,2023-05-29,2024-02-24,144171.7,99,Closed Won,Léa Petit,06000,Charleroi Steel
+OPP-0379,Licence Nord 379,2024-05-13,2026-07-11,593036.54,60,Negotiation,Louis Laurent,06000,Nord Logistics
+OPP-0380,Migration Nord 380,2024-04-15,2024-10-07,498173.74,7,Closed Lost,Léa Petit,57000,Nord Logistics
+OPP-0381,Licence Toulouse 381,2026-02-09,2026-05-25,78889.17,10,Prospecting,Noah Leroy,6000,Toulouse Aero
+OPP-0382,Formation Namur 382,2024-02-28,2025-06-25,12096.83,43,Proposal,Lucas Dupont,42000,Namur Public
+OPP-0383,Intégration Toulouse 383,2023-01-14,2023-11-01,133281.17,99,Closed Won,Léa Petit,25000,Toulouse Aero
+OPP-0384,Cloud Ghent 384,2025-03-25,2025-11-21,54107.05,55,Proposal,Sophie Martin,49000,Ghent Media
+OPP-0385,Support Paris 385,2023-09-04,2026-08-14,21102.47,72,Negotiation,Lucas Dupont,49000,Paris Retail
+OPP-0386,Migration Liège 386,2026-01-28,2026-06-25,91847.99,25,Qualification,Louis Laurent,54000,Liège Energy
+OPP-0387,Intégration Charleroi 387,2025-03-31,2026-01-25,786527.09,47,Proposal,Lucas Dupont,33000,Charleroi Steel
+OPP-0388,Intégration Toulouse 388,2025-02-19,2025-09-21,10104.53,65,Negotiation,Chloé Simon,72000,Toulouse Aero
+OPP-0389,Formation Acme 389,2024-10-08,2025-06-28,101835.23,100,Closed Won,Emma Bernard,44000,Acme Industrie
+OPP-0390,Renewal Liège 390,2023-07-17,2024-03-17,384199.28,11,Closed Lost,Sophie Martin,49000,Liège Energy
+OPP-0391,Support Namur 391,2026-03-27,2026-07-08,361308.69,35,Qualification,Louis Laurent,76000,Namur Public
+OPP-0392,Cloud Marseille 392,2026-07-17,2026-09-06,110463.87,80,Negotiation,Chloé Simon,2000,Marseille Port
+OPP-0393,Migration Namur 393,2024-04-12,2025-03-13,323857.05,52,Proposal,Léa Petit,49000,Namur Public
+OPP-0394,Licence Charleroi 394,2026-04-17,2026-09-11,38793.41,7,Closed Lost,Léa Petit,2000,Charleroi Steel
+OPP-0395,CRM Ghent 395,2025-03-24,2025-07-21,8344.38,20,Qualification,Chloé Simon,2000,Ghent Media
+OPP-0396,Intégration Toulouse 396,2026-06-19,2026-08-11,7950.89,47,Proposal,Léa Petit,13001,Toulouse Aero
+OPP-0397,Intégration Ghent 397,2023-02-28,2023-05-24,134640.57,34,Qualification,Léa Petit,54000,Ghent Media
+OPP-0398,Licence Namur 398,2026-04-25,2026-10-08,122380.28,36,Qualification,Léa Petit,87000,Namur Public
+OPP-0399,Formation Antwerp 399,2025-06-23,2026-05-18,17802.42,9,Prospecting,Hugo Moreau,75001,Antwerp Port
+OPP-0400,Audit Lyon 400,2024-09-05,2024-09-28,31805.42,77,Negotiation,Hugo Moreau,87000,Lyon Bio
+OPP-0401,Renewal Liège 401,2024-05-26,2024-11-23,30022.83,68,Negotiation,Lucas Dupont,37000,Liège Energy
+OPP-0402,Renewal Antwerp 402,2024-07-10,2024-12-16,27696.0,5,Closed Lost,Emma Bernard,51100,Antwerp Port
+OPP-0403,Support Bruxelles 403,2024-07-11,2026-07-12,26796.38,77,Negotiation,Sophie Martin,8000,Bruxelles Soft
+OPP-0404,Formation Bordeaux 404,2025-06-16,2025-07-08,56575.21,33,Qualification,Léa Petit,1160,Bordeaux Wine
+OPP-0405,Support Bruxelles 405,2023-03-06,2023-09-05,122562.65,2,Closed Lost,Louis Laurent,29200,Bruxelles Soft
+OPP-0406,CRM Lyon 406,2023-01-26,2023-10-16,118615.08,67,Negotiation,Sophie Martin,25000,Lyon Bio
+OPP-0407,CRM Charleroi 407,2026-09-25,2026-10-05,114958.66,100,Closed Won,Sophie Martin,1500,Charleroi Steel
+OPP-0408,Plateforme Lyon 408,2025-09-12,2026-08-18,183856.88,46,Proposal,Lucas Dupont,67000,Lyon Bio
+OPP-0409,CRM Charleroi 409,2024-07-19,2026-03-23,9187.74,38,Qualification,Louis Laurent,34000,Charleroi Steel
+OPP-0410,Intégration Paris 410,2023-11-19,2026-09-21,755051.71,21,Qualification,Sophie Martin,54000,Paris Retail
+OPP-0411,Cloud Acme 411,2023-09-15,2026-06-24,147984.33,19,Prospecting,Noah Leroy,34000,Acme Industrie
+OPP-0412,Formation Ghent 412,2023-03-22,2025-12-23,101492.73,46,Proposal,Emma Bernard,57000,Ghent Media
+OPP-0413,Intégration Toulouse 413,2026-05-11,2026-12-31,47576.42,48,Proposal,Hugo Moreau,38000,Toulouse Aero
+OPP-0414,Intégration Lyon 414,2024-01-15,2024-03-07,80048.27,62,Negotiation,Chloé Simon,21000,Lyon Bio
+OPP-0415,Plateforme Marseille 415,2026-06-09,2026-09-03,221801.69,22,Qualification,Sophie Martin,4000,Marseille Port
+OPP-0416,CRM Acme 416,2023-08-08,2026-05-12,43499.89,35,Qualification,Léa Petit,76000,Acme Industrie
+OPP-0417,Migration Ghent 417,2024-03-03,2026-01-17,201971.92,6,Prospecting,Hugo Moreau,1200,Ghent Media
+OPP-0418,Licence Charleroi 418,2023-04-30,2023-09-27,23515.73,3,Closed Lost,Lucas Dupont,06000,Charleroi Steel
+OPP-0419,Renewal Charleroi 419,2025-12-13,2026-11-28,266283.63,37,Qualification,Chloé Simon,38000,Charleroi Steel
+OPP-0420,Intégration Ghent 420,2025-07-28,2026-08-05,28283.48,57,Proposal,Chloé Simon,13008,Ghent Media
+OPP-0421,Licence Marseille 421,2025-06-26,2026-01-06,100508.95,100,Closed Won,Chloé Simon,4500,Marseille Port
+OPP-0422,Renewal Acme 422,2026-01-22,2026-03-31,100526.26,98,Closed Won,Chloé Simon,8000,Acme Industrie
+OPP-0423,Intégration Acme 423,2025-11-26,2026-02-17,39769.42,11,Prospecting,Hugo Moreau,7000,Acme Industrie
+OPP-0424,Licence Paris 424,2026-02-13,2026-07-23,57018.63,96,Closed Won,Léa Petit,6000,Paris Retail
+OPP-0425,Renewal Bruxelles 425,2024-09-07,2024-12-24,24967.05,50,Proposal,Louis Laurent,72000,Bruxelles Soft
+OPP-0426,Audit Paris 426,2026-05-04,2026-10-29,15513.76,6,Prospecting,Hugo Moreau,1200,Paris Retail
+OPP-0427,Intégration Antwerp 427,2024-04-09,2026-05-28,157432.35,17,Prospecting,Sophie Martin,67000,Antwerp Port
+OPP-0428,Audit Lyon 428,2023-11-03,2024-05-02,182837.88,98,Closed Won,Lucas Dupont,14000,Lyon Bio
+OPP-0429,Cloud Liège 429,2023-09-28,2025-08-30,102858.46,28,Qualification,Lucas Dupont,25000,Liège Energy
+OPP-0430,Audit Lyon 430,2025-09-11,2026-07-08,521364.94,39,Qualification,Noah Leroy,25000,Lyon Bio
+OPP-0431,Support Nantes 431,2026-03-25,2026-05-23,8938.55,50,Proposal,Hugo Moreau,25000,Nantes Health
+OPP-0432,CRM Lyon 432,2024-12-17,2026-09-23,128307.56,21,Qualification,Noah Leroy,13001,Lyon Bio
+OPP-0433,Formation Charleroi 433,2023-04-22,2024-09-14,141940.27,5,Prospecting,Hugo Moreau,8000,Charleroi Steel
+OPP-0434,Plateforme Nantes 434,2023-02-16,2025-01-09,282470.88,68,Negotiation,Louis Laurent,3000,Nantes Health
+OPP-0435,CRM Acme 435,2026-04-08,2026-12-09,44783.02,66,Negotiation,Léa Petit,75001,Acme Industrie
+OPP-0436,Licence Marseille 436,2026-09-14,2026-11-01,28204.36,60,Negotiation,Léa Petit,1180,Marseille Port
+OPP-0437,Intégration Lyon 437,2025-11-07,2026-11-19,713402.28,62,Negotiation,Emma Bernard,51100,Lyon Bio
+OPP-0438,Support Lille 438,2023-02-14,2023-03-20,98235.69,0,Closed Lost,Hugo Moreau,38000,Lille Fintech
+OPP-0439,Audit Lyon 439,2025-10-23,2026-03-27,33416.25,37,Qualification,Léa Petit,72000,Lyon Bio
+OPP-0440,Support Lyon 440,2023-10-09,2023-12-06,590696.68,7,Closed Lost,Chloé Simon,35000,Lyon Bio
+OPP-0441,Intégration Antwerp 441,2024-11-05,2025-07-06,240074.74,96,Closed Won,Emma Bernard,72000,Antwerp Port
+OPP-0442,Cloud Bruxelles 442,2025-05-30,2025-11-08,27968.11,37,Qualification,Lucas Dupont,72000,Bruxelles Soft
+OPP-0443,Cloud Bordeaux 443,2023-03-02,2023-08-26,85544.42,8,Closed Lost,Emma Bernard,13001,Bordeaux Wine
+OPP-0444,Formation Paris 444,2026-06-07,2026-11-25,14340.19,12,Prospecting,Sophie Martin,25000,Paris Retail
+OPP-0445,Plateforme Bruxelles 445,2025-10-25,2026-09-13,111452.54,35,Qualification,Louis Laurent,33000,Bruxelles Soft
+OPP-0446,Renewal Bruxelles 446,2023-01-31,2024-08-19,38256.93,66,Negotiation,Lucas Dupont,1300,Bruxelles Soft
+OPP-0447,Renewal Liège 447,2024-10-27,2026-02-21,654539.57,72,Negotiation,Hugo Moreau,57000,Liège Energy
+OPP-0448,Intégration Charleroi 448,2026-01-03,2026-02-05,23222.72,99,Closed Won,Chloé Simon,06000,Charleroi Steel
+OPP-0449,Intégration Antwerp 449,2023-04-11,2023-07-31,83784.39,5,Closed Lost,Chloé Simon,75008,Antwerp Port
+OPP-0450,Plateforme Liège 450,2025-08-07,2026-10-19,27613.55,38,Qualification,Emma Bernard,51100,Liège Energy
+OPP-0451,Migration Nord 451,2025-07-18,2026-02-23,360648.61,25,Qualification,Lucas Dupont,51100,Nord Logistics
+OPP-0452,Renewal Acme 452,2025-12-08,2026-12-19,18443.06,17,Prospecting,Chloé Simon,9000,Acme Industrie
+OPP-0453,Cloud Antwerp 453,2023-11-04,2024-02-09,59675.34,9,Closed Lost,Louis Laurent,69003,Antwerp Port
+OPP-0454,Licence Nantes 454,2023-01-08,2026-07-20,41342.85,37,Qualification,Sophie Martin,6000,Nantes Health
+OPP-0455,Licence Nantes 455,2026-09-12,2026-10-03,20880.85,99,Closed Won,Léa Petit,29200,Nantes Health
+OPP-0456,Audit Namur 456,2024-01-14,2024-11-26,6927.24,14,Prospecting,Hugo Moreau,69003,Namur Public
+OPP-0457,Plateforme Charleroi 457,2023-11-27,2025-07-15,536729.84,25,Qualification,Louis Laurent,86000,Charleroi Steel
+OPP-0458,Support Toulouse 458,2024-09-04,2025-08-14,81683.33,7,Prospecting,Léa Petit,54000,Toulouse Aero
+OPP-0459,Support Toulouse 459,2025-12-15,2026-07-28,23362.62,58,Proposal,Lucas Dupont,4500,Toulouse Aero
+OPP-0460,Formation Ghent 460,2026-05-31,2026-09-03,14088.1,79,Negotiation,Louis Laurent,1400,Ghent Media
+OPP-0461,Audit Charleroi 461,2026-06-02,2026-08-14,29800.55,34,Qualification,Lucas Dupont,4500,Charleroi Steel
+OPP-0462,Support Antwerp 462,2023-04-04,2025-03-01,288019.66,66,Negotiation,Léa Petit,8000,Antwerp Port
+OPP-0463,Migration Marseille 463,2026-01-31,2026-05-07,52522.04,99,Closed Won,Sophie Martin,67000,Marseille Port
+OPP-0464,Intégration Bordeaux 464,2025-09-08,2026-05-22,462972.09,10,Closed Lost,Louis Laurent,1050,Bordeaux Wine
+OPP-0465,Migration Bruxelles 465,2026-03-03,2026-08-25,42059.03,51,Proposal,Lucas Dupont,75001,Bruxelles Soft
+OPP-0466,Support Charleroi 466,2026-07-07,2026-12-04,403218.08,63,Negotiation,Léa Petit,1050,Charleroi Steel
+OPP-0467,Plateforme Bruxelles 467,2023-06-27,2026-04-23,80874.19,66,Negotiation,Léa Petit,14000,Bruxelles Soft
+OPP-0468,Intégration Namur 468,2023-07-09,2026-01-16,22709.81,26,Qualification,Hugo Moreau,49000,Namur Public
+OPP-0469,Intégration Charleroi 469,2024-11-01,2025-04-10,788477.76,44,Proposal,Noah Leroy,06000,Charleroi Steel
+OPP-0470,Support Namur 470,2023-01-09,2024-10-20,37631.81,15,Prospecting,Louis Laurent,37000,Namur Public
+OPP-0471,Support Bordeaux 471,2026-03-28,2026-09-17,63083.03,13,Prospecting,Hugo Moreau,69003,Bordeaux Wine
+OPP-0472,Support Ghent 472,2023-11-19,2025-06-15,9006.11,26,Qualification,Hugo Moreau,13001,Ghent Media
+OPP-0473,CRM Toulouse 473,2024-05-16,2024-08-25,107458.92,96,Closed Won,Sophie Martin,1050,Toulouse Aero
+OPP-0474,Licence Nantes 474,2023-04-21,2023-10-28,537478.89,80,Negotiation,Louis Laurent,67000,Nantes Health
+OPP-0475,Formation Toulouse 475,2026-10-05,2026-10-05,39078.87,14,Closed Lost,Lucas Dupont,38000,Toulouse Aero
+OPP-0476,Migration Charleroi 476,2024-04-19,2026-12-29,134720.59,72,Negotiation,Emma Bernard,9000,Charleroi Steel
+OPP-0477,CRM Nantes 477,2025-09-25,2025-10-24,7287.78,69,Negotiation,Hugo Moreau,37000,Nantes Health
+OPP-0478,Cloud Lyon 478,2023-08-08,2025-06-19,47801.64,72,Negotiation,Chloé Simon,87000,Lyon Bio
+OPP-0479,CRM Ghent 479,2025-02-25,2025-05-17,129530.73,78,Negotiation,Hugo Moreau,13008,Ghent Media
+OPP-0480,Renewal Liège 480,2026-03-21,2026-08-06,9001.3,5,Closed Lost,Léa Petit,69003,Liège Energy
+OPP-0481,Formation Bordeaux 481,2024-11-01,2026-04-05,27574.62,78,Negotiation,Sophie Martin,13001,Bordeaux Wine
+OPP-0482,Migration Namur 482,2024-08-19,2025-03-20,89187.57,99,Closed Won,Léa Petit,1200,Namur Public
+OPP-0483,Plateforme Namur 483,2026-04-08,2026-04-24,96146.63,6,Prospecting,Hugo Moreau,75008,Namur Public
+OPP-0484,Audit Lille 484,2026-02-20,2026-10-02,39254.37,13,Closed Lost,Chloé Simon,06000,Lille Fintech
+OPP-0485,Cloud Bruxelles 485,2025-06-10,2026-01-26,92235.86,71,Negotiation,Chloé Simon,49000,Bruxelles Soft
+OPP-0486,Audit Nord 486,2023-01-24,2023-07-03,725177.64,33,Qualification,Emma Bernard,14000,Nord Logistics
+OPP-0487,Plateforme Lyon 487,2026-05-22,2026-09-21,89983.38,72,Negotiation,Hugo Moreau,76000,Lyon Bio
+OPP-0488,CRM Nantes 488,2025-10-17,2026-03-01,752266.89,95,Closed Won,Sophie Martin,34000,Nantes Health
+OPP-0489,Licence Ghent 489,2025-09-13,2025-11-06,120442.25,99,Closed Won,Lucas Dupont,2000,Ghent Media
+OPP-0490,Formation Ghent 490,2026-07-15,2026-08-17,526758.49,61,Negotiation,Hugo Moreau,1400,Ghent Media
+OPP-0491,Renewal Charleroi 491,2025-08-18,2026-06-21,86311.77,96,Closed Won,Sophie Martin,8000,Charleroi Steel
+OPP-0492,Intégration Antwerp 492,2023-05-06,2026-11-28,58598.72,59,Proposal,Sophie Martin,13001,Antwerp Port
+OPP-0493,Formation Namur 493,2024-07-23,2025-04-21,9638.86,8,Prospecting,Emma Bernard,13001,Namur Public
+OPP-0494,Cloud Nord 494,2023-12-26,2025-06-27,267525.97,41,Proposal,Hugo Moreau,4500,Nord Logistics
+OPP-0495,CRM Acme 495,2025-04-25,2026-06-05,13328.16,78,Negotiation,Hugo Moreau,25000,Acme Industrie
+OPP-0496,Support Lille 496,2023-12-10,2026-07-31,634997.85,12,Prospecting,Chloé Simon,1400,Lille Fintech
+OPP-0497,Audit Nord 497,2025-12-22,2026-08-15,441733.41,30,Qualification,Sophie Martin,1160,Nord Logistics
+OPP-0498,Renewal Bordeaux 498,2026-08-28,2026-09-19,213879.91,98,Closed Won,Louis Laurent,33000,Bordeaux Wine
+OPP-0499,CRM Acme 499,2025-11-30,2026-06-04,28720.14,20,Qualification,Lucas Dupont,37000,Acme Industrie
+OPP-0500,Licence Nantes 500,2025-07-02,2026-01-11,12679.57,2,Closed Lost,Sophie Martin,29200,Nantes Health

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Guide span-magnitude-viz</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="" />
+  <link rel="stylesheet" href="data:text/css," />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Guide span-magnitude-viz</h1>
+</header>
+<h1 id="guide-span-magnitude-viz">Guide span-magnitude-viz</h1>
+<p>Documentation claire pour comprendre, utiliser et intégrer la
+bibliothèque <strong>span-magnitude-viz</strong>.</p>
+<p><strong>Dépôt :</strong> <a
+href="https://github.com/michael-alteridea/span-magnitude-viz">github.com/michael-alteridea/span-magnitude-viz</a></p>
+<hr />
+<h2 id="à-quoi-sert-le-framework">1. À quoi sert le framework</h2>
+<p><strong>span-magnitude-viz</strong> est une bibliothèque TypeScript /
+SVG pour raconter une histoire visuelle <strong>span ×
+magnitude</strong>.</p>
+<p>Chaque « marque » (mark) représente :</p>
+<ul>
+<li>un <strong>intervalle</strong> sur un axe continu (dates ISO ou
+nombres) — le <em>span</em> ;</li>
+<li>une <strong>mesure quantitative</strong> — la <em>magnitude</em>
+(budget, ACV, intensité, etc.).</li>
+</ul>
+<p>Les marques apparaissent progressivement (animation en cascade),
+pendant que des <strong>compteurs</strong> (tickers) affichent le nombre
+d’éléments et la somme des magnitudes. Un bandeau sous le graphique
+propose une <strong>synthèse par axe</strong> (année, cohorte, groupe,
+champs <code>meta</code>, …) avec moyennes et mini-arcs de
+quartiles.</p>
+<p>Cas d’usage typiques : projets, contrats, subventions, carrières,
+abonnements, hospitalisations — tout jeu de données où chaque élément a
+une durée et une taille.</p>
+<p>Inspiration de design : le storytelling temporel à marques
+individuelles (ex. pièces publiques de type Periscopic). La bibliothèque
+est <strong>agnostique du domaine</strong> et ne reprend ni branding, ni
+palette propriétaire, ni métaphores spécifiques.</p>
+<hr />
+<h2 id="format-de-données-json-version-1">2. Format de données JSON
+(version 1)</h2>
+<p>Le document d’entrée suit un contrat simple
+(<code>version: 1</code>).</p>
+<h3 id="exemple-minimal">Exemple minimal</h3>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;unit&quot;</span><span class="fu">:</span> <span class="st">&quot;date&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Mon portfolio&quot;</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;magnitudeLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Budget (USD)&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;spanLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Calendrier&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;countLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Projets&quot;</span><span class="fu">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;marks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;p1&quot;</span><span class="fu">,</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Mobile App v1&quot;</span><span class="fu">,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;span&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;start&quot;</span><span class="fu">:</span> <span class="st">&quot;2020-01-15&quot;</span><span class="fu">,</span> <span class="dt">&quot;end&quot;</span><span class="fu">:</span> <span class="st">&quot;2020-09-30&quot;</span> <span class="fu">},</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;magnitude&quot;</span><span class="fu">:</span> <span class="dv">250000</span><span class="fu">,</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;cohort&quot;</span><span class="fu">:</span> <span class="st">&quot;2020&quot;</span><span class="fu">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;group&quot;</span><span class="fu">:</span> <span class="st">&quot;Product&quot;</span><span class="fu">,</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;meta&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;owner&quot;</span><span class="fu">:</span> <span class="st">&quot;Ada&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;done&quot;</span> <span class="fu">}</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="champs-importants">Champs importants</h3>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 38%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Champ</th>
+<th>Requis</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>version</code></td>
+<td>oui</td>
+<td>Doit être <code>1</code></td>
+</tr>
+<tr class="even">
+<td><code>unit</code></td>
+<td>oui</td>
+<td><code>"date"</code> (chaînes ISO) ou <code>"number"</code></td>
+</tr>
+<tr class="odd">
+<td><code>marks</code></td>
+<td>oui</td>
+<td>Au moins une marque</td>
+</tr>
+<tr class="even">
+<td><code>marks[].id</code></td>
+<td>oui</td>
+<td>Identifiant unique</td>
+</tr>
+<tr class="odd">
+<td><code>marks[].span.start</code> / <code>end</code></td>
+<td>oui</td>
+<td>Même type que <code>unit</code> ; <code>end ≥ start</code></td>
+</tr>
+<tr class="even">
+<td><code>marks[].magnitude</code></td>
+<td>oui</td>
+<td>Nombre fini <code>≥ 0</code></td>
+</tr>
+<tr class="odd">
+<td><code>revealAt</code></td>
+<td>non</td>
+<td>Instant de révélation (défaut = <code>span.start</code>)</td>
+</tr>
+<tr class="even">
+<td><code>cohort</code> / <code>group</code> / <code>label</code> /
+<code>meta</code></td>
+<td>non</td>
+<td>Filtre, couleur, libellé, métadonnées</td>
+</tr>
+<tr class="odd">
+<td><code>defaults</code></td>
+<td>non</td>
+<td>Géométrie, palette, animation, tickers par défaut</td>
+</tr>
+<tr class="even">
+<td><code>title</code>, <code>*Label</code></td>
+<td>non</td>
+<td>Titre et libellés d’interface</td>
+</tr>
+</tbody>
+</table>
+<p>Schéma JSON : <code>schema/v1.json</code><br />
+Exemples : <code>examples/minimal-date.json</code>,
+<code>examples/minimal-number.json</code></p>
+<hr />
+<h2 id="comment-lutiliser">3. Comment l’utiliser</h2>
+<h3 id="installation">Installation</h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install span-magnitude-viz</span></code></pre></div>
+<p>Ou, en local dans le dépôt :</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> span-magnitude-viz</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build    <span class="co"># compile ESM + CJS + types</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run demo     <span class="co"># → http://localhost:5173</span></span></code></pre></div>
+<h3 id="point-dentrée-principal">Point d’entrée principal</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { createSpanMagnitudeViz<span class="op">,</span> parseDocument } <span class="im">from</span> <span class="st">&quot;span-magnitude-viz&quot;</span><span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> raw <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&quot;/data/projects.json&quot;</span>)<span class="op">.</span><span class="fu">then</span>((r) <span class="kw">=&gt;</span> r<span class="op">.</span><span class="fu">json</span>())<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> chart <span class="op">=</span> <span class="fu">createSpanMagnitudeViz</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">document</span><span class="op">.</span><span class="fu">getElementById</span>(<span class="st">&quot;app&quot;</span>)<span class="op">!,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  raw<span class="op">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  {</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    geometry<span class="op">:</span> <span class="st">&quot;arc&quot;</span><span class="op">,</span>     <span class="co">// &quot;arc&quot; | &quot;bar&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    width<span class="op">:</span> <span class="dv">960</span><span class="op">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    height<span class="op">:</span> <span class="dv">540</span><span class="op">,</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    animate<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    autoplay<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    theme<span class="op">:</span> <span class="st">&quot;dark&quot;</span><span class="op">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    tickers<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    facetBy<span class="op">:</span> <span class="st">&quot;year&quot;</span><span class="op">,</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    facetSummary<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    onHover<span class="op">:</span> (mark) <span class="kw">=&gt;</span> <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(mark<span class="op">?.</span><span class="at">label</span>)<span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>)<span class="op">;</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">play</span>()<span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">pause</span>()<span class="op">;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">reset</span>()<span class="op">;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">setGeometry</span>(<span class="st">&quot;bar&quot;</span>)<span class="op">;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">setFilter</span>({ cohort<span class="op">:</span> <span class="st">&quot;2021&quot;</span> })<span class="op">;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">setFilter</span>({ mirrorSplit<span class="op">:</span> <span class="kw">true</span><span class="op">,</span> mirrorCohort<span class="op">:</span> <span class="st">&quot;2021&quot;</span> })<span class="op">;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">setFacetBy</span>(<span class="st">&quot;group&quot;</span>)<span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">setProgress</span>(<span class="fl">0.5</span>)<span class="op">;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>chart<span class="op">.</span><span class="fu">destroy</span>()<span class="op">;</span></span></code></pre></div>
+<p>Alias : <code>mount(...)</code> — même signature que
+<code>createSpanMagnitudeViz</code>.</p>
+<h3 id="options-importantes-vizoptions">Options importantes
+(<code>VizOptions</code>)</h3>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 36%" />
+<col style="width: 27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Option</th>
+<th>Défaut</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>geometry</code></td>
+<td><code>"arc"</code></td>
+<td>Arcs Bézier ou barres horizontales</td>
+</tr>
+<tr class="even">
+<td><code>width</code> / <code>height</code></td>
+<td>960 / 540</td>
+<td>Taille du SVG</td>
+</tr>
+<tr class="odd">
+<td><code>animate</code> / <code>autoplay</code></td>
+<td><code>true</code></td>
+<td>Cascade de révélation au montage</td>
+</tr>
+<tr class="even">
+<td><code>slowFirst</code></td>
+<td><code>2</code></td>
+<td>Premières marques lentes + annotations</td>
+</tr>
+<tr class="odd">
+<td><code>durationMs</code></td>
+<td>adaptatif</td>
+<td>Durée totale de l’animation</td>
+</tr>
+<tr class="even">
+<td><code>tickers</code></td>
+<td><code>true</code></td>
+<td>Compteurs (ou liste : <code>count</code>, <code>magnitudeSum</code>,
+<code>spanSum</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>theme</code></td>
+<td><code>"dark"</code></td>
+<td><code>"dark"</code> ou <code>"light"</code></td>
+</tr>
+<tr class="even">
+<td><code>cohortFilter</code></td>
+<td><code>null</code></td>
+<td>Ne montrer qu’une cohorte</td>
+</tr>
+<tr class="odd">
+<td><code>mirrorSplit</code></td>
+<td><code>false</code></td>
+<td>Une cohorte au-dessus de l’axe, le reste en dessous</td>
+</tr>
+<tr class="even">
+<td><code>mirrorCohort</code></td>
+<td>—</td>
+<td>Cohorte placée au-dessus en mode miroir</td>
+</tr>
+<tr class="odd">
+<td><code>facetBy</code></td>
+<td>auto</td>
+<td>Axe du bandeau (<code>year</code>, <code>cohort</code>,
+<code>group</code>, <code>meta.*</code>)</td>
+</tr>
+<tr class="even">
+<td><code>facetSummary</code> / <code>yearSummary</code></td>
+<td><code>true</code></td>
+<td>Afficher le bandeau synthèse</td>
+</tr>
+<tr class="odd">
+<td><code>onHover</code> / <code>onSelect</code> / <code>onTick</code> /
+<code>onComplete</code></td>
+<td>—</td>
+<td>Callbacks d’interaction</td>
+</tr>
+</tbody>
+</table>
+<h3 id="handle-renvoyé-vizhandle">Handle renvoyé
+(<code>VizHandle</code>)</h3>
+<table>
+<colgroup>
+<col style="width: 60%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Méthode</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>play()</code> / <code>pause()</code> /
+<code>reset()</code></td>
+<td>Contrôle de l’animation</td>
+</tr>
+<tr class="even">
+<td><code>setGeometry(mode)</code></td>
+<td>Bascule arc / barre</td>
+</tr>
+<tr class="odd">
+<td><code>setFilter({ cohort, mirrorSplit, mirrorCohort })</code></td>
+<td>Filtre et miroir</td>
+</tr>
+<tr class="even">
+<td><code>setFacetBy(key)</code></td>
+<td>Change l’axe du bandeau</td>
+</tr>
+<tr class="odd">
+<td><code>setProgress(t)</code></td>
+<td>Positionne l’horloge <code>t ∈ [0,1]</code></td>
+</tr>
+<tr class="even">
+<td><code>getState()</code></td>
+<td>État des tickers à l’instant courant</td>
+</tr>
+<tr class="odd">
+<td><code>update(doc, options?)</code></td>
+<td>Remplace les données / options</td>
+</tr>
+<tr class="even">
+<td><code>destroy()</code></td>
+<td>Nettoie le DOM et l’animation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="démo-standalone-html-offline">4. Démo standalone / HTML
+offline</h2>
+<p>Plusieurs façons de voir le résultat sans intégrer tout de suite
+:</p>
+<ol type="1">
+<li><p><strong>Démo Vite</strong> — <code>npm run demo</code> puis
+ouvrir <code>http://localhost:5173</code><br />
+Jeux de données : projets (~64 marques), contrats (~48). Contrôles :
+géométrie, cohorte, miroir, lecture/pause, éditeur JSON.</p></li>
+<li><p><strong>Pages standalone</strong> dans <code>demo/</code> :</p>
+<ul>
+<li><code>standalone.html</code> — prévisualisation fine avec bundling
+Vite ;</li>
+<li><code>standalone-offline.html</code> — page HTML utilisable hors
+ligne (après build des assets si besoin).</li>
+</ul></li>
+<li><p><strong>Build de démo</strong> — dossier <code>demo-dist/</code>
+(HTML + JS bundlé) pour servir en statique.</p></li>
+</ol>
+<p>Les contrôles de la démo incluent le sélecteur <strong>« Décliner par
+/ Break down by »</strong> du bandeau de synthèse.</p>
+<hr />
+<h2 id="synthèse-par-axe-facet">5. Synthèse par axe (facet)</h2>
+<p>Sous le graphique, un bandeau <code>smv-facet-summary</code> (activé
+par défaut) affiche <strong>une ligne par valeur</strong> de l’axe
+choisi :</p>
+<ul>
+<li>moyenne du <strong>span</strong> et de la <strong>magnitude</strong>
+;</li>
+<li><strong>trois mini-arcs</strong> (Q1, médiane, Q3) : largeur ∝ span,
+épaisseur ∝ magnitude — même langage visuel que le viz principal.</li>
+</ul>
+<h3 id="sélecteur-décliner-par">Sélecteur « Décliner par »</h3>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 76%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Axe</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>year</code></td>
+<td>Années civiles chevauchées (<code>unit: "date"</code>) ou bucket
+entier (<code>unit: "number"</code>)</td>
+</tr>
+<tr class="even">
+<td><code>cohort</code></td>
+<td>Champ <code>cohort</code> de chaque marque</td>
+</tr>
+<tr class="odd">
+<td><code>group</code></td>
+<td>Champ <code>group</code> (souvent la couleur)</td>
+</tr>
+<tr class="even">
+<td><code>meta.&lt;clé&gt;</code></td>
+<td>Champs <code>meta</code> découverts automatiquement (valeurs
+primitives homogènes)</td>
+</tr>
+</tbody>
+</table>
+<p>Défaut : <code>year</code> si <code>unit === "date"</code>, sinon
+<code>cohort</code> ou <code>group</code> s’ils sont utiles.</p>
+<p>Pour désactiver le bandeau : <code>facetSummary: false</code> (ou
+l’alias <code>yearSummary: false</code>).</p>
+<hr />
+<h2 id="architecture-des-modules">6. Architecture des modules</h2>
+<pre><code>src/
+├── index.ts           # API publique : createSpanMagnitudeViz + réexports
+├── types.ts           # Types du document, options, handle, ParseError
+├── parse.ts           # Validation Zod + normalisation
+├── layout.ts          # Échelles, chemins arc/barre, formatage
+├── animate.ts         # Timeline de révélation + requestAnimationFrame
+├── tickers.ts         # DOM des compteurs (interne au renderer)
+├── facetSummary.ts    # Synthèse par axe + mini-arcs + sélecteur
+├── yearSummary.ts     # Compatibilité : réexporte facetSummary
+└── render/svg.ts      # Montage SVG, interactions, orchestration</code></pre>
+<p>Flux typique :</p>
+<ol type="1">
+<li><strong>parse</strong> — valide le JSON et produit un
+<code>NormalizedDocument</code> ;</li>
+<li><strong>layout</strong> — calcule positions, couleurs, chemins SVG
+;</li>
+<li><strong>animate</strong> — construit le calendrier de révélation et
+pilote les frames ;</li>
+<li><strong>render/svg</strong> — dessine, attache tickers + bandeau
+facet, gère hover/filtre ;</li>
+<li><strong>facetSummary</strong> — agrège moyennes / quartiles et paint
+le bandeau.</li>
+</ol>
+<hr />
+<h2 id="catalogue-des-fonctions-exportées">7. Catalogue des fonctions
+exportées</h2>
+<p>Fonctions et types publics depuis <code>src/index.ts</code>,
+regroupés par module.<br />
+Paramètres principaux et valeur de retour indiqués brièvement.</p>
+<h3 id="entrée-principale-index.ts">Entrée principale
+(<code>index.ts</code>)</h3>
+<p><strong><code>createSpanMagnitudeViz(container, document, options?)</code></strong><br />
+Monte la visualisation dans un élément DOM. Accepte un document brut ou
+déjà normalisé. Remplace le contenu du conteneur. <strong>Retour
+:</strong> <code>VizHandle</code>.</p>
+<p><strong><code>mount</code></strong><br />
+Alias de <code>createSpanMagnitudeViz</code> (même signature). Export
+aussi comme <code>default</code>.</p>
+<hr />
+<h3 id="types-erreurs-types.ts">Types &amp; erreurs
+(<code>types.ts</code>)</h3>
+<p><strong>Types utiles :</strong> <code>SpanUnit</code>,
+<code>GeometryMode</code>, <code>TickerKind</code>,
+<code>SpanEndpoints</code>, <code>SpanMark</code>,
+<code>SpanMagnitudeDefaults</code>, <code>SpanMagnitudeDocument</code>,
+<code>NormalizedMark</code>, <code>NormalizedDocument</code>,
+<code>LayoutMark</code>, <code>VizOptions</code>,
+<code>TickerState</code>, <code>VizHandle</code>.</p>
+<p><strong><code>ParseError</code></strong><br />
+Erreur de validation. Propriété <code>issues: string[]</code> (messages
+multilignes). Levée par <code>parseDocument</code>.</p>
+<hr />
+<h3 id="parsing-parse.ts">Parsing (<code>parse.ts</code>)</h3>
+<p><strong><code>parseDocument(input, options?)</code></strong><br />
+Valide le contrat v1 (Zod), convertit dates → millisecondes UTC, calcule
+domaines, cohorts, groups. Option <code>{ strict: true }</code> refuse
+les clés inconnues. <strong>Retour :</strong>
+<code>NormalizedDocument</code>. <strong>Lève :</strong>
+<code>ParseError</code>.</p>
+<p><strong><code>tryParseDocument(input, options?)</code></strong><br />
+Même logique sans exception. <strong>Retour :</strong>
+<code>{ ok: true, data }</code> ou
+<code>{ ok: false, error: ParseError }</code>.</p>
+<hr />
+<h3 id="layout-layout.ts">Layout (<code>layout.ts</code>)</h3>
+<p><strong><code>computeLayout(doc, options, visibleMarks?)</code></strong><br />
+Calcule échelles X, positions, épaisseurs, couleurs, chemins d’arc et
+rectangles de barre. Respecte <code>mirrorSplit</code> /
+<code>mirrorCohort</code>. <strong>Retour :</strong>
+<code>LayoutResult</code> (marques layoutées + métadonnées de
+canvas).</p>
+<p><strong><code>arcPath(x0, x1, y, bulge, side)</code></strong><br />
+Chaîne SVG d’une courbe de Bézier quadratique entre deux points sur une
+baseline. <code>side</code> = <code>1</code> (haut) ou <code>-1</code>
+(bas). <strong>Retour :</strong> <code>string</code> (<code>d</code>
+path).</p>
+<p><strong><code>formatAxisValue(v, unit)</code></strong><br />
+Formate une valeur d’axe (<code>YYYY-MM</code> pour les dates, nombre
+sinon). <strong>Retour :</strong> <code>string</code>.</p>
+<p><strong><code>formatMagnitude(v)</code></strong><br />
+Formate une magnitude compacte (<code>1.2k</code>, <code>3.4M</code>,
+…). <strong>Retour :</strong> <code>string</code>.</p>
+<p><strong><code>formatSpanRange(start, end, unit)</code></strong><br />
+Libellé d’intervalle (<code>2020-01-15 → 2020-09-30</code> ou
+<code>10 → 42</code>). <strong>Retour :</strong>
+<code>string</code>.</p>
+<hr />
+<h3 id="animation-animate.ts">Animation (<code>animate.ts</code>)</h3>
+<p><strong><code>buildRevealSchedule(marks, { durationMs?, slowFirst? })</code></strong><br />
+Construit la timeline de révélation : les <code>slowFirst</code>
+premières marques occupent ~28 % du temps, le reste cascade jusqu’à
+0,95. <strong>Retour :</strong> <code>RevealSchedule</code>.</p>
+<p><strong><code>markProgress(schedule, id, t)</code></strong><br />
+Progression de dessin d’une marque à l’horloge <code>t ∈ [0,1]</code>
+(smoothstep entre <code>t0</code> et <code>t1</code>). <strong>Retour
+:</strong> <code>number</code> ∈ [0,1].</p>
+<p><strong><code>tickerAt(schedule, t)</code></strong><br />
+Agrège compteur, somme des magnitudes et somme des spans selon la
+progression. <strong>Retour :</strong> <code>TickerState</code>.</p>
+<p><strong><code>createAnimation(schedule, onFrame, onComplete?)</code></strong><br />
+Contrôleur <code>requestAnimationFrame</code> : <code>play</code>,
+<code>pause</code>, <code>reset</code>, <code>setProgress</code>,
+<code>getProgress</code>, <code>destroy</code>. <strong>Retour
+:</strong> <code>AnimationController</code>.</p>
+<p><strong><code>prefersReducedMotion()</code></strong><br />
+Lit <code>prefers-reduced-motion: reduce</code> du navigateur.
+<strong>Retour :</strong> <code>boolean</code>.</p>
+<hr />
+<h3 id="rendu-svg-rendersvg.ts">Rendu SVG
+(<code>render/svg.ts</code>)</h3>
+<p><strong><code>mountSvg(container, docInput, options?)</code></strong><br />
+Orchestrateur principal : styles, layout, SVG D3, tickers, bandeau
+facet, animation, tooltips, filtres. Utilisé en interne par
+<code>createSpanMagnitudeViz</code>. <strong>Retour :</strong>
+<code>VizHandle</code>.</p>
+<hr />
+<h3 id="synthèse-par-axe-facetsummary.ts">Synthèse par axe
+(<code>facetSummary.ts</code>)</h3>
+<p><strong><code>quantileSorted(sorted, p)</code></strong><br />
+Quantile linéaire (style R-7) sur un tableau <strong>déjà trié</strong>.
+<code>p</code> ∈ [0,1]. <strong>Retour :</strong>
+<code>number</code>.</p>
+<p><strong><code>yearsForMark(mark, unit)</code></strong><br />
+Années auxquelles une marque contribue (chevauchement calendaire +
+cohorte 4 chiffres ; ou bucket entier en mode nombre). <strong>Retour
+:</strong> <code>number[]</code>.</p>
+<p><strong><code>keysForMark(mark, facetBy, unit)</code></strong><br />
+Clés de bucket pour un axe (<code>year</code>, <code>cohort</code>,
+<code>group</code>, <code>meta.*</code>). <strong>Retour :</strong>
+<code>string[]</code>.</p>
+<p><strong><code>discoverFacetAxes(marks, unit)</code></strong><br />
+Liste les axes disponibles pour le sélecteur (built-ins +
+<code>meta.*</code> homogènes). <strong>Retour :</strong>
+<code>FacetAxis[]</code>.</p>
+<p><strong><code>defaultFacetBy(doc, marks?)</code></strong><br />
+Choisit l’axe par défaut (<code>year</code> si dates, sinon cohort/group
+utiles). <strong>Retour :</strong> <code>string</code>.</p>
+<p><strong><code>resolveFacetBy(doc, marks, requested?)</code></strong><br />
+Valide une demande d’axe ou retombe sur le défaut. <strong>Retour
+:</strong> <code>string</code>.</p>
+<p><strong><code>computeFacetSummaries(marks, facetBy, unit)</code></strong><br />
+Calcule une ligne par bucket : compte, moyennes span/magnitude,
+quartiles Q1/Q2/Q3. <strong>Retour :</strong>
+<code>FacetSummaryRow[]</code>.</p>
+<p><strong><code>computeYearSummaries(marks, unit)</code></strong><br />
+Compatibilité : équivalent à
+<code>computeFacetSummaries(..., "year", unit)</code> avec un champ
+<code>year</code> numérique. <strong>Retour :</strong>
+<code>YearSummaryRow[]</code>.</p>
+<p><strong><code>formatAvgSpan(avgSpan, unit)</code></strong><br />
+Formate une moyenne de span (<code>12d</code>, <code>1.5y</code>, ou
+magnitude numérique). <strong>Retour :</strong> <code>string</code>.</p>
+<p><strong><code>createFacetSummaryDom(container, doc, marks, theme, options?)</code></strong><br />
+Crée le bandeau HTML (titre, sélecteur « Décliner par », lignes,
+mini-arcs). Options : <code>facetBy</code>, <code>onFacetChange</code>,
+<code>showPicker</code>. <strong>Retour :</strong>
+<code>{ root }</code>.</p>
+<p><strong>Types exportés :</strong> <code>FacetAxis</code>,
+<code>FacetSummaryRow</code>, <code>FacetQuartileArc</code>,
+<code>FacetSummaryElements</code>,
+<code>FacetSummaryDomOptions</code>.</p>
+<hr />
+<h3 id="compatibilité-année-yearsummary.ts">Compatibilité année
+(<code>yearSummary.ts</code>)</h3>
+<p>Module mince qui <strong>réexporte</strong> les symboles de
+<code>facetSummary</code> (dont <code>createYearSummaryDom</code>,
+<code>YEAR_SUMMARY_CSS</code>). À utiliser seulement pour du code ancien
+; préférer <code>facetSummary</code> / les exports de
+<code>index.ts</code>.</p>
+<p><strong><code>createYearSummaryDom(...)</code></strong> (via
+facetSummary, non réexporté dans <code>index.ts</code>)<br />
+Alias déprécié : bandeau forcé sur <code>year</code> sans sélecteur.</p>
+<hr />
+<h3 id="internes-utiles-non-exportés-par-index.ts">Internes utiles (non
+exportés par <code>index.ts</code>)</h3>
+<p>Ces helpers vivent dans <code>tickers.ts</code> et sont branchés par
+le renderer :</p>
+<ul>
+<li><strong><code>createTickerDom</code></strong> — crée le DOM des
+compteurs ;</li>
+<li><strong><code>updateTickers</code></strong> — met à jour les valeurs
+à chaque frame ;</li>
+<li><strong><code>TICKER_CSS</code></strong> — styles injectés avec le
+thème.</li>
+</ul>
+<p>Vous n’avez en général <strong>pas besoin</strong> de les appeler :
+<code>createSpanMagnitudeViz</code> s’en charge.</p>
+<hr />
+<h2 id="géométries">8. Géométries</h2>
+<ul>
+<li><strong><code>arc</code></strong> (défaut) — courbes de Bézier sur
+une baseline ; épaisseur ∝ magnitude ; léger jitter pour étaler les
+arcs.</li>
+<li><strong><code>bar</code></strong> — barres horizontales de
+<code>x0</code> à <code>x1</code>, hauteur ∝ magnitude.</li>
+<li><strong><code>lane</code></strong> — réservé ; actuellement traité
+comme <code>bar</code>.</li>
+</ul>
+<hr />
+<h2 id="intégration-rapide-checklist">9. Intégration rapide —
+checklist</h2>
+<ol type="1">
+<li>Préparer un JSON <code>version: 1</code> avec <code>unit</code> et
+<code>marks</code>.</li>
+<li>Valider avec <code>tryParseDocument</code> si vous voulez gérer les
+erreurs proprement.</li>
+<li>Appeler <code>createSpanMagnitudeViz(el, data, options)</code>.</li>
+<li>Brancher <code>play</code> / <code>pause</code> / filtres selon
+votre UI.</li>
+<li>Activer ou configurer le bandeau via <code>facetBy</code> /
+<code>facetSummary</code>.</li>
+<li>Pour une page offline, s’appuyer sur
+<code>demo/standalone-offline.html</code> ou un build Vite.</li>
+</ol>
+<hr />
+<h2 id="licence-liens">10. Licence &amp; liens</h2>
+<ul>
+<li>Licence : <strong>MIT</strong></li>
+<li>GitHub : <a
+href="https://github.com/michael-alteridea/span-magnitude-viz">https://github.com/michael-alteridea/span-magnitude-viz</a></li>
+<li>Design détaillé : <code>DESIGN.md</code> à la racine du dépôt</li>
+<li>README : <code>README.md</code></li>
+</ul>
+<p>Bonne intégration — et n’hésitez pas à partir des exemples
+<code>examples/</code> pour un premier prototype en quelques
+minutes.</p>
+</body>
+</html>

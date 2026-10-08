@@ -1,0 +1,8020 @@
+{
+  "version": 1,
+  "unit": "date",
+  "title": "Stress test — 500 projets",
+  "description": "Jeu de stress : 500 marques synthétiques (2018–2026) pour vérifier parse, montage et animation à grande échelle.",
+  "magnitudeLabel": "Budget (USD)",
+  "spanLabel": "Calendrier",
+  "countLabel": "Projets",
+  "defaults": {
+    "geometry": "arc",
+    "colorScheme": "altairady",
+    "animate": true,
+    "tickers": [
+      "count",
+      "magnitudeSum"
+    ]
+  },
+  "marks": [
+    {
+      "id": "stress-112",
+      "label": "Inertia Migration",
+      "span": {
+        "start": "2018-01-03",
+        "end": "2019-03-03"
+      },
+      "magnitude": 668000,
+      "revealAt": "2018-01-03",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-114",
+      "label": "Lumen Index",
+      "span": {
+        "start": "2018-01-17",
+        "end": "2019-08-17"
+      },
+      "magnitude": 79000,
+      "revealAt": "2018-01-17",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-157",
+      "label": "Pulse Mesh",
+      "span": {
+        "start": "2018-01-21",
+        "end": "2019-10-21"
+      },
+      "magnitude": 1942000,
+      "revealAt": "2018-01-21",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-310",
+      "label": "Orbit Studio",
+      "span": {
+        "start": "2018-01-23",
+        "end": "2018-06-23"
+      },
+      "magnitude": 55000,
+      "revealAt": "2018-01-23",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-052",
+      "label": "Grove Hub",
+      "span": {
+        "start": "2018-01-25",
+        "end": "2018-02-25"
+      },
+      "magnitude": 536000,
+      "revealAt": "2018-01-25",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-489",
+      "label": "Boreal Platform",
+      "span": {
+        "start": "2018-02-05",
+        "end": "2018-06-05"
+      },
+      "magnitude": 111000,
+      "revealAt": "2018-02-05",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-311",
+      "label": "Pulse Engine",
+      "span": {
+        "start": "2018-02-19",
+        "end": "2018-07-19"
+      },
+      "magnitude": 3373000,
+      "revealAt": "2018-02-19",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-328",
+      "label": "Nimbus Kernel",
+      "span": {
+        "start": "2018-02-20",
+        "end": "2019-11-20"
+      },
+      "magnitude": 53000,
+      "revealAt": "2018-02-20",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-263",
+      "label": "Cedar Expansion",
+      "span": {
+        "start": "2018-02-24",
+        "end": "2018-08-24"
+      },
+      "magnitude": 800000,
+      "revealAt": "2018-02-24",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-464",
+      "label": "Pulse Toolkit",
+      "span": {
+        "start": "2018-03-02",
+        "end": "2019-07-02"
+      },
+      "magnitude": 120000,
+      "revealAt": "2018-03-02",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-035",
+      "label": "Glacier Rewrite",
+      "span": {
+        "start": "2018-03-03",
+        "end": "2019-04-03"
+      },
+      "magnitude": 1740000,
+      "revealAt": "2018-03-03",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-175",
+      "label": "Ember Pipeline",
+      "span": {
+        "start": "2018-03-10",
+        "end": "2018-07-10"
+      },
+      "magnitude": 188000,
+      "revealAt": "2018-03-10",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-197",
+      "label": "Copper Archive",
+      "span": {
+        "start": "2018-03-14",
+        "end": "2021-02-14"
+      },
+      "magnitude": 165000,
+      "revealAt": "2018-03-14",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-330",
+      "label": "Ember Service",
+      "span": {
+        "start": "2018-03-22",
+        "end": "2019-11-22"
+      },
+      "magnitude": 713000,
+      "revealAt": "2018-03-22",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-370",
+      "label": "Dune Forge",
+      "span": {
+        "start": "2018-04-12",
+        "end": "2020-06-12"
+      },
+      "magnitude": 91000,
+      "revealAt": "2018-04-12",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-170",
+      "label": "Aurora Forge",
+      "span": {
+        "start": "2018-05-10",
+        "end": "2018-12-10"
+      },
+      "magnitude": 52000,
+      "revealAt": "2018-05-10",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-025",
+      "label": "Kite Service",
+      "span": {
+        "start": "2018-05-11",
+        "end": "2018-07-11"
+      },
+      "magnitude": 5629000,
+      "revealAt": "2018-05-11",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-353",
+      "label": "Delta Platform",
+      "span": {
+        "start": "2018-05-23",
+        "end": "2019-05-23"
+      },
+      "magnitude": 4240000,
+      "revealAt": "2018-05-23",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-434",
+      "label": "Echo Upgrade",
+      "span": {
+        "start": "2018-05-24",
+        "end": "2019-10-24"
+      },
+      "magnitude": 377000,
+      "revealAt": "2018-05-24",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-174",
+      "label": "Prism Toolkit",
+      "span": {
+        "start": "2018-05-25",
+        "end": "2020-07-25"
+      },
+      "magnitude": 73000,
+      "revealAt": "2018-05-25",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-398",
+      "label": "Nimbus Relay",
+      "span": {
+        "start": "2018-06-07",
+        "end": "2020-08-07"
+      },
+      "magnitude": 3442000,
+      "revealAt": "2018-06-07",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-173",
+      "label": "Flint Orbit",
+      "span": {
+        "start": "2018-06-17",
+        "end": "2020-12-17"
+      },
+      "magnitude": 275000,
+      "revealAt": "2018-06-17",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-204",
+      "label": "Drift Stack",
+      "span": {
+        "start": "2018-06-19",
+        "end": "2020-08-19"
+      },
+      "magnitude": 966000,
+      "revealAt": "2018-06-19",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-022",
+      "label": "Ridge Rollout",
+      "span": {
+        "start": "2018-06-20",
+        "end": "2020-07-20"
+      },
+      "magnitude": 2935000,
+      "revealAt": "2018-06-20",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-156",
+      "label": "Quill Layer",
+      "span": {
+        "start": "2018-07-10",
+        "end": "2020-08-10"
+      },
+      "magnitude": 110000,
+      "revealAt": "2018-07-10",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-125",
+      "label": "Falcon Dashboard",
+      "span": {
+        "start": "2018-07-16",
+        "end": "2020-06-16"
+      },
+      "magnitude": 95000,
+      "revealAt": "2018-07-16",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "John McC.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-274",
+      "label": "Quartz Platform",
+      "span": {
+        "start": "2018-07-18",
+        "end": "2018-11-18"
+      },
+      "magnitude": 64000,
+      "revealAt": "2018-07-18",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-414",
+      "label": "Horizon Pipeline",
+      "span": {
+        "start": "2018-07-18",
+        "end": "2019-02-18"
+      },
+      "magnitude": 137000,
+      "revealAt": "2018-07-18",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-054",
+      "label": "Tide Studio",
+      "span": {
+        "start": "2018-07-28",
+        "end": "2018-12-28"
+      },
+      "magnitude": 1720000,
+      "revealAt": "2018-07-28",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-351",
+      "label": "River Service",
+      "span": {
+        "start": "2018-08-05",
+        "end": "2019-12-05"
+      },
+      "magnitude": 394000,
+      "revealAt": "2018-08-05",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-372",
+      "label": "Forge Archive",
+      "span": {
+        "start": "2018-08-05",
+        "end": "2021-05-05"
+      },
+      "magnitude": 1389000,
+      "revealAt": "2018-08-05",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-021",
+      "label": "Umber Service",
+      "span": {
+        "start": "2018-08-13",
+        "end": "2021-07-13"
+      },
+      "magnitude": 2363000,
+      "revealAt": "2018-08-13",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-362",
+      "label": "Eclipse Dashboard",
+      "span": {
+        "start": "2018-08-14",
+        "end": "2020-12-14"
+      },
+      "magnitude": 57000,
+      "revealAt": "2018-08-14",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-076",
+      "label": "Zenith Graph",
+      "span": {
+        "start": "2018-08-18",
+        "end": "2019-03-18"
+      },
+      "magnitude": 40000,
+      "revealAt": "2018-08-18",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-017",
+      "label": "Lagoon Fabric",
+      "span": {
+        "start": "2018-08-26",
+        "end": "2019-01-26"
+      },
+      "magnitude": 152000,
+      "revealAt": "2018-08-26",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-354",
+      "label": "Amber Mesh",
+      "span": {
+        "start": "2018-09-03",
+        "end": "2020-04-03"
+      },
+      "magnitude": 879000,
+      "revealAt": "2018-09-03",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-309",
+      "label": "Falcon Gateway",
+      "span": {
+        "start": "2018-09-22",
+        "end": "2020-11-22"
+      },
+      "magnitude": 37000,
+      "revealAt": "2018-09-22",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-084",
+      "label": "Flint Fabric",
+      "span": {
+        "start": "2018-09-26",
+        "end": "2019-08-26"
+      },
+      "magnitude": 5273000,
+      "revealAt": "2018-09-26",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-152",
+      "label": "Delta Engine",
+      "span": {
+        "start": "2018-09-27",
+        "end": "2019-11-27"
+      },
+      "magnitude": 165000,
+      "revealAt": "2018-09-27",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-400",
+      "label": "Drift Launch",
+      "span": {
+        "start": "2018-10-01",
+        "end": "2020-08-01"
+      },
+      "magnitude": 105000,
+      "revealAt": "2018-10-01",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-113",
+      "label": "Aurora Mesh",
+      "span": {
+        "start": "2018-10-02",
+        "end": "2020-09-02"
+      },
+      "magnitude": 28000,
+      "revealAt": "2018-10-02",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-123",
+      "label": "Lumen Launch",
+      "span": {
+        "start": "2018-10-03",
+        "end": "2019-05-03"
+      },
+      "magnitude": 4364000,
+      "revealAt": "2018-10-03",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-055",
+      "label": "Cipher Framework",
+      "span": {
+        "start": "2018-10-04",
+        "end": "2020-06-04"
+      },
+      "magnitude": 704000,
+      "revealAt": "2018-10-04",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-273",
+      "label": "Helix Lattice",
+      "span": {
+        "start": "2018-10-04",
+        "end": "2019-05-04"
+      },
+      "magnitude": 419000,
+      "revealAt": "2018-10-04",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-463",
+      "label": "Orbit Matrix",
+      "span": {
+        "start": "2018-10-11",
+        "end": "2020-05-11"
+      },
+      "magnitude": 68000,
+      "revealAt": "2018-10-11",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-497",
+      "label": "Ridge Canvas",
+      "span": {
+        "start": "2018-10-22",
+        "end": "2020-08-22"
+      },
+      "magnitude": 616000,
+      "revealAt": "2018-10-22",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-265",
+      "label": "Eclipse Forge",
+      "span": {
+        "start": "2018-10-23",
+        "end": "2019-06-23"
+      },
+      "magnitude": 353000,
+      "revealAt": "2018-10-23",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-162",
+      "label": "Kite Lattice",
+      "span": {
+        "start": "2018-10-24",
+        "end": "2020-04-24"
+      },
+      "magnitude": 2320000,
+      "revealAt": "2018-10-24",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-344",
+      "label": "Opal Dashboard",
+      "span": {
+        "start": "2018-10-26",
+        "end": "2020-04-26"
+      },
+      "magnitude": 69000,
+      "revealAt": "2018-10-26",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-449",
+      "label": "Grove Expansion",
+      "span": {
+        "start": "2018-10-27",
+        "end": "2021-02-27"
+      },
+      "magnitude": 36000,
+      "revealAt": "2018-10-27",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-016",
+      "label": "Ivory Service",
+      "span": {
+        "start": "2018-10-28",
+        "end": "2021-01-28"
+      },
+      "magnitude": 32000,
+      "revealAt": "2018-10-28",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-423",
+      "label": "Lumen Archive",
+      "span": {
+        "start": "2018-10-28",
+        "end": "2019-03-28"
+      },
+      "magnitude": 137000,
+      "revealAt": "2018-10-28",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-428",
+      "label": "Ember Archive",
+      "span": {
+        "start": "2018-10-28",
+        "end": "2020-04-28"
+      },
+      "magnitude": 606000,
+      "revealAt": "2018-10-28",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-500",
+      "label": "Prism Upgrade",
+      "span": {
+        "start": "2018-11-01",
+        "end": "2020-03-01"
+      },
+      "magnitude": 5253000,
+      "revealAt": "2018-11-01",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-087",
+      "label": "Grove Platform",
+      "span": {
+        "start": "2018-11-05",
+        "end": "2020-11-05"
+      },
+      "magnitude": 34000,
+      "revealAt": "2018-11-05",
+      "cohort": "2018",
+      "group": "R&D",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-429",
+      "label": "Harbor Network",
+      "span": {
+        "start": "2018-11-15",
+        "end": "2019-03-15"
+      },
+      "magnitude": 106000,
+      "revealAt": "2018-11-15",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-046",
+      "label": "Juniper Toolkit",
+      "span": {
+        "start": "2018-11-19",
+        "end": "2021-04-19"
+      },
+      "magnitude": 162000,
+      "revealAt": "2018-11-19",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-269",
+      "label": "Nimbus Launch",
+      "span": {
+        "start": "2018-11-20",
+        "end": "2021-10-20"
+      },
+      "magnitude": 2443000,
+      "revealAt": "2018-11-20",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-352",
+      "label": "Cascade Archive",
+      "span": {
+        "start": "2018-11-25",
+        "end": "2020-01-25"
+      },
+      "magnitude": 315000,
+      "revealAt": "2018-11-25",
+      "cohort": "2018",
+      "group": "Platform",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-185",
+      "label": "Inertia Studio",
+      "span": {
+        "start": "2018-11-27",
+        "end": "2019-07-27"
+      },
+      "magnitude": 3952000,
+      "revealAt": "2018-11-27",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-375",
+      "label": "Pulse Studio",
+      "span": {
+        "start": "2018-12-06",
+        "end": "2020-01-06"
+      },
+      "magnitude": 1153000,
+      "revealAt": "2018-12-06",
+      "cohort": "2018",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-249",
+      "label": "Flint Suite",
+      "span": {
+        "start": "2018-12-09",
+        "end": "2019-04-09"
+      },
+      "magnitude": 89000,
+      "revealAt": "2018-12-09",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-038",
+      "label": "Lumen Upgrade",
+      "span": {
+        "start": "2018-12-11",
+        "end": "2019-03-11"
+      },
+      "magnitude": 81000,
+      "revealAt": "2018-12-11",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-386",
+      "label": "Yellowstone Fabric",
+      "span": {
+        "start": "2018-12-11",
+        "end": "2019-12-11"
+      },
+      "magnitude": 4425000,
+      "revealAt": "2018-12-11",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-221",
+      "label": "Velvet Orbit",
+      "span": {
+        "start": "2018-12-15",
+        "end": "2020-02-15"
+      },
+      "magnitude": 828000,
+      "revealAt": "2018-12-15",
+      "cohort": "2018",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-312",
+      "label": "Nova Core",
+      "span": {
+        "start": "2018-12-24",
+        "end": "2021-03-24"
+      },
+      "magnitude": 263000,
+      "revealAt": "2018-12-24",
+      "cohort": "2018",
+      "group": "GTM",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-485",
+      "label": "Nimbus Forge",
+      "span": {
+        "start": "2018-12-27",
+        "end": "2021-12-27"
+      },
+      "magnitude": 245000,
+      "revealAt": "2018-12-27",
+      "cohort": "2018",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-250",
+      "label": "Yellowstone Layer",
+      "span": {
+        "start": "2019-01-09",
+        "end": "2021-04-09"
+      },
+      "magnitude": 551000,
+      "revealAt": "2019-01-09",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-482",
+      "label": "Copper Pipeline",
+      "span": {
+        "start": "2019-01-12",
+        "end": "2021-04-12"
+      },
+      "magnitude": 123000,
+      "revealAt": "2019-01-12",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-207",
+      "label": "Opal Launch",
+      "span": {
+        "start": "2019-01-18",
+        "end": "2020-05-18"
+      },
+      "magnitude": 171000,
+      "revealAt": "2019-01-18",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-196",
+      "label": "Copper Framework",
+      "span": {
+        "start": "2019-01-28",
+        "end": "2021-10-28"
+      },
+      "magnitude": 420000,
+      "revealAt": "2019-01-28",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-277",
+      "label": "Keystone Engine",
+      "span": {
+        "start": "2019-01-28",
+        "end": "2020-05-28"
+      },
+      "magnitude": 3197000,
+      "revealAt": "2019-01-28",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-130",
+      "label": "Prism Network",
+      "span": {
+        "start": "2019-02-01",
+        "end": "2021-01-01"
+      },
+      "magnitude": 143000,
+      "revealAt": "2019-02-01",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-213",
+      "label": "Nest Kernel",
+      "span": {
+        "start": "2019-02-14",
+        "end": "2020-08-14"
+      },
+      "magnitude": 4255000,
+      "revealAt": "2019-02-14",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-379",
+      "label": "Harbor Cluster",
+      "span": {
+        "start": "2019-02-16",
+        "end": "2019-07-16"
+      },
+      "magnitude": 68000,
+      "revealAt": "2019-02-16",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-205",
+      "label": "Vesper Mesh",
+      "span": {
+        "start": "2019-02-20",
+        "end": "2020-04-20"
+      },
+      "magnitude": 135000,
+      "revealAt": "2019-02-20",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-120",
+      "label": "Drift Lattice",
+      "span": {
+        "start": "2019-02-25",
+        "end": "2021-12-25"
+      },
+      "magnitude": 1063000,
+      "revealAt": "2019-02-25",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-437",
+      "label": "Lumen Suite",
+      "span": {
+        "start": "2019-03-05",
+        "end": "2021-08-05"
+      },
+      "magnitude": 5355000,
+      "revealAt": "2019-03-05",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-272",
+      "label": "Vesper Orbit",
+      "span": {
+        "start": "2019-03-09",
+        "end": "2019-12-09"
+      },
+      "magnitude": 161000,
+      "revealAt": "2019-03-09",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-253",
+      "label": "Umber Upgrade",
+      "span": {
+        "start": "2019-03-20",
+        "end": "2021-01-20"
+      },
+      "magnitude": 1930000,
+      "revealAt": "2019-03-20",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "John McC.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-494",
+      "label": "Prism Bridge",
+      "span": {
+        "start": "2019-03-23",
+        "end": "2021-02-23"
+      },
+      "magnitude": 4367000,
+      "revealAt": "2019-03-23",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-477",
+      "label": "Flint Protocol",
+      "span": {
+        "start": "2019-03-26",
+        "end": "2021-03-26"
+      },
+      "magnitude": 260000,
+      "revealAt": "2019-03-26",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-206",
+      "label": "Nova Expansion",
+      "span": {
+        "start": "2019-04-01",
+        "end": "2020-03-01"
+      },
+      "magnitude": 2121000,
+      "revealAt": "2019-04-01",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-403",
+      "label": "Lumen Dashboard",
+      "span": {
+        "start": "2019-04-08",
+        "end": "2020-06-08"
+      },
+      "magnitude": 29000,
+      "revealAt": "2019-04-08",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-360",
+      "label": "Glacier Platform",
+      "span": {
+        "start": "2019-04-11",
+        "end": "2022-01-11"
+      },
+      "magnitude": 619000,
+      "revealAt": "2019-04-11",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-088",
+      "label": "Boreal Expansion",
+      "span": {
+        "start": "2019-04-14",
+        "end": "2019-08-14"
+      },
+      "magnitude": 952000,
+      "revealAt": "2019-04-14",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-303",
+      "label": "Lagoon Cluster",
+      "span": {
+        "start": "2019-04-14",
+        "end": "2021-09-14"
+      },
+      "magnitude": 267000,
+      "revealAt": "2019-04-14",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-284",
+      "label": "Nimbus Mesh",
+      "span": {
+        "start": "2019-04-18",
+        "end": "2020-02-18"
+      },
+      "magnitude": 47000,
+      "revealAt": "2019-04-18",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-131",
+      "label": "Lumen Portal",
+      "span": {
+        "start": "2019-04-21",
+        "end": "2021-04-21"
+      },
+      "magnitude": 54000,
+      "revealAt": "2019-04-21",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-014",
+      "label": "Cipher Lattice",
+      "span": {
+        "start": "2019-04-23",
+        "end": "2021-08-23"
+      },
+      "magnitude": 885000,
+      "revealAt": "2019-04-23",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-153",
+      "label": "Delta Edge",
+      "span": {
+        "start": "2019-04-24",
+        "end": "2019-10-24"
+      },
+      "magnitude": 88000,
+      "revealAt": "2019-04-24",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-051",
+      "label": "Vesper Gateway",
+      "span": {
+        "start": "2019-05-02",
+        "end": "2019-09-02"
+      },
+      "magnitude": 259000,
+      "revealAt": "2019-05-02",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-387",
+      "label": "Inertia Network",
+      "span": {
+        "start": "2019-05-04",
+        "end": "2021-06-04"
+      },
+      "magnitude": 1464000,
+      "revealAt": "2019-05-04",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-259",
+      "label": "Jade Fabric",
+      "span": {
+        "start": "2019-05-06",
+        "end": "2020-09-06"
+      },
+      "magnitude": 497000,
+      "revealAt": "2019-05-06",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-425",
+      "label": "Opal Layer",
+      "span": {
+        "start": "2019-05-06",
+        "end": "2022-04-06"
+      },
+      "magnitude": 2451000,
+      "revealAt": "2019-05-06",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "John McC.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-384",
+      "label": "Tide Archive",
+      "span": {
+        "start": "2019-05-23",
+        "end": "2021-07-23"
+      },
+      "magnitude": 137000,
+      "revealAt": "2019-05-23",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-180",
+      "label": "Harbor Launch",
+      "span": {
+        "start": "2019-05-24",
+        "end": "2019-11-24"
+      },
+      "magnitude": 90000,
+      "revealAt": "2019-05-24",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-133",
+      "label": "Vesper Service",
+      "span": {
+        "start": "2019-06-17",
+        "end": "2019-07-17"
+      },
+      "magnitude": 61000,
+      "revealAt": "2019-06-17",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-103",
+      "label": "Delta Rewrite",
+      "span": {
+        "start": "2019-06-20",
+        "end": "2022-03-20"
+      },
+      "magnitude": 2449000,
+      "revealAt": "2019-06-20",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-466",
+      "label": "Dune Framework",
+      "span": {
+        "start": "2019-06-20",
+        "end": "2019-11-20"
+      },
+      "magnitude": 5795000,
+      "revealAt": "2019-06-20",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-481",
+      "label": "Cedar Service",
+      "span": {
+        "start": "2019-06-20",
+        "end": "2019-07-20"
+      },
+      "magnitude": 1819000,
+      "revealAt": "2019-06-20",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-187",
+      "label": "Lagoon Index",
+      "span": {
+        "start": "2019-06-22",
+        "end": "2020-08-22"
+      },
+      "magnitude": 1194000,
+      "revealAt": "2019-06-22",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-124",
+      "label": "Harbor Pipeline",
+      "span": {
+        "start": "2019-07-01",
+        "end": "2021-10-01"
+      },
+      "magnitude": 3931000,
+      "revealAt": "2019-07-01",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-316",
+      "label": "Ivory Layer",
+      "span": {
+        "start": "2019-07-01",
+        "end": "2020-05-01"
+      },
+      "magnitude": 26000,
+      "revealAt": "2019-07-01",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-220",
+      "label": "Jade Index",
+      "span": {
+        "start": "2019-07-03",
+        "end": "2021-05-03"
+      },
+      "magnitude": 3737000,
+      "revealAt": "2019-07-03",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-036",
+      "label": "Prism Mesh",
+      "span": {
+        "start": "2019-07-04",
+        "end": "2022-02-04"
+      },
+      "magnitude": 778000,
+      "revealAt": "2019-07-04",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-315",
+      "label": "Ember Graph",
+      "span": {
+        "start": "2019-07-04",
+        "end": "2019-11-04"
+      },
+      "magnitude": 144000,
+      "revealAt": "2019-07-04",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-416",
+      "label": "Canvas Fabric",
+      "span": {
+        "start": "2019-07-18",
+        "end": "2021-07-18"
+      },
+      "magnitude": 353000,
+      "revealAt": "2019-07-18",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-149",
+      "label": "Ember Core",
+      "span": {
+        "start": "2019-07-21",
+        "end": "2022-06-21"
+      },
+      "magnitude": 34000,
+      "revealAt": "2019-07-21",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-470",
+      "label": "Pulse Kernel",
+      "span": {
+        "start": "2019-07-23",
+        "end": "2019-09-23"
+      },
+      "magnitude": 3160000,
+      "revealAt": "2019-07-23",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-066",
+      "label": "Willow Cluster",
+      "span": {
+        "start": "2019-08-01",
+        "end": "2020-01-01"
+      },
+      "magnitude": 25000,
+      "revealAt": "2019-08-01",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-313",
+      "label": "Copper Orbit",
+      "span": {
+        "start": "2019-08-15",
+        "end": "2020-11-15"
+      },
+      "magnitude": 342000,
+      "revealAt": "2019-08-15",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-031",
+      "label": "Cedar Platform",
+      "span": {
+        "start": "2019-08-17",
+        "end": "2021-07-17"
+      },
+      "magnitude": 40000,
+      "revealAt": "2019-08-17",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-459",
+      "label": "Aurora Network",
+      "span": {
+        "start": "2019-08-24",
+        "end": "2019-10-24"
+      },
+      "magnitude": 72000,
+      "revealAt": "2019-08-24",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-431",
+      "label": "Canvas Stack",
+      "span": {
+        "start": "2019-09-20",
+        "end": "2020-02-20"
+      },
+      "magnitude": 106000,
+      "revealAt": "2019-09-20",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-098",
+      "label": "Eclipse Canvas",
+      "span": {
+        "start": "2019-09-22",
+        "end": "2021-03-22"
+      },
+      "magnitude": 751000,
+      "revealAt": "2019-09-22",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-019",
+      "label": "Yellowstone Edge",
+      "span": {
+        "start": "2019-09-25",
+        "end": "2021-04-25"
+      },
+      "magnitude": 44000,
+      "revealAt": "2019-09-25",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "John McC.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-218",
+      "label": "Keystone Suite",
+      "span": {
+        "start": "2019-09-26",
+        "end": "2020-06-26"
+      },
+      "magnitude": 61000,
+      "revealAt": "2019-09-26",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-300",
+      "label": "Yellowstone Rollout",
+      "span": {
+        "start": "2019-10-01",
+        "end": "2021-12-01"
+      },
+      "magnitude": 132000,
+      "revealAt": "2019-10-01",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-050",
+      "label": "Ridge Matrix",
+      "span": {
+        "start": "2019-10-08",
+        "end": "2021-04-08"
+      },
+      "magnitude": 30000,
+      "revealAt": "2019-10-08",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-278",
+      "label": "Forge Edge",
+      "span": {
+        "start": "2019-10-17",
+        "end": "2021-10-17"
+      },
+      "magnitude": 729000,
+      "revealAt": "2019-10-17",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-306",
+      "label": "Quill Archive",
+      "span": {
+        "start": "2019-10-20",
+        "end": "2021-09-20"
+      },
+      "magnitude": 391000,
+      "revealAt": "2019-10-20",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-208",
+      "label": "Drift Archive",
+      "span": {
+        "start": "2019-10-25",
+        "end": "2021-02-25"
+      },
+      "magnitude": 65000,
+      "revealAt": "2019-10-25",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-412",
+      "label": "Nest Graph",
+      "span": {
+        "start": "2019-11-02",
+        "end": "2021-09-02"
+      },
+      "magnitude": 907000,
+      "revealAt": "2019-11-02",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-006",
+      "label": "Flint Graph",
+      "span": {
+        "start": "2019-11-04",
+        "end": "2021-08-04"
+      },
+      "magnitude": 422000,
+      "revealAt": "2019-11-04",
+      "cohort": "2019",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-033",
+      "label": "Flint Cluster",
+      "span": {
+        "start": "2019-11-08",
+        "end": "2022-01-08"
+      },
+      "magnitude": 78000,
+      "revealAt": "2019-11-08",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-020",
+      "label": "Boreal Orbit",
+      "span": {
+        "start": "2019-11-14",
+        "end": "2022-06-14"
+      },
+      "magnitude": 206000,
+      "revealAt": "2019-11-14",
+      "cohort": "2019",
+      "group": "Platform",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-107",
+      "label": "Beacon Protocol",
+      "span": {
+        "start": "2019-11-15",
+        "end": "2021-01-15"
+      },
+      "magnitude": 1507000,
+      "revealAt": "2019-11-15",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-117",
+      "label": "Cipher Cluster",
+      "span": {
+        "start": "2019-11-15",
+        "end": "2020-02-15"
+      },
+      "magnitude": 2939000,
+      "revealAt": "2019-11-15",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-178",
+      "label": "Willow Canvas",
+      "span": {
+        "start": "2019-11-22",
+        "end": "2022-06-22"
+      },
+      "magnitude": 767000,
+      "revealAt": "2019-11-22",
+      "cohort": "2019",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-349",
+      "label": "Pulse Expansion",
+      "span": {
+        "start": "2019-11-25",
+        "end": "2020-05-25"
+      },
+      "magnitude": 5545000,
+      "revealAt": "2019-11-25",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-127",
+      "label": "Lumen Rewrite",
+      "span": {
+        "start": "2019-12-02",
+        "end": "2020-08-02"
+      },
+      "magnitude": 65000,
+      "revealAt": "2019-12-02",
+      "cohort": "2019",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-065",
+      "label": "Yellowstone Stack",
+      "span": {
+        "start": "2019-12-14",
+        "end": "2021-10-14"
+      },
+      "magnitude": 1892000,
+      "revealAt": "2019-12-14",
+      "cohort": "2019",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-079",
+      "label": "Marble Suite",
+      "span": {
+        "start": "2019-12-21",
+        "end": "2020-05-21"
+      },
+      "magnitude": 145000,
+      "revealAt": "2019-12-21",
+      "cohort": "2019",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-028",
+      "label": "Lumen Expansion",
+      "span": {
+        "start": "2020-01-16",
+        "end": "2023-01-16"
+      },
+      "magnitude": 1460000,
+      "revealAt": "2020-01-16",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-193",
+      "label": "Beacon Core",
+      "span": {
+        "start": "2020-01-18",
+        "end": "2022-06-18"
+      },
+      "magnitude": 1271000,
+      "revealAt": "2020-01-18",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-467",
+      "label": "Aurora Portal",
+      "span": {
+        "start": "2020-01-25",
+        "end": "2020-12-25"
+      },
+      "magnitude": 106000,
+      "revealAt": "2020-01-25",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-115",
+      "label": "Ember Launch",
+      "span": {
+        "start": "2020-02-04",
+        "end": "2022-01-04"
+      },
+      "magnitude": 110000,
+      "revealAt": "2020-02-04",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-223",
+      "label": "Keystone Network",
+      "span": {
+        "start": "2020-02-04",
+        "end": "2021-05-04"
+      },
+      "magnitude": 272000,
+      "revealAt": "2020-02-04",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-417",
+      "label": "Juniper Lattice",
+      "span": {
+        "start": "2020-02-06",
+        "end": "2021-01-06"
+      },
+      "magnitude": 380000,
+      "revealAt": "2020-02-06",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-450",
+      "label": "Grove Canvas",
+      "span": {
+        "start": "2020-02-10",
+        "end": "2022-07-10"
+      },
+      "magnitude": 448000,
+      "revealAt": "2020-02-10",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-486",
+      "label": "Ridge Upgrade",
+      "span": {
+        "start": "2020-02-12",
+        "end": "2022-03-12"
+      },
+      "magnitude": 3914000,
+      "revealAt": "2020-02-12",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-487",
+      "label": "Ember Bridge",
+      "span": {
+        "start": "2020-02-27",
+        "end": "2021-08-27"
+      },
+      "magnitude": 706000,
+      "revealAt": "2020-02-27",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-101",
+      "label": "Cedar Index",
+      "span": {
+        "start": "2020-02-28",
+        "end": "2021-01-28"
+      },
+      "magnitude": 1319000,
+      "revealAt": "2020-02-28",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-246",
+      "label": "Glacier Fabric",
+      "span": {
+        "start": "2020-03-02",
+        "end": "2021-11-02"
+      },
+      "magnitude": 185000,
+      "revealAt": "2020-03-02",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-378",
+      "label": "Grove Studio",
+      "span": {
+        "start": "2020-03-08",
+        "end": "2023-03-08"
+      },
+      "magnitude": 1933000,
+      "revealAt": "2020-03-08",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-376",
+      "label": "Falcon Orbit",
+      "span": {
+        "start": "2020-03-15",
+        "end": "2022-11-15"
+      },
+      "magnitude": 1068000,
+      "revealAt": "2020-03-15",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-251",
+      "label": "Umber Archive",
+      "span": {
+        "start": "2020-03-19",
+        "end": "2021-09-19"
+      },
+      "magnitude": 4394000,
+      "revealAt": "2020-03-19",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-409",
+      "label": "Amber Stack",
+      "span": {
+        "start": "2020-03-26",
+        "end": "2020-06-26"
+      },
+      "magnitude": 348000,
+      "revealAt": "2020-03-26",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-234",
+      "label": "Delta Kernel",
+      "span": {
+        "start": "2020-04-02",
+        "end": "2021-12-02"
+      },
+      "magnitude": 3504000,
+      "revealAt": "2020-04-02",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-238",
+      "label": "Lumen Mesh",
+      "span": {
+        "start": "2020-04-15",
+        "end": "2021-10-15"
+      },
+      "magnitude": 541000,
+      "revealAt": "2020-04-15",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-062",
+      "label": "Flint Spine",
+      "span": {
+        "start": "2020-04-25",
+        "end": "2022-06-25"
+      },
+      "magnitude": 76000,
+      "revealAt": "2020-04-25",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-009",
+      "label": "Beacon Toolkit",
+      "span": {
+        "start": "2020-04-26",
+        "end": "2020-11-26"
+      },
+      "magnitude": 346000,
+      "revealAt": "2020-04-26",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-244",
+      "label": "Jade Forge",
+      "span": {
+        "start": "2020-05-02",
+        "end": "2022-03-02"
+      },
+      "magnitude": 794000,
+      "revealAt": "2020-05-02",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-091",
+      "label": "Cedar Hub",
+      "span": {
+        "start": "2020-05-19",
+        "end": "2020-08-19"
+      },
+      "magnitude": 491000,
+      "revealAt": "2020-05-19",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-338",
+      "label": "Yellowstone Studio",
+      "span": {
+        "start": "2020-05-21",
+        "end": "2022-09-21"
+      },
+      "magnitude": 1246000,
+      "revealAt": "2020-05-21",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-336",
+      "label": "Atlas Network",
+      "span": {
+        "start": "2020-06-05",
+        "end": "2023-05-05"
+      },
+      "magnitude": 1614000,
+      "revealAt": "2020-06-05",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-222",
+      "label": "Echo Archive",
+      "span": {
+        "start": "2020-06-07",
+        "end": "2022-06-07"
+      },
+      "magnitude": 26000,
+      "revealAt": "2020-06-07",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-085",
+      "label": "Aurora Framework",
+      "span": {
+        "start": "2020-06-17",
+        "end": "2023-06-17"
+      },
+      "magnitude": 126000,
+      "revealAt": "2020-06-17",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-211",
+      "label": "Amber Cluster",
+      "span": {
+        "start": "2020-06-22",
+        "end": "2023-04-22"
+      },
+      "magnitude": 1950000,
+      "revealAt": "2020-06-22",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-040",
+      "label": "Quartz Service",
+      "span": {
+        "start": "2020-06-26",
+        "end": "2022-07-26"
+      },
+      "magnitude": 37000,
+      "revealAt": "2020-06-26",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-227",
+      "label": "Zenith Pipeline",
+      "span": {
+        "start": "2020-06-27",
+        "end": "2022-10-27"
+      },
+      "magnitude": 889000,
+      "revealAt": "2020-06-27",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-478",
+      "label": "Drift Upgrade",
+      "span": {
+        "start": "2020-07-01",
+        "end": "2020-12-01"
+      },
+      "magnitude": 548000,
+      "revealAt": "2020-07-01",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-264",
+      "label": "Nest Framework",
+      "span": {
+        "start": "2020-07-11",
+        "end": "2022-07-11"
+      },
+      "magnitude": 50000,
+      "revealAt": "2020-07-11",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-086",
+      "label": "Harbor Expansion",
+      "span": {
+        "start": "2020-07-13",
+        "end": "2022-11-13"
+      },
+      "magnitude": 4305000,
+      "revealAt": "2020-07-13",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-002",
+      "label": "Cedar Canvas",
+      "span": {
+        "start": "2020-07-26",
+        "end": "2021-05-26"
+      },
+      "magnitude": 1194000,
+      "revealAt": "2020-07-26",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-188",
+      "label": "Beacon Layer",
+      "span": {
+        "start": "2020-08-02",
+        "end": "2022-09-02"
+      },
+      "magnitude": 5829000,
+      "revealAt": "2020-08-02",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-135",
+      "label": "Kite Canvas",
+      "span": {
+        "start": "2020-08-04",
+        "end": "2023-03-04"
+      },
+      "magnitude": 260000,
+      "revealAt": "2020-08-04",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-018",
+      "label": "Drift Studio",
+      "span": {
+        "start": "2020-08-06",
+        "end": "2020-09-06"
+      },
+      "magnitude": 889000,
+      "revealAt": "2020-08-06",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-468",
+      "label": "Echo Matrix",
+      "span": {
+        "start": "2020-08-11",
+        "end": "2021-10-11"
+      },
+      "magnitude": 764000,
+      "revealAt": "2020-08-11",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-337",
+      "label": "Ridge Cluster",
+      "span": {
+        "start": "2020-08-20",
+        "end": "2020-12-20"
+      },
+      "magnitude": 69000,
+      "revealAt": "2020-08-20",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-496",
+      "label": "Helix Suite",
+      "span": {
+        "start": "2020-08-20",
+        "end": "2021-01-20"
+      },
+      "magnitude": 33000,
+      "revealAt": "2020-08-20",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-283",
+      "label": "Boreal Index",
+      "span": {
+        "start": "2020-08-26",
+        "end": "2023-06-26"
+      },
+      "magnitude": 314000,
+      "revealAt": "2020-08-26",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-032",
+      "label": "Summit Orbit",
+      "span": {
+        "start": "2020-09-13",
+        "end": "2022-04-13"
+      },
+      "magnitude": 139000,
+      "revealAt": "2020-09-13",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-034",
+      "label": "Forge Network",
+      "span": {
+        "start": "2020-09-18",
+        "end": "2022-04-18"
+      },
+      "magnitude": 57000,
+      "revealAt": "2020-09-18",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-057",
+      "label": "Cipher Kernel",
+      "span": {
+        "start": "2020-09-20",
+        "end": "2021-07-20"
+      },
+      "magnitude": 1332000,
+      "revealAt": "2020-09-20",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-480",
+      "label": "Ridge Studio",
+      "span": {
+        "start": "2020-09-22",
+        "end": "2023-01-22"
+      },
+      "magnitude": 375000,
+      "revealAt": "2020-09-22",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-144",
+      "label": "Velvet Service",
+      "span": {
+        "start": "2020-09-25",
+        "end": "2021-10-25"
+      },
+      "magnitude": 106000,
+      "revealAt": "2020-09-25",
+      "cohort": "2020",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-077",
+      "label": "River Core",
+      "span": {
+        "start": "2020-10-16",
+        "end": "2021-06-16"
+      },
+      "magnitude": 38000,
+      "revealAt": "2020-10-16",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-326",
+      "label": "Kite Mesh",
+      "span": {
+        "start": "2020-10-21",
+        "end": "2022-11-21"
+      },
+      "magnitude": 145000,
+      "revealAt": "2020-10-21",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-325",
+      "label": "Keystone Expansion",
+      "span": {
+        "start": "2020-11-02",
+        "end": "2021-08-02"
+      },
+      "magnitude": 144000,
+      "revealAt": "2020-11-02",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-243",
+      "label": "Zenith Engine",
+      "span": {
+        "start": "2020-11-03",
+        "end": "2023-07-03"
+      },
+      "magnitude": 416000,
+      "revealAt": "2020-11-03",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-257",
+      "label": "Jade Dashboard",
+      "span": {
+        "start": "2020-11-13",
+        "end": "2022-03-13"
+      },
+      "magnitude": 92000,
+      "revealAt": "2020-11-13",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-111",
+      "label": "Harbor Spine",
+      "span": {
+        "start": "2020-11-16",
+        "end": "2022-08-16"
+      },
+      "magnitude": 312000,
+      "revealAt": "2020-11-16",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-121",
+      "label": "Canvas Studio",
+      "span": {
+        "start": "2020-11-23",
+        "end": "2023-09-23"
+      },
+      "magnitude": 131000,
+      "revealAt": "2020-11-23",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-290",
+      "label": "Prism Relay",
+      "span": {
+        "start": "2020-11-25",
+        "end": "2022-09-25"
+      },
+      "magnitude": 510000,
+      "revealAt": "2020-11-25",
+      "cohort": "2020",
+      "group": "Product",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-298",
+      "label": "Marble Canvas",
+      "span": {
+        "start": "2020-12-04",
+        "end": "2021-10-04"
+      },
+      "magnitude": 69000,
+      "revealAt": "2020-12-04",
+      "cohort": "2020",
+      "group": "Platform",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-075",
+      "label": "Ridge Toolkit",
+      "span": {
+        "start": "2020-12-13",
+        "end": "2021-08-13"
+      },
+      "magnitude": 1381000,
+      "revealAt": "2020-12-13",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-126",
+      "label": "Flint Migration",
+      "span": {
+        "start": "2020-12-19",
+        "end": "2022-05-19"
+      },
+      "magnitude": 65000,
+      "revealAt": "2020-12-19",
+      "cohort": "2020",
+      "group": "GTM",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-472",
+      "label": "Helix Kernel",
+      "span": {
+        "start": "2020-12-24",
+        "end": "2021-09-24"
+      },
+      "magnitude": 104000,
+      "revealAt": "2020-12-24",
+      "cohort": "2020",
+      "group": "R&D",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-169",
+      "label": "Orbit Core",
+      "span": {
+        "start": "2020-12-28",
+        "end": "2022-03-28"
+      },
+      "magnitude": 527000,
+      "revealAt": "2020-12-28",
+      "cohort": "2020",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-160",
+      "label": "Orbit Engine",
+      "span": {
+        "start": "2021-01-08",
+        "end": "2023-08-08"
+      },
+      "magnitude": 63000,
+      "revealAt": "2021-01-08",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-499",
+      "label": "Summit Graph",
+      "span": {
+        "start": "2021-01-19",
+        "end": "2022-01-19"
+      },
+      "magnitude": 2386000,
+      "revealAt": "2021-01-19",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-029",
+      "label": "Glacier Mesh",
+      "span": {
+        "start": "2021-02-06",
+        "end": "2022-11-06"
+      },
+      "magnitude": 235000,
+      "revealAt": "2021-02-06",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-456",
+      "label": "Lagoon Kernel",
+      "span": {
+        "start": "2021-02-06",
+        "end": "2022-04-06"
+      },
+      "magnitude": 36000,
+      "revealAt": "2021-02-06",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-324",
+      "label": "Amber Relay",
+      "span": {
+        "start": "2021-02-12",
+        "end": "2022-12-12"
+      },
+      "magnitude": 68000,
+      "revealAt": "2021-02-12",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-044",
+      "label": "Helix Matrix",
+      "span": {
+        "start": "2021-02-15",
+        "end": "2023-02-15"
+      },
+      "magnitude": 219000,
+      "revealAt": "2021-02-15",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-410",
+      "label": "Ivory Cluster",
+      "span": {
+        "start": "2021-02-17",
+        "end": "2023-07-17"
+      },
+      "magnitude": 67000,
+      "revealAt": "2021-02-17",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-289",
+      "label": "Orbit Mesh",
+      "span": {
+        "start": "2021-02-19",
+        "end": "2021-10-19"
+      },
+      "magnitude": 711000,
+      "revealAt": "2021-02-19",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-080",
+      "label": "Vesper Index",
+      "span": {
+        "start": "2021-02-22",
+        "end": "2022-11-22"
+      },
+      "magnitude": 197000,
+      "revealAt": "2021-02-22",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-228",
+      "label": "Falcon Expansion",
+      "span": {
+        "start": "2021-02-24",
+        "end": "2022-06-24"
+      },
+      "magnitude": 36000,
+      "revealAt": "2021-02-24",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-307",
+      "label": "Eclipse Gateway",
+      "span": {
+        "start": "2021-02-25",
+        "end": "2021-09-25"
+      },
+      "magnitude": 683000,
+      "revealAt": "2021-02-25",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-167",
+      "label": "Cipher Index",
+      "span": {
+        "start": "2021-03-02",
+        "end": "2022-06-02"
+      },
+      "magnitude": 729000,
+      "revealAt": "2021-03-02",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-322",
+      "label": "Kite Migration",
+      "span": {
+        "start": "2021-03-02",
+        "end": "2023-03-02"
+      },
+      "magnitude": 2164000,
+      "revealAt": "2021-03-02",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-090",
+      "label": "Cedar Upgrade",
+      "span": {
+        "start": "2021-03-07",
+        "end": "2021-11-07"
+      },
+      "magnitude": 255000,
+      "revealAt": "2021-03-07",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-140",
+      "label": "Tide Protocol",
+      "span": {
+        "start": "2021-03-10",
+        "end": "2021-12-10"
+      },
+      "magnitude": 134000,
+      "revealAt": "2021-03-10",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-132",
+      "label": "Falcon Hub",
+      "span": {
+        "start": "2021-03-16",
+        "end": "2023-12-16"
+      },
+      "magnitude": 2050000,
+      "revealAt": "2021-03-16",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "John McC.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-406",
+      "label": "Eclipse Rollout",
+      "span": {
+        "start": "2021-03-23",
+        "end": "2021-11-23"
+      },
+      "magnitude": 1911000,
+      "revealAt": "2021-03-23",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-479",
+      "label": "Umber Forge",
+      "span": {
+        "start": "2021-03-24",
+        "end": "2022-10-24"
+      },
+      "magnitude": 80000,
+      "revealAt": "2021-03-24",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-047",
+      "label": "Marble Upgrade",
+      "span": {
+        "start": "2021-03-26",
+        "end": "2022-03-26"
+      },
+      "magnitude": 5368000,
+      "revealAt": "2021-03-26",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-235",
+      "label": "Orbit Edge",
+      "span": {
+        "start": "2021-03-28",
+        "end": "2023-04-28"
+      },
+      "magnitude": 2103000,
+      "revealAt": "2021-03-28",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-241",
+      "label": "Nimbus Toolkit",
+      "span": {
+        "start": "2021-04-04",
+        "end": "2022-11-04"
+      },
+      "magnitude": 68000,
+      "revealAt": "2021-04-04",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-161",
+      "label": "Echo Migration",
+      "span": {
+        "start": "2021-04-08",
+        "end": "2023-05-08"
+      },
+      "magnitude": 106000,
+      "revealAt": "2021-04-08",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-373",
+      "label": "Drift Spine",
+      "span": {
+        "start": "2021-04-14",
+        "end": "2022-10-14"
+      },
+      "magnitude": 939000,
+      "revealAt": "2021-04-14",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-012",
+      "label": "Beacon Platform",
+      "span": {
+        "start": "2021-04-21",
+        "end": "2022-08-21"
+      },
+      "magnitude": 80000,
+      "revealAt": "2021-04-21",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-317",
+      "label": "Lumen Lattice",
+      "span": {
+        "start": "2021-05-07",
+        "end": "2021-06-07"
+      },
+      "magnitude": 84000,
+      "revealAt": "2021-05-07",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-388",
+      "label": "Kite Kernel",
+      "span": {
+        "start": "2021-05-18",
+        "end": "2022-03-18"
+      },
+      "magnitude": 42000,
+      "revealAt": "2021-05-18",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-492",
+      "label": "Forge Canvas",
+      "span": {
+        "start": "2021-05-28",
+        "end": "2022-12-28"
+      },
+      "magnitude": 3099000,
+      "revealAt": "2021-05-28",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-343",
+      "label": "Velvet Portal",
+      "span": {
+        "start": "2021-06-06",
+        "end": "2024-06-06"
+      },
+      "magnitude": 589000,
+      "revealAt": "2021-06-06",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-199",
+      "label": "Juniper Engine",
+      "span": {
+        "start": "2021-06-07",
+        "end": "2023-09-07"
+      },
+      "magnitude": 32000,
+      "revealAt": "2021-06-07",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-394",
+      "label": "Cipher Launch",
+      "span": {
+        "start": "2021-06-12",
+        "end": "2024-06-12"
+      },
+      "magnitude": 62000,
+      "revealAt": "2021-06-12",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-198",
+      "label": "Kite Fabric",
+      "span": {
+        "start": "2021-06-14",
+        "end": "2024-03-14"
+      },
+      "magnitude": 2272000,
+      "revealAt": "2021-06-14",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-474",
+      "label": "Grove Cluster",
+      "span": {
+        "start": "2021-06-14",
+        "end": "2024-03-14"
+      },
+      "magnitude": 71000,
+      "revealAt": "2021-06-14",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-215",
+      "label": "Willow Toolkit",
+      "span": {
+        "start": "2021-06-28",
+        "end": "2023-04-28"
+      },
+      "magnitude": 70000,
+      "revealAt": "2021-06-28",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-296",
+      "label": "Delta Dashboard",
+      "span": {
+        "start": "2021-07-07",
+        "end": "2024-02-07"
+      },
+      "magnitude": 132000,
+      "revealAt": "2021-07-07",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-359",
+      "label": "Prism Engine",
+      "span": {
+        "start": "2021-07-09",
+        "end": "2022-01-09"
+      },
+      "magnitude": 131000,
+      "revealAt": "2021-07-09",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-331",
+      "label": "Opal Suite",
+      "span": {
+        "start": "2021-07-11",
+        "end": "2022-05-11"
+      },
+      "magnitude": 4023000,
+      "revealAt": "2021-07-11",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-280",
+      "label": "Quill Graph",
+      "span": {
+        "start": "2021-07-20",
+        "end": "2024-02-20"
+      },
+      "magnitude": 389000,
+      "revealAt": "2021-07-20",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-105",
+      "label": "Prism Studio",
+      "span": {
+        "start": "2021-07-22",
+        "end": "2023-02-22"
+      },
+      "magnitude": 70000,
+      "revealAt": "2021-07-22",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-435",
+      "label": "Nova Suite",
+      "span": {
+        "start": "2021-07-22",
+        "end": "2024-05-22"
+      },
+      "magnitude": 3278000,
+      "revealAt": "2021-07-22",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-484",
+      "label": "Forge Forge",
+      "span": {
+        "start": "2021-08-01",
+        "end": "2022-09-01"
+      },
+      "magnitude": 108000,
+      "revealAt": "2021-08-01",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-003",
+      "label": "Beacon Network",
+      "span": {
+        "start": "2021-08-04",
+        "end": "2023-02-04"
+      },
+      "magnitude": 4045000,
+      "revealAt": "2021-08-04",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-281",
+      "label": "Cascade Engine",
+      "span": {
+        "start": "2021-08-05",
+        "end": "2024-08-05"
+      },
+      "magnitude": 744000,
+      "revealAt": "2021-08-05",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-138",
+      "label": "Velvet Core",
+      "span": {
+        "start": "2021-08-12",
+        "end": "2023-05-12"
+      },
+      "magnitude": 384000,
+      "revealAt": "2021-08-12",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-356",
+      "label": "Canvas Edge",
+      "span": {
+        "start": "2021-08-14",
+        "end": "2023-06-14"
+      },
+      "magnitude": 1003000,
+      "revealAt": "2021-08-14",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-158",
+      "label": "Velvet Gateway",
+      "span": {
+        "start": "2021-08-15",
+        "end": "2024-03-15"
+      },
+      "magnitude": 2383000,
+      "revealAt": "2021-08-15",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-426",
+      "label": "Flint Studio",
+      "span": {
+        "start": "2021-08-16",
+        "end": "2024-07-16"
+      },
+      "magnitude": 69000,
+      "revealAt": "2021-08-16",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-190",
+      "label": "Nimbus Lattice",
+      "span": {
+        "start": "2021-08-23",
+        "end": "2024-07-23"
+      },
+      "magnitude": 1374000,
+      "revealAt": "2021-08-23",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-447",
+      "label": "Orbit Network",
+      "span": {
+        "start": "2021-09-01",
+        "end": "2023-04-01"
+      },
+      "magnitude": 46000,
+      "revealAt": "2021-09-01",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-308",
+      "label": "Willow Mesh",
+      "span": {
+        "start": "2021-09-06",
+        "end": "2023-08-06"
+      },
+      "magnitude": 199000,
+      "revealAt": "2021-09-06",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-240",
+      "label": "Delta Index",
+      "span": {
+        "start": "2021-09-07",
+        "end": "2024-06-07"
+      },
+      "magnitude": 1658000,
+      "revealAt": "2021-09-07",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-106",
+      "label": "Atlas Pipeline",
+      "span": {
+        "start": "2021-09-09",
+        "end": "2023-06-09"
+      },
+      "magnitude": 404000,
+      "revealAt": "2021-09-09",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-427",
+      "label": "Amber Spine",
+      "span": {
+        "start": "2021-09-10",
+        "end": "2022-11-10"
+      },
+      "magnitude": 5212000,
+      "revealAt": "2021-09-10",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-255",
+      "label": "Ridge Relay",
+      "span": {
+        "start": "2021-09-13",
+        "end": "2021-11-13"
+      },
+      "magnitude": 172000,
+      "revealAt": "2021-09-13",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-210",
+      "label": "Harbor Lattice",
+      "span": {
+        "start": "2021-09-16",
+        "end": "2024-03-16"
+      },
+      "magnitude": 1855000,
+      "revealAt": "2021-09-16",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-490",
+      "label": "Kite Framework",
+      "span": {
+        "start": "2021-09-22",
+        "end": "2022-03-22"
+      },
+      "magnitude": 610000,
+      "revealAt": "2021-09-22",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-109",
+      "label": "Drift Service",
+      "span": {
+        "start": "2021-09-24",
+        "end": "2022-05-24"
+      },
+      "magnitude": 1346000,
+      "revealAt": "2021-09-24",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-329",
+      "label": "Lumen Fabric",
+      "span": {
+        "start": "2021-09-26",
+        "end": "2024-09-26"
+      },
+      "magnitude": 994000,
+      "revealAt": "2021-09-26",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-030",
+      "label": "Willow Graph",
+      "span": {
+        "start": "2021-10-07",
+        "end": "2024-06-07"
+      },
+      "magnitude": 40000,
+      "revealAt": "2021-10-07",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-247",
+      "label": "Willow Forge",
+      "span": {
+        "start": "2021-10-08",
+        "end": "2022-01-08"
+      },
+      "magnitude": 63000,
+      "revealAt": "2021-10-08",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-292",
+      "label": "Jade Service",
+      "span": {
+        "start": "2021-10-10",
+        "end": "2023-11-10"
+      },
+      "magnitude": 30000,
+      "revealAt": "2021-10-10",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-094",
+      "label": "Marble Network",
+      "span": {
+        "start": "2021-10-15",
+        "end": "2022-12-15"
+      },
+      "magnitude": 866000,
+      "revealAt": "2021-10-15",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-270",
+      "label": "Delta Relay",
+      "span": {
+        "start": "2021-10-20",
+        "end": "2023-01-20"
+      },
+      "magnitude": 97000,
+      "revealAt": "2021-10-20",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-498",
+      "label": "Canvas Gateway",
+      "span": {
+        "start": "2021-10-24",
+        "end": "2022-02-24"
+      },
+      "magnitude": 813000,
+      "revealAt": "2021-10-24",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-072",
+      "label": "Willow Launch",
+      "span": {
+        "start": "2021-11-11",
+        "end": "2024-01-11"
+      },
+      "magnitude": 486000,
+      "revealAt": "2021-11-11",
+      "cohort": "2021",
+      "group": "R&D",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-194",
+      "label": "Beacon Upgrade",
+      "span": {
+        "start": "2021-11-22",
+        "end": "2024-01-22"
+      },
+      "magnitude": 237000,
+      "revealAt": "2021-11-22",
+      "cohort": "2021",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-383",
+      "label": "Aurora Platform",
+      "span": {
+        "start": "2021-12-01",
+        "end": "2023-09-01"
+      },
+      "magnitude": 759000,
+      "revealAt": "2021-12-01",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-061",
+      "label": "Nova Mesh",
+      "span": {
+        "start": "2021-12-10",
+        "end": "2024-06-10"
+      },
+      "magnitude": 59000,
+      "revealAt": "2021-12-10",
+      "cohort": "2021",
+      "group": "GTM",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-092",
+      "label": "Glacier Launch",
+      "span": {
+        "start": "2021-12-10",
+        "end": "2023-05-10"
+      },
+      "magnitude": 1763000,
+      "revealAt": "2021-12-10",
+      "cohort": "2021",
+      "group": "Product",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-444",
+      "label": "Jade Upgrade",
+      "span": {
+        "start": "2021-12-10",
+        "end": "2023-02-10"
+      },
+      "magnitude": 1371000,
+      "revealAt": "2021-12-10",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-081",
+      "label": "Delta Studio",
+      "span": {
+        "start": "2021-12-17",
+        "end": "2023-07-17"
+      },
+      "magnitude": 217000,
+      "revealAt": "2021-12-17",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-134",
+      "label": "Lagoon Toolkit",
+      "span": {
+        "start": "2021-12-26",
+        "end": "2022-04-26"
+      },
+      "magnitude": 590000,
+      "revealAt": "2021-12-26",
+      "cohort": "2021",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-151",
+      "label": "Drift Graph",
+      "span": {
+        "start": "2021-12-28",
+        "end": "2024-07-28"
+      },
+      "magnitude": 65000,
+      "revealAt": "2021-12-28",
+      "cohort": "2021",
+      "group": "Security",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-139",
+      "label": "Inertia Launch",
+      "span": {
+        "start": "2022-01-06",
+        "end": "2023-07-06"
+      },
+      "magnitude": 47000,
+      "revealAt": "2022-01-06",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-181",
+      "label": "Jade Platform",
+      "span": {
+        "start": "2022-01-19",
+        "end": "2022-02-19"
+      },
+      "magnitude": 406000,
+      "revealAt": "2022-01-19",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-267",
+      "label": "Aurora Layer",
+      "span": {
+        "start": "2022-01-24",
+        "end": "2024-06-24"
+      },
+      "magnitude": 653000,
+      "revealAt": "2022-01-24",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-294",
+      "label": "Canvas Dashboard",
+      "span": {
+        "start": "2022-01-27",
+        "end": "2022-04-27"
+      },
+      "magnitude": 65000,
+      "revealAt": "2022-01-27",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-078",
+      "label": "Boreal Cluster",
+      "span": {
+        "start": "2022-02-02",
+        "end": "2023-01-02"
+      },
+      "magnitude": 436000,
+      "revealAt": "2022-02-02",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-493",
+      "label": "Juniper Dashboard",
+      "span": {
+        "start": "2022-02-02",
+        "end": "2023-06-02"
+      },
+      "magnitude": 1209000,
+      "revealAt": "2022-02-02",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-380",
+      "label": "Tide Relay",
+      "span": {
+        "start": "2022-02-04",
+        "end": "2022-03-04"
+      },
+      "magnitude": 42000,
+      "revealAt": "2022-02-04",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-059",
+      "label": "River Spine",
+      "span": {
+        "start": "2022-02-05",
+        "end": "2023-05-05"
+      },
+      "magnitude": 2786000,
+      "revealAt": "2022-02-05",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-286",
+      "label": "Summit Canvas",
+      "span": {
+        "start": "2022-02-14",
+        "end": "2022-08-14"
+      },
+      "magnitude": 264000,
+      "revealAt": "2022-02-14",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-219",
+      "label": "Summit Gateway",
+      "span": {
+        "start": "2022-02-18",
+        "end": "2025-02-18"
+      },
+      "magnitude": 156000,
+      "revealAt": "2022-02-18",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-224",
+      "label": "Tide Migration",
+      "span": {
+        "start": "2022-03-02",
+        "end": "2022-12-02"
+      },
+      "magnitude": 659000,
+      "revealAt": "2022-03-02",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-168",
+      "label": "Summit Expansion",
+      "span": {
+        "start": "2022-03-24",
+        "end": "2024-07-24"
+      },
+      "magnitude": 303000,
+      "revealAt": "2022-03-24",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-254",
+      "label": "Cipher Migration",
+      "span": {
+        "start": "2022-03-26",
+        "end": "2024-06-26"
+      },
+      "magnitude": 90000,
+      "revealAt": "2022-03-26",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-189",
+      "label": "Copper Service",
+      "span": {
+        "start": "2022-04-01",
+        "end": "2022-08-01"
+      },
+      "magnitude": 35000,
+      "revealAt": "2022-04-01",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-048",
+      "label": "Ember Upgrade",
+      "span": {
+        "start": "2022-04-15",
+        "end": "2025-04-15"
+      },
+      "magnitude": 51000,
+      "revealAt": "2022-04-15",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-301",
+      "label": "Vesper Spine",
+      "span": {
+        "start": "2022-04-16",
+        "end": "2022-09-16"
+      },
+      "magnitude": 4634000,
+      "revealAt": "2022-04-16",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-242",
+      "label": "Quartz Network",
+      "span": {
+        "start": "2022-04-23",
+        "end": "2023-10-23"
+      },
+      "magnitude": 69000,
+      "revealAt": "2022-04-23",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-285",
+      "label": "Atlas Layer",
+      "span": {
+        "start": "2022-04-24",
+        "end": "2025-01-24"
+      },
+      "magnitude": 2282000,
+      "revealAt": "2022-04-24",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-433",
+      "label": "Cipher Pipeline",
+      "span": {
+        "start": "2022-05-10",
+        "end": "2022-07-10"
+      },
+      "magnitude": 567000,
+      "revealAt": "2022-05-10",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-145",
+      "label": "Boreal Spine",
+      "span": {
+        "start": "2022-06-05",
+        "end": "2022-12-05"
+      },
+      "magnitude": 1114000,
+      "revealAt": "2022-06-05",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-469",
+      "label": "Glacier Pipeline",
+      "span": {
+        "start": "2022-06-06",
+        "end": "2023-08-06"
+      },
+      "magnitude": 100000,
+      "revealAt": "2022-06-06",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-147",
+      "label": "Velvet Relay",
+      "span": {
+        "start": "2022-06-14",
+        "end": "2024-07-14"
+      },
+      "magnitude": 1178000,
+      "revealAt": "2022-06-14",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-229",
+      "label": "Cascade Spine",
+      "span": {
+        "start": "2022-06-24",
+        "end": "2024-05-24"
+      },
+      "magnitude": 63000,
+      "revealAt": "2022-06-24",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-275",
+      "label": "Pulse Stack",
+      "span": {
+        "start": "2022-06-25",
+        "end": "2023-07-25"
+      },
+      "magnitude": 49000,
+      "revealAt": "2022-06-25",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-159",
+      "label": "Nimbus Portal",
+      "span": {
+        "start": "2022-07-11",
+        "end": "2023-05-11"
+      },
+      "magnitude": 124000,
+      "revealAt": "2022-07-11",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-357",
+      "label": "Falcon Graph",
+      "span": {
+        "start": "2022-07-15",
+        "end": "2024-12-15"
+      },
+      "magnitude": 287000,
+      "revealAt": "2022-07-15",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-401",
+      "label": "Juniper Rewrite",
+      "span": {
+        "start": "2022-07-26",
+        "end": "2024-01-26"
+      },
+      "magnitude": 48000,
+      "revealAt": "2022-07-26",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-260",
+      "label": "Orbit Graph",
+      "span": {
+        "start": "2022-08-03",
+        "end": "2023-06-03"
+      },
+      "magnitude": 481000,
+      "revealAt": "2022-08-03",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-163",
+      "label": "Echo Mesh",
+      "span": {
+        "start": "2022-08-04",
+        "end": "2023-12-04"
+      },
+      "magnitude": 3183000,
+      "revealAt": "2022-08-04",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-445",
+      "label": "Beacon Rewrite",
+      "span": {
+        "start": "2022-08-12",
+        "end": "2024-08-12"
+      },
+      "magnitude": 3271000,
+      "revealAt": "2022-08-12",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-462",
+      "label": "Canvas Lattice",
+      "span": {
+        "start": "2022-08-16",
+        "end": "2024-04-16"
+      },
+      "magnitude": 122000,
+      "revealAt": "2022-08-16",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-203",
+      "label": "Cascade Hub",
+      "span": {
+        "start": "2022-08-17",
+        "end": "2024-09-17"
+      },
+      "magnitude": 77000,
+      "revealAt": "2022-08-17",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-024",
+      "label": "Cascade Expansion",
+      "span": {
+        "start": "2022-08-19",
+        "end": "2024-02-19"
+      },
+      "magnitude": 164000,
+      "revealAt": "2022-08-19",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-339",
+      "label": "Delta Mesh",
+      "span": {
+        "start": "2022-08-19",
+        "end": "2023-11-19"
+      },
+      "magnitude": 414000,
+      "revealAt": "2022-08-19",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-413",
+      "label": "Tide Canvas",
+      "span": {
+        "start": "2022-08-19",
+        "end": "2023-07-19"
+      },
+      "magnitude": 40000,
+      "revealAt": "2022-08-19",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-230",
+      "label": "Delta Fabric",
+      "span": {
+        "start": "2022-09-04",
+        "end": "2025-01-04"
+      },
+      "magnitude": 2974000,
+      "revealAt": "2022-09-04",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-226",
+      "label": "Pulse Network",
+      "span": {
+        "start": "2022-09-10",
+        "end": "2024-11-10"
+      },
+      "magnitude": 267000,
+      "revealAt": "2022-09-10",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-361",
+      "label": "Lagoon Lattice",
+      "span": {
+        "start": "2022-09-14",
+        "end": "2025-05-14"
+      },
+      "magnitude": 147000,
+      "revealAt": "2022-09-14",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-137",
+      "label": "Orbit Framework",
+      "span": {
+        "start": "2022-09-17",
+        "end": "2024-09-17"
+      },
+      "magnitude": 36000,
+      "revealAt": "2022-09-17",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-136",
+      "label": "Keystone Bridge",
+      "span": {
+        "start": "2022-10-10",
+        "end": "2022-12-10"
+      },
+      "magnitude": 2929000,
+      "revealAt": "2022-10-10",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-042",
+      "label": "Inertia Dashboard",
+      "span": {
+        "start": "2022-10-12",
+        "end": "2025-04-12"
+      },
+      "magnitude": 372000,
+      "revealAt": "2022-10-12",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-104",
+      "label": "Lagoon Edge",
+      "span": {
+        "start": "2022-10-18",
+        "end": "2023-12-18"
+      },
+      "magnitude": 974000,
+      "revealAt": "2022-10-18",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-295",
+      "label": "Boreal Mesh",
+      "span": {
+        "start": "2022-10-25",
+        "end": "2023-08-25"
+      },
+      "magnitude": 1617000,
+      "revealAt": "2022-10-25",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-214",
+      "label": "Drift Forge",
+      "span": {
+        "start": "2022-11-03",
+        "end": "2025-07-03"
+      },
+      "magnitude": 29000,
+      "revealAt": "2022-11-03",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-442",
+      "label": "Ember Studio",
+      "span": {
+        "start": "2022-11-11",
+        "end": "2025-05-11"
+      },
+      "magnitude": 712000,
+      "revealAt": "2022-11-11",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-314",
+      "label": "Jade Cluster",
+      "span": {
+        "start": "2022-11-13",
+        "end": "2023-10-13"
+      },
+      "magnitude": 4289000,
+      "revealAt": "2022-11-13",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-225",
+      "label": "Horizon Layer",
+      "span": {
+        "start": "2022-11-18",
+        "end": "2022-12-18"
+      },
+      "magnitude": 1984000,
+      "revealAt": "2022-11-18",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-391",
+      "label": "Glacier Archive",
+      "span": {
+        "start": "2022-11-19",
+        "end": "2023-07-19"
+      },
+      "magnitude": 57000,
+      "revealAt": "2022-11-19",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-366",
+      "label": "Amber Suite",
+      "span": {
+        "start": "2022-11-20",
+        "end": "2025-10-20"
+      },
+      "magnitude": 73000,
+      "revealAt": "2022-11-20",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-418",
+      "label": "Tide Suite",
+      "span": {
+        "start": "2022-11-21",
+        "end": "2024-10-21"
+      },
+      "magnitude": 3212000,
+      "revealAt": "2022-11-21",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-005",
+      "label": "Prism Spine",
+      "span": {
+        "start": "2022-11-23",
+        "end": "2024-06-23"
+      },
+      "magnitude": 44000,
+      "revealAt": "2022-11-23",
+      "cohort": "2022",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-177",
+      "label": "Glacier Service",
+      "span": {
+        "start": "2022-11-26",
+        "end": "2023-02-26"
+      },
+      "magnitude": 531000,
+      "revealAt": "2022-11-26",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-232",
+      "label": "Nest Rewrite",
+      "span": {
+        "start": "2022-12-07",
+        "end": "2023-06-07"
+      },
+      "magnitude": 114000,
+      "revealAt": "2022-12-07",
+      "cohort": "2022",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-348",
+      "label": "Juniper Upgrade",
+      "span": {
+        "start": "2022-12-13",
+        "end": "2024-05-13"
+      },
+      "magnitude": 189000,
+      "revealAt": "2022-12-13",
+      "cohort": "2022",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-451",
+      "label": "Quartz Relay",
+      "span": {
+        "start": "2022-12-15",
+        "end": "2024-11-15"
+      },
+      "magnitude": 196000,
+      "revealAt": "2022-12-15",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-304",
+      "label": "Yellowstone Toolkit",
+      "span": {
+        "start": "2022-12-18",
+        "end": "2025-07-18"
+      },
+      "magnitude": 946000,
+      "revealAt": "2022-12-18",
+      "cohort": "2022",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-335",
+      "label": "Umber Studio",
+      "span": {
+        "start": "2022-12-23",
+        "end": "2025-06-23"
+      },
+      "magnitude": 106000,
+      "revealAt": "2022-12-23",
+      "cohort": "2022",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-452",
+      "label": "Vesper Protocol",
+      "span": {
+        "start": "2022-12-26",
+        "end": "2024-06-26"
+      },
+      "magnitude": 717000,
+      "revealAt": "2022-12-26",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-291",
+      "label": "Marble Rollout",
+      "span": {
+        "start": "2022-12-28",
+        "end": "2025-11-28"
+      },
+      "magnitude": 45000,
+      "revealAt": "2022-12-28",
+      "cohort": "2022",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-063",
+      "label": "Ember Mesh",
+      "span": {
+        "start": "2023-01-10",
+        "end": "2023-05-10"
+      },
+      "magnitude": 870000,
+      "revealAt": "2023-01-10",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-288",
+      "label": "Nest Gateway",
+      "span": {
+        "start": "2023-01-15",
+        "end": "2025-03-15"
+      },
+      "magnitude": 3228000,
+      "revealAt": "2023-01-15",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-071",
+      "label": "Opal Fabric",
+      "span": {
+        "start": "2023-01-23",
+        "end": "2024-10-23"
+      },
+      "magnitude": 532000,
+      "revealAt": "2023-01-23",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-039",
+      "label": "Summit Relay",
+      "span": {
+        "start": "2023-01-25",
+        "end": "2025-10-25"
+      },
+      "magnitude": 429000,
+      "revealAt": "2023-01-25",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-043",
+      "label": "Horizon Kernel",
+      "span": {
+        "start": "2023-02-07",
+        "end": "2024-06-07"
+      },
+      "magnitude": 210000,
+      "revealAt": "2023-02-07",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-382",
+      "label": "Glacier Expansion",
+      "span": {
+        "start": "2023-02-08",
+        "end": "2024-12-08"
+      },
+      "magnitude": 4329000,
+      "revealAt": "2023-02-08",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-070",
+      "label": "Beacon Graph",
+      "span": {
+        "start": "2023-02-09",
+        "end": "2023-05-09"
+      },
+      "magnitude": 584000,
+      "revealAt": "2023-02-09",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-266",
+      "label": "Grove Matrix",
+      "span": {
+        "start": "2023-02-18",
+        "end": "2024-01-18"
+      },
+      "magnitude": 4327000,
+      "revealAt": "2023-02-18",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-119",
+      "label": "Forge Studio",
+      "span": {
+        "start": "2023-02-21",
+        "end": "2025-10-21"
+      },
+      "magnitude": 93000,
+      "revealAt": "2023-02-21",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-083",
+      "label": "Horizon Relay",
+      "span": {
+        "start": "2023-03-04",
+        "end": "2025-05-04"
+      },
+      "magnitude": 1658000,
+      "revealAt": "2023-03-04",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-015",
+      "label": "Cipher Toolkit",
+      "span": {
+        "start": "2023-03-13",
+        "end": "2025-09-13"
+      },
+      "magnitude": 998000,
+      "revealAt": "2023-03-13",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-420",
+      "label": "Jade Rewrite",
+      "span": {
+        "start": "2023-03-13",
+        "end": "2025-07-13"
+      },
+      "magnitude": 791000,
+      "revealAt": "2023-03-13",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-195",
+      "label": "Lumen Toolkit",
+      "span": {
+        "start": "2023-04-04",
+        "end": "2024-10-04"
+      },
+      "magnitude": 106000,
+      "revealAt": "2023-04-04",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-073",
+      "label": "Marble Dashboard",
+      "span": {
+        "start": "2023-04-07",
+        "end": "2024-07-07"
+      },
+      "magnitude": 509000,
+      "revealAt": "2023-04-07",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-460",
+      "label": "Copper Rewrite",
+      "span": {
+        "start": "2023-04-10",
+        "end": "2025-10-10"
+      },
+      "magnitude": 43000,
+      "revealAt": "2023-04-10",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-069",
+      "label": "Copper Relay",
+      "span": {
+        "start": "2023-04-13",
+        "end": "2023-12-13"
+      },
+      "magnitude": 899000,
+      "revealAt": "2023-04-13",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-237",
+      "label": "Copper Platform",
+      "span": {
+        "start": "2023-04-16",
+        "end": "2025-12-16"
+      },
+      "magnitude": 115000,
+      "revealAt": "2023-04-16",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-049",
+      "label": "Boreal Suite",
+      "span": {
+        "start": "2023-04-21",
+        "end": "2024-12-21"
+      },
+      "magnitude": 31000,
+      "revealAt": "2023-04-21",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-332",
+      "label": "Grove Rollout",
+      "span": {
+        "start": "2023-04-27",
+        "end": "2023-09-27"
+      },
+      "magnitude": 2446000,
+      "revealAt": "2023-04-27",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-282",
+      "label": "Cipher Protocol",
+      "span": {
+        "start": "2023-05-02",
+        "end": "2023-07-02"
+      },
+      "magnitude": 42000,
+      "revealAt": "2023-05-02",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-371",
+      "label": "Aurora Pipeline",
+      "span": {
+        "start": "2023-05-04",
+        "end": "2023-08-04"
+      },
+      "magnitude": 282000,
+      "revealAt": "2023-05-04",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-129",
+      "label": "Yellowstone Lattice",
+      "span": {
+        "start": "2023-05-05",
+        "end": "2023-12-05"
+      },
+      "magnitude": 33000,
+      "revealAt": "2023-05-05",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-483",
+      "label": "Ridge Hub",
+      "span": {
+        "start": "2023-05-08",
+        "end": "2024-05-08"
+      },
+      "magnitude": 2046000,
+      "revealAt": "2023-05-08",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-026",
+      "label": "Lagoon Stack",
+      "span": {
+        "start": "2023-05-10",
+        "end": "2025-05-10"
+      },
+      "magnitude": 109000,
+      "revealAt": "2023-05-10",
+      "cohort": "2023",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-397",
+      "label": "Flint Lattice",
+      "span": {
+        "start": "2023-06-05",
+        "end": "2024-01-05"
+      },
+      "magnitude": 467000,
+      "revealAt": "2023-06-05",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-453",
+      "label": "Horizon Forge",
+      "span": {
+        "start": "2023-06-06",
+        "end": "2023-11-06"
+      },
+      "magnitude": 662000,
+      "revealAt": "2023-06-06",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-122",
+      "label": "Ember Lattice",
+      "span": {
+        "start": "2023-06-10",
+        "end": "2025-03-10"
+      },
+      "magnitude": 1131000,
+      "revealAt": "2023-06-10",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-297",
+      "label": "Canvas Rewrite",
+      "span": {
+        "start": "2023-06-12",
+        "end": "2026-02-12"
+      },
+      "magnitude": 41000,
+      "revealAt": "2023-06-12",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-146",
+      "label": "Nimbus Core",
+      "span": {
+        "start": "2023-06-20",
+        "end": "2023-11-20"
+      },
+      "magnitude": 398000,
+      "revealAt": "2023-06-20",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-440",
+      "label": "Willow Kernel",
+      "span": {
+        "start": "2023-07-02",
+        "end": "2024-01-02"
+      },
+      "magnitude": 27000,
+      "revealAt": "2023-07-02",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-209",
+      "label": "Amber Archive",
+      "span": {
+        "start": "2023-07-11",
+        "end": "2024-11-11"
+      },
+      "magnitude": 122000,
+      "revealAt": "2023-07-11",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-183",
+      "label": "Inertia Spine",
+      "span": {
+        "start": "2023-07-17",
+        "end": "2024-06-17"
+      },
+      "magnitude": 218000,
+      "revealAt": "2023-07-17",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-013",
+      "label": "Pulse Hub",
+      "span": {
+        "start": "2023-07-18",
+        "end": "2026-03-18"
+      },
+      "magnitude": 3048000,
+      "revealAt": "2023-07-18",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-141",
+      "label": "Horizon Spine",
+      "span": {
+        "start": "2023-07-20",
+        "end": "2024-02-20"
+      },
+      "magnitude": 4348000,
+      "revealAt": "2023-07-20",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-299",
+      "label": "Nova Toolkit",
+      "span": {
+        "start": "2023-08-03",
+        "end": "2024-08-03"
+      },
+      "magnitude": 1501000,
+      "revealAt": "2023-08-03",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-302",
+      "label": "Yellowstone Engine",
+      "span": {
+        "start": "2023-08-05",
+        "end": "2025-01-05"
+      },
+      "magnitude": 721000,
+      "revealAt": "2023-08-05",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-393",
+      "label": "Cipher Matrix",
+      "span": {
+        "start": "2023-08-20",
+        "end": "2026-08-20"
+      },
+      "magnitude": 463000,
+      "revealAt": "2023-08-20",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-150",
+      "label": "Drift Framework",
+      "span": {
+        "start": "2023-09-04",
+        "end": "2025-05-04"
+      },
+      "magnitude": 203000,
+      "revealAt": "2023-09-04",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-448",
+      "label": "Opal Stack",
+      "span": {
+        "start": "2023-09-08",
+        "end": "2026-07-08"
+      },
+      "magnitude": 220000,
+      "revealAt": "2023-09-08",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-102",
+      "label": "Drift Index",
+      "span": {
+        "start": "2023-09-10",
+        "end": "2026-01-10"
+      },
+      "magnitude": 3238000,
+      "revealAt": "2023-09-10",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-455",
+      "label": "Helix Studio",
+      "span": {
+        "start": "2023-09-17",
+        "end": "2024-04-17"
+      },
+      "magnitude": 1123000,
+      "revealAt": "2023-09-17",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-231",
+      "label": "Beacon Edge",
+      "span": {
+        "start": "2023-09-18",
+        "end": "2024-08-18"
+      },
+      "magnitude": 3040000,
+      "revealAt": "2023-09-18",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-245",
+      "label": "Eclipse Expansion",
+      "span": {
+        "start": "2023-09-26",
+        "end": "2024-01-26"
+      },
+      "magnitude": 896000,
+      "revealAt": "2023-09-26",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-320",
+      "label": "Vesper Kernel",
+      "span": {
+        "start": "2023-10-01",
+        "end": "2026-04-01"
+      },
+      "magnitude": 56000,
+      "revealAt": "2023-10-01",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-350",
+      "label": "Atlas Fabric",
+      "span": {
+        "start": "2023-10-12",
+        "end": "2024-09-12"
+      },
+      "magnitude": 1828000,
+      "revealAt": "2023-10-12",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-465",
+      "label": "Copper Stack",
+      "span": {
+        "start": "2023-10-12",
+        "end": "2026-02-12"
+      },
+      "magnitude": 1038000,
+      "revealAt": "2023-10-12",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-495",
+      "label": "Lagoon Studio",
+      "span": {
+        "start": "2023-10-17",
+        "end": "2025-01-17"
+      },
+      "magnitude": 141000,
+      "revealAt": "2023-10-17",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "John McC.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-089",
+      "label": "Velvet Fabric",
+      "span": {
+        "start": "2023-10-21",
+        "end": "2025-12-21"
+      },
+      "magnitude": 368000,
+      "revealAt": "2023-10-21",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-118",
+      "label": "Cedar Engine",
+      "span": {
+        "start": "2023-10-27",
+        "end": "2026-04-27"
+      },
+      "magnitude": 983000,
+      "revealAt": "2023-10-27",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-276",
+      "label": "Beacon Portal",
+      "span": {
+        "start": "2023-11-07",
+        "end": "2026-09-07"
+      },
+      "magnitude": 1646000,
+      "revealAt": "2023-11-07",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-096",
+      "label": "Drift Rewrite",
+      "span": {
+        "start": "2023-11-15",
+        "end": "2026-09-15"
+      },
+      "magnitude": 3195000,
+      "revealAt": "2023-11-15",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-333",
+      "label": "Jade Edge",
+      "span": {
+        "start": "2023-11-18",
+        "end": "2024-07-18"
+      },
+      "magnitude": 4796000,
+      "revealAt": "2023-11-18",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "John McC.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-041",
+      "label": "Kite Spine",
+      "span": {
+        "start": "2023-11-19",
+        "end": "2025-12-19"
+      },
+      "magnitude": 764000,
+      "revealAt": "2023-11-19",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-262",
+      "label": "Cascade Suite",
+      "span": {
+        "start": "2023-12-04",
+        "end": "2024-08-04"
+      },
+      "magnitude": 70000,
+      "revealAt": "2023-12-04",
+      "cohort": "2023",
+      "group": "GTM",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-192",
+      "label": "Eclipse Framework",
+      "span": {
+        "start": "2023-12-05",
+        "end": "2024-02-05"
+      },
+      "magnitude": 569000,
+      "revealAt": "2023-12-05",
+      "cohort": "2023",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-443",
+      "label": "Pulse Suite",
+      "span": {
+        "start": "2023-12-05",
+        "end": "2024-07-05"
+      },
+      "magnitude": 136000,
+      "revealAt": "2023-12-05",
+      "cohort": "2023",
+      "group": "R&D",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-182",
+      "label": "Quill Fabric",
+      "span": {
+        "start": "2023-12-13",
+        "end": "2025-03-13"
+      },
+      "magnitude": 1307000,
+      "revealAt": "2023-12-13",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-143",
+      "label": "Drift Kernel",
+      "span": {
+        "start": "2023-12-16",
+        "end": "2025-02-16"
+      },
+      "magnitude": 372000,
+      "revealAt": "2023-12-16",
+      "cohort": "2023",
+      "group": "Security",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-364",
+      "label": "Nova Fabric",
+      "span": {
+        "start": "2023-12-18",
+        "end": "2024-08-18"
+      },
+      "magnitude": 1103000,
+      "revealAt": "2023-12-18",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "John McC.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-355",
+      "label": "Pulse Forge",
+      "span": {
+        "start": "2023-12-27",
+        "end": "2025-06-27"
+      },
+      "magnitude": 142000,
+      "revealAt": "2023-12-27",
+      "cohort": "2023",
+      "group": "Platform",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-186",
+      "label": "Jade Network",
+      "span": {
+        "start": "2024-01-05",
+        "end": "2025-01-05"
+      },
+      "magnitude": 991000,
+      "revealAt": "2024-01-05",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-368",
+      "label": "Canvas Relay",
+      "span": {
+        "start": "2024-01-06",
+        "end": "2026-01-06"
+      },
+      "magnitude": 3603000,
+      "revealAt": "2024-01-06",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-367",
+      "label": "Dune Bridge",
+      "span": {
+        "start": "2024-01-07",
+        "end": "2025-06-07"
+      },
+      "magnitude": 50000,
+      "revealAt": "2024-01-07",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "John McC.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-074",
+      "label": "Prism Expansion",
+      "span": {
+        "start": "2024-01-08",
+        "end": "2025-02-08"
+      },
+      "magnitude": 2662000,
+      "revealAt": "2024-01-08",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-166",
+      "label": "Cedar Dashboard",
+      "span": {
+        "start": "2024-01-08",
+        "end": "2024-08-08"
+      },
+      "magnitude": 1094000,
+      "revealAt": "2024-01-08",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-395",
+      "label": "Willow Orbit",
+      "span": {
+        "start": "2024-01-08",
+        "end": "2024-11-08"
+      },
+      "magnitude": 401000,
+      "revealAt": "2024-01-08",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-172",
+      "label": "Vesper Framework",
+      "span": {
+        "start": "2024-01-15",
+        "end": "2026-08-15"
+      },
+      "magnitude": 38000,
+      "revealAt": "2024-01-15",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-110",
+      "label": "Helix Relay",
+      "span": {
+        "start": "2024-01-20",
+        "end": "2025-09-20"
+      },
+      "magnitude": 3029000,
+      "revealAt": "2024-01-20",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-439",
+      "label": "Forge Orbit",
+      "span": {
+        "start": "2024-01-22",
+        "end": "2025-10-22"
+      },
+      "magnitude": 671000,
+      "revealAt": "2024-01-22",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-419",
+      "label": "Harbor Gateway",
+      "span": {
+        "start": "2024-01-28",
+        "end": "2025-01-28"
+      },
+      "magnitude": 52000,
+      "revealAt": "2024-01-28",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-258",
+      "label": "Cascade Lattice",
+      "span": {
+        "start": "2024-02-04",
+        "end": "2024-08-04"
+      },
+      "magnitude": 257000,
+      "revealAt": "2024-02-04",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-390",
+      "label": "Delta Service",
+      "span": {
+        "start": "2024-02-17",
+        "end": "2026-10-17"
+      },
+      "magnitude": 125000,
+      "revealAt": "2024-02-17",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-392",
+      "label": "Copper Fabric",
+      "span": {
+        "start": "2024-02-17",
+        "end": "2026-03-17"
+      },
+      "magnitude": 61000,
+      "revealAt": "2024-02-17",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-287",
+      "label": "Yellowstone Kernel",
+      "span": {
+        "start": "2024-02-21",
+        "end": "2025-03-21"
+      },
+      "magnitude": 2944000,
+      "revealAt": "2024-02-21",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-342",
+      "label": "Grove Launch",
+      "span": {
+        "start": "2024-02-25",
+        "end": "2026-03-25"
+      },
+      "magnitude": 2425000,
+      "revealAt": "2024-02-25",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-045",
+      "label": "Nimbus Graph",
+      "span": {
+        "start": "2024-03-04",
+        "end": "2024-05-04"
+      },
+      "magnitude": 3231000,
+      "revealAt": "2024-03-04",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-377",
+      "label": "Echo Kernel",
+      "span": {
+        "start": "2024-03-05",
+        "end": "2025-11-05"
+      },
+      "magnitude": 199000,
+      "revealAt": "2024-03-05",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-271",
+      "label": "Amber Kernel",
+      "span": {
+        "start": "2024-03-06",
+        "end": "2026-06-06"
+      },
+      "magnitude": 86000,
+      "revealAt": "2024-03-06",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-441",
+      "label": "Boreal Archive",
+      "span": {
+        "start": "2024-03-11",
+        "end": "2024-05-11"
+      },
+      "magnitude": 98000,
+      "revealAt": "2024-03-11",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-347",
+      "label": "Drift Platform",
+      "span": {
+        "start": "2024-03-18",
+        "end": "2025-10-18"
+      },
+      "magnitude": 281000,
+      "revealAt": "2024-03-18",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-053",
+      "label": "Umber Portal",
+      "span": {
+        "start": "2024-03-19",
+        "end": "2026-12-19"
+      },
+      "magnitude": 199000,
+      "revealAt": "2024-03-19",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-095",
+      "label": "Forge Protocol",
+      "span": {
+        "start": "2024-04-06",
+        "end": "2025-04-06"
+      },
+      "magnitude": 178000,
+      "revealAt": "2024-04-06",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-165",
+      "label": "Tide Stack",
+      "span": {
+        "start": "2024-04-11",
+        "end": "2026-05-11"
+      },
+      "magnitude": 357000,
+      "revealAt": "2024-04-11",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-212",
+      "label": "Flint Gateway",
+      "span": {
+        "start": "2024-04-11",
+        "end": "2026-12-11"
+      },
+      "magnitude": 64000,
+      "revealAt": "2024-04-11",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "John McC.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-446",
+      "label": "Forge Cluster",
+      "span": {
+        "start": "2024-04-17",
+        "end": "2026-05-17"
+      },
+      "magnitude": 509000,
+      "revealAt": "2024-04-17",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-488",
+      "label": "Velvet Forge",
+      "span": {
+        "start": "2024-04-18",
+        "end": "2024-09-18"
+      },
+      "magnitude": 27000,
+      "revealAt": "2024-04-18",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-334",
+      "label": "Vesper Launch",
+      "span": {
+        "start": "2024-05-05",
+        "end": "2024-11-05"
+      },
+      "magnitude": 314000,
+      "revealAt": "2024-05-05",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-154",
+      "label": "Horizon Rollout",
+      "span": {
+        "start": "2024-05-08",
+        "end": "2026-08-08"
+      },
+      "magnitude": 98000,
+      "revealAt": "2024-05-08",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-097",
+      "label": "River Edge",
+      "span": {
+        "start": "2024-05-09",
+        "end": "2026-01-09"
+      },
+      "magnitude": 549000,
+      "revealAt": "2024-05-09",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "John McC.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-233",
+      "label": "Orbit Dashboard",
+      "span": {
+        "start": "2024-05-11",
+        "end": "2025-02-11"
+      },
+      "magnitude": 112000,
+      "revealAt": "2024-05-11",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-399",
+      "label": "Nova Kernel",
+      "span": {
+        "start": "2024-05-16",
+        "end": "2026-04-16"
+      },
+      "magnitude": 3287000,
+      "revealAt": "2024-05-16",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-116",
+      "label": "Echo Graph",
+      "span": {
+        "start": "2024-05-17",
+        "end": "2025-11-17"
+      },
+      "magnitude": 60000,
+      "revealAt": "2024-05-17",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-068",
+      "label": "Beacon Cluster",
+      "span": {
+        "start": "2024-05-24",
+        "end": "2024-06-24"
+      },
+      "magnitude": 337000,
+      "revealAt": "2024-05-24",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-058",
+      "label": "Ridge Suite",
+      "span": {
+        "start": "2024-06-05",
+        "end": "2025-11-05"
+      },
+      "magnitude": 1329000,
+      "revealAt": "2024-06-05",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-424",
+      "label": "Yellowstone Launch",
+      "span": {
+        "start": "2024-06-10",
+        "end": "2026-04-10"
+      },
+      "magnitude": 3281000,
+      "revealAt": "2024-06-10",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-142",
+      "label": "Juniper Bridge",
+      "span": {
+        "start": "2024-07-02",
+        "end": "2026-03-02"
+      },
+      "magnitude": 43000,
+      "revealAt": "2024-07-02",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Donald K.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-256",
+      "label": "Beacon Hub",
+      "span": {
+        "start": "2024-07-03",
+        "end": "2026-03-03"
+      },
+      "magnitude": 29000,
+      "revealAt": "2024-07-03",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-402",
+      "label": "Flint Rollout",
+      "span": {
+        "start": "2024-07-03",
+        "end": "2026-01-03"
+      },
+      "magnitude": 27000,
+      "revealAt": "2024-07-03",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-252",
+      "label": "Inertia Archive",
+      "span": {
+        "start": "2024-07-04",
+        "end": "2025-09-04"
+      },
+      "magnitude": 50000,
+      "revealAt": "2024-07-04",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-473",
+      "label": "Delta Upgrade",
+      "span": {
+        "start": "2024-07-10",
+        "end": "2025-02-10"
+      },
+      "magnitude": 48000,
+      "revealAt": "2024-07-10",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-056",
+      "label": "Atlas Upgrade",
+      "span": {
+        "start": "2024-07-25",
+        "end": "2026-06-25"
+      },
+      "magnitude": 493000,
+      "revealAt": "2024-07-25",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-358",
+      "label": "Drift Portal",
+      "span": {
+        "start": "2024-07-27",
+        "end": "2026-12-28"
+      },
+      "magnitude": 1854000,
+      "revealAt": "2024-07-27",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-421",
+      "label": "Inertia Mesh",
+      "span": {
+        "start": "2024-08-06",
+        "end": "2026-10-06"
+      },
+      "magnitude": 218000,
+      "revealAt": "2024-08-06",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-475",
+      "label": "Falcon Lattice",
+      "span": {
+        "start": "2024-08-06",
+        "end": "2025-03-06"
+      },
+      "magnitude": 47000,
+      "revealAt": "2024-08-06",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-408",
+      "label": "Amber Matrix",
+      "span": {
+        "start": "2024-08-08",
+        "end": "2026-11-08"
+      },
+      "magnitude": 217000,
+      "revealAt": "2024-08-08",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-476",
+      "label": "River Pipeline",
+      "span": {
+        "start": "2024-08-09",
+        "end": "2026-04-09"
+      },
+      "magnitude": 108000,
+      "revealAt": "2024-08-09",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-407",
+      "label": "River Hub",
+      "span": {
+        "start": "2024-08-16",
+        "end": "2024-12-16"
+      },
+      "magnitude": 2064000,
+      "revealAt": "2024-08-16",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-067",
+      "label": "Nest Relay",
+      "span": {
+        "start": "2024-08-19",
+        "end": "2026-09-19"
+      },
+      "magnitude": 108000,
+      "revealAt": "2024-08-19",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-405",
+      "label": "Falcon Migration",
+      "span": {
+        "start": "2024-08-19",
+        "end": "2026-12-28"
+      },
+      "magnitude": 2820000,
+      "revealAt": "2024-08-19",
+      "cohort": "2024",
+      "group": "Product",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-279",
+      "label": "Inertia Edge",
+      "span": {
+        "start": "2024-09-01",
+        "end": "2026-05-01"
+      },
+      "magnitude": 66000,
+      "revealAt": "2024-09-01",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Katherine J.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-100",
+      "label": "Amber Canvas",
+      "span": {
+        "start": "2024-09-02",
+        "end": "2026-05-02"
+      },
+      "magnitude": 165000,
+      "revealAt": "2024-09-02",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-108",
+      "label": "Falcon Archive",
+      "span": {
+        "start": "2024-09-02",
+        "end": "2024-10-02"
+      },
+      "magnitude": 1028000,
+      "revealAt": "2024-09-02",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-438",
+      "label": "Helix Core",
+      "span": {
+        "start": "2024-09-04",
+        "end": "2026-12-28"
+      },
+      "magnitude": 4520000,
+      "revealAt": "2024-09-04",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-323",
+      "label": "Ivory Pipeline",
+      "span": {
+        "start": "2024-09-16",
+        "end": "2025-06-16"
+      },
+      "magnitude": 35000,
+      "revealAt": "2024-09-16",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-001",
+      "label": "Vesper Studio",
+      "span": {
+        "start": "2024-09-18",
+        "end": "2025-12-18"
+      },
+      "magnitude": 80000,
+      "revealAt": "2024-09-18",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Jean S.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-454",
+      "label": "Boreal Lattice",
+      "span": {
+        "start": "2024-09-20",
+        "end": "2026-12-20"
+      },
+      "magnitude": 426000,
+      "revealAt": "2024-09-20",
+      "cohort": "2024",
+      "group": "Platform",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-171",
+      "label": "Ridge Rewrite",
+      "span": {
+        "start": "2024-09-26",
+        "end": "2024-10-26"
+      },
+      "magnitude": 2069000,
+      "revealAt": "2024-09-26",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-457",
+      "label": "Echo Gateway",
+      "span": {
+        "start": "2024-10-07",
+        "end": "2025-07-07"
+      },
+      "magnitude": 5025000,
+      "revealAt": "2024-10-07",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-461",
+      "label": "Forge Spine",
+      "span": {
+        "start": "2024-10-12",
+        "end": "2025-03-12"
+      },
+      "magnitude": 707000,
+      "revealAt": "2024-10-12",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-385",
+      "label": "Orbit Fabric",
+      "span": {
+        "start": "2024-10-20",
+        "end": "2025-07-20"
+      },
+      "magnitude": 71000,
+      "revealAt": "2024-10-20",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-128",
+      "label": "Willow Migration",
+      "span": {
+        "start": "2024-10-28",
+        "end": "2026-09-28"
+      },
+      "magnitude": 164000,
+      "revealAt": "2024-10-28",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-341",
+      "label": "Ivory Index",
+      "span": {
+        "start": "2024-11-20",
+        "end": "2026-04-20"
+      },
+      "magnitude": 236000,
+      "revealAt": "2024-11-20",
+      "cohort": "2024",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-007",
+      "label": "Willow Archive",
+      "span": {
+        "start": "2024-11-21",
+        "end": "2026-02-21"
+      },
+      "magnitude": 4884000,
+      "revealAt": "2024-11-21",
+      "cohort": "2024",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-415",
+      "label": "Horizon Migration",
+      "span": {
+        "start": "2024-12-28",
+        "end": "2026-12-28"
+      },
+      "magnitude": 38000,
+      "revealAt": "2024-12-28",
+      "cohort": "2024",
+      "group": "R&D",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-432",
+      "label": "Marble Launch",
+      "span": {
+        "start": "2024-12-28",
+        "end": "2025-07-28"
+      },
+      "magnitude": 821000,
+      "revealAt": "2024-12-28",
+      "cohort": "2024",
+      "group": "Security",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-293",
+      "label": "Yellowstone Matrix",
+      "span": {
+        "start": "2025-01-14",
+        "end": "2026-08-14"
+      },
+      "magnitude": 4150000,
+      "revealAt": "2025-01-14",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-369",
+      "label": "Horizon Framework",
+      "span": {
+        "start": "2025-01-15",
+        "end": "2026-12-28"
+      },
+      "magnitude": 1052000,
+      "revealAt": "2025-01-15",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-365",
+      "label": "Nest Mesh",
+      "span": {
+        "start": "2025-01-18",
+        "end": "2026-12-28"
+      },
+      "magnitude": 3195000,
+      "revealAt": "2025-01-18",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-008",
+      "label": "Atlas Spine",
+      "span": {
+        "start": "2025-01-24",
+        "end": "2025-03-24"
+      },
+      "magnitude": 36000,
+      "revealAt": "2025-01-24",
+      "cohort": "2025",
+      "group": "Security",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-148",
+      "label": "Canvas Migration",
+      "span": {
+        "start": "2025-02-01",
+        "end": "2025-07-01"
+      },
+      "magnitude": 35000,
+      "revealAt": "2025-02-01",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-099",
+      "label": "Prism Gateway",
+      "span": {
+        "start": "2025-02-09",
+        "end": "2026-06-09"
+      },
+      "magnitude": 132000,
+      "revealAt": "2025-02-09",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-321",
+      "label": "Cedar Studio",
+      "span": {
+        "start": "2025-02-10",
+        "end": "2026-12-10"
+      },
+      "magnitude": 1759000,
+      "revealAt": "2025-02-10",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-248",
+      "label": "Inertia Rollout",
+      "span": {
+        "start": "2025-02-18",
+        "end": "2026-12-28"
+      },
+      "magnitude": 699000,
+      "revealAt": "2025-02-18",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Barbara L.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-217",
+      "label": "Atlas Index",
+      "span": {
+        "start": "2025-02-25",
+        "end": "2026-12-28"
+      },
+      "magnitude": 95000,
+      "revealAt": "2025-02-25",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-239",
+      "label": "Velvet Rollout",
+      "span": {
+        "start": "2025-03-11",
+        "end": "2025-09-11"
+      },
+      "magnitude": 411000,
+      "revealAt": "2025-03-11",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-411",
+      "label": "Horizon Mesh",
+      "span": {
+        "start": "2025-03-25",
+        "end": "2025-08-25"
+      },
+      "magnitude": 138000,
+      "revealAt": "2025-03-25",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-023",
+      "label": "Nest Network",
+      "span": {
+        "start": "2025-03-27",
+        "end": "2026-04-27"
+      },
+      "magnitude": 61000,
+      "revealAt": "2025-03-27",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-389",
+      "label": "Willow Bridge",
+      "span": {
+        "start": "2025-04-05",
+        "end": "2026-12-28"
+      },
+      "magnitude": 65000,
+      "revealAt": "2025-04-05",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-268",
+      "label": "Lumen Protocol",
+      "span": {
+        "start": "2025-04-06",
+        "end": "2026-12-28"
+      },
+      "magnitude": 847000,
+      "revealAt": "2025-04-06",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "John McC.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-164",
+      "label": "Eclipse Upgrade",
+      "span": {
+        "start": "2025-04-08",
+        "end": "2026-12-28"
+      },
+      "magnitude": 26000,
+      "revealAt": "2025-04-08",
+      "cohort": "2025",
+      "group": "Security",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-004",
+      "label": "Boreal Studio",
+      "span": {
+        "start": "2025-04-11",
+        "end": "2026-06-11"
+      },
+      "magnitude": 84000,
+      "revealAt": "2025-04-11",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-404",
+      "label": "Falcon Portal",
+      "span": {
+        "start": "2025-04-13",
+        "end": "2026-07-13"
+      },
+      "magnitude": 5945000,
+      "revealAt": "2025-04-13",
+      "cohort": "2025",
+      "group": "Security",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-491",
+      "label": "Zenith Archive",
+      "span": {
+        "start": "2025-04-25",
+        "end": "2026-12-28"
+      },
+      "magnitude": 3282000,
+      "revealAt": "2025-04-25",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-319",
+      "label": "Falcon Service",
+      "span": {
+        "start": "2025-05-13",
+        "end": "2025-06-13"
+      },
+      "magnitude": 402000,
+      "revealAt": "2025-05-13",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-155",
+      "label": "Beacon Spine",
+      "span": {
+        "start": "2025-05-15",
+        "end": "2026-12-28"
+      },
+      "magnitude": 1451000,
+      "revealAt": "2025-05-15",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-200",
+      "label": "Prism Core",
+      "span": {
+        "start": "2025-05-19",
+        "end": "2026-12-28"
+      },
+      "magnitude": 126000,
+      "revealAt": "2025-05-19",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-346",
+      "label": "Marble Archive",
+      "span": {
+        "start": "2025-05-28",
+        "end": "2026-12-28"
+      },
+      "magnitude": 2752000,
+      "revealAt": "2025-05-28",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-179",
+      "label": "Cascade Kernel",
+      "span": {
+        "start": "2025-06-06",
+        "end": "2026-12-28"
+      },
+      "magnitude": 2005000,
+      "revealAt": "2025-06-06",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-430",
+      "label": "Opal Portal",
+      "span": {
+        "start": "2025-06-10",
+        "end": "2026-03-10"
+      },
+      "magnitude": 55000,
+      "revealAt": "2025-06-10",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "John McC.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-176",
+      "label": "Harbor Edge",
+      "span": {
+        "start": "2025-06-15",
+        "end": "2026-05-15"
+      },
+      "magnitude": 2853000,
+      "revealAt": "2025-06-15",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-093",
+      "label": "Flint Service",
+      "span": {
+        "start": "2025-06-17",
+        "end": "2026-12-28"
+      },
+      "magnitude": 74000,
+      "revealAt": "2025-06-17",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-318",
+      "label": "Zenith Lattice",
+      "span": {
+        "start": "2025-06-26",
+        "end": "2026-07-26"
+      },
+      "magnitude": 36000,
+      "revealAt": "2025-06-26",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-471",
+      "label": "Nova Studio",
+      "span": {
+        "start": "2025-07-11",
+        "end": "2025-08-11"
+      },
+      "magnitude": 67000,
+      "revealAt": "2025-07-11",
+      "cohort": "2025",
+      "group": "Security",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-261",
+      "label": "Delta Expansion",
+      "span": {
+        "start": "2025-08-03",
+        "end": "2026-12-28"
+      },
+      "magnitude": 849000,
+      "revealAt": "2025-08-03",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "shipped"
+      }
+    },
+    {
+      "id": "stress-010",
+      "label": "Glacier Layer",
+      "span": {
+        "start": "2025-08-07",
+        "end": "2026-12-28"
+      },
+      "magnitude": 1464000,
+      "revealAt": "2025-08-07",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-236",
+      "label": "Yellowstone Spine",
+      "span": {
+        "start": "2025-08-09",
+        "end": "2026-08-09"
+      },
+      "magnitude": 335000,
+      "revealAt": "2025-08-09",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-396",
+      "label": "Grove Spine",
+      "span": {
+        "start": "2025-08-10",
+        "end": "2026-12-28"
+      },
+      "magnitude": 872000,
+      "revealAt": "2025-08-10",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Ken T.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-436",
+      "label": "Orbit Index",
+      "span": {
+        "start": "2025-08-10",
+        "end": "2026-12-28"
+      },
+      "magnitude": 1785000,
+      "revealAt": "2025-08-10",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-363",
+      "label": "Nest Migration",
+      "span": {
+        "start": "2025-09-05",
+        "end": "2026-01-05"
+      },
+      "magnitude": 37000,
+      "revealAt": "2025-09-05",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Grace H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-060",
+      "label": "Eclipse Rewrite",
+      "span": {
+        "start": "2025-09-10",
+        "end": "2026-12-28"
+      },
+      "magnitude": 5361000,
+      "revealAt": "2025-09-10",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Tim B.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-216",
+      "label": "Helix Expansion",
+      "span": {
+        "start": "2025-09-10",
+        "end": "2026-12-28"
+      },
+      "magnitude": 117000,
+      "revealAt": "2025-09-10",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Frances A.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-027",
+      "label": "Keystone Core",
+      "span": {
+        "start": "2025-09-20",
+        "end": "2025-10-20"
+      },
+      "magnitude": 296000,
+      "revealAt": "2025-09-20",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "John McC.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-374",
+      "label": "Glacier Cluster",
+      "span": {
+        "start": "2025-09-25",
+        "end": "2026-12-28"
+      },
+      "magnitude": 590000,
+      "revealAt": "2025-09-25",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Linus T.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-381",
+      "label": "Boreal Engine",
+      "span": {
+        "start": "2025-10-11",
+        "end": "2026-12-28"
+      },
+      "magnitude": 53000,
+      "revealAt": "2025-10-11",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Guido R.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-184",
+      "label": "Vesper Canvas",
+      "span": {
+        "start": "2025-10-15",
+        "end": "2026-02-15"
+      },
+      "magnitude": 394000,
+      "revealAt": "2025-10-15",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Edsger D.",
+        "status": "active"
+      }
+    },
+    {
+      "id": "stress-345",
+      "label": "Glacier Toolkit",
+      "span": {
+        "start": "2025-10-15",
+        "end": "2026-10-15"
+      },
+      "magnitude": 317000,
+      "revealAt": "2025-10-15",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-340",
+      "label": "Quartz Canvas",
+      "span": {
+        "start": "2025-10-21",
+        "end": "2026-12-28"
+      },
+      "magnitude": 3507000,
+      "revealAt": "2025-10-21",
+      "cohort": "2025",
+      "group": "R&D",
+      "meta": {
+        "owner": "Leslie L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-458",
+      "label": "Harbor Engine",
+      "span": {
+        "start": "2025-10-24",
+        "end": "2026-12-28"
+      },
+      "magnitude": 422000,
+      "revealAt": "2025-10-24",
+      "cohort": "2025",
+      "group": "Security",
+      "meta": {
+        "owner": "Vint C.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-191",
+      "label": "Echo Layer",
+      "span": {
+        "start": "2025-11-06",
+        "end": "2026-12-06"
+      },
+      "magnitude": 5443000,
+      "revealAt": "2025-11-06",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-011",
+      "label": "River Migration",
+      "span": {
+        "start": "2025-11-07",
+        "end": "2026-12-28"
+      },
+      "magnitude": 2530000,
+      "revealAt": "2025-11-07",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Margaret H.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-422",
+      "label": "Summit Mesh",
+      "span": {
+        "start": "2025-11-08",
+        "end": "2026-12-28"
+      },
+      "magnitude": 155000,
+      "revealAt": "2025-11-08",
+      "cohort": "2025",
+      "group": "Infrastructure",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-202",
+      "label": "Nimbus Rollout",
+      "span": {
+        "start": "2025-11-10",
+        "end": "2026-12-28"
+      },
+      "magnitude": 263000,
+      "revealAt": "2025-11-10",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Alan T.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-305",
+      "label": "Ember Engine",
+      "span": {
+        "start": "2025-11-23",
+        "end": "2026-12-28"
+      },
+      "magnitude": 2736000,
+      "revealAt": "2025-11-23",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Radia P.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-082",
+      "label": "Marble Toolkit",
+      "span": {
+        "start": "2025-12-05",
+        "end": "2026-12-28"
+      },
+      "magnitude": 308000,
+      "revealAt": "2025-12-05",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Bjarne S.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-064",
+      "label": "Flint Mesh",
+      "span": {
+        "start": "2025-12-08",
+        "end": "2026-12-28"
+      },
+      "magnitude": 39000,
+      "revealAt": "2025-12-08",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-201",
+      "label": "Nimbus Framework",
+      "span": {
+        "start": "2025-12-09",
+        "end": "2026-12-28"
+      },
+      "magnitude": 547000,
+      "revealAt": "2025-12-09",
+      "cohort": "2025",
+      "group": "GTM",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "planned"
+      }
+    },
+    {
+      "id": "stress-037",
+      "label": "Eclipse Hub",
+      "span": {
+        "start": "2025-12-17",
+        "end": "2026-05-17"
+      },
+      "magnitude": 200000,
+      "revealAt": "2025-12-17",
+      "cohort": "2025",
+      "group": "Product",
+      "meta": {
+        "owner": "Dennis R.",
+        "status": "paused"
+      }
+    },
+    {
+      "id": "stress-327",
+      "label": "Echo Protocol",
+      "span": {
+        "start": "2025-12-22",
+        "end": "2026-12-28"
+      },
+      "magnitude": 30000,
+      "revealAt": "2025-12-22",
+      "cohort": "2025",
+      "group": "Platform",
+      "meta": {
+        "owner": "Ada L.",
+        "status": "paused"
+      }
+    }
+  ]
+}
