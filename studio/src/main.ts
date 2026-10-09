@@ -21,7 +21,7 @@ import { DataPanel } from "./ui/dataPanel";
 import { Gallery } from "./ui/gallery";
 import { toast } from "./ui/toast";
 import { h, svgIcon, ICONS } from "./ui/dom";
-import { download, recordWebm, slug, svgToPngBlob, webmSupported, exportGif, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
+import { download, recordWebm, recordGif, slug, svgToPngBlob, webmSupported, svgToJpegDataUrl, embedFontsInto, blobToDataUrl, pngFit, stableSvgIds } from "./export";
 import { themeFor, ensureFont } from "./theme";
 import { PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup } from "./brand";
 import { ReviewSpace } from "./review/space";
@@ -1292,6 +1292,37 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
   }
 }
 
+/** GIF animé : mêmes images que la vidéo (boucle d'images commune), encodées dans le navigateur. */
+async function exportGifAnim(btn: HTMLButtonElement): Promise<void> {
+  if (preview.playMode === "none") {
+    toast("Passez en mode « Dynamique » (animation d'entrée ou 4D) pour exporter un GIF animé.", "info", 5000);
+    return;
+  }
+  const { width, height } = chartSize(store.state.spec);
+  const label = btn.innerHTML;
+  btn.disabled = true;
+  preview.setRecording(true);
+  try {
+    const blob = await recordGif((p) => preview.svgAt(p), {
+      width,
+      height,
+      durationMs: preview.exportDuration(),
+      bg: themeFor(store.state.spec).bg,
+      onProgress: (p) => busyText(btn, `GIF… ${Math.round(p * 100)} %`),
+    });
+    download(blob, `${baseName()}.gif`);
+    toast(`GIF animé exporté (${(blob.size / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo)`, "ok");
+  } catch (e) {
+    toast("Export GIF impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
+  } finally {
+    preview.setRecording(false);
+    btn.disabled = false;
+    btn.innerHTML = label;
+    preview.restart(false);
+    preview.seek(1);
+  }
+}
+
 /** « Ouvrir un fichier » : projet `.datanime`, ou ancienne configuration `.r4d.json` (spec nu accepté). */
 async function openFile(file: File): Promise<void> {
   let raw: unknown;
@@ -1392,7 +1423,7 @@ const exportMenu = makeMenu(
     pngItem,
     h("div", { class: "menu-row" }, h("span", null, "Résolution PNG"), pngScale),
     webmBtn,
-    menuItem(ic("film"), "GIF animé", { testid: "export-gif", hint: "Prévu en V2", disabled: true, title: "Export GIF animé : prévu en V2", onclick: () => void exportGif().catch((e) => toast(e.message, "info")) }),
+    menuItem(ic("film"), "GIF animé", { testid: "export-gif", hint: "Animation d'entrée ou 4D, 12 images/s", onclick: () => void exportGifAnim(exportBtn) }),
     menuSep(),
     menuHead("Séquence"),
     pptxItem,
@@ -1652,6 +1683,7 @@ const settings = new SettingsPanel(store, {
   exportSvg: () => void exportSvg().catch((e) => toast(String(e), "error")),
   exportPng: () => void exportPng().catch((e) => toast(String(e), "error")),
   exportWebm: (b) => void exportWebm(b),
+  exportGif: (b) => void exportGifAnim(b),
   exportPptx: (b) => void exportPptx(b),
   snapshots: () => store.state.story.snapshots.length,
   pickFocus: () => startFocusPick(),

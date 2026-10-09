@@ -2074,7 +2074,7 @@ try {
     await page.keyboard.press("Escape");
     await sleep(150);
     const closed = await page.evaluate(() => document.querySelector("[data-testid=export-menu-pop]").hidden);
-    check("menu « Exporter » : SVG, PNG + résolution, vidéo, GIF (V2), PowerPoint ; Échap le ferme", menu.open && menu.inView && closed && ["export-svg", "export-png", "png-scale", "export-webm", "export-gif", "export-pptx"].every((t) => menu.items.includes(t)), menu.items.join(" "));
+    check("menu « Exporter » : SVG, PNG + résolution, vidéo, GIF animé, PowerPoint ; Échap le ferme", menu.open && menu.inView && closed && ["export-svg", "export-png", "png-scale", "export-webm", "export-gif", "export-pptx"].every((t) => menu.items.includes(t)), menu.items.join(" "));
     const acc = await page.evaluate(() => ({
       ids: [...document.querySelectorAll("[data-testid=settings-panel] .acc-s")].map((e) => e.dataset.section),
       open: [...document.querySelectorAll("[data-testid=settings-panel] .acc-s.open")].map((e) => e.dataset.section),
@@ -2084,7 +2084,7 @@ try {
         for (const e of document.querySelectorAll("[data-testid=settings-panel] [data-path]")) seen[e.dataset.path] = (seen[e.dataset.path] ?? 0) + 1;
         return Object.entries(seen).filter(([, n]) => n > 1).map(([k]) => k);
       })(),
-      dl: ["svg", "png", "webm", "pptx"].every((k) => document.querySelector(`[data-testid=panel-export-${k}]`)),
+      dl: ["svg", "png", "webm", "gif", "pptx"].every((k) => document.querySelector(`[data-testid=panel-export-${k}]`)),
     }));
     await domClick("[data-testid=acc-recit]");
     await sleep(200);

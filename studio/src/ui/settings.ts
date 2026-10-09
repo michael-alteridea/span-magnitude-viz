@@ -52,6 +52,7 @@ export interface PanelActions {
   exportSvg: () => void;
   exportPng: () => void;
   exportWebm: (btn: HTMLButtonElement) => void;
+  exportGif: (btn: HTMLButtonElement) => void;
   exportPptx: (btn: HTMLButtonElement) => void;
   snapshots: () => number;
   /** Mise en avant : le prochain toucher sur une marque du graphique la choisit. */
@@ -1048,7 +1049,8 @@ export class SettingsPanel {
     if (this.actions) {
       const a = this.actions;
       const webm: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-webm", onclick: () => a.exportWebm(webm) }, h("span", { html: svgIcon(ICONS.film2, 15) }), "Vidéo");
-      const pptx: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-pptx", disabled: a.snapshots() === 0, title: a.snapshots() ? "PowerPoint de la séquence (une diapositive par scène)" : "Ajoutez d'abord des scènes à la séquence (📸)", onclick: () => a.exportPptx(pptx) }, h("span", { html: svgIcon(ICONS.story, 15) }), "PowerPoint");
+      const gif: HTMLButtonElement = h("button", { type: "button", class: "btn", "data-testid": "panel-export-gif", onclick: () => a.exportGif(gif) }, h("span", { html: svgIcon(ICONS.film, 15) }), "GIF");
+      const pptx: HTMLButtonElement = h("button", { type: "button", class: "btn dl-wide", "data-testid": "panel-export-pptx", disabled: a.snapshots() === 0, title: a.snapshots() ? "PowerPoint de la séquence (une diapositive par scène)" : "Ajoutez d'abord des scènes à la séquence (📸)", onclick: () => a.exportPptx(pptx) }, h("span", { html: svgIcon(ICONS.story, 15) }), "PowerPoint");
       main.push(
         this.kw(
           h(
@@ -1061,10 +1063,11 @@ export class SettingsPanel {
               h("button", { type: "button", class: "btn btn-accent", "data-testid": "panel-export-svg", onclick: () => a.exportSvg() }, h("span", { html: svgIcon(ICONS.download, 15) }), "SVG"),
               h("button", { type: "button", class: "btn", "data-testid": "panel-export-png", onclick: () => a.exportPng() }, h("span", { html: svgIcon(ICONS.image, 15) }), `PNG ${this.store.state.ui.pngScale}×`),
               webm,
+              gif,
               pptx
             )
           ),
-          "télécharger exporter svg png image vidéo webm powerpoint pptx"
+          "télécharger exporter svg png image vidéo webm gif animé powerpoint pptx"
         )
       );
     }

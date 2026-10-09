@@ -710,6 +710,7 @@ svg .r4d-tip-on > .r4d-drill-mark, svg rect.r4d-tip-on, svg path.r4d-tip-on, svg
 .dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .dl-grid .btn { justify-content: center; height: 34px; }
 .dl-grid .btn span { display: inline-flex; }
+.dl-grid .dl-wide { grid-column: 1 / -1; }
 /* recherche : masquer ce qui ne correspond pas, ouvrir les sections concernées */
 .settings-body.searching .acc-bd { display: flex !important; }
 .settings-body.searching .more-bd { display: flex !important; }

@@ -4,7 +4,7 @@
  *  - PNG 1× / 2× / 3× (rasterisation du même SVG) ;
  *  - configuration JSON (spec ± données) ;
  *  - vidéo WebM (MediaRecorder sur un canevas alimenté image par image) ;
- *  - GIF : réservé à la V2 (voir `exportGif`).
+ *  - GIF animé (`recordGif`, encodeur gifenc) : même boucle d'images que la vidéo.
  */
 import { stripTips } from "./charts/tip";
 import type { ChartSpec, StudioFile } from "./spec";
@@ -272,6 +272,25 @@ export function webmSupported(): boolean {
  * Enregistre une vidéo WebM : `frameSvg(p)` fournit le SVG de la frame à la progression p ∈ [0,1].
  * Le canevas est alimenté au rythme `fps` (temps réel), donc la durée vidéo ≈ durée d'animation.
  */
+/**
+ * Boucle d'images commune à la vidéo WebM et au GIF : `total` images régulières de p = 0 à 1, puis une
+ * pause sur l'image finale (`holdFrames`). `onFrame` reçoit l'image SVG décodée ; elle peut attendre
+ * (cadence temps réel du WebM) ou non (encodage GIF, aussi rapide que possible).
+ */
+export async function frameLoop(
+  frameSvg: (p: number) => Promise<string>,
+  opts: { durationMs: number; fps: number; holdFrames: number },
+  onFrame: (img: HTMLImageElement, i: number, count: number, p: number) => Promise<void> | void
+): Promise<void> {
+  const total = Math.max(2, Math.round((opts.durationMs / 1000) * opts.fps));
+  const count = total + 1 + opts.holdFrames;
+  for (let i = 0; i < count; i++) {
+    const p = Math.min(1, i / total);
+    const img = await svgToImage(await frameSvg(p));
+    await onFrame(img, i, count, p);
+  }
+}
+
 export async function recordWebm(
   frameSvg: (p: number) => Promise<string>,
   opts: { width: number; height: number; durationMs: number; fps?: number; onProgress?: (p: number) => void; bg: string }
@@ -290,27 +309,58 @@ export async function recordWebm(
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   const done = new Promise<void>((r) => (rec.onstop = () => r()));
-  const total = Math.max(2, Math.round((opts.durationMs / 1000) * fps));
-  const holdFrames = Math.round(fps * 1.2); // pause sur l'image finale
   // Pré-rendu de la 1re image avant de démarrer l'enregistrement
   ctx.drawImage(await svgToImage(await frameSvg(0)), 0, 0, canvas.width, canvas.height);
   rec.start(250);
   const t0 = performance.now();
-  for (let i = 0; i <= total + holdFrames; i++) {
-    const p = Math.min(1, i / total);
-    const img = await svgToImage(await frameSvg(p));
+  await frameLoop(frameSvg, { durationMs: opts.durationMs, fps, holdFrames: Math.round(fps * 1.2) }, async (img, i, count) => {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    opts.onProgress?.(i / (total + holdFrames));
+    opts.onProgress?.(i / count);
     const wait = t0 + ((i + 1) * 1000) / fps - performance.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  }
+  });
   rec.stop();
   await done;
   return new Blob(chunks, { type: "video/webm" });
 }
 
-/** GIF animé : prévu en V2 (encodeur côté client, ex. palette + LZW). */
-export async function exportGif(): Promise<never> {
-  throw new Error("Export GIF : prévu pour la V2. Utilisez l'export vidéo WebM en attendant.");
+/** Réglages du GIF : 12 images/s, 960 px de large au plus (poids raisonnable), pause finale de 2 s. */
+export const GIF_FPS = 12;
+export const GIF_MAX_W = 960;
+
+/**
+ * GIF animé (boucle infinie) : mêmes images que la vidéo, encodées côté client (gifenc, MIT) avec une palette
+ * de 256 couleurs par image. Aucune donnée ne quitte le navigateur.
+ */
+export async function recordGif(
+  frameSvg: (p: number) => Promise<string>,
+  opts: { width: number; height: number; durationMs: number; fps?: number; maxWidth?: number; onProgress?: (p: number) => void; bg: string }
+): Promise<Blob> {
+  const { GIFEncoder, quantize, applyPalette } = await import("gifenc");
+  const fps = opts.fps ?? GIF_FPS;
+  const k = Math.min(1, (opts.maxWidth ?? GIF_MAX_W) / opts.width);
+  const w = Math.max(2, Math.round(opts.width * k));
+  const h = Math.max(2, Math.round(opts.height * k));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  ctx.imageSmoothingQuality = "high";
+  const gif = GIFEncoder();
+  const delay = Math.round(1000 / fps);
+  await frameLoop(frameSvg, { durationMs: opts.durationMs, fps, holdFrames: 0 }, async (img, i, count) => {
+    ctx.fillStyle = opts.bg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const { data } = ctx.getImageData(0, 0, w, h);
+    const palette = quantize(data, 256);
+    const index = applyPalette(data, palette);
+    gif.writeFrame(index, w, h, { palette, delay: i === count - 1 ? 2000 : delay, repeat: 0 });
+    opts.onProgress?.((i + 1) / count);
+    // rend la main à l'interface (barre de progression)
+    if (i % 3 === 2) await new Promise((r) => setTimeout(r, 0));
+  });
+  gif.finish();
+  return new Blob([gif.bytes()], { type: "image/gif" });
 }
