@@ -147,6 +147,7 @@ export function mountSpecial(
     viewMode: isMap ? "map" : "chart",
     mapRegion: spec.special.mapRegion,
     mapLevel: spec.special.mapLevel,
+    // Monde : toujours le planisphère entier (Europe : cadrage sur les pays présents)
     mapFit: spec.special.mapRegion === "europe" ? "data" : "region",
     width: Math.round(plot.w),
     height: Math.round(plot.h),

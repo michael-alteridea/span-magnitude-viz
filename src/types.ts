@@ -9,8 +9,8 @@ export type PersistenceMode = "keep" | "ephemeral" | "finale";
 /** Chart (span×magnitude) vs France/Belgium geographic map. */
 export type ViewMode = "chart" | "map";
 
-/** Basemap extent for `viewMode: "map"`: legacy France+Belgium or Europe. */
-export type MapRegion = "fr-be" | "europe";
+/** Basemap extent for `viewMode: "map"`: legacy France+Belgium, Europe or World (countries). */
+export type MapRegion = "fr-be" | "europe" | "world";
 /** Region granularity for the European basemap / choropleth. */
 export type MapLevel = "country" | "nuts1" | "nuts2" | "nuts3";
 
@@ -186,7 +186,8 @@ export interface VizOptions {
   viewMode?: ViewMode;
   /**
    * Basemap for the map view. `"fr-be"` (default) = France départements + Belgian
-   * provinces; `"europe"` = Europe (Natural Earth countries, public domain).
+   * provinces; `"europe"` = Europe (Natural Earth countries, public domain);
+   * `"world"` = World (Natural Earth 1:110m countries, public domain, Equal Earth projection).
    */
   mapRegion?: MapRegion;
   /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */

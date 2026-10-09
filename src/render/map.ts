@@ -1,12 +1,13 @@
 /**
  * Map layer (D3 geo + same film reveal schedule).
- * Basemaps: France + Belgium (legacy, `mapRegion: "fr-be"`) or Europe
- * (`mapRegion: "europe"`, countries).
+ * Basemaps: France + Belgium (legacy, `mapRegion: "fr-be"`), Europe
+ * (`mapRegion: "europe"`, countries) or World (`mapRegion: "world"`, countries, Equal Earth).
  * Modes: animated dots; optional choropleth / soft heatmap intensity at finale.
  */
 import {
   geoAzimuthalEqualArea,
   geoDistance,
+  geoEqualEarth,
   geoMercator,
   geoPath,
   type GeoProjection,
@@ -25,6 +26,7 @@ import {
   europeLayer,
   europeRegionIdAt,
 } from "../geo/europe.js";
+import { WORLD_ATTRIBUTION_FR, worldLayer, worldRegionIdAt } from "../geo/world.js";
 import {
   effectiveDrawProgress,
   FINALE_START,
@@ -104,6 +106,11 @@ export interface MapLayout {
   caption: string;
   /** Required data attribution (Europe), or null. */
   attribution: string | null;
+  /**
+   * Where the scale bar measures ground distance: at the bar (default) or along the equator
+   * (world map: the Equal Earth scale varies strongly with latitude, the label says so).
+   */
+  scaleBarAt?: "bar" | "equator";
   /** Zoom-dependent factor for dots / heat halos (1 = FR+BE framing). */
   markScale: number;
   /** regionId → sum of magnitudes (all marks, for scale domain). */
@@ -217,7 +224,8 @@ export function computeMapLayout(
   const margin = defaultMargin(options);
   const innerWidth = Math.max(40, width - margin.left - margin.right);
   const innerHeight = Math.max(40, height - margin.top - margin.bottom);
-  const mapRegion: MapRegion = options.mapRegion === "europe" ? "europe" : "fr-be";
+  const mapRegion: MapRegion =
+    options.mapRegion === "europe" ? "europe" : options.mapRegion === "world" ? "world" : "fr-be";
 
   let geocoded = marksWithGeo(visible);
   let projection: GeoProjection;
@@ -263,6 +271,35 @@ export function computeMapLayout(
     ]);
     caption = "Europe · pays — lat/lon (code postal FR/BE)";
     attribution = EUROPE_ATTRIBUTION_FR;
+  } else if (mapRegion === "world") {
+    // Monde : maille pays (Natural Earth 1:110m), projection équivalente Equal Earth.
+    mapLevel = "country";
+    regions = worldLayer() as unknown as BasemapCollection;
+    geocoded = geocoded.map(({ mark, geo }) => ({
+      mark,
+      geo: { ...geo, regionId: worldRegionIdAt(geo.lon, geo.lat) ?? `?${geo.regionId}` },
+    }));
+    projection = geoEqualEarth();
+    const pad = 6;
+    let fitTarget: unknown = regions;
+    if (options.mapFit === "data" && geocoded.length) {
+      const ids = new Set(geocoded.map((g) => g.geo.regionId));
+      const hit = regions.features.filter((f) => ids.has(f.properties.id));
+      if (hit.length) fitTarget = { type: "FeatureCollection", features: hit };
+    }
+    projection.fitExtent(
+      [
+        [pad, pad],
+        [innerWidth - pad, innerHeight - pad],
+      ],
+      fitTarget as GeoPermissibleObjects
+    );
+    projection.clipExtent([
+      [0, 0],
+      [innerWidth, innerHeight],
+    ]);
+    caption = "Monde · pays — lat/lon (code postal FR/BE)";
+    attribution = WORLD_ATTRIBUTION_FR;
   } else {
     regions = REGIONS as unknown as BasemapCollection;
     projection = geoMercator().fitSize(
@@ -274,7 +311,7 @@ export function computeMapLayout(
 
   // Dot / heat size follows zoom: full size at the FR+BE framing, smaller for all-Europe.
   let markScale = 1;
-  if (mapRegion === "europe") {
+  if (mapRegion === "europe" || mapRegion === "world") {
     const ref = geoMercator()
       .fitSize([innerWidth, innerHeight], REGIONS as unknown as GeoPermissibleObjects)
       .scale();
@@ -330,6 +367,7 @@ export function computeMapLayout(
     mapLevel,
     caption,
     attribution,
+    ...(mapRegion === "world" ? { scaleBarAt: "equator" as const } : {}),
     markScale,
     regionTotals,
   };
@@ -347,6 +385,8 @@ export interface ScaleBar {
   /** Bottom-left anchor (inner coordinates). */
   x: number;
   y: number;
+  /** Validity note painted right of the bar (world map: "à l'équateur"). */
+  note?: string;
 }
 
 const NICE_KM = [1, 2, 5, 10, 20, 25, 50, 75, 100, 150, 200, 250, 300, 500, 750, 1000, 1500, 2000, 2500, 5000];
@@ -357,7 +397,9 @@ const EARTH_RADIUS_KM = 6371.0088;
  * horizontal pixel span at the bar position (Mercator scale varies with latitude), then picks a
  * round distance whose length is close to ~16 % of the map width.
  */
-export function computeScaleBar(layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight">): ScaleBar | null {
+export function computeScaleBar(
+  layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight"> & Partial<Pick<MapLayout, "scaleBarAt">>
+): ScaleBar | null {
   const { projection, innerWidth: w, innerHeight: h } = layout;
   if (!projection.invert) return null;
   const x = Math.max(8, Math.min(18, w * 0.02));
@@ -370,6 +412,17 @@ export function computeScaleBar(layout: Pick<MapLayout, "projection" | "innerWid
     const d = geoDistance(a, b) * EARTH_RADIUS_KM;
     return d > 0 && Number.isFinite(d) ? d / span : null;
   };
+  if (layout.scaleBarAt === "equator") {
+    // Monde : échelle vraie le long de l'équateur (centrée sur le méridien de Greenwich)
+    const eq = projection([0, 0]);
+    const kmEq = eq && eq.every(Number.isFinite) ? measureAt(eq[0] - span / 2, eq[1]) : null;
+    if (!kmEq) return null;
+    const targetEq = kmEq * Math.max(36, Math.min(160, w * 0.16));
+    let kmE = NICE_KM[0]!;
+    for (const n of NICE_KM) if (n <= targetEq) kmE = n;
+    const label = `${kmE.toLocaleString("fr-FR").replace(/\u202f/g, "\u00a0")}\u00a0km`;
+    return { km: kmE, px: kmE / kmEq, label, x, y, note: "à l'équateur" };
+  }
   // At the bar's latitude, else at the map centre
   const kmPerPx = measureAt(x, y - 6) ?? measureAt(w / 2 - span / 2, h / 2);
   if (!kmPerPx) return null;
@@ -383,7 +436,7 @@ export function computeScaleBar(layout: Pick<MapLayout, "projection" | "innerWid
 /** Paints the km scale bar (always shown on maps) into `g` (inner map coordinates). */
 export function paintScaleBar(
   g: Selection<SVGGElement, unknown, null, undefined>,
-  layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight">,
+  layout: Pick<MapLayout, "projection" | "innerWidth" | "innerHeight"> & Partial<Pick<MapLayout, "scaleBarAt">>,
   light: boolean
 ): ScaleBar | null {
   g.selectAll("g.smv-map-scale").remove();
@@ -419,6 +472,16 @@ export function paintScaleBar(
     .attr("fill", ink)
     .attr("font-family", "inherit")
     .text(sb.label);
+  if (sb.note) {
+    gs.append("text")
+      .attr("class", "smv-map-scale-note")
+      .attr("x", sb.px + 6)
+      .attr("y", 0)
+      .attr("font-size", 9)
+      .attr("fill", ink)
+      .attr("font-family", "inherit")
+      .text(sb.note);
+  }
   return sb;
 }
 

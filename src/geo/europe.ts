@@ -41,6 +41,8 @@ export interface EuropeRegionProps {
   nameFr?: string;
   /** Code officiel (INSEE, NIS) pour les régions France · Belgique. */
   code?: string;
+  /** Continent Natural Earth (fonds pays : « Europe », « Africa »…). */
+  continent?: string;
 }
 
 export interface EuropeFeature {
@@ -91,7 +93,8 @@ function reverseRings(geom: GeoJSON.Geometry): GeoJSON.Geometry {
   return geom;
 }
 
-function decode(topo: unknown, object: string, level: MapLevel): EuropeCollection {
+/** Décode un TopoJSON de pays / régions (garde-fou d'orientation, bbox et centroïdes en cache). */
+export function decodeBasemapTopo(topo: unknown, object: string, level: MapLevel): EuropeCollection {
   const t = topo as unknown as Topology<Record<string, GeometryCollection>>;
   const fc = feature(t, t.objects[object]!) as unknown as GeoJSON.FeatureCollection;
   const features: EuropeFeature[] = [];
@@ -111,6 +114,7 @@ function decode(topo: unknown, object: string, level: MapLevel): EuropeCollectio
         level,
         ...(p.nameFr ? { nameFr: String(p.nameFr) } : {}),
         ...(p.code ? { code: String(p.code) } : {}),
+        ...(p.continent ? { continent: String(p.continent) } : {}),
       },
     };
     const [[x0, y0], [x1, y1]] = geoBounds(ef as unknown as GeoPermissibleObjects);
@@ -128,7 +132,7 @@ function decode(topo: unknown, object: string, level: MapLevel): EuropeCollectio
 export function europeLayer(_level: MapLevel = "country"): EuropeCollection {
   const hit = cache.get("country");
   if (hit) return hit;
-  const out = decode(countriesTopo, "countries", "country");
+  const out = decodeBasemapTopo(countriesTopo, "countries", "country");
   cache.set("country", out);
   return out;
 }
@@ -139,7 +143,7 @@ let frBeCache: EuropeCollection | null = null;
  * identifiants internes « FR1 »…« FRM », « BE1 »…« BE3 », `code` = INSEE / NIS.
  */
 export function frBeRegionLayer(): EuropeCollection {
-  if (!frBeCache) frBeCache = decode(frBeRegionsTopo, "regions", "country");
+  if (!frBeCache) frBeCache = decodeBasemapTopo(frBeRegionsTopo, "regions", "country");
   return frBeCache;
 }
 
@@ -170,7 +174,7 @@ export function featureAtPoint(
 }
 
 /** Nearest feature by centroid (great-circle), within `maxRad` radians. */
-function nearestFeature(
+export function nearestFeature(
   layer: EuropeCollection,
   lon: number,
   lat: number,

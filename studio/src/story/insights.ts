@@ -1049,7 +1049,7 @@ const analyzeGeo: Analyzer = (spec, eff, ctx) => {
     kind: "geo",
     title: `${joinList(pairs.slice(0, n).map((p) => p[0]))} : ${formatPct(share)} ${ctx.roles.isPipeline && isOpenFilter(spec, ctx.roles.stage?.name ?? null) ? "du pipeline ouvert" : partitive(mLabel)}`,
     comments,
-    why: spec.special.mapRegion === "europe" ? "Lecture territoriale : où se concentre la mesure entre pays européens." : "Lecture territoriale : où se concentre l'activité en France et en Belgique.",
+    why: spec.special.mapRegion === "europe" ? "Lecture territoriale : où se concentre la mesure entre pays européens." : spec.special.mapRegion === "world" ? "Lecture territoriale : où se concentre la mesure entre pays du monde." : "Lecture territoriale : où se concentre l'activité en France et en Belgique.",
     role: "context",
     effect: S.clamp01(0.25 + (share - n / pairs.length) * 0.6),
     coverage: S.clamp01(S.sum(pairs.map((p) => p[1])) / Math.max(1, S.sum(rowsOf(eff).map((r) => numAt(r, yField) ?? 0)))),

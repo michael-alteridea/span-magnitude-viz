@@ -1,0 +1,19 @@
+{
+  "builtAt": "2026-10-09T14:51:01.009Z",
+  "source": "Natural Earth 1:110m admin-0 v5.1.1 (pack Monde Datanime, world-countries-110m.topojson ; 62 petites entités reprises du 50m)",
+  "licence": "domaine public",
+  "antarctica": "exclue",
+  "crimea": "UA",
+  "quantization": 100000,
+  "features": 236,
+  "byContinent": {
+    "Europe": 50,
+    "Asia": 50,
+    "North America": 38,
+    "Africa": 53,
+    "South America": 13,
+    "Oceania": 24,
+    "Seven seas (open ocean)": 8
+  },
+  "bytes": 132492
+}

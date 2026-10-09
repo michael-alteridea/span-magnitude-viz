@@ -178,3 +178,4 @@ export {
   EUROPE_ATTRIBUTION_FR,
 } from "./geo/europe.js";
 export type { EuropeFeature, EuropeCollection, EuropeRegionProps } from "./geo/europe.js";
+export { worldLayer, worldRegionIdAt, WORLD_ATTRIBUTION_EN, WORLD_ATTRIBUTION_FR } from "./geo/world.js";

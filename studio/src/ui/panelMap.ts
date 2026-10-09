@@ -93,7 +93,7 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
   }
   if (isVariance(t) || (spec.norme.enabled && !isSpecial(t) && t !== "drill")) g.push(spec.variance.polarity === "lower" ? "moins = mieux" : "plus = mieux");
   if ((t === "bar" || t === "barH") && !spec.norme.enabled && s.barCap !== "none") g.push(s.barCap === "icon" ? "icônes" : s.barCap === "picto" ? "pictogrammes" : "objectif");
-  if (t === "map") g.push(spec.special.mapRegion === "europe" ? "Europe" : "France · Belgique");
+  if (t === "map") g.push(spec.special.mapRegion === "europe" ? "Europe" : spec.special.mapRegion === "world" ? "Monde" : "France · Belgique");
   if (t === "film") g.push(spec.special.geometry === "arc" ? "arcs" : spec.special.geometry === "bar" ? "barres" : "points");
   /* Récit */
   const n = spec.story.comments.filter((c) => (c ?? "").trim()).length;

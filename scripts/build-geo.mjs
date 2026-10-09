@@ -15,6 +15,7 @@
  *  - src/geo/frBe/regions.topo.json (objet « regions » : 13 régions FR + 3 régions BE) ;
  *  - src/geo/frBeRegions.json (96 départements + 10 provinces + Bruxelles-Capitale) ;
  *  - src/geo/regionCentroids.json (centroïdes du fond précédent, géocodage par code postal).
+ * Fond « Monde (pays) » (src/geo/world/countries.topo.json) : script séparé scripts/build-geo-world.mjs (hors ligne).
  * Les identifiants internes historiques (« FR1 », « BE2 », « BE-BE21 »…) sont conservés comme clés de jointure.
  */
 import { execFileSync } from "node:child_process";

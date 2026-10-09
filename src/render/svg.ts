@@ -482,7 +482,7 @@ export function mountSvg(
         .attr(
           "aria-label",
           (currentDoc.title || "Span-magnitude map") +
-            (mapLayout.mapRegion === "europe" ? " — Europe" : " — France / Belgique")
+            (mapLayout.mapRegion === "europe" ? " — Europe" : mapLayout.mapRegion === "world" ? " — Monde" : " — France / Belgique")
         );
 
       const g = svg

@@ -42,10 +42,12 @@ export interface CartoucheLayout {
  */
 export const MAP_SOURCE_FRBE = ["Fond : IGN, NGI-Statbel, Natural Earth", "Licence Ouverte · CC BY 4.0 · domaine public"];
 export const MAP_SOURCE_EUROPE = ["Fond : Natural Earth (domaine public)"];
+export const MAP_SOURCE_WORLD = ["Fond : Natural Earth (domaine public)"];
 export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { drill?: ChartSpec["drill"] }): string[] {
   if (spec.type === "drill" && spec.drill?.view === "map") return MAP_SOURCE_FRBE;
   if (spec.type !== "map") return [];
   if (spec.special.mapRegion === "europe") return MAP_SOURCE_EUROPE;
+  if (spec.special.mapRegion === "world") return MAP_SOURCE_WORLD;
   return MAP_SOURCE_FRBE;
 }
 
