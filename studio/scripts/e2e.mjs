@@ -1542,7 +1542,7 @@ async function e2eSelection() {
   await pg.tap('[data-testid=sel-label-color] [data-color="#9CA3AF"]');
   await sleep(400);
   const l2 = await pg.evaluate(() => { const o = window.r4d.getSpec().style.overrides; const sk = Object.keys(o).find((k) => k.startsWith("s:")); return { sk, ov: sk ? o[sk] : null, greys: [...document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]')].filter((t) => t.getAttribute("fill")?.toLowerCase() === "#9ca3af").length, n: document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]').length }; });
-  check("libellé : « Toute la série » écrit la surcharge de série (les autres libellés suivent, le libellé propre garde la sienne)", l2.ov?.labelColor === "#9CA3AF" && l2.greys === l2.n - 1, JSON.stringify(l2));
+  check("libellé : « Toute la série » écrit la surcharge de série ; tous les libellés suivent, y compris celui qui avait sa propre couleur (son texte libre reste)", l2.ov?.labelColor === "#9CA3AF" && l2.greys === l2.n && l2.n > 0, JSON.stringify(l2));
   // toucher hors de la sélection, hors du graphique (titre) : la page (règle du 09/10 : l'objet touché, au niveau où il est)
   const tp = await at("[data-testid=chart-svg] .r4d-title");
   await tapAt(tp);
@@ -1847,7 +1847,7 @@ async function e2eNuancier() {
     await sleep(500);
     await shot(`168-nuancier-fond-ipad-${W}.png`);
     const bg = await pg.evaluate(() => ({ v: window.r4d.getSpec().style.backgroundCustom, fill: document.querySelector("[data-testid=chart-svg] .r4d-bg")?.getAttribute("fill"), on: document.querySelector("[data-testid=bg-color] [aria-pressed=true]")?.getAttribute("aria-label") }));
-    check(`nuancier (${W}) : couleur de fond (même composant), pastille active à jour`, bg.v?.toUpperCase() === "#F5E6D3" && bg.fill?.toUpperCase() === "#F5E6D3" && bg.on === "Lin", JSON.stringify(bg));
+    check(`nuancier (${W}) : couleur de fond (même composant), pastille active à jour`, bg.v?.toUpperCase() === "#F5E6D3" && bg.fill?.toUpperCase() === "#F5E6D3" && bg.on === "Couleur perso : lin", JSON.stringify(bg));
     check(`nuancier (${W}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
     await ctx.close();
   }
@@ -2309,8 +2309,147 @@ async function e2eCouleurBarre() {
   }
 }
 
+/*
+ * État des pastilles (retour de Michaël : « la pastille active reste sur l'ancienne couleur ») : couleur du texte du
+ * libellé (norme, « janv. »), de l'élément, de la série et du fond ; après un choix en ligne, au nuancier, aux récentes
+ * ou au sélecteur complet, la pastille correspondante est active, sinon une pastille « couleur perso » ; l'état tient
+ * après un nouveau rendu et une nouvelle sélection.
+ */
+async function e2ePastilles() {
+  for (const touch of [false, true]) {
+    const dev = touch ? "iPad 1024, toucher" : "souris 1366";
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    await pg.setViewport(touch ? { width: 1024, height: 768, hasTouch: true, isMobile: true } : { width: 1366, height: 900 });
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await pg.evaluate(async () => {
+      localStorage.setItem("datanime.couleursRecentes", JSON.stringify(["#14B8A6"]));
+      window.r4d.loadSample("revue-mensuelle-norme");
+      await new Promise((r) => setTimeout(r, 1200));
+      await window.r4d.settle();
+    });
+    await sleep(600);
+    const press = async (sel) => {
+      const hd = await pg.$(sel);
+      if (!hd) return false;
+      await hd.evaluate((e) => e.scrollIntoView({ block: "center" }));
+      await sleep(120);
+      const b = await hd.boundingBox();
+      if (touch) await pg.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+      else await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+      await sleep(500);
+      return true;
+    };
+    const row = (tid) => pg.evaluate((tid) => {
+      const r = document.querySelector(`[data-testid=${tid}]`);
+      if (!r) return null;
+      return { on: [...r.querySelectorAll(".selp-sw.on")].map((b) => b.getAttribute("data-color").toUpperCase()), perso: r.querySelector(`[data-testid=${tid}-perso]`)?.getAttribute("data-color")?.toUpperCase() ?? null, persoOn: !!r.querySelector(`[data-testid=${tid}-perso].on`) };
+    }, tid);
+    const viaNuancier = async (tid, rowId, color) => { await press(`[data-testid=${tid}-nuancier]`); await press(`[data-testid=${rowId}] button[data-color="${color}"]`); };
+    const viaPlus = async (tid, color) => {
+      await press(`[data-testid=${tid}-nuancier]`);
+      await pg.evaluate((w) => { const i = document.querySelector("[data-testid=nuancier-more-input]"); i.value = w; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); }, color);
+      await sleep(500);
+    };
+    const ok = (r, c, perso) => !!r && r.on.length === 1 && r.on[0] === c && (perso ? r.perso === c && r.persoOn : r.perso === null);
+    // libellé « janv. » du réel, par le geste
+    const lab = await pg.evaluate(() => { const e = document.querySelector('[data-testid=chart-svg] [data-sel="label"]'); e.scrollIntoView({ block: "center" }); const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, ek: e.getAttribute("data-sel-key"), sk: e.getAttribute("data-sel-series"), name: e.getAttribute("data-sel-name") }; });
+    for (let i = 0; i < 6; i++) {
+      if ((await pg.evaluate(() => window.r4d.selection().sel?.level)) === "label") break;
+      if (touch) await pg.touchscreen.tap(lab.x, lab.y);
+      else await pg.mouse.click(lab.x, lab.y);
+      await sleep(450);
+    }
+    const T = "sel-label-color";
+    const steps = [];
+    await press(`[data-testid=${T}] button[data-color="#3FA7C4"]`);
+    steps.push(["en ligne", ok(await row(T), "#3FA7C4", false), await row(T)]);
+    await viaNuancier(T, "nuancier-base", "#FF0000");
+    steps.push(["couleurs de base", ok(await row(T), "#FF0000", true), await row(T)]);
+    await viaNuancier(T, "nuancier-recentes", "#14B8A6");
+    steps.push(["récentes", ok(await row(T), "#14B8A6", true), await row(T)]);
+    await viaPlus(T, "#123456");
+    steps.push(["plus de couleurs", ok(await row(T), "#123456", true), await row(T)]);
+    await viaNuancier(T, "nuancier-grid", "#7C3AED");
+    steps.push(["grille", ok(await row(T), "#7C3AED", true), await row(T)]);
+    const fill = await pg.evaluate((ek) => document.querySelector(`[data-testid=chart-svg] [data-sel="label"][data-sel-key="${CSS.escape(ek)}"]`)?.getAttribute("fill"), lab.ek);
+    check(`pastilles (${dev}) : couleur du texte du libellé « ${lab.name} » (norme) — pastille active = couleur choisie, « couleur perso » hors rangée, à chaque voie ; le libellé change`, steps.every((x) => x[1]) && fill?.toUpperCase() === "#7C3AED", JSON.stringify(steps.filter((x) => !x[1])) + " fill=" + fill);
+    // nouveau rendu + nouvelle sélection
+    await pg.evaluate(async () => { window.r4d.set("style.valueLabels", true); window.r4d.set("variance.show", "rel"); await window.r4d.settle(); });
+    await sleep(500);
+    const r1 = await row(T);
+    await pg.evaluate((l) => { window.r4d.selection().clear(); window.r4d.selection().set({ level: "label", ek: l.ek, sk: l.sk, name: l.name }); }, lab);
+    await sleep(600);
+    const r2 = await row(T);
+    check(`pastilles (${dev}) : après un nouveau rendu et une nouvelle sélection, la pastille « couleur perso » reste active`, ok(r1, "#7C3AED", true) && ok(r2, "#7C3AED", true), JSON.stringify({ r1, r2 }));
+    // portée « Toute la série » : le libellé suit (sa couleur propre s'efface), la rangée l'indique, aussi après resélection
+    await press('[data-testid=sel-label-scope] button[data-value="series"]');
+    await press(`[data-testid=${T}] button[data-color="#0E6E8C"]`);
+    const rs = await row(T);
+    const fs = await pg.evaluate((ek) => document.querySelector(`[data-testid=chart-svg] [data-sel="label"][data-sel-key="${CSS.escape(ek)}"]`)?.getAttribute("fill"), lab.ek);
+    await pg.evaluate((l) => { window.r4d.selection().clear(); window.r4d.selection().set({ level: "label", ek: l.ek, sk: l.sk, name: l.name }); }, lab);
+    await sleep(600);
+    const rs2 = await row(T);
+    check(`pastilles (${dev}) : « Toute la série » — le libellé prend la couleur, la pastille est active, aussi après resélection (portée « ce libellé »)`, ok(rs, "#0E6E8C", false) && fs?.toUpperCase() === "#0E6E8C" && ok(rs2, "#0E6E8C", false), JSON.stringify({ rs, fs, rs2 }));
+    // élément (barre) et série
+    const mk = await pg.evaluate(() => { const e = document.querySelectorAll('[data-testid=chart-svg] [data-sel="mark"]')[5]; return { ek: e.getAttribute("data-sel-key"), sk: e.getAttribute("data-sel-series"), name: e.getAttribute("data-sel-name") }; });
+    await pg.evaluate((m) => window.r4d.selection().set({ level: "mark", ...m }), mk);
+    await sleep(500);
+    await viaNuancier("sel-mark-color", "nuancier-base", "#0070C0");
+    const m1 = await row("sel-mark-color");
+    await press('[data-testid=sel-mark-color] button[data-color="#08465A"]');
+    const m2 = await row("sel-mark-color");
+    await viaNuancier("sel-mark-color", "nuancier-recentes", "#0070C0");
+    await pg.evaluate(async (m) => { window.r4d.selection().clear(); await window.r4d.settle(); window.r4d.selection().set({ level: "mark", ...m }); }, mk);
+    await sleep(600);
+    const m3 = await row("sel-mark-color");
+    check(`pastilles (${dev}) : couleur de l'élément — base (perso), charte (pastille), récentes (perso), état gardé après resélection`, ok(m1, "#0070C0", true) && ok(m2, "#08465A", false) && ok(m3, "#0070C0", true), JSON.stringify({ m1, m2, m3 }));
+    await pg.evaluate((m) => window.r4d.selection().set({ level: "series", ek: null, sk: m.sk, name: "" }), mk);
+    await sleep(500);
+    await viaNuancier("sel-series-color", "nuancier-grid", "#16A34A");
+    const s1 = await row("sel-series-color");
+    await pg.evaluate(async (m) => { window.r4d.selection().clear(); await window.r4d.settle(); window.r4d.selection().set({ level: "series", ek: null, sk: m.sk, name: "" }); }, mk);
+    await sleep(600);
+    const s2 = await row("sel-series-color");
+    check(`pastilles (${dev}) : couleur de la série — grille (perso active), état gardé après resélection`, ok(s1, "#16A34A", true) && ok(s2, "#16A34A", true), JSON.stringify({ s1, s2 }));
+    // fond perso (Réglages)
+    await pg.evaluate(async () => { window.r4d.selection().clear(); window.r4d.set("style.background", "custom"); await window.r4d.settle(); window.r4d.panel().reveal({ section: "style", paths: ["style.backgroundCustom"] }); });
+    await sleep(600);
+    await viaNuancier("bg-color", "nuancier-grid", "#1E3A8A");
+    const b1 = await row("bg-color");
+    await pg.evaluate(async () => { window.r4d.set("style.sort", "desc"); await window.r4d.settle(); });
+    await sleep(500);
+    const b2 = await row("bg-color");
+    check(`pastilles (${dev}) : couleur du fond — grille (perso active), état gardé après un nouveau rendu`, ok(b1, "#1E3A8A", true) && ok(b2, "#1E3A8A", true), JSON.stringify({ b1, b2 }));
+    if (SHOTS && !touch) {
+      await pg.evaluate((l) => window.r4d.selection().set({ level: "label", ek: l.ek, sk: l.sk, name: l.name }), lab);
+      await sleep(400);
+      await viaNuancier(T, "nuancier-base", "#FF0000");
+      await pg.evaluate(() => document.querySelector("[data-testid=sel-label-color]")?.scrollIntoView({ block: "center" }));
+      await sleep(400);
+      await pg.screenshot({ path: join(shotsDir, "178-pastille-perso-active-1366.png") });
+    }
+    check(`pastilles (${dev}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--pastilles")) {
+  try { await e2ePastilles(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--couleur-barre")) {
-  try { await e2eCouleurBarre(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  try { await e2eCouleurBarre(); await e2ePastilles(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
   console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
   await browser.close();
@@ -5081,6 +5220,7 @@ try {
   await e2eFilmPuces();
   /* 28 sexies. Couleur d'une barre : souris et toucher, 6 exemples, 6 voies, mise en avant, norme */
   await e2eCouleurBarre();
+  await e2ePastilles();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

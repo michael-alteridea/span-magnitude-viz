@@ -1267,3 +1267,7 @@ body.dw-open { overflow: hidden; }
 .story-elem .selp-link, .selp [data-testid=sel-comment-reset] { min-height: 32px; }
 .story-elem .selp-link[hidden], .selp [data-testid=sel-comment-reset][hidden] { display: none; }
 .selp textarea[data-testid=sel-comment] { width: 100%; resize: vertical; }
+/* pastille « couleur perso » (couleur hors de la rangée) : anneau pointillé + mention */
+.selp-sw.selp-sw-perso { position: relative; outline: 1.5px dashed var(--muted); outline-offset: 2px; }
+.selp-sw.selp-sw-perso::after { content: "perso"; position: absolute; left: 50%; bottom: -15px; transform: translateX(-50%); font-size: 9px; line-height: 1; color: var(--muted); pointer-events: none; }
+.selp-sws:has(.selp-sw-perso) { padding-bottom: 12px; row-gap: 18px; }

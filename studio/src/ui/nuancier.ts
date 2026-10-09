@@ -186,20 +186,43 @@ export function openNuancier(anchor: HTMLElement, o: ColorPickerOpts): HTMLEleme
   return el;
 }
 
-/** Choix de couleur en ligne : couleurs de la charte + bouton « Nuancier ». */
-export function colorPicker(o: ColorPickerOpts): HTMLElement {
+/** Choix de couleur en ligne : couleurs de la charte + bouton « Nuancier ».
+ * La rangée reflète toujours la couleur courante : pastille de la charte marquée active, sinon pastille
+ * « couleur perso » en tête (couleur prise au nuancier, aux récentes ou au sélecteur complet). Un choix met la rangée
+ * à jour tout de suite (sans attendre la reconstruction du panneau) ; `setValue` la resynchronise de l'extérieur.
+ */
+export function colorPicker(o: ColorPickerOpts): HTMLElement & { setValue(v: string | null): void } {
   const charter = o.charter ?? CHARTE;
+  let value = o.value ?? null;
+  const root = h("div", { class: "selp-sws", "data-testid": o.testid }) as unknown as HTMLElement & { setValue(v: string | null): void };
   const pick = (c: string) => {
     rememberColor(c);
+    paint(c);
     o.onPick(c);
   };
   const btn: HTMLButtonElement = h(
     "button",
-    { type: "button", class: "selp-sw selp-sw-more nz-open", title: "Nuancier : toutes les couleurs", "aria-label": "Nuancier : toutes les couleurs", "aria-haspopup": "dialog", "aria-expanded": "false", "data-testid": `${o.testid}-nuancier`, onclick: () => (openPop && btn.getAttribute("aria-expanded") === "true" ? closeNuancier() : openNuancier(btn, o)) },
+    { type: "button", class: "selp-sw selp-sw-more nz-open", title: "Nuancier : toutes les couleurs", "aria-label": "Nuancier : toutes les couleurs", "aria-haspopup": "dialog", "aria-expanded": "false", "data-testid": `${o.testid}-nuancier`, onclick: () => (openPop && btn.getAttribute("aria-expanded") === "true" ? closeNuancier() : openNuancier(btn, { ...o, value, onPick: pick })) },
     h("span", { class: "nz-open-ic", "aria-hidden": "true" })
   );
-  const known = !o.value || charter.some(([c]) => norm(c) === norm(o.value!));
-  // couleur choisie hors charte : pastille « actuelle » en tête, pour la voir
-  const curSw = !known && o.value ? swatchBtn(o.value, colorName(o.value), o.value, pick) : null;
-  return h("div", { class: "selp-sws", "data-testid": o.testid }, ...(curSw ? [curSw] : []), ...charter.map(([c, n]) => swatchBtn(c, n, o.value, pick)), btn);
+  function paint(v: string | null) {
+    value = v;
+    root.dataset.value = v ?? "";
+    const known = !v || charter.some(([c]) => norm(c) === norm(v));
+    // couleur hors de la rangée : pastille « couleur perso » en tête, active
+    let perso: HTMLButtonElement | null = null;
+    if (!known && v) {
+      perso = swatchBtn(v, colorName(v), v, pick, "selp-sw selp-sw-perso");
+      const label = `Couleur perso : ${colorName(v)}`;
+      perso.title = label;
+      perso.setAttribute("aria-label", label);
+      perso.setAttribute("data-testid", `${o.testid}-perso`);
+    }
+    root.replaceChildren(...(perso ? [perso] : []), ...charter.map(([c, n]) => swatchBtn(c, n, v, pick)), btn);
+  }
+  root.setValue = (v) => {
+    if (norm(v ?? "") !== norm(value ?? "")) paint(v);
+  };
+  paint(value);
+  return root;
 }

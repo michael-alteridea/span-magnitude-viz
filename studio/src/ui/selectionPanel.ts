@@ -132,7 +132,23 @@ export class SelectionPanel {
   /** Couleur du texte d'un libellé : les étiquettes masquées s'affichent, pour que le choix se voie. */
   private pickLabelColor(k: string, c: string | null): void {
     if (c && !this.store.state.spec.style.valueLabels && !["pie", "donut", "radialBar", "scatter"].includes(this.store.state.spec.type)) this.store.set("style.valueLabels", true);
-    this.patch(k, { labelColor: c });
+    let all = withOverride(this.store.state.spec.style.overrides, k, { labelColor: c });
+    if (k.startsWith("s:")) {
+      // « Toute la série » : un libellé de la série qui gardait sa propre couleur la perd (sinon il resterait à l'ancienne)
+      const esc = (v: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v);
+      const keys = new Set([...document.querySelectorAll(`[data-testid=chart-svg] [data-sel][data-sel-series="${esc(k)}"]`)].map((e) => e.getAttribute("data-sel-key")).filter((x): x is string => !!x));
+      for (const ek of keys) if (all[ek]?.labelColor) all = withOverride(all, ek, { labelColor: undefined });
+    }
+    this.store.set("style.overrides", all);
+  }
+
+  /** Couleur dessinée d'une marque (ou d'un libellé) du graphique, si c'est une couleur de la rangée. */
+  private drawnInRow(role: "mark" | "label", key: string | null, list: [string, string][], bySeries = false): string | undefined {
+    if (!key) return undefined;
+    const esc = (v: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v);
+    const el = document.querySelector(`[data-testid=chart-svg] [data-sel="${role}"][${bySeries ? "data-sel-series" : "data-sel-key"}="${esc(key)}"]`);
+    const f = (el?.getAttribute("fill") ?? "").toUpperCase();
+    return list.some(([c]) => c.toUpperCase() === f) ? f : undefined;
   }
 
   private seg(cur: string, opts: [string, string][], pick: (v: string) => void, testid: string): HTMLElement {
@@ -236,7 +252,7 @@ export class SelectionPanel {
       out.push(
         this.card(
           "Couleur de la série",
-          this.swatches(o.color, MARK_COLORS, (c) => this.patch(sk, { color: c }), "sel-series-color", undefined, "Couleur de la série"),
+          this.swatches(o.color ?? this.drawnInRow("mark", sk, MARK_COLORS, true), MARK_COLORS, (c) => this.patch(sk, { color: c }), "sel-series-color", undefined, "Couleur de la série"),
           o.color ? h("button", { type: "button", class: "selp-link", "data-testid": "sel-series-color-reset", onclick: () => this.patch(sk, { color: undefined }) }, "Couleur de la palette") : null,
           this.colorNote(spec, null)
         )
@@ -290,7 +306,7 @@ export class SelectionPanel {
     const out: HTMLElement[] = [
       this.card(
         ({ Barre: "Couleur de cette barre", Part: "Couleur de cette part", Point: "Couleur de ce point", Arc: "Couleur de cet arc" } as Record<string, string>)[n.mark] ?? "Couleur",
-        this.swatches(o.color, MARK_COLORS, (c) => this.patch(ek, { color: c }), "sel-mark-color", undefined, "Couleur de l'élément"),
+        this.swatches(o.color ?? this.ovr(s.sk).color ?? this.drawnInRow("mark", ek, MARK_COLORS), MARK_COLORS, (c) => this.patch(ek, { color: c }), "sel-mark-color", undefined, "Couleur de l'élément"),
         h(
           "small",
           { class: "hint" },
@@ -334,7 +350,7 @@ export class SelectionPanel {
         "Police",
         this.field("Taille", size),
         this.field("Graisse", this.seg(o.labelBold === false ? "normal" : o.labelBold ? "bold" : "auto", [["auto", "Auto"], ["normal", "Normal"], ["bold", "Gras"]], (x) => this.patch(k, { labelBold: x === "auto" ? undefined : x === "bold" }), "sel-label-weight")),
-        this.field("Couleur du texte du libellé", this.swatches(o.labelColor, LABEL_COLORS, (c) => this.pickLabelColor(k, c), "sel-label-color", undefined, "Couleur du texte du libellé")),
+        this.field("Couleur du texte du libellé", this.swatches(this.scope === "series" ? o.labelColor : o.labelColor ?? this.ovr(s.sk).labelColor, LABEL_COLORS, (c) => this.pickLabelColor(k, c), "sel-label-color", undefined, "Couleur du texte du libellé")),
         o.labelColor ? h("button", { type: "button", class: "selp-link", onclick: () => this.patch(k, { labelColor: undefined }) }, "Couleur automatique") : null,
         this.toggle(!!o.hideLabel, "Masquer ce libellé", (x) => this.patch(k, { hideLabel: x || undefined }), "sel-label-hide")
       )
@@ -347,7 +363,7 @@ export class SelectionPanel {
       out.unshift(
         this.card(
           ({ barre: "Couleur de la barre", part: "Couleur de la part", point: "Couleur du point", arc: "Couleur de l'arc" } as Record<string, string>)[word] ?? "Couleur de l'élément",
-          this.swatches(eo.color, MARK_COLORS, (c) => this.patch(s.ek!, { color: c }), "sel-label-mark-color", undefined, `Couleur de ${s.name}`),
+          this.swatches(eo.color ?? this.ovr(s.sk).color ?? this.drawnInRow("mark", s.ek, MARK_COLORS), MARK_COLORS, (c) => this.patch(s.ek!, { color: c }), "sel-label-mark-color", undefined, `Couleur de ${s.name}`),
           h(
             "small",
             { class: "hint" },

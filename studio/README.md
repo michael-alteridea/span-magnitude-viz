@@ -743,6 +743,12 @@ la même façon.
   - grille de 60 pastilles : 10 colonnes de teintes (rouges, oranges, jaunes, verts, turquoises, bleus, violets, roses,
     bruns, gris), 6 rangées du clair au foncé ; chaque pastille porte un nom français (infobulle et `aria-label`,
     ex. « bleu nuit »), aucun code n'est affiché ; pastilles de 34 px (iPad) ;
+  - **État des pastilles** : la rangée montre toujours la couleur appliquée — pastille de la rangée active, sinon
+    pastille **« couleur perso »** en tête (anneau pointillé, mention « perso ») pour une couleur prise au nuancier,
+    aux récentes ou au sélecteur complet ; mise à jour dès le choix, et juste après un nouveau rendu ou une nouvelle
+    sélection. Libellé : la couleur effective (la sienne, sinon celle de la série) ; « Toute la série » efface les
+    couleurs propres des libellés de la série (sinon ils restaient à l'ancienne couleur). Élément : la sienne, sinon
+    celle de la série ou de la palette. e2e `--pastilles` (capture 178).
   - **Plus de couleurs…** ouvre le sélecteur complet du navigateur ; rappel « en mode norme, le rouge et le vert
     restent réservés aux écarts » ; Échap ou un toucher à côté ferme la fenêtre sans toucher à la sélection.
   - Tests : `test/nuancier.test.ts`, `node studio/scripts/e2e.mjs --nuancier --shots` (iPad 1024 et 1366 ; captures
