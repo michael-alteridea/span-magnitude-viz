@@ -2030,6 +2030,101 @@ async function e2ePuces() {
   await ctx.close();
 }
 
+/* Puces « À retenir » dans le film et le mode lecture : 4, 5 et 10 puces (générales + colorées) arrivent une à une. */
+async function e2eFilmPuces() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 1.5 : 1, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  const CASES = [[2, 2], [3, 2], [3, 7]];
+  await pg.evaluate(async (cases) => {
+    window.r4d.loadSample("renouvelables");
+    await new Promise((r) => setTimeout(r, 900));
+    window.r4d.set("mode.kind", "static");
+    window.r4d.set("style.focus.key", null);
+    await window.r4d.settle();
+    const keys = [...document.querySelectorAll('[data-testid=chart-svg] rect[data-sel="mark"]')].map((e) => e.getAttribute("data-sel-key"));
+    const colors = ["#FF0000", "#0070C0", "#00B050", "#FFC000", "#7030A0", "#00B0F0", "#92D050"];
+    const general = ["Suède en tête.", "Moyenne par pays : 29 %.", "Belgique sous la moyenne."];
+    for (const [g, e] of cases) {
+      window.r4d.set("style.overrides", Object.fromEntries(keys.slice(1, 1 + e).map((k, i) => [k, { color: colors[i] }])));
+      window.r4d.set("story.comments", general.slice(0, g));
+      await window.r4d.settle();
+      await window.r4d.snapshot();
+      await window.r4d.settle();
+    }
+  }, CASES);
+  const snaps = await pg.evaluate(() => window.r4d.story().snapshots.map((s) => s.id));
+  /** Ouvre la diapositive k (film ou lecture) et note l'instant où chaque puce apparaît. */
+  const record = (sel, open) => pg.evaluate(async (sel, open) => {
+    const times = [];
+    let last = 0;
+    let n = 0;
+    const t0 = performance.now();
+    const svg = () => document.querySelector(sel);
+    const look = () => {
+      const s = svg();
+      const a = s?.getAttribute("data-bullets");
+      if (!a) return;
+      const [k, tot] = a.split("/").map(Number);
+      n = tot;
+      const dom = s.querySelectorAll(".r4d-comment").length;
+      if (k > last) {
+        times.push({ k, dom, t: Math.round(performance.now() - t0), jump: k - last });
+        last = k;
+      }
+    };
+    svg()?.removeAttribute("data-bullets"); // pas d'état resté de la diapositive précédente
+    await new Function("return " + open)()();
+    for (let i = 0; i < 600 && !(n && last >= n); i++) {
+      look();
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    const colors = [...svg().querySelectorAll(".r4d-comment")].map((g) => g.getAttribute("data-color"));
+    return { n, times, colors };
+  }, sel, open);
+  const frames = [];
+  for (let k = 0; k < CASES.length; k++) {
+    const [g, e] = CASES[k];
+    const n = g + e;
+    for (const [mode, sel, open] of [
+      ["film", "[data-testid=film-svg]", `async () => { window.r4d.film().open(window.r4d.story().snapshots, ${k}); }`],
+      ["lecture", "[data-testid=reader-svg]", `async () => { window.r4d.read("histoire", ${JSON.stringify(snaps[k])}); }`],
+    ]) {
+      const r = await record(sel, open);
+      const inc = r.times.every((x, i) => x.jump === 1 && x.dom === x.k && (i === 0 || x.t > r.times[i - 1].t));
+      check(`${mode} : ${n} puces (${g} générales + ${e} colorées) arrivent une à une, dans l'ordre (instants strictement croissants)`, r.n === n && r.times.length === n && inc && r.colors.slice(g).every((c) => c !== r.colors[0]), JSON.stringify(r.n === n && r.times.length === n ? r.times.map((x) => x.t) : r));
+      if (mode === "film" && n === 10 && SHOTS) {
+        // séquence d'images : 4 instants du film à 10 puces
+        await pg.evaluate(() => window.r4d.film().open(window.r4d.story().snapshots, 2));
+        for (const [i, ms] of [[1, 1500], [2, 2600], [3, 3700], [4, 5600]]) {
+          await sleep(i === 1 ? ms : ms - [0, 1500, 2600, 3700, 5600][i - 1]);
+          await pg.screenshot({ path: join(shotsDir, `173-puces-film-10-${i}.png`) });
+        }
+      }
+      await pg.evaluate(() => { window.r4d.film().close(); window.r4d.reader().close?.(); });
+      await pg.waitForFunction(() => !window.r4d.reader().isOpen, { timeout: 5000 }).catch(() => {});
+      await sleep(600);
+    }
+  }
+  check("film / lecture à puces nombreuses : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
+if (process.argv.includes("--film-puces")) {
+  try { await e2eFilmPuces(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--puces")) {
   try { await e2ePuces(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -4780,6 +4875,8 @@ try {
   await e2eNuancier();
   /* 28 quater. Puces colorées « À retenir » par élément (iPad) */
   await e2ePuces();
+  /* 28 quinquies. Film et mode lecture : 4, 5 et 10 puces arrivent une à une */
+  await e2eFilmPuces();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

@@ -340,6 +340,11 @@ export interface RenderOptions {
    * qu'une partie — le graphique est d'emblée à sa taille finale, sans saut.
    */
   commentsAll?: string[];
+  /**
+   * Nombre de puces affichées (film, mode lecture), puces générales PUIS puces colorées par élément, dans l'ordre :
+   * chaque puce arrive à son tour. Absent : toutes les puces de `spec.story.comments` et des éléments.
+   */
+  bulletsShown?: number;
 }
 
 /**
@@ -411,10 +416,14 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   const notes = texts && spec.story.showComments ? elementNotes(spec, rawDs) : [];
   const mainDot = colors[0] ?? theme.accent;
   type Bullet = { text: string; color: string; edit: string; elem: boolean };
-  const bullets: Bullet[] = [
-    ...general.map((text, i) => ({ text, color: mainDot, edit: `comment:${i}`, elem: false })),
-    ...(general.length >= layoutGeneral.length ? notes.map((n, i) => ({ text: n.text, color: n.color, edit: `elem:${i}`, elem: true })) : []),
+  // `bulletsShown` (film, mode lecture) : une seule file — puces générales prévues puis puces d'élément —, coupée
+  // au nombre de puces déjà arrivées ; sinon (ancien appel) puces générales fournies puis toutes les puces d'élément.
+  const queue: Bullet[] = [
+    ...(opts.bulletsShown != null ? layoutGeneral : general).map((text, i) => ({ text, color: mainDot, edit: `comment:${i}`, elem: false })),
+    ...notes.map((n, i) => ({ text: n.text, color: n.color, edit: `elem:${i}`, elem: true })),
   ];
+  const bullets: Bullet[] =
+    opts.bulletsShown != null ? queue.slice(0, Math.max(0, opts.bulletsShown)) : general.length >= layoutGeneral.length ? queue : queue.slice(0, general.length);
   const layoutComments = [...layoutGeneral, ...notes.map((n) => n.text)];
   const comments = bullets.map((b) => b.text);
   const sideComments = layoutComments.length > 0 && W / H >= 1.3;
@@ -455,7 +464,9 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     const hs = 12 * s;
     if (sideComments) {
       const x0 = W - pad - colW;
-      const fs = 15 * s;
+      // plus de 5 puces (générales + éléments) : texte et interlignes réduits pour que la colonne tienne
+      const dense = Math.max(0.72, Math.min(1, Math.sqrt(5 / Math.max(1, layoutComments.length))));
+      const fs = 15 * s * dense;
       const colBottom = H - pad - footH - colFootH;
       let cy = y + 16 * s;
       gCom.append("line").attr("x1", x0 - 16 * s).attr("x2", x0 - 16 * s).attr("y1", y + 6 * s).attr("y2", colFootH ? colBottom - 4 * s : H - pad - footH).attr("stroke", theme.grid).attr("stroke-width", 1 * s);
@@ -469,12 +480,12 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
           const lines = wrap(b.text, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
           dot(g as unknown as G, b, x0, cy + fs * 0.32 - 3.5 * s, 7 * s);
           lines.forEach((l, k) => g.append("text").attr("x", x0 + 16 * s).attr("y", cy + fs * 0.32 + k * fs * 1.35).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
-          cy += lines.length * fs * 1.35 + 14 * s;
+          cy += lines.length * fs * 1.35 + 14 * s * dense;
         });
       }
       contentW = innerW - colW - 32 * s;
     } else {
-      const fs = 14 * s;
+      const fs = 14 * s * Math.max(0.72, Math.min(1, Math.sqrt(5 / Math.max(1, layoutComments.length))));
       const blocks = comments.map((c) => wrap(c, innerW - 16 * s, fs, font, 400, 2));
       const plannedBlocks = layoutComments.map((c) => wrap(c, innerW - 16 * s, fs, font, 400, 2));
       const bh = 20 * s + plannedBlocks.reduce((a, b) => a + b.length * fs * 1.3 + 8 * s, 0);

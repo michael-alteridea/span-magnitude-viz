@@ -18,9 +18,10 @@ import type { Snapshot } from "../story/snapshots";
 import { ROLE_LABELS } from "../story/snapshots";
 import { h, svgIcon, ICONS } from "./dom";
 import { focusDelta } from "../charts/focus";
+import { elementNotes } from "../story/elementNotes";
+import { bulletsDuration, bulletsShownAt } from "../story/bulletReveal";
 
 const BUILD_MS = 1300;
-const COMMENT_MS = 1100;
 /** Transition « mise en avant » (étape L) : grisé, part tirée, halo et bulle. */
 const FOCUS_MS = 1000;
 const HOLD_MS = 2600;
@@ -409,18 +410,22 @@ export class StoryFilm {
     const withFocus = (sp: ChartSpec): ChartSpec => (outFocus ? { ...sp, style: { ...sp.style, focus: outFocus } } : sp);
     let cache = prepareCache(spec, ds, null, -1);
     const all = spec.story.comments;
+    // toutes les puces arrivent une à une : générales (3 au plus) puis puces colorées par élément
+    const nBullets = all.map((c) => c.trim()).filter(Boolean).slice(0, 3).length + elementNotes(spec, ds).length;
     const fms = focusFx ? FOCUS_MS : 0;
-    const total = BUILD_MS + fms + all.length * COMMENT_MS;
+    const start = BUILD_MS * 0.7 + fms * 0.6;
+    const total = Math.max(BUILD_MS + fms, start + bulletsDuration(nBullets));
     this.svg.toggleAttribute("data-focus-anim", !!focusFx);
     const now = s.generatedAt ? new Date(s.generatedAt) : new Date();
     const draw = (t: number) => {
       const build = Math.min(1, t / BUILD_MS);
-      const shown = Math.max(0, Math.min(all.length, Math.floor((t - BUILD_MS * 0.7 - fms * 0.6) / COMMENT_MS) + 1));
+      const shown = bulletsShownAt(t, nBullets, start);
       const fp = focusFx ? Math.max(0, Math.min(1, (t - BUILD_MS) / FOCUS_MS)) : 1;
       const out = focusFx?.dir === "out" && fp < 1;
       const sp = out ? withFocus(spec) : spec;
       const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
-      const res = renderChart(this.svg, { ...sp, story: { ...sp.story, comments: all.slice(0, shown) } }, ds, cache, { build, timePos: null, ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all });
+      const res = renderChart(this.svg, sp, ds, cache, { build, timePos: null, ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
+      this.svg.setAttribute("data-bullets", `${shown}/${nBullets}`);
       this.svg.setAttribute("data-focus-progress", focusFx ? fp.toFixed(2) : "1");
       this.svg.removeAttribute("width");
       this.svg.removeAttribute("height");

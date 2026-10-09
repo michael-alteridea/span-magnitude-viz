@@ -39,8 +39,8 @@ export interface ElementNote {
   focus: boolean;
 }
 
-/** Puces par élément affichées au plus (au-delà, la colonne « À retenir » déborderait). */
-export const ELEMENT_NOTES_MAX = 6;
+/** Puces par élément affichées au plus (avec 3 puces générales : 10 puces ; la colonne réduit son texte au-delà de 5). */
+export const ELEMENT_NOTES_MAX = 7;
 
 const SUPPORTED = new Set(["bar", "barH", "groupedBar", "stackedBar", "line", "area", "stackedArea", "pie", "donut", "radialBar", "scatter"]);
 const LINEISH = new Set(["line", "area", "stackedArea"]);

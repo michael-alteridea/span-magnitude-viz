@@ -786,7 +786,7 @@ ou nuancier) ou est **mise en avant**, il reçoit sa propre puce sous « À rete
 - **Regroupement (choix)** : les éléments de **même couleur propre** partagent une seule puce
   (« Lettonie et Portugal : 46,3 % et 36,7 % ; 4e plus élevé et 3e plus faible »), sauf si l'un d'eux a un
   commentaire saisi différent : il a alors sa propre puce. Une saisie faite dans Récit sur une puce regroupée
-  s'applique à tous ses éléments (le groupe reste uni). 6 puces d'élément au plus.
+  s'applique à tous ses éléments (le groupe reste uni). 7 puces d'élément au plus (10 puces avec les 3 générales ; au-delà de 5 puces, le texte de la colonne se réduit pour tenir).
 - Types concernés : barres (simples, horizontales, groupées, empilées), courbes, aires, camembert, donut, arcs,
   nuage de points. Pas de puce d'élément en mode norme, exploration, carte, film, course de barres et écarts.
 
