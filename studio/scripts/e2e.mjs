@@ -16,7 +16,7 @@
  */
 import http from "node:http";
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -1850,6 +1850,192 @@ async function e2eNuancier() {
     check(`nuancier (${W}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
     await ctx.close();
   }
+}
+
+/* Puces colorées « À retenir » : une puce par élément de couleur propre (selection, mise en avant), éditable dans le
+   panneau (Commentaire) et dans Récit › À retenir ; snapshot, mode lecture, SVG / PNG, PowerPoint (iPad). */
+async function e2ePuces() {
+  const W = 1024, H = 768;
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await sleep(400); await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: W, height: H, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await pg.evaluate(async () => {
+    localStorage.removeItem("datanime.couleursRecentes");
+    window.r4d.loadSample("renouvelables");
+    await new Promise((r) => setTimeout(r, 900));
+    window.r4d.set("style.focus.key", null);
+    window.r4d.set("mode.kind", "static");
+    await window.r4d.settle();
+  });
+  await sleep(500);
+  const marks = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=chart-svg] rect[data-sel="mark"]')].map((e) => ({ ek: e.getAttribute("data-sel-key"), sk: e.getAttribute("data-sel-series"), name: e.getAttribute("data-sel-name") })));
+  const A = marks[3], B = marks[7];
+  const none = await pg.evaluate(() => document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem").length);
+  check("puces colorées : aucune puce d'élément sans couleur propre", none === 0 && marks.length >= 8, `${none} · ${marks.length} barres`);
+  // couleur de deux barres via la sélection + nuancier (couleurs de base)
+  const paint = async (m, label) => {
+    await pg.evaluate((x) => window.r4d.selection().set({ level: "mark", ...x }), m);
+    await sleep(400);
+    await pg.tap("[data-testid=sel-mark-color-nuancier]");
+    await sleep(350);
+    await pg.tap(`[data-testid=nuancier-base] button[aria-label="${label}"]`);
+    await sleep(500);
+  };
+  await paint(A, "Vrai rouge");
+  await paint(B, "Bleu");
+  await pg.evaluate(async () => { window.r4d.selection().clear(); await window.r4d.settle(); });
+  await sleep(500);
+  const read = () => pg.evaluate(() => {
+    const gs = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment")];
+    return gs.map((g) => ({ elem: g.classList.contains("r4d-comment-elem"), fill: g.querySelector("rect")?.getAttribute("fill"), text: [...g.querySelectorAll("text")].map((t) => t.textContent).join(" ").replace(/\s+/g, " ").trim(), edit: g.getAttribute("data-r4d-edit") }));
+  });
+  const b1 = await read();
+  const gen = b1.filter((x) => !x.elem), el = b1.filter((x) => x.elem);
+  // couleur principale = celle des barres sans couleur propre
+  const main = await pg.evaluate((k) => document.querySelector(`[data-testid=chart-svg] rect[data-sel="mark"][data-sel-key="${CSS.escape(k)}"]`)?.getAttribute("fill"), marks[0].ek);
+  check("puces colorées : puces générales à la couleur principale du graphique, puis une puce par barre colorée (rouge, bleu)", gen.length >= 1 && gen.every((x) => x.fill === main) && el.length === 2 && el.map((x) => x.fill).sort().join() === "#0070C0,#FF0000", JSON.stringify(b1.map((x) => [x.elem, x.fill])));
+  const rx = new RegExp(`^${A.name} : \\d+(,\\d)? %, [+−]\\d+(,\\d)? pts? vs la moyenne ; (le plus élevé|\\d+e plus (élevé|faible)|le plus faible)`);
+  const tA = el.find((x) => x.fill === "#FF0000")?.text.replace(/[\u00a0\u202f]/g, " ") ?? "";
+  check("puces colorées : commentaire calculé à partir des données (« Pays : x %, ±y pts vs la moyenne ; rang »)", rx.test(tA), tA);
+  await shot("169-puces-couleur-graphique-ipad-1024.png");
+  // panneau de sélection : « Commentaire » (placeholder = texte calculé), saisie, « Rétablir le texte calculé »
+  await pg.evaluate((x) => window.r4d.selection().set({ level: "mark", ...x }), A);
+  await sleep(500);
+  const p0 = await pg.evaluate(() => { const t = document.querySelector("[data-testid=sel-comment]"); return t ? { ph: t.placeholder, v: t.value, reset: !document.querySelector("[data-testid=sel-comment-reset]")?.hidden } : null; });
+  check("panneau (élément) : champ « Commentaire », texte calculé en placeholder, vide", !!p0 && p0.ph.replace(/[\u00a0\u202f]/g, " ") === tA && p0.v === "" && !p0.reset, JSON.stringify(p0));
+  await pg.evaluate(() => document.querySelector("[data-testid=sel-comment]")?.scrollIntoView({ block: "center" }));
+  await sleep(200);
+  await pg.tap("[data-testid=sel-comment]");
+  await pg.keyboard.type(`${A.name} : record de l'hydraulique`);
+  await sleep(600);
+  const p1 = await pg.evaluate((a) => ({ ov: window.r4d.getSpec().style.overrides[a.ek]?.comment, chart: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem")].map((g) => [...g.querySelectorAll("text")].map((t) => t.textContent).join(" ").replace(/\s+/g, " ").trim()), reset: !document.querySelector("[data-testid=sel-comment-reset]")?.hidden }), A);
+  check("panneau : le commentaire saisi remplace le texte calculé sur le graphique ; « Rétablir le texte calculé » apparaît", p1.ov === `${A.name} : record de l'hydraulique` && p1.chart.some((t) => t.includes("record de l'hydraulique")) && p1.reset, JSON.stringify(p1));
+  await shot("170-puces-couleur-panneau-commentaire-ipad-1024.png");
+  await pg.tap("[data-testid=sel-comment-reset]");
+  await sleep(500);
+  const p2 = await pg.evaluate((a) => ({ ov: window.r4d.getSpec().style.overrides[a.ek], chart: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem")].map((g) => [...g.querySelectorAll("text")].map((t) => t.textContent).join(" ").replace(/\s+/g, " ").trim().replace(/[\u00a0\u202f]/g, " ")) }), A);
+  check("panneau : « Rétablir le texte calculé » efface la saisie (surcharge : couleur seule)", p2.ov && !("comment" in p2.ov) && p2.chart.includes(tA), JSON.stringify(p2));
+  // Récit › À retenir : liste des puces d'élément (pastille), modifiables
+  await pg.evaluate(async () => { window.r4d.selection().clear(); window.r4d.panel().reveal({ section: "recit", paths: ["story.elements.0"] }); await window.r4d.settle(); });
+  await sleep(600);
+  const r0 = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=story-elements] .story-elem")].map((e) => ({ color: e.getAttribute("data-color"), name: e.querySelector(".story-elem-name")?.textContent, ph: e.querySelector("textarea")?.placeholder })));
+  check("Récit › À retenir : une ligne par puce d'élément, pastille de sa couleur, texte calculé en placeholder", r0.length === 2 && r0.map((x) => x.color).sort().join() === "#0070C0,#FF0000" && r0.every((x) => x.ph), JSON.stringify(r0));
+  const iB = r0.findIndex((x) => x.color === "#0070C0");
+  await pg.evaluate((i) => document.querySelector(`[data-testid=story-element-text-${i}]`)?.scrollIntoView({ block: "center" }), iB);
+  await sleep(200);
+  await pg.tap(`[data-testid=story-element-text-${iB}]`);
+  await pg.keyboard.type(`${B.name} : progression la plus nette depuis 2004`);
+  await sleep(600);
+  const r1 = await pg.evaluate((b) => ({ ov: window.r4d.getSpec().style.overrides[b.ek]?.comment, chart: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem")].map((g) => [g.getAttribute("data-color"), [...g.querySelectorAll("text")].map((t) => t.textContent).join(" ").replace(/\s+/g, " ").trim()]) }), B);
+  check("Récit › À retenir : la saisie s'écrit dans le commentaire de l'élément et suit sur le graphique", r1.ov === `${B.name} : progression la plus nette depuis 2004` && r1.chart.some(([c, t]) => c === "#0070C0" && t.includes("progression la plus nette")), JSON.stringify(r1));
+  await shot("171-puces-couleur-recit-ipad-1024.png");
+  await pg.evaluate(() => document.activeElement?.blur());
+  // édition en place sur le graphique (double-clic sur la puce) : même commentaire d'élément
+  const ed = await pg.evaluate(async (a) => {
+    const i = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem")].findIndex((g) => g.getAttribute("data-color") === "#FF0000");
+    const ta = window.r4d.preview.openEditor(`elem:${i}`);
+    if (!ta) return null;
+    ta.value = `${a.name} : en place`;
+    ta.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await window.r4d.settle();
+    const v = window.r4d.getSpec().style.overrides[a.ek]?.comment;
+    // retour au texte calculé : texte vidé
+    const ta2 = window.r4d.preview.openEditor(`elem:${i}`);
+    ta2.value = "";
+    ta2.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await window.r4d.settle();
+    return { v, after: window.r4d.getSpec().style.overrides[a.ek] };
+  }, A);
+  check("graphique : édition en place d'une puce d'élément (vide = texte calculé)", ed?.v === `${A.name} : en place` && ed.after && !("comment" in ed.after), JSON.stringify(ed));
+  // regroupement : même couleur → une seule puce « A et B : … » (commentaire saisi : puce à part)
+  const g1 = await pg.evaluate(async (x) => {
+    const o = window.r4d.getSpec().style.overrides;
+    window.r4d.set("style.overrides", { ...o, [x.b.ek]: { color: "#FF0000" } });
+    await window.r4d.settle();
+    await new Promise((r) => setTimeout(r, 300));
+    const el = [...document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem")].map((g) => [...g.querySelectorAll("text")].map((t) => t.textContent).join(" ").replace(/\s+/g, " ").trim());
+    window.r4d.set("style.overrides", { ...o });
+    await window.r4d.settle();
+    return el;
+  }, { a: A, b: B });
+  check("même couleur propre : les éléments partagent une puce (« A et B : … »)", g1.length === 1 && g1[0].includes(`${A.name} et ${B.name}`) || g1.length === 1 && g1[0].includes(`${B.name} et ${A.name}`), JSON.stringify(g1));
+  // mise en avant : la barre mise en avant a aussi sa puce (sa couleur)
+  const f1 = await pg.evaluate(async () => {
+    window.r4d.set("style.focus.key", "@max");
+    await window.r4d.settle();
+    await new Promise((r) => setTimeout(r, 300));
+    const n = document.querySelectorAll("[data-testid=chart-svg] .r4d-comment-elem").length;
+    window.r4d.set("style.focus.key", null);
+    await window.r4d.settle();
+    return n;
+  });
+  check("mise en avant : une puce de plus pour l'élément mis en avant", f1 === 3, String(f1));
+  // export SVG / PNG : les puces colorées y sont
+  const svgTxt = await pg.evaluate(() => window.r4d.currentSvg());
+  const png = await pg.evaluate(() => window.r4d.pngDataUrl(1));
+  check("export SVG / PNG : puces colorées (rouge, bleu) dans l'image, vocabulaire sobre", /r4d-comment-elem/.test(svgTxt) && svgTxt.includes('fill="#FF0000"') && svgTxt.includes('fill="#0070C0"') && /^data:image\/png/.test(png) && !/certifi|authenticit/i.test(svgTxt), `${svgTxt.length} car. SVG · PNG ${png.length}`);
+  // snapshot (Séquence) puis mode lecture : les puces suivent
+  await pg.evaluate(async () => { await window.r4d.snapshot(); await window.r4d.settle(); });
+  await sleep(600);
+  const sn = await pg.evaluate(() => { const s = window.r4d.story().snapshots.at(-1); return { n: window.r4d.story().snapshots.length, o: Object.values(s?.spec?.style?.overrides ?? {}).map((x) => x.color), svg: /r4d-comment-elem/.test(s?.svg ?? "") }; });
+  check("snapshot (Séquence) : couleurs et commentaires d'élément gardés dans la scène", sn.n >= 1 && sn.o.filter(Boolean).length === 2, JSON.stringify(sn));
+  await pg.evaluate(() => window.r4d.read("histoire", null));
+  await pg.waitForFunction(() => window.r4d?.reader().isOpen && window.r4d.reader().current, { timeout: 20000 }).catch(() => {});
+  await pg.evaluate(() => window.r4d.reader().finishNow());
+  await sleep(800);
+  const rd = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=reader-svg] .r4d-comment-elem")].map((g) => g.getAttribute("data-color")));
+  check("mode lecture : puces colorées après les puces générales", rd.sort().join() === "#0070C0,#FF0000", JSON.stringify(rd));
+  await pg.evaluate(() => { history.back(); });
+  await sleep(600);
+  // PowerPoint : pastilles colorées (couleur principale + couleurs des éléments)
+  const b64 = await pg.evaluate(() => window.r4d.pptxBase64());
+  const JSZip = createRequire(join(repo, "package.json"))("jszip");
+  const zip = await JSZip.loadAsync(Buffer.from(b64, "base64"));
+  const slides = Object.keys(zip.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f)).sort((a, b) => Number(a.match(/\d+/g).at(-1)) - Number(b.match(/\d+/g).at(-1)));
+  const last = await zip.file(slides.at(-1)).async("string");
+  const dotOf = (c) => new RegExp(`<a:srgbClr val="${c}"/>[\\s\\S]{0,200}<a:t>\u25A0`).test(last);
+  check("PowerPoint : puces à pastilles colorées (principale, rouge, bleu) + texte des éléments", dotOf("FF0000") && dotOf("0070C0") && dotOf(main.replace("#", "").toUpperCase()) && last.includes("progression la plus nette") && !/certifi|authenticit/i.test(last), slides.at(-1));
+  if (SHOTS) {
+    const { execFileSync } = await import("node:child_process");
+    const out = join(dl, "pptx-puces");
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    try {
+      const f = join(out, "puces.pptx");
+      writeFileSync(f, Buffer.from(b64, "base64"));
+      execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", out, f], { stdio: "ignore", timeout: 120000 });
+      execFileSync("pdftoppm", ["-png", "-r", "110", "-f", String(slides.length), "-l", String(slides.length), join(out, "puces.pdf"), join(out, "slide")], { stdio: "ignore", timeout: 120000 });
+      const png = readdirSync(out).find((x) => /^slide.*\.png$/.test(x));
+      if (png) copyFileSync(join(out, png), join(shotsDir, "172-puces-couleur-powerpoint.png"));
+    } catch (e) {
+      results.push("(rendu LibreOffice impossible : " + e.message + ")");
+    }
+  }
+  // empreinte : surcharges retirées = hors empreinte
+  const fp = await pg.evaluate(async () => {
+    window.r4d.set("style.overrides", {});
+    await window.r4d.settle();
+    return "overrides" in (window.r4d.fingerprintSpec(JSON.parse(JSON.stringify(window.r4d.getSpec()))).style ?? {});
+  });
+  check("empreinte : sans couleur ni commentaire d'élément, style.overrides reste hors empreinte", fp === false, String(fp));
+  check("puces colorées : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
+if (process.argv.includes("--puces")) {
+  try { await e2ePuces(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--nuancier")) {
@@ -4591,6 +4777,8 @@ try {
   await e2eSelectionClics();
   /* 28 ter. Nuancier : série, élément, libellé, fond (iPad) */
   await e2eNuancier();
+  /* 28 quater. Puces colorées « À retenir » par élément (iPad) */
+  await e2ePuces();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

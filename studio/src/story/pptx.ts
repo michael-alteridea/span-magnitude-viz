@@ -23,7 +23,15 @@ export interface SlideImage {
   height: number;
 }
 
+/** Puces « À retenir » colorées d'une diapositive : couleur principale (puces générales), puces par élément. */
+export interface SlideBullets {
+  main: string;
+  elements: { text: string; color: string }[];
+}
+
 export interface PptxOptions {
+  /** Couleurs des puces et puces par élément (couleur propre ou mise en avant), par snapshot. */
+  bullets?: Map<string, SlideBullets>;
   images: Map<string, SlideImage | null>;
   now?: Date;
   outputType?: "blob" | "arraybuffer" | "base64" | "nodebuffer";
@@ -135,7 +143,7 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   snaps.forEach((s, i) => {
     for (const native of stagesOf(s)) {
       page += 1;
-      addSnapshotSlide(pptx, s, { i, n: snaps.length, page, total, storyTitle: story.title, img: opts.images.get(s.id) ?? null, native, link: opts.links?.get(s.id) ?? null, morph: !!opts.morph });
+      addSnapshotSlide(pptx, s, { i, n: snaps.length, page, total, storyTitle: story.title, img: opts.images.get(s.id) ?? null, native, link: opts.links?.get(s.id) ?? null, morph: !!opts.morph, bullets: opts.bullets?.get(s.id) ?? null });
     }
   });
 
@@ -155,6 +163,7 @@ interface SlideCtx {
   native: NativeSlide | null;
   link: string | null;
   morph: boolean;
+  bullets: SlideBullets | null;
 }
 
 function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
@@ -181,7 +190,8 @@ function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
   slide.addText(`${ROLE_LABELS[s.role].toUpperCase()} · ${i + 1}/${c.n}`, { x: 1.25, y: 0.3, w: 6, h: 0.3, fontFace: FONT, fontSize: 10, bold: true, color: accent, charSpacing: 1, margin: 0, ...nm("role") });
   slide.addText(frSpaces(s.title || s.name), { x: 0.5, y: 0.62, w: 12.3, h: 0.95, fontFace: FONT, fontSize: 26, bold: true, color: text, valign: "top", margin: 0, fit: "shrink", ...nm("titre") });
   if (s.subtitle) slide.addText(s.subtitle, { x: 0.5, y: 1.55, w: 12.3, h: 0.4, fontFace: FONT, fontSize: 13, color: muted, margin: 0, fit: "shrink", ...nm("sous-titre") });
-  const comments = s.comments.filter((x) => x.trim());
+  // puces générales (pastille de la couleur principale) puis puces par élément (pastille de leur couleur)
+  const comments = [...s.comments.filter((x) => x.trim()).map((text) => ({ text, color: c.bullets?.main ?? null })), ...(c.bullets?.elements ?? []).filter((x) => x.text.trim())];
   // amorce de la séquence de construction : mêmes positions, commentaires à venir
   const showComments = !native || native.stage === "complet";
   const norme = !!(spec as Partial<ChartSpec>)?.norme?.enabled;
@@ -239,8 +249,16 @@ function addSnapshotSlide(pptx: any, s: Snapshot, c: SlideCtx) {
   if (comments.length && showComments) {
     slide.addText("À RETENIR", { x: 9.0, y: 2.1, w: 3.8, h: 0.35, fontFace: FONT, fontSize: 11, bold: true, color: accent, charSpacing: 1.5, margin: 0, ...nm("a-retenir") });
     slide.addText(
-      comments.map((x) => ({ text: frSpaces(x), options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } })),
-      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: 15, color: text, valign: "top", margin: 0, fit: "shrink", ...nm("commentaires") }
+      comments.flatMap((x): { text: string; options: Record<string, unknown> }[] =>
+        x.color
+          ? [
+              // pastille colorée (carré plein) : pptxgenjs ne colore pas les puces natives
+              { text: "\u25A0\u2002", options: { color: hex(x.color), fontSize: 13 } },
+              { text: frSpaces(x.text), options: { breakLine: true, paraSpaceAfter: 10 } },
+            ]
+          : [{ text: frSpaces(x.text), options: { bullet: { indent: 14 }, paraSpaceAfter: 10 } }]
+      ),
+      { x: 9.0, y: 2.5, w: 3.85, h: norme ? 4.0 : 4.3, fontFace: FONT, fontSize: comments.length > 4 ? 13 : 15, color: text, valign: "top", margin: 0, fit: "shrink", ...nm("commentaires") }
     );
   }
   slide.addShape("line", { x: 0.5, y: 7.0, w: 12.33, h: 0, line: { color: dark ? "3F3F46" : "E4E4E7", width: 0.75 }, ...nm("pied") });

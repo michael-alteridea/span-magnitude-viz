@@ -1693,3 +1693,7 @@ export function analyzeFocus(spec: ChartSpec, eff: Dataset, ctx: Ctx): Analysis 
     facts: { focus: label, value: v, rank, of: n, ...(avg != null ? { avgOthers: avg } : {}), ...(share != null ? { share } : {}) },
   };
 }
+
+/** Unité et formats de mesure, partagés avec les commentaires par élément (story/elementNotes). */
+export { measureUnit as measureUnitOf, fm as formatInUnit, fmRate as formatRate };
+export type { MUnit };

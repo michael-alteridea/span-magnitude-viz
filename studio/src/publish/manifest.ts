@@ -161,6 +161,16 @@ export interface SourceSnapshot {
   spec?: unknown;
   /** Rôle narratif (contexte, tension, révélation, recommandation). */
   role?: string | null;
+  /**
+   * Puces par élément (couleur propre ou mise en avant), calculées ou saisies : publiées à la suite des puces
+   * générales dans `a_retenir`. Absentes ou vides = empreinte inchangée.
+   */
+  elements?: string[];
+}
+
+/** Puces « À retenir » publiées : générales, puis puces par élément (10 au plus, contrat). */
+export function aRetenirOf(s: Pick<SourceSnapshot, "comments" | "elements">): string[] {
+  return [...s.comments, ...(s.elements ?? [])].map((c) => c.trim()).filter(Boolean).slice(0, 10);
 }
 
 export interface ManifestInput {
@@ -335,7 +345,7 @@ export function snapshotFingerprint(s: SourceSnapshot, note: string | null = nul
       spec: fingerprintSpec(s.spec),
       publie: {
         titre: s.title,
-        a_retenir: s.comments.map((c) => c.trim()).filter(Boolean),
+        a_retenir: aRetenirOf(s),
         commentaire_genere: commentaireOf(s),
         commentaire_animateur: noteOf(note),
         chemin: cheminOf(s),
@@ -415,7 +425,7 @@ export async function buildManifest(input: ManifestInput, o: ManifestOptions): P
       titre: snap.title || `Snapshot ${i + 1}`,
       commentaire_genere: commentaireOf(snap),
       commentaire_animateur: noteOf(note),
-      a_retenir: snap.comments.map((c) => c.trim()).filter(Boolean),
+      a_retenir: aRetenirOf(snap),
       chemin: cheminOf(snap),
       image_png: publie ? imageUrl(input.id, snap.id, "png", base, prints[i]) : png,
       ...(publie && svg ? { image_svg: imageUrl(input.id, snap.id, "svg", base, prints[i]) } : {}),

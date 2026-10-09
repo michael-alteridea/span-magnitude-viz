@@ -137,6 +137,7 @@ export function chartTarget(el: Element | null, t: ChartType, norme: boolean): P
   const edit = c("[data-r4d-edit]")?.getAttribute("data-r4d-edit");
   if (edit === "title") return { section: "recit", paths: ["style.title"] };
   if (edit === "subtitle") return { section: "recit", paths: ["style.subtitle"] };
+  if (edit?.startsWith("elem:")) return { section: "recit", paths: [`story.elements.${edit.split(":")[1]}`, "story.comments.0"] };
   if (edit?.startsWith("comment:")) return { section: "recit", paths: [`story.comments.${edit.split(":")[1]}`, "story.comments.0"] };
   if (c(".r4d-comments-head, .r4d-comments")) return { section: "recit", paths: ["story.showComments", "story.comments.0"] };
   if (c(".r4d-source, .r4d-map-source")) return { section: "recit", paths: ["style.source"] };

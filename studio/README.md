@@ -773,6 +773,46 @@ la même façon.
 - **Correctif du 9 octobre 2026** : en mode norme (ex. « Revue mensuelle (norme) »), les colonnes ne portaient pas
   `data-sel` ; un clic sur une colonne laissait la sélection sur « Page › Graphique ».
 
+## Puces colorées « À retenir » par élément
+
+Quand une barre, une part, un point ou une série reçoit **sa propre couleur** (sélection par touchers › Couleur,
+ou nuancier) ou est **mise en avant**, il reçoit sa propre puce sous « À retenir » :
+
+- les **puces générales** du graphique ont une pastille de la **couleur principale** (première couleur de la palette) ;
+- chaque élément de couleur propre ajoute une puce dont la pastille a **sa couleur**, suivie de son commentaire,
+  **calculé à partir des données** : « Lettonie : 46,3 %, +3,7 pts vs la moyenne ; 4e plus élevé » (valeur, part du
+  total ou écart à la moyenne des autres selon la mesure, puis rang : « le plus élevé », « 2e plus élevé »,
+  « 2e plus faible », « le plus faible »). Séries (plusieurs séries) : dernière valeur pour les courbes, total pour les barres.
+- **Regroupement (choix)** : les éléments de **même couleur propre** partagent une seule puce
+  (« Lettonie et Portugal : 46,3 % et 36,7 % ; 4e plus élevé et 3e plus faible »), sauf si l'un d'eux a un
+  commentaire saisi différent : il a alors sa propre puce. Une saisie faite dans Récit sur une puce regroupée
+  s'applique à tous ses éléments (le groupe reste uni). 6 puces d'élément au plus.
+- Types concernés : barres (simples, horizontales, groupées, empilées), courbes, aires, camembert, donut, arcs,
+  nuage de points. Pas de puce d'élément en mode norme, exploration, carte, film, course de barres et écarts.
+
+**Modifier le texte** :
+
+- panneau de sélection, niveau **élément** (et série) : carte « **Commentaire** », texte calculé en placeholder,
+  saisie libre (300 caractères), « **Rétablir le texte calculé** » ;
+- **Récit › À retenir** : « Puces des éléments en couleur », une ligne par puce (pastille, noms, champ, rétablir) ;
+- double-clic sur la puce dans le graphique (édition en place, comme les autres puces).
+
+Le texte saisi est stocké dans `style.overrides[clé].comment` ; vide = texte calculé. Comme toutes les surcharges,
+il reste **hors empreinte tant qu'il est vide** (`style.overrides` absent) : les 4 empreintes publiées sont inchangées
+(ce2105aa, 32865c65, 4a7f3c6c, 6696d02e).
+
+**Partout** : les puces sont recalculées à partir du spec et des données de la scène, donc elles suivent dans les
+snapshots (Séquence), le film et le mode lecture (elles arrivent après les puces générales, mise en page réservée
+dès la première image), l'export SVG / PNG, le PowerPoint (pastille ■ colorée devant chaque puce : couleur principale
+puis couleur de l'élément) et le manifeste Cadencer (`a_retenir` : puces générales puis puces d'élément ; aucun
+changement quand il n'y en a pas). **Reel** : le commentaire d'un élément de couleur propre (ou saisi) devient la
+légende de la scène ; la mise en avant seule garde la légende habituelle (son titre parle déjà de l'élément).
+
+Tests : `studio/test/elementNotes.test.ts` (textes, rangs, regroupement, mise en avant, rendu SVG, film, PowerPoint,
+empreinte) et e2e `e2ePuces` (`node studio/scripts/e2e.mjs --puces`, iPad 1024 × 768). Captures :
+`docs/shots/169-puces-couleur-graphique-ipad-1024.png`, `170-puces-couleur-panneau-commentaire-ipad-1024.png`,
+`171-puces-couleur-recit-ipad-1024.png`, `172-puces-couleur-powerpoint.png`.
+
 ## Menu du haut : variante B « Deux niveaux calmes »
 
 - **Barre du haut (48 px)** : logo Datanime · Studio, puis **Ouvrir des données**, **Mes revues (n)**, **Projets ▾** (ex-« Fichier ») et **Exporter ▾** (seul

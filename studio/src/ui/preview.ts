@@ -2,6 +2,7 @@
  * Zone centrale : scène SVG mise à l'échelle, lecteur (lecture / pause / curseur) pour
  * l'animation d'entrée et la 4D, montage des types spéciaux (film, carte).
  */
+import { elementNotes } from "../story/elementNotes";
 import { ChartTooltip } from "./tooltip";
 import type { Store, ChangeKind } from "../state";
 import { chartSize, isSpecial, type DrillStep } from "../spec";
@@ -521,7 +522,7 @@ export class Preview {
     const right = Math.max(...rects.map((r) => r.right)) - box.left;
     const bottom = Math.max(...rects.map((r) => r.bottom)) - box.top;
     const k = this.scale || 1;
-    const value = field === "title" ? spec.style.title : field === "subtitle" ? spec.style.subtitle : spec.story.comments[Number(field.split(":")[1])] ?? "";
+    const value = field === "title" ? spec.style.title : field === "subtitle" ? spec.style.subtitle : field.startsWith("elem:") ? elementNotes(spec, this.store.state.ds)[Number(field.split(":")[1])]?.text ?? "" : spec.story.comments[Number(field.split(":")[1])] ?? "";
     const fs = parseFloat(nodes[0]!.getAttribute("font-size") ?? (nodes[0]!.querySelector("text")?.getAttribute("font-size") ?? "16"));
     this.stage.querySelector(".r4d-inline-editor")?.remove();
     const { width: W } = chartSize(spec);

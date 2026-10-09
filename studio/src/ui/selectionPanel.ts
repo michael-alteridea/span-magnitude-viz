@@ -11,6 +11,7 @@ import { crumbs, levelNames, seriesNameOf, SEL_LEVELS, type Sel, type Selection 
 import { focusInfo } from "./focusUi";
 import { h, svgIcon, ICONS } from "./dom";
 import { colorPicker } from "./nuancier";
+import { elementAutoText, elementNotes } from "../story/elementNotes";
 
 /** Couleurs proposées : bleu pétrole (charte) et neutres ; le rouge et le vert restent réservés aux écarts. */
 export const MARK_COLORS: [string, string][] = [
@@ -230,8 +231,36 @@ export class SelectionPanel {
       if (fi.kind === "series" && fi.choices.includes(name))
         out.push(this.card("Mise en avant", this.toggle(spec.style.focus.key === name, `Mettre en avant ${name}`, (v) => this.store.set("style.focus.key", v ? name : null), "sel-focus")));
     }
+    const sc = radial ? null : this.commentCard(sk, seriesNameOf(sk), spec);
+    if (sc) out.push(sc);
     out.push(this.card("Étiquettes", this.toggle(spec.style.valueLabels, "Étiquettes de valeur", (v) => this.store.set("style.valueLabels", v), "sel-valuelabels")));
     return out;
+  }
+
+  /**
+   * « Commentaire » d'un élément (ou d'une série) : texte calculé en placeholder, saisie libre, « Rétablir le texte
+   * calculé ». Il s'affiche en puce colorée sous « À retenir » dès que l'élément a sa propre couleur (ou est mis en avant).
+   */
+  private commentCard(key: string, name: string, spec: ChartSpec): HTMLElement | null {
+    const ds = this.store.state.ds;
+    const auto = elementAutoText(spec, ds, key);
+    if (!auto) return null;
+    const o = this.ovr(key);
+    const ta = h("textarea", { rows: "3", maxlength: "300", placeholder: auto, "data-testid": "sel-comment", "aria-label": `Commentaire de ${name}` }) as HTMLTextAreaElement;
+    ta.value = o.comment ?? "";
+    const reset = h("button", { type: "button", class: "selp-link", "data-testid": "sel-comment-reset", hidden: !o.comment, onclick: () => { ta.value = ""; reset.hidden = true; this.patch(key, { comment: undefined }); } }, "Rétablir le texte calculé");
+    ta.addEventListener("input", () => {
+      const v = ta.value.trim() ? ta.value.slice(0, 300) : undefined;
+      reset.hidden = !v;
+      this.patch(key, { comment: v });
+    });
+    const shown = elementNotes(spec, ds).some((n) => n.keys.includes(key));
+    return this.card(
+      "Commentaire",
+      ta,
+      h("small", { class: "hint", "data-testid": "sel-comment-hint" }, shown ? "Puce colorée sous le graphique (« À retenir »), à la couleur de l'élément. Vide : texte calculé." : "Apparaît en puce colorée sous « À retenir » dès que l'élément a sa propre couleur (ou est mis en avant)."),
+      reset
+    );
   }
 
   private markCards(s: Sel, spec: ChartSpec): HTMLElement[] {
@@ -259,6 +288,8 @@ export class SelectionPanel {
       note.addEventListener("input", () => this.store.set("style.focus.note", note.value));
       out.push(this.card("Mise en avant", this.toggle(on, `Mettre en avant ${s.name}`, (v) => this.store.set("style.focus.key", v ? fkey : null), "sel-focus"), this.field("Note", note)));
     }
+    const cc = this.commentCard(ek, s.name, spec);
+    if (cc) out.splice(1, 0, cc);
     out.push(this.card("Libellé", h("button", { type: "button", class: "btn btn-small", "data-testid": "sel-to-label", onclick: () => this.selection.set({ ...s, level: "label" }) }, "Modifier le libellé ›")));
     return out;
   }

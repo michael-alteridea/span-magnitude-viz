@@ -206,6 +206,8 @@ export const markOverrideSchema = z.object({
   labelBold: z.boolean().optional(),
   labelSize: z.number().int().min(8).max(32).optional(),
   hideLabel: z.boolean().optional(),
+  /** Commentaire propre (puce colorée « À retenir ») ; absent = texte calculé à partir des données. */
+  comment: z.string().max(300).optional(),
 });
 export type MarkOverride = z.infer<typeof markOverrideSchema>;
 

@@ -4,11 +4,12 @@
  * source et licence des données (obligatoires : elles figurent dans le cartouche), aperçu en lecture,
  * export MP4 (H.264, WebCodecs) ou repli WebM, barre de progression et annulation. Tout se passe dans le navigateur.
  */
+import { elementNotes } from "../story/elementNotes";
 import { h, svgIcon, ICONS } from "./dom";
 import { download, slug } from "../export";
 import { displayFontCss, embeddedFontCss, ensureDisplayFont, ensureFont } from "../theme";
-import type { FontKey } from "../spec";
-import { generatedOn } from "../story/fr";
+import { parseSpec, type FontKey } from "../spec";
+import { clip, generatedOn } from "../story/fr";
 import { ReelCharts, drillLinks, type ReelItem } from "../reel/charts";
 import { ReelComposer } from "../reel/compose";
 import { encodeReel, reelCapabilities, type EncodeResult } from "../reel/encode";
@@ -218,6 +219,14 @@ export class ReelDialog {
     const snaps = items.map((i) => i.snap);
     const now = src.now ?? new Date();
     const base = defaultPlan(snaps, { format: this.format, links: drillLinks(snaps), licence: this.licence, generatedAt: generatedOn(now), storyTitle: src.title, rhythm: this.rhythm });
+    // commentaire d'élément (puce colorée d'une couleur propre, ou commentaire saisi) : légende de la scène ;
+    // la mise en avant seule garde la légende habituelle (son titre parle déjà de l'élément)
+    base.scenes.forEach((sc, k) => {
+      const it = items[k];
+      const r = it ? parseSpec(it.snap.spec) : null;
+      const note = r?.ok && r.spec.story.showComments ? elementNotes(r.spec, it!.ds).find((n) => !n.focus || n.edited) : undefined;
+      if (note) sc.caption = clip(note.text.replace(/\s+/g, " ").trim(), 110);
+    });
     if (!this.source) this.source = base.source;
     base.source = this.source;
     base.licence = this.licence;

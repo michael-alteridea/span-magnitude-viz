@@ -32,6 +32,9 @@ import { SAMPLE_TODAY } from "./data/samples";
 import { Explorer } from "./ui/explorer";
 import { StoryStrip } from "./ui/storyStrip";
 import type { Insight, StoryContext } from "./story/insights";
+import { elementNotes, mainColor, type ElementNote } from "./story/elementNotes";
+import { withOverride } from "./charts/overrides";
+import type { SlideBullets } from "./story/pptx";
 import { narrate, narrativeKey, applyNarrative, type Narrative } from "./story/narrate";
 import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot, type StoryState } from "./story/snapshots";
 import type { SlideImage } from "./story/pptx";
@@ -835,8 +838,14 @@ async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: Sto
     }
   }
   for (const s of snaps) if (!native.has(s.id)) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale, links.get(s.id) ?? null));
+  // puces « À retenir » : pastille de la couleur principale, puis une puce colorée par élément de couleur propre
+  const bullets = new Map<string, SlideBullets>();
+  for (const s of snaps) {
+    const parsed = snapshotSpec(s);
+    if (parsed) bullets.set(s.id, { main: mainColor(parsed), elements: snapshotElementNotes(s).map((n) => ({ text: n.text, color: n.color })) });
+  }
   const { buildPptx } = await import("./story/pptx");
-  return buildPptx(story, { images, outputType, links, native, morph: !!o.morph });
+  return buildPptx(story, { images, outputType, links, native, morph: !!o.morph, bullets });
 }
 
 /* ---- Pont Cadencer : « manifeste de revue » (publié à la construction, ou téléchargé pour une histoire locale) */
@@ -915,6 +924,31 @@ async function publicationImage(s: Snapshot, scales: Map<string, ScaleInfo>, qrU
   return { png: await blobToDataUrl(await pngFit(src, s.width, s.height, IMAGE_W, IMAGE_H, bg)), svg: svg ? stableSvgIds(svg) : null };
 }
 
+/**
+ * Commentaire d'une puce par élément (édition en place sur le graphique) : saisi sur tous les éléments regroupés ;
+ * vide ou égal au texte calculé = retour au texte calculé.
+ */
+function setElementComment(n: ElementNote | null, value: string): void {
+  if (!n) return;
+  const v = value.trim();
+  const comment = !v || v === n.auto ? undefined : v.slice(0, 300);
+  let o = store.state.spec.style.overrides;
+  for (const k of n.keys) o = withOverride(o, k, { comment });
+  store.set("style.overrides", o);
+}
+
+/** Puces par élément d'un snapshot (couleur propre ou mise en avant), telles que dessinées sous son graphique. */
+function snapshotElementNotes(s: Snapshot): ElementNote[] {
+  const parsed = snapshotSpec(s);
+  if (!parsed || !parsed.story.showComments) return [];
+  try {
+    return elementNotes(parsed, datasetFor(s));
+  } catch {
+    return [];
+  }
+}
+const snapshotElementTexts = (s: Snapshot): string[] => snapshotElementNotes(s).map((n) => n.text);
+
 export interface Publication {
   manifest: Manifest;
   images: { id: string; png: string; svg: string | null }[];
@@ -933,7 +967,7 @@ async function publication(storyId: string, mode: "publie" | "integre"): Promise
   const images: Publication["images"] = [];
   for (const s of src.snapshots) images.push({ id: s.id, ...(await publicationImage(s, scales, readUrl(readBase, src.readId, s.id))) });
   const manifest = await buildManifest(
-    { ...src, snapshots: src.snapshots.map((s, i) => ({ snap: s, note: src.notes[s.id] ?? null, png: images[i]!.png, svg: publie && !!images[i]!.svg })) },
+    { ...src, snapshots: src.snapshots.map((s, i) => ({ snap: { ...s, elements: snapshotElementTexts(s) }, note: src.notes[s.id] ?? null, png: images[i]!.png, svg: publie && !!images[i]!.svg })) },
     { images: mode, base: PLATFORM_URL, readBase }
   );
   return { manifest, images };
@@ -1959,6 +1993,7 @@ const scenarioDialog = new ScenarioDialog(store, { loadSample: (id) => loadSampl
 preview.onEditText = (field, value) => {
   if (field === "title") store.set("style.title", value);
   else if (field === "subtitle") store.set("style.subtitle", value);
+  else if (field.startsWith("elem:")) setElementComment(elementNotes(store.state.spec, store.state.ds)[Number(field.split(":")[1])] ?? null, value);
   else if (field.startsWith("comment:")) {
     const i = Number(field.split(":")[1]);
     const c = [...store.state.spec.story.comments];

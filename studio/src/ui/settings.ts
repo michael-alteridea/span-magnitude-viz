@@ -8,6 +8,8 @@
  * Chaque contrôle est lié à un chemin du spec ; le panneau n'est reconstruit que lorsque
  * la structure change (type, colonnes, options qui affichent / masquent des champs).
  */
+import { elementNotes } from "../story/elementNotes";
+import { withOverride } from "../charts/overrides";
 import { colorPicker, type Swatch } from "./nuancier";
 import type { Store } from "../state";
 import {
@@ -377,8 +379,55 @@ export class SettingsPanel {
     }
   }
 
+  /**
+   * Récit › À retenir : puces par élément (pastille de leur couleur), modifiables ici — texte calculé en placeholder,
+   * « Rétablir le texte calculé ». Reconstruit quand les puces changent (sauf pendant une saisie dans la liste).
+   */
+  private syncElementNotes(): void {
+    const box = this.body.querySelector<HTMLElement>("[data-testid=story-elements]");
+    if (!box) return;
+    const { spec, ds } = this.store.state;
+    const notes = elementNotes(spec, ds);
+    const sig = JSON.stringify(notes.map((n) => [n.keys, n.color, n.auto, n.edited ? n.text : null]));
+    if (box.dataset.sig === sig) return;
+    if (box.contains(document.activeElement) && document.activeElement?.tagName === "TEXTAREA") return;
+    box.dataset.sig = sig;
+    const label = h("span", { class: "field-label" }, "Puces des éléments en couleur");
+    if (!notes.length) {
+      box.replaceChildren(label, h("small", { class: "muted small", "data-testid": "story-elements-empty" }, "Donnez sa propre couleur à une barre, une part ou une série (touchez-la sur le graphique) ou mettez un élément en avant : une puce à sa couleur s'ajoute ici et sous « À retenir »."));
+      return;
+    }
+    box.replaceChildren(
+      label,
+      ...notes.map((n, i) => {
+        const ta = h("textarea", { rows: "2", maxlength: "300", placeholder: n.auto, "data-target": `story.elements.${i}`, "data-testid": `story-element-text-${i}`, "aria-label": `Commentaire de ${n.labels.join(", ")}` }) as HTMLTextAreaElement;
+        ta.value = n.edited ? n.text : "";
+        const set = (v: string | undefined) => {
+          let o = this.store.state.spec.style.overrides;
+          for (const k of n.keys) o = withOverride(o, k, { comment: v });
+          this.store.set("style.overrides", o);
+        };
+        const reset = h("button", { type: "button", class: "selp-link", "data-testid": `story-element-reset-${i}`, hidden: !n.edited, onclick: () => { ta.value = ""; reset.hidden = true; set(undefined); } }, "Rétablir le texte calculé");
+        ta.addEventListener("input", () => {
+          const v = ta.value.trim() ? ta.value.slice(0, 300) : undefined;
+          reset.hidden = !v;
+          set(v);
+        });
+        ta.addEventListener("blur", () => queueMicrotask(() => this.syncElementNotes()));
+        return h(
+          "div",
+          { class: "story-elem", "data-testid": `story-element-${i}`, "data-color": n.color },
+          h("div", { class: "story-elem-head" }, h("span", { class: "story-elem-dot", style: `background:${n.color}` }), h("span", { class: "story-elem-name" }, n.labels.join(", "))),
+          ta,
+          reset
+        );
+      })
+    );
+  }
+
   /** Recopie les textes calculés dans les champs (sauf celui en cours de saisie) et les badges. */
   private syncStory(): void {
+    this.syncElementNotes();
     const spec = this.store.state.spec;
     for (const path of STORY_TEXT_PATHS) {
       const el = this.body.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-path="${path}"]`);
@@ -984,6 +1033,7 @@ export class SettingsPanel {
       this.kw(fieldB("Titre (message)", "title", titleInp), "titre message"),
       this.kw(fieldB("Sous-titre", "subtitle", subInp), "sous-titre ibcs unité période"),
       this.kw(h("div", { class: "field" }, labelWithBadge("À retenir (1 à 3 points)", "comments"), ...comments), "commentaires points à retenir"),
+      this.kw(h("div", { class: "field story-elems", "data-testid": "story-elements" }), "puces couleur élément commentaire barre à retenir"),
       this.check("story.showComments", "Afficher sur le graphique", undefined, "commentaires à retenir"),
     ];
     const more: Kid[] = [];

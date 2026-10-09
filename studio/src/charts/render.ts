@@ -4,6 +4,7 @@
  * et le graphique, le tout dans un unique <svg> autonome.
  */
 import { elemKey, markColor, seriesKey } from "./overrides";
+import { elementNotes } from "../story/elementNotes";
 import { groupIcons } from "./pointIcons";
 import { drawIcon } from "./icons";
 import { select } from "d3";
@@ -401,12 +402,28 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   // `commentsAll` / commentaires non vides) : le graphique ne saute plus quand les puces
   // apparaissent (film, mode lecture, snapshots).
   const clean = (l: string[]) => (texts && spec.story.showComments ? l.map((c) => c.trim()).filter(Boolean).slice(0, 3) : []);
-  const comments = clean(spec.story.comments);
+  const general = clean(spec.story.comments);
   // mise en page calculée sur les commentaires à venir : colonne / bandeau et retours à la ligne identiques à chaque image
-  const planned = opts.commentsAll ? clean(opts.commentsAll) : comments;
-  const layoutComments = planned.length >= comments.length ? planned : comments;
+  const planned = opts.commentsAll ? clean(opts.commentsAll) : general;
+  const layoutGeneral = planned.length >= general.length ? planned : general;
+  // puces par élément (couleur propre ou mise en avant) : pastille de leur couleur, après les puces générales ;
+  // dans le film et le mode lecture, elles apparaissent une fois toutes les puces générales affichées
+  const notes = texts && spec.story.showComments ? elementNotes(spec, rawDs) : [];
+  const mainDot = colors[0] ?? theme.accent;
+  type Bullet = { text: string; color: string; edit: string; elem: boolean };
+  const bullets: Bullet[] = [
+    ...general.map((text, i) => ({ text, color: mainDot, edit: `comment:${i}`, elem: false })),
+    ...(general.length >= layoutGeneral.length ? notes.map((n, i) => ({ text: n.text, color: n.color, edit: `elem:${i}`, elem: true })) : []),
+  ];
+  const layoutComments = [...layoutGeneral, ...notes.map((n) => n.text)];
+  const comments = bullets.map((b) => b.text);
   const sideComments = layoutComments.length > 0 && W / H >= 1.3;
   const colW = Math.max(220 * s, Math.min(innerW * 0.28, 340 * s));
+  /** Pastille d'une puce : couleur principale, ou couleur de l'élément (liseré pour les couleurs proches du fond). */
+  const dot = (g: G, b: Bullet, x: number, y: number, size: number) => {
+    const r = g.append("rect").attr("class", b.elem ? "r4d-comment-dot r4d-comment-dot-elem" : "r4d-comment-dot").attr("x", x).attr("y", y).attr("width", size).attr("height", size).attr("rx", 1.5 * s).attr("fill", b.color);
+    if (b.elem) r.attr("stroke", theme.grid).attr("stroke-width", 0.8 * s);
+  };
 
   // ---- pied : cartouche Datanime (logo, lien, dates, source, empreinte, QR d'empreinte des données)
   // Sous la colonne « À retenir » quand elle existe (le graphique garde toute sa hauteur), sinon sur toute la largeur.
@@ -447,10 +464,10 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
         cy += 22 * s;
         const maxH = colBottom - cy;
         const maxLines = Math.max(2, Math.floor(maxH / Math.max(1, layoutComments.length) / (fs * 1.35)) - 1);
-        comments.forEach((c, i) => {
-          const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
-          const lines = wrap(c, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
-          g.append("rect").attr("x", x0).attr("y", cy + fs * 0.32 - 3.5 * s).attr("width", 7 * s).attr("height", 7 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
+        bullets.forEach((b, i) => {
+          const g = gCom.append("g").attr("class", b.elem ? "r4d-comment r4d-comment-elem" : "r4d-comment").attr("data-index", i).attr("data-r4d-edit", b.edit).attr("data-color", b.color);
+          const lines = wrap(b.text, colW - 16 * s, fs, font, 400, Math.min(7, maxLines));
+          dot(g as unknown as G, b, x0, cy + fs * 0.32 - 3.5 * s, 7 * s);
           lines.forEach((l, k) => g.append("text").attr("x", x0 + 16 * s).attr("y", cy + fs * 0.32 + k * fs * 1.35).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
           cy += lines.length * fs * 1.35 + 14 * s;
         });
@@ -466,8 +483,9 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
       if (comments.length) gCom.append("text").attr("class", "r4d-comments-head").attr("x", pad).attr("y", cy + hs * 0.6).attr("font-size", hs).attr("font-weight", 700).attr("letter-spacing", 1 * s).attr("fill", theme.accent).text(head);
       cy += 20 * s;
       blocks.forEach((lines, i) => {
-        const g = gCom.append("g").attr("class", "r4d-comment").attr("data-index", i).attr("data-r4d-edit", `comment:${i}`);
-        g.append("rect").attr("x", pad).attr("y", cy + fs * 0.32 - 3 * s).attr("width", 6 * s).attr("height", 6 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
+        const b = bullets[i]!;
+        const g = gCom.append("g").attr("class", b.elem ? "r4d-comment r4d-comment-elem" : "r4d-comment").attr("data-index", i).attr("data-r4d-edit", b.edit).attr("data-color", b.color);
+        dot(g as unknown as G, b, pad, cy + fs * 0.32 - 3 * s, 6 * s);
         lines.forEach((l, k) => g.append("text").attr("x", pad + 14 * s).attr("y", cy + fs * 0.32 + k * fs * 1.3).attr("dy", "0.35em").attr("font-size", fs).attr("fill", theme.text).text(l));
         cy += lines.length * fs * 1.3 + 8 * s;
       });
