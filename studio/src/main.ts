@@ -31,6 +31,7 @@ import { guessUnit } from "./format";
 import { SAMPLE_TODAY } from "./data/samples";
 import { Explorer } from "./ui/explorer";
 import { StoryStrip } from "./ui/storyStrip";
+import { SceneBanner } from "./ui/sceneBanner";
 import type { Insight, StoryContext } from "./story/insights";
 import { elementNotes, mainColor, type ElementNote } from "./story/elementNotes";
 import { withOverride } from "./charts/overrides";
@@ -506,16 +507,71 @@ async function captureSnapshot(opts: SnapOpts = {}): Promise<Snapshot> {
 /* ---- « Modifier le graphique » d'une scène du Reel : éditeur complet, puis retour au Reel */
 
 let reelEdit: { item: ReelItem; sceneNo: number; before: { spec: ChartSpec; ds: Dataset | null; sampleId: string | null; note: string | null; provenance: Provenance | null; sheets: string[] | null; sheet: string | null } } | null = null;
-const reelEditLabel = h("span", { class: "reel-edit-label", "data-testid": "reel-edit-label" });
-const reelEditBar = h(
-  "div",
-  { class: "reel-edit-bar", role: "region", "aria-label": "Modification d'une scène du Reel", hidden: true, "data-testid": "reel-edit-bar" },
-  h("span", { class: "reel-edit-ico", html: svgIcon(ICONS.reel, 16) }),
-  reelEditLabel,
-  h("span", { class: "reel-edit-hint" }, "Type, couleurs, mise en avant, réglages : tout l'éditeur est disponible."),
-  h("button", { class: "btn", type: "button", "data-testid": "reel-edit-cancel", onclick: () => void cancelReelEdit() }, "Annuler"),
-  h("button", { class: "btn btn-accent", type: "button", "data-testid": "reel-edit-validate", onclick: () => void validateReelEdit() }, h("span", { html: svgIcon(ICONS.check, 15) }), "Valider")
-);
+/* ---- repère « scène en modification / exploration libre » : bandeau au-dessus du graphique, cadre, carte ouverte */
+let sceneEdit: { id: string; before: { spec: ChartSpec; ds: Dataset | null; sampleId: string | null; note: string | null; provenance: Provenance | null; sheets: string[] | null; sheet: string | null } } | null = null;
+const sceneBanner = new SceneBanner(preview.stageWrap, {
+  add: () => void takeSnapshot(),
+  validate: () => void validateSceneEdit(),
+  cancel: () => void cancelSceneEdit(),
+  reelValidate: () => void validateReelEdit(),
+  reelCancel: () => void cancelReelEdit(),
+});
+preview.root.insertBefore(sceneBanner.root, preview.root.firstChild);
+
+/** Met le bandeau, le cadre et la carte en surbrillance d'accord avec l'état (Reel > scène > exploration). */
+function syncSceneMode(): void {
+  const snaps = store.state.story.snapshots;
+  if (sceneEdit && !snaps.some((x) => x.id === sceneEdit!.id)) sceneEdit = null; // scène supprimée : retour à l'exploration
+  if (reelEdit) sceneBanner.set({ kind: "reel", n: reelEdit.sceneNo });
+  else if (sceneEdit) {
+    const i = snaps.findIndex((x) => x.id === sceneEdit!.id);
+    sceneBanner.set({ kind: "scene", n: i + 1, name: snaps[i]!.name });
+  } else sceneBanner.set({ kind: "explore" });
+  storyStrip.markOpen(reelEdit ? null : sceneEdit?.id ?? null);
+}
+
+function editorState() {
+  const st = store.state;
+  return { spec: structuredClone(st.spec), ds: st.ds, sampleId: st.sampleId, note: st.importNote, provenance: st.provenance, sheets: st.sheets, sheet: st.sheet };
+}
+
+/** Ouvrir une scène de la Séquence : l'éditeur la charge, en modification jusqu'à Valider ou Annuler. */
+function editScene(s: Snapshot): void {
+  if (reelEdit) return;
+  // l'état d'exploration d'origine est gardé si l'on passe d'une scène à une autre
+  sceneEdit = { id: s.id, before: sceneEdit?.before ?? editorState() };
+  preview.selection.clear();
+  openSnapshot(s);
+  syncSceneMode();
+}
+
+/** Valider : la scène est remplacée par le graphique courant (même id, même place), retour à l'exploration. */
+async function validateSceneEdit(): Promise<void> {
+  const e = sceneEdit;
+  if (!e) return;
+  stopFocusPick();
+  await settle();
+  const i = store.state.story.snapshots.findIndex((x) => x.id === e.id);
+  const s = store.state.story.snapshots[i];
+  if (!s) return void ((sceneEdit = null), syncSceneMode());
+  const snap = await takeSnapshot({ id: s.id, name: s.name, role: s.role, scenario: s.scenario ?? null, step: s.step ?? null, quiet: true });
+  if (!snap) return;
+  sceneEdit = null;
+  syncSceneMode();
+  toast(`Scène ${i + 1} mise à jour`, "ok", 2000);
+}
+
+/** Annuler : la scène reste telle quelle, l'éditeur retrouve l'exploration d'avant. */
+async function cancelSceneEdit(): Promise<void> {
+  const e = sceneEdit;
+  if (!e) return;
+  stopFocusPick();
+  const b = e.before;
+  sceneEdit = null;
+  if (store.state.ds !== b.ds) store.setDataset(b.ds, { sampleId: b.sampleId, note: b.note, provenance: b.provenance, sheets: b.sheets, sheet: b.sheet });
+  store.setSpec(b.spec);
+  syncSceneMode();
+}
 
 function editReelScene(item: ReelItem, sceneNo: number): void {
   const st = store.state;
@@ -526,16 +582,15 @@ function editReelScene(item: ReelItem, sceneNo: number): void {
   // données du snapshot (exemple, ou données du Reel) chargées dans l'éditeur si ce ne sont pas les données courantes
   if (!sample && item.ds && st.ds !== item.ds && st.ds?.name !== s.dataName) store.setDataset(item.ds, { note: `Données de la scène « ${s.title || s.name} »` });
   openSnapshot(s);
-  reelEditLabel.textContent = `Modification de la scène ${sceneNo} du Reel`;
-  reelEditBar.hidden = false;
   document.body.classList.add("reel-editing");
+  syncSceneMode();
   settings.reveal({ section: "graphique", paths: [] });
 }
 
 function endReelEdit(): void {
   reelEdit = null;
-  reelEditBar.hidden = true;
   document.body.classList.remove("reel-editing");
+  syncSceneMode();
 }
 
 /** Valider : le snapshot est remplacé sur place (même id, même position), puis la fenêtre du Reel revient. */
@@ -621,6 +676,7 @@ function onFocusTap(key: string): boolean {
 async function duplicateAndFocus(s: Snapshot): Promise<void> {
   const i = store.state.story.snapshots.findIndex((x) => x.id === s.id);
   if (i < 0) return;
+  const before = sceneEdit?.before ?? editorState();
   openSnapshot(s);
   await settle();
   const fi = focusInfo(store.state.spec, store.state.ds);
@@ -633,6 +689,9 @@ async function duplicateAndFocus(s: Snapshot): Promise<void> {
   const copy = await takeSnapshot({ insertAt: i + 1, name: `${s.name} · mise en avant`, role: s.role, quiet: true });
   if (!copy) return;
   focusCopy = { id: copy.id, base: s.spec };
+  // la copie est la scène ouverte : bandeau « en modification », carte en surbrillance
+  sceneEdit = { id: copy.id, before };
+  syncSceneMode();
   startFocusPick();
   toast("Copie ajoutée juste après : touchez l'élément à mettre en avant, puis écrivez le commentaire.", "ok", 3200);
 }
@@ -1709,7 +1768,7 @@ preview.selection.onChange((sel) => {
 const explorer = new Explorer(store, storyContext, openInsight);
 const storyStrip: StoryStrip = new StoryStrip(store, {
   snapshot: () => void takeSnapshot(),
-  open: openSnapshot,
+  open: (s) => editScene(s),
   duplicateFocus: (s) => void duplicateAndFocus(s),
   exportPptx: (b) => void exportPptx(b),
   scales: () => storyScales(),
@@ -2029,7 +2088,7 @@ const updateReviewsCount = () => {
   reviewsCount.textContent = n ? String(n) : "";
 };
 reviewStorage.subscribe(updateReviewsCount);
-const app = h("div", { class: "app" }, header, workspace, normeLegend, dataWindow.root, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root, reelEditBar);
+const app = h("div", { class: "app" }, header, workspace, normeLegend, dataWindow.root, mappingWindow.root, scenarioDialog.root, film.root, reviewSpace.root, reader.root, cadencer.root, reelDialog.root);
 document.getElementById("app")!.replaceChildren(app);
 
 function applyUi() {
@@ -2046,6 +2105,7 @@ function applyUi() {
 store.subscribe((kinds) => {
   applyUi();
   storyStrip.update();
+  if (kinds.has("story")) syncSceneMode();
   drillBar.update();
   if (kinds.size === 1 && kinds.has("story")) return;
   syncFocusCopy();

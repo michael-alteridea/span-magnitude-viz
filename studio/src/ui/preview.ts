@@ -23,6 +23,10 @@ export class Preview {
   readonly root: HTMLElement;
   private store: Store;
   private wrap: HTMLElement;
+  /** Zone du graphique (reçoit le cadre « scène en modification / exploration »). */
+  get stageWrap(): HTMLElement {
+    return this.wrap;
+  }
   private box: HTMLElement;
   private stage: HTMLElement;
   readonly svg: SVGSVGElement;

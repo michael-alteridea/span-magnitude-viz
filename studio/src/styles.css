@@ -1271,3 +1271,31 @@ body.dw-open { overflow: hidden; }
 .selp-sw.selp-sw-perso { position: relative; outline: 1.5px dashed var(--muted); outline-offset: 2px; }
 .selp-sw.selp-sw-perso::after { content: "perso"; position: absolute; left: 50%; bottom: -15px; transform: translateX(-50%); font-size: 9px; line-height: 1; color: var(--muted); pointer-events: none; }
 .selp-sws:has(.selp-sw-perso) { padding-bottom: 12px; row-gap: 18px; }
+
+/* ---------- repère « scène en modification / exploration libre » (calque HTML, jamais exporté) */
+.scene-banner { flex: none; display: flex; align-items: center; min-height: 40px; padding: 5px 12px; box-sizing: border-box; border-bottom: 1px solid var(--line-2); background: var(--panel); font-size: 13px; min-width: 0; }
+.scene-banner .sb-row { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.scene-banner .sb-row[hidden] { display: none; }
+.scene-banner .sb-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-banner .sb-sub { color: var(--muted); font-weight: 400; }
+.scene-banner .sb-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; }
+.scene-banner .sb-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #9CA3AF; }
+.scene-banner .sb-ic { flex: none; display: inline-flex; color: #F97316; }
+.scene-banner[data-mode="scene"], .scene-banner[data-mode="reel"] { background: rgba(249, 115, 22, .12); border-bottom-color: rgba(249, 115, 22, .55); }
+.scene-banner[data-mode="scene"] b, .scene-banner[data-mode="reel"] b { color: #FDBA74; }
+.scene-banner .sb-ok { background: #F97316; border-color: #F97316; color: #1a0d03; font-weight: 650; }
+.scene-banner .sb-ok:hover { background: #FB923C; }
+.stage-wrap.scene-explore .stage { box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(156, 163, 175, .35); }
+.stage-wrap.scene-edit .stage { box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .9), 0 0 0 3px #F97316; }
+.story-card.is-open { border-color: #F97316; box-shadow: 0 0 0 2px #F97316; }
+.story-card.is-open .story-num { background: #F97316; color: #1a0d03; }
+@media (max-width: 1100px) {
+  .scene-banner .sb-name, .scene-banner .sb-hint, .scene-banner .sb-long { display: none; }
+}
+@media (max-width: 820px) {
+  .scene-banner { font-size: 12px; padding: 4px 8px; }
+  .scene-banner .sb-sub { display: none; }
+}
+@media (pointer: coarse) {
+  .scene-banner .sb-btn { min-height: 44px; padding-inline: 14px; }
+}

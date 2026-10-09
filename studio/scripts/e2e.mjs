@@ -556,8 +556,11 @@ async function reelEditChecks(pg, shot, tag, ipad = false, mode = "type") {
     type: window.r4d.getSpec().type,
     editing: window.r4d.reelEditing(),
     marks: document.querySelectorAll("[data-testid=chart-svg] .r4d-marks *").length,
+    banner: document.querySelector("[data-testid=scene-banner]")?.dataset.mode,
+    frame: document.querySelector(".stage-wrap")?.classList.contains("scene-edit"),
   }));
-  check(`Reel (${tag}) : « Modifier le graphique » met le Reel de côté, ouvre la scène 2 dans l'éditeur avec la barre`, !ed.dialog && ed.suspended && ed.bar && ed.label === "Modification de la scène 2 du Reel" && ed.type === st0.type2 && ed.editing?.id === st0.id2 && ed.marks > 0, JSON.stringify(ed));
+  check(`Reel (${tag}) : bandeau « Scène 2 du Reel · en modification » au-dessus du graphique, cadre orange`, ed.banner === "reel" && ed.frame === true, JSON.stringify({ banner: ed.banner, frame: ed.frame }));
+  check(`Reel (${tag}) : « Modifier le graphique » met le Reel de côté, ouvre la scène 2 dans l'éditeur avec la barre`, !ed.dialog && ed.suspended && ed.bar && ed.label === "Scène 2 du Reel · en modification" && ed.type === st0.type2 && ed.editing?.id === st0.id2 && ed.marks > 0, JSON.stringify(ed));
   // « type » : autre type de graphique ; « style » : couleurs + mise en avant (même type)
   const newType = mode === "type" ? (st0.type2 === "bar" ? "barH" : "bar") : st0.type2;
   await pg.evaluate((t, m) => {
@@ -2437,6 +2440,112 @@ async function e2ePastilles() {
     check(`pastilles (${dev}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
     await ctx.close();
   }
+}
+
+/* Repère de scène : bandeau « Exploration libre » / « Scène N de la Séquence · en modification », cadre, carte ouverte. */
+async function e2eRepereScene() {
+  for (const [W, H] of [[1024, 768], [1366, 1024]]) {
+    const tag = `iPad ${W}`;
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    await pg.setViewport({ width: W, height: H, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true, isMobile: true });
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await pg.evaluate(async () => { window.r4d.set("mode.kind", "static"); await window.r4d.settle(); });
+    await sleep(600);
+    const tapSel = async (sel, i = 0) => {
+      const hd = (await pg.$$(sel))[i];
+      if (!hd) return false;
+      await hd.evaluate((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
+      await sleep(120);
+      const b = await hd.boundingBox();
+      await pg.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+      return true;
+    };
+    const state = () => pg.evaluate(() => {
+      const b = document.querySelector("[data-testid=scene-banner]");
+      const wrap = document.querySelector(".stage-wrap");
+      const vis = (sel) => { const e = document.querySelector(sel); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
+      const br = b.getBoundingClientRect();
+      const btns = [...b.querySelectorAll("button")].filter((x) => x.getBoundingClientRect().height > 0).map((x) => x.getBoundingClientRect());
+      const stage = document.querySelector(".stage");
+      return {
+        mode: b.dataset.mode,
+        text: [...b.querySelectorAll(".sb-row")].filter((r) => !r.hidden).map((r) => r.textContent.replace(/\s+/g, " ").trim()).join(" | "),
+        explore: vis("[data-testid=scene-banner-explore]"),
+        edit: vis("[data-testid=scene-banner-edit]"),
+        frameEdit: wrap.classList.contains("scene-edit"),
+        frameExplore: wrap.classList.contains("scene-explore"),
+        shadow: getComputedStyle(stage).boxShadow,
+        open: [...document.querySelectorAll("[data-testid=story-card].is-open")].map((c) => c.dataset.index),
+        current: [...document.querySelectorAll("[data-testid=story-card][aria-current=true]")].length,
+        overflow: b.scrollWidth > b.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1 || btns.some((r) => r.right > br.right + 1 || r.left < br.left - 1),
+        minBtn: btns.length ? Math.min(...btns.map((r) => r.height)) : 0,
+        bannerAboveChart: br.bottom <= document.querySelector(".stage-wrap").getBoundingClientRect().top + 1,
+        inSvg: /Exploration libre|en modification/.test(document.querySelector("[data-testid=chart-svg]").outerHTML) || !!document.querySelector(".stage [data-testid=scene-banner]"),
+      };
+    });
+    const s0 = await state();
+    check(`repère de scène (${tag}) : exploration libre — bandeau « Exploration libre · rien n'est enregistré » + « Ajouter la scène », cadre neutre, aucune carte en surbrillance`, s0.mode === "explore" && s0.explore && !s0.edit && /Exploration libre · rien n'est enregistré/.test(s0.text) && /Ajouter la scène/.test(s0.text) && s0.frameExplore && !s0.frameEdit && !/249, 115, 22/.test(s0.shadow) && s0.open.length === 0, JSON.stringify(s0));
+    check(`repère de scène (${tag}) : bandeau au-dessus du graphique, hors du SVG (jamais exporté), sans débordement, boutons ≥ 44 px`, s0.bannerAboveChart && !s0.inSvg && !s0.overflow && s0.minBtn >= 43.5, JSON.stringify(s0));
+    // deux scènes par le bouton du bandeau
+    await tapSel("[data-testid=scene-banner-add]");
+    await sleep(900);
+    await pg.evaluate(async () => { window.r4d.set("type", "barH"); await window.r4d.settle(); });
+    await tapSel("[data-testid=scene-banner-add]");
+    await sleep(900);
+    const ids = await pg.evaluate(() => window.r4d.story().snapshots.map((s) => [s.id, s.spec.type]));
+    const s1 = await state();
+    check(`repère de scène (${tag}) : « Ajouter la scène » du bandeau ajoute la scène ; on reste en exploration`, ids.length === 2 && s1.mode === "explore" && s1.open.length === 0, JSON.stringify({ ids, s1 }));
+    if (SHOTS && W === 1024) await pg.screenshot({ path: join(shotsDir, "176-repere-exploration-ipad-1024.png") });
+    // ouvrir la scène 2 : en modification
+    await tapSel("[data-testid=story-card-open]", 1);
+    await sleep(900);
+    const s2 = await state();
+    check(`repère de scène (${tag}) : scène ouverte — « Scène 2 de la Séquence · en modification », Annuler / Valider, cadre orange, carte 2 en surbrillance (seule)`, s2.mode === "scene" && s2.edit && !s2.explore && /Scène 2 de la Séquence · en modification/.test(s2.text) && /Annuler/.test(s2.text) && /Valider/.test(s2.text) && s2.frameEdit && /249, 115, 22/.test(s2.shadow) && s2.open.join() === "1" && s2.current === 1 && !s2.overflow && !s2.inSvg, JSON.stringify(s2));
+    // modification puis Valider : la scène 2 est remplacée sur place
+    await pg.evaluate(async () => { window.r4d.set("type", "pie"); await window.r4d.settle(); });
+    await sleep(500);
+    if (SHOTS && W === 1024) await pg.screenshot({ path: join(shotsDir, "177-repere-scene-en-modification-ipad-1024.png") });
+    await tapSel("[data-testid=scene-banner-validate]");
+    await sleep(1200);
+    const v = await pg.evaluate(() => window.r4d.story().snapshots.map((s) => [s.id, s.spec.type]));
+    const s3 = await state();
+    check(`repère de scène (${tag}) : Valider remplace la scène 2 (même id, même place) et revient en exploration, plus aucune carte en surbrillance`, v.length === 2 && v[1][0] === ids[1][0] && v[1][1] === "pie" && v[0][1] === ids[0][1] && s3.mode === "explore" && s3.open.length === 0 && s3.frameExplore, JSON.stringify({ v, s3 }));
+    // ouvrir la scène 1, changer, Annuler : scène inchangée, éditeur rendu à l'exploration d'avant
+    const typeBefore = await pg.evaluate(() => window.r4d.getSpec().type);
+    await tapSel("[data-testid=story-card-open]", 0);
+    await sleep(800);
+    const s4 = await state();
+    await pg.evaluate(async () => { window.r4d.set("type", "donut"); await window.r4d.settle(); });
+    await tapSel("[data-testid=scene-banner-cancel]");
+    await sleep(900);
+    const c = await pg.evaluate(() => ({ snaps: window.r4d.story().snapshots.map((s) => [s.id, s.spec.type]), type: window.r4d.getSpec().type }));
+    const s5 = await state();
+    check(`repère de scène (${tag}) : Annuler laisse la scène 1 telle quelle et rend l'exploration d'avant`, s4.mode === "scene" && /Scène 1 de la Séquence/.test(s4.text) && s4.open.join() === "0" && c.snaps[0][1] === ids[0][1] && c.type === typeBefore && s5.mode === "explore" && s5.open.length === 0, JSON.stringify({ s4: s4.text, c, typeBefore, s5: s5.mode }));
+    // supprimer la scène ouverte : retour à l'exploration
+    await tapSel("[data-testid=story-card-open]", 1);
+    await sleep(700);
+    await tapSel("[data-testid=story-card-delete]", 1);
+    await sleep(700);
+    const s6 = await state();
+    check(`repère de scène (${tag}) : supprimer la scène ouverte revient à l'exploration`, s6.mode === "explore" && s6.open.length === 0, JSON.stringify(s6));
+    check(`repère de scène (${tag}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--repere-scene")) {
+  try { await e2eRepereScene(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--pastilles")) {
@@ -5221,6 +5330,8 @@ try {
   /* 28 sexies. Couleur d'une barre : souris et toucher, 6 exemples, 6 voies, mise en avant, norme */
   await e2eCouleurBarre();
   await e2ePastilles();
+  /* 28 septies. Repère de scène : bandeau, cadre, carte ouverte (iPad 1024 et 1366) */
+  await e2eRepereScene();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

@@ -564,11 +564,28 @@ porte sa licence (réutilisation commerciale permise, mention de la source) et u
 Tests : `test/publicData.test.ts` (thèmes, licences commerciales, CC BY 3.0 IGO, NOAA, histoires 3 à 5 snapshots, spec
 valides, crédit Eurostat), e2e `--public`. Captures : `docs/shots/104` à `108`.
 
+### Repère de scène : modification ou exploration libre
+
+Un bandeau au-dessus du graphique dit toujours où l'on est (calque HTML : jamais dans les exports PNG, SVG, PowerPoint,
+vidéo ni dans les snapshots) :
+
+- **Exploration libre** : « Exploration libre · rien n'est enregistré » et **Ajouter la scène** ; cadre gris discret
+  autour du graphique ; aucune carte de la Séquence en surbrillance.
+- **Scène de la Séquence ouverte** (toucher sa vignette) : « Scène N de la Séquence · en modification » (+ son nom),
+  **Annuler** (la scène reste telle quelle, l'éditeur retrouve l'exploration d'avant) et **Valider** (la scène est
+  remplacée par le graphique courant, même place, même identifiant) ; cadre **orange** ; la carte de la scène est en
+  surbrillance orange (`aria-current`). Ouvrir une autre scène bascule sur elle ; supprimer la scène revient à
+  l'exploration. « Dupliquer et mettre en avant » ouvre la copie en modification.
+- **Scène du Reel** (« Modifier le graphique ») : « Scène N du Reel · en modification », Annuler / Valider, cadre orange.
+- iPad : textes secondaires masqués sous 1100 px, boutons de 44 px au toucher, pas de débordement.
+  Code : `ui/sceneBanner.ts` ; e2e `--repere-scene --shots` (captures 176 et 177).
+
 ### Reel : « Modifier le graphique » d'une scène
 
 Chaque scène de la fenêtre « Créer un Reel » a un bouton **« Modifier le graphique »** : la fenêtre se met de côté
-(rien n'est perdu), le snapshot s'ouvre dans l'éditeur complet (type, couleurs, mise en avant, réglages) avec la barre
-**« Modification de la scène N du Reel — Annuler / Valider »**. *Valider* remplace le snapshot sur place (même
+(rien n'est perdu), le snapshot s'ouvre dans l'éditeur complet (type, couleurs, mise en avant, réglages) avec le bandeau
+**« Scène N du Reel · en modification — Annuler / Valider »** au-dessus du graphique (cadre orange, voir « Repère de
+scène »). *Valider* remplace le snapshot sur place (même
 position, même identifiant ; aussi dans l'histoire s'il en fait partie) et rouvre le Reel sur la scène redessinée, en
 gardant titre, chiffre clé, légende et durée retouchés, le rythme, l'ordre et le format. *Annuler* rouvre le Reel
 inchangé et rend à l'éditeur son état d'avant. Boutons de 44 px au toucher (iPad). e2e `--public` ; captures

@@ -183,6 +183,19 @@ export class StoryStrip {
       return;
     }
     this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i, scales.get(s.id), !!st.sameScale, status.scenes.get(s.id) ?? null, !!status.savedAt)));
+    this.markOpen();
+  }
+
+  /** Scène ouverte dans l'éditeur (en modification) : sa carte est en surbrillance ; aucune en exploration libre. */
+  private openId: string | null = null;
+  markOpen(id: string | null = this.openId): void {
+    this.openId = id;
+    for (const c of this.list.querySelectorAll<HTMLElement>(".story-card")) {
+      const on = !!id && c.dataset.id === id;
+      c.classList.toggle("is-open", on);
+      if (on) c.setAttribute("aria-current", "true");
+      else c.removeAttribute("aria-current");
+    }
   }
 
   private patch(id: string, p: Partial<Snapshot>): void {
