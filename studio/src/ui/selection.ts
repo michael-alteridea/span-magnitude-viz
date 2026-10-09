@@ -71,6 +71,17 @@ export const DOUBLE_TAP_MS = 320;
 export const DOUBLE_TAP_PX = 24;
 
 /**
+ * Le toucher courant termine-t-il un double-clic / double-toucher ? Compteur du navigateur (`detail` ≥ 2) ou, hors
+ * souris, deux touchers rapprochés (< 320 ms, < 24 px) : Safari sur iPad ne compte pas les touchers (`detail` reste
+ * à 1, `pointerType` parfois absent). À la souris, le compteur du navigateur fait foi.
+ */
+export function isDouble(prev: { x: number; y: number; t: number } | null, x: number, y: number, now: number, detail = 1, pointerType?: string): boolean {
+  if (detail >= 2) return true;
+  if (pointerType === "mouse") return false;
+  return !!prev && now - prev.t >= 0 && now - prev.t < DOUBLE_TAP_MS && Math.hypot(x - prev.x, y - prev.y) < DOUBLE_TAP_PX;
+}
+
+/**
  * Transition d'un toucher. `chain` = objets sous le pointeur, de la page au plus fin ; `hit` = niveau de l'objet
  * réellement touché (« mark » pour une barre, « label » pour un libellé, « chart » pour le fond…).
  *  - pas de sélection : la page ;
@@ -104,6 +115,8 @@ export class Selection {
   private ringTimer = 0;
   private listeners: ((s: Sel | null) => void)[] = [];
   private lastTap: { x: number; y: number; t: number } | null = null;
+  /** Le dernier clic est passé par la sélection (pas par la mise en avant, l'exploration ou un autre geste). */
+  lastTapped = false;
   /** Désactivée (mode lecture, enregistrement). */
   enabled = true;
 
@@ -212,19 +225,36 @@ export class Selection {
    * `opts.pointerType` : « touch » active aussi la détection du double-toucher par le temps et la distance.
    */
   tap(target: Element | null, clientX: number, clientY: number, opts: { detail?: number; pointerType?: string; now?: number } = {}): Sel | null {
+    this.lastTapped = this.enabled;
     if (!this.enabled) return this.sel;
     const { chain, hit } = this.probe(target, clientX, clientY, opts.pointerType === "touch" ? 14 : 6);
     const now = opts.now ?? performance.now();
     const prev = this.lastTap;
     this.lastTap = { x: clientX, y: clientY, t: now };
-    const quick = !!prev && now - prev.t < DOUBLE_TAP_MS && Math.hypot(clientX - prev.x, clientY - prev.y) < DOUBLE_TAP_PX;
-    const double = (opts.detail ?? 1) >= 2 || (opts.pointerType === "touch" && quick);
+    const double = isDouble(prev, clientX, clientY, now, opts.detail ?? 1, opts.pointerType);
     // un double-toucher ne compte qu'une fois (le suivant repart d'un toucher simple)
     if (double) this.lastTap = null;
     const next = nextSelection(this.sel, chain, hit, double);
     this.set(next);
     this.showRing(clientX, clientY);
     return next;
+  }
+
+  /**
+   * Filet de sécurité de l'évènement `dblclick` : quel que soit le niveau atteint par les deux clics simples qui le
+   * précèdent, l'état final est l'élément sous le pointeur (barre, part, point). Sans marque sous le pointeur : rien.
+   */
+  dblTap(target: Element | null, clientX: number, clientY: number, pointerType?: string): Sel | null {
+    if (!this.enabled || !this.lastTapped) return this.sel;
+    const { chain } = this.probe(target, clientX, clientY, pointerType === "touch" ? 14 : 6);
+    const mark = chain.find((c) => c.level === "mark");
+    if (!mark) return this.sel;
+    this.lastTap = null;
+    if (!same(this.sel, mark)) {
+      this.set(mark);
+      this.showRing(clientX, clientY);
+    }
+    return mark;
   }
 
   private showRing(x: number, y: number): void {

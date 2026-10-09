@@ -107,6 +107,7 @@ export class Preview {
     this.svg.addEventListener("click", (e) => {
       // mise en avant (étape L) : choix d'une marque au toucher (avant l'exploration)
       // les textes posés sur une marque (pourcentage d'une part, étiquette) laissent passer le toucher vers elle
+      this.selection.lastTapped = false;
       const fe =
         (e.target as Element | null)?.closest?.("[data-focus-key]") ??
         (e.target instanceof SVGTextElement || (e.target as Element | null)?.closest?.("text")
@@ -508,7 +509,14 @@ export class Preview {
 
   private onEditRequest(e: MouseEvent): void {
     const target = (e.target as Element | null)?.closest?.("[data-r4d-edit]");
-    if (!target) return;
+    if (!target) {
+      // double-clic sur une marque : l'élément, quel que soit le niveau laissé par les deux clics simples
+      if (!this.svg.hasAttribute("data-zoom") && !(e.target as Element | null)?.closest?.("[data-drill-kind]")) {
+        const sel = this.selection.dblTap(e.target as Element | null, e.clientX, e.clientY, (e as PointerEvent).pointerType);
+        if (sel && sel.level !== "page" && sel.level !== "chart") this.tooltip.hide();
+      }
+      return;
+    }
     const field = target.getAttribute("data-r4d-edit")!;
     this.openEditor(field);
   }
