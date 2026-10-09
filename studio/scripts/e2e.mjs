@@ -2539,6 +2539,120 @@ async function e2eRepereScene() {
   }
 }
 
+async function e2eDoubleClic() {
+  // double-clic (souris) / double-toucher (doigt) sur une marque : toujours l'élément, quel que soit le niveau de départ ;
+  // les clics simples espacés (> 1/3 s) descendent toujours d'un niveau à la fois
+  for (const touch of [false, true]) {
+    const tag = touch ? "toucher iPad" : "souris 1366";
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    await pg.setViewport(touch ? { width: 1024, height: 768, hasTouch: true, isMobile: true } : { width: 1366, height: 900 });
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    const dbl = async (x, y) => {
+      if (touch) {
+        await pg.touchscreen.tap(x, y);
+        await sleep(90);
+        await pg.touchscreen.tap(x, y);
+      } else await pg.mouse.click(x, y, { count: 2, delay: 30 });
+      await sleep(450);
+    };
+    const one = async (x, y) => {
+      if (touch) await pg.touchscreen.tap(x, y);
+      else await pg.mouse.click(x, y);
+      await sleep(500);
+    };
+    const cur = () => pg.evaluate(() => { const s = window.r4d.selection().sel; return s ? `${s.level}:${s.ek ?? ""}` : "aucune"; });
+    for (const [sample, type, nom] of [["ventes", null, "barres"], ["renouvelables", "barH", "barH"], ["canaux", "pie", "camembert"], ["ventes", "scatter", "nuage"]]) {
+      await pg.evaluate(async (s, t) => {
+        window.r4d.loadSample(s);
+        await new Promise((r) => setTimeout(r, 1200));
+        if (t) window.r4d.set("type", t);
+        window.r4d.set("mode.kind", "static");
+        await window.r4d.settle();
+      }, sample, type);
+      for (let i = 0; i < 40 && (await pg.evaluate(() => document.querySelectorAll('[data-testid=chart-svg] [data-sel="mark"]').length)) < 3; i++) await sleep(200);
+      await sleep(600);
+      // une marque visible, réellement au premier plan en son centre (les points d'un nuage se chevauchent)
+      const tg = await pg.evaluate(() => {
+        const svg = document.querySelector("[data-testid=chart-svg]");
+        const ms = [...svg.querySelectorAll('[data-sel="mark"]')];
+        for (const e of ms.slice(1).concat(ms[0])) {
+          const b = e.getBoundingClientRect();
+          if (!b.width || !b.height) continue;
+          const pts = [[b.x + b.width / 2, b.y + b.height / 2], [b.x + b.width / 2, b.y + b.height * 0.75], [b.x + b.width * 0.3, b.y + b.height / 2]];
+          for (const [x, y] of pts) {
+            const top = document.elementsFromPoint(x, y).find((n) => svg.contains(n) && n.matches("[data-sel]"));
+            if (top === e) return { x, y, ek: e.getAttribute("data-sel-key"), sk: e.getAttribute("data-sel-series"), n: ms.length };
+          }
+        }
+        return null;
+      });
+      if (!tg) {
+        check(`double-clic (${tag}, ${nom}) : une marque touchable`, false, "aucune marque");
+        continue;
+      }
+      const want = `mark:${tg.ek}`;
+      const res = {};
+      for (const start of ["aucune", "page", "chart", "series"]) {
+        await pg.evaluate((st, sk) => {
+          const s = window.r4d.selection();
+          s.clear();
+          if (st !== "aucune") s.set({ level: st, ek: null, sk: st === "series" ? sk : null, name: "" });
+        }, start, tg.sk);
+        await sleep(450);
+        await dbl(tg.x, tg.y);
+        res[start] = await cur();
+      }
+      const ok = Object.values(res).every((v) => v === want);
+      check(`double-clic (${tag}, ${nom}) : depuis aucune sélection, la page, le graphique et la série → l'élément touché`, ok, JSON.stringify({ want, res }));
+      // pas à pas : clics simples espacés de plus de 1/3 s, un niveau à la fois
+      await pg.evaluate(() => window.r4d.selection().clear());
+      await sleep(400);
+      const steps = [];
+      for (let i = 0; i < 4; i++) {
+        await one(tg.x, tg.y);
+        steps.push((await cur()).split(":")[0]);
+      }
+      const expSteps = tg.sk ? ["page", "chart", "series", "mark"] : ["page", "chart", "mark", "label"];
+      check(`double-clic (${tag}, ${nom}) : les touchers simples espacés descendent toujours d'un niveau à la fois`, steps.join() === expSteps.join(), JSON.stringify({ steps, expSteps }));
+    }
+    if (!touch) {
+      // Safari iPad : « click » sans pointerType ni compteur (detail = 1) — deux touchers rapprochés valent un double
+      const r = await pg.evaluate(async () => {
+        const svg = document.querySelector("[data-testid=chart-svg]");
+        const e = [...svg.querySelectorAll('[data-sel="mark"]')].find((m) => { const b = m.getBoundingClientRect(); return b.width > 4 && b.height > 4 && document.elementsFromPoint(b.x + b.width / 2, b.y + b.height / 2).find((n) => n.matches?.("[data-sel]")) === m; });
+        const b = e.getBoundingClientRect();
+        const x = b.x + b.width / 2, y = b.y + b.height / 2;
+        window.r4d.selection().clear();
+        await new Promise((res) => setTimeout(res, 400));
+        const fire = () => e.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: x, clientY: y, detail: 1 }));
+        fire();
+        await new Promise((res) => setTimeout(res, 80));
+        fire();
+        const s = window.r4d.selection().sel;
+        return { got: s ? `${s.level}:${s.ek}` : "aucune", want: `mark:${e.getAttribute("data-sel-key")}` };
+      });
+      check(`double-toucher façon Safari iPad (click sans pointerType, detail = 1) : l'élément`, r.got === r.want, JSON.stringify(r));
+    }
+    check(`double-clic (${tag}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--double-clic")) {
+  try { await e2eDoubleClic(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--repere-scene")) {
   try { await e2eRepereScene(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -5332,6 +5446,7 @@ try {
   await e2ePastilles();
   /* 28 septies. Repère de scène : bandeau, cadre, carte ouverte (iPad 1024 et 1366) */
   await e2eRepereScene();
+  await e2eDoubleClic();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

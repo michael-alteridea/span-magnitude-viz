@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseSpec } from "../src/spec";
 import { elemKey, labelLook, markColor, seriesKey, withOverride } from "../src/charts/overrides";
 import { fingerprintSpec } from "../src/publish/manifest";
-import { crumbs, levelNames, nextSelection, type Sel } from "../src/ui/selection";
+import { crumbs, isDouble, levelNames, nextSelection, type Sel } from "../src/ui/selection";
 
 const spec = (overrides: Record<string, unknown> = {}) => {
   const r = parseSpec({ type: "barH", encoding: { x: "Pays", y: ["Part (%)"] }, style: { overrides } });
@@ -102,6 +102,25 @@ describe("transitions d'un toucher (nextSelection)", () => {
     expect(nextSelection(label("France"), onBar("Belgique"), "label", true)).toEqual(mark("Belgique"));
     // double-clic sur le fond : comportement d'un toucher simple
     expect(nextSelection(page, onPlot, "chart", true)).toEqual(chart);
+  });
+  it("double : compteur du navigateur, ou deux touchers rapprochés hors souris (règle des ~1/3 s)", () => {
+    const prev = { x: 100, y: 100, t: 1000 };
+    expect(isDouble(prev, 300, 300, 5000, 2, "mouse")).toBe(true);
+    // souris : le compteur fait foi, deux clics simples restent deux clics simples
+    expect(isDouble(prev, 100, 100, 1100, 1, "mouse")).toBe(false);
+    // toucher, ou Safari iPad sans pointerType : < 320 ms et < 24 px
+    expect(isDouble(prev, 105, 104, 1250, 1, "touch")).toBe(true);
+    expect(isDouble(prev, 105, 104, 1250, 1, undefined)).toBe(true);
+    expect(isDouble(prev, 105, 104, 1400, 1, "touch")).toBe(false);
+    expect(isDouble(prev, 140, 100, 1100, 1, "touch")).toBe(false);
+    expect(isDouble(null, 100, 100, 1100, 1, "touch")).toBe(false);
+  });
+  it("double-clic : l'élément même quand les deux clics simples ont déjà descendu les niveaux", () => {
+    // clic 1 (page → graphique), clic 2 = double : l'élément ; depuis la série, clic 1 donne déjà l'élément, clic 2 le garde
+    for (const start of [null, page, chart, series("s:Part (%)")] as (Sel | null)[]) {
+      const after1 = nextSelection(start, onBar("Belgique"), "mark");
+      expect(nextSelection(after1, onBar("Belgique"), "mark", true)).toEqual(mark("Belgique"));
+    }
   });
   it("graphique sans série (pas de data-sel-series) : graphique → élément directement", () => {
     const chain = [page, chart, { level: "mark", ek: "e:A", sk: null, name: "A" } as Sel, { level: "label", ek: "e:A", sk: null, name: "A" } as Sel];
