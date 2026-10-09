@@ -43,6 +43,13 @@ export interface EuropeRegionProps {
   code?: string;
   /** Continent Natural Earth (fonds pays : « Europe », « Africa »…). */
   continent?: string;
+  /** Nom affiché (fond Burundi : nom court « Buja », « Karusi »… pour les provinces mises en avant). */
+  label?: string;
+  /** Fond Burundi : province mise en avant (étiquetée, remplie) ; false = gris discret, sans nom. */
+  highlight?: boolean;
+  /** Point d'ancrage intérieur (fond Burundi : étiquette, placement par nom). */
+  lon?: number;
+  lat?: number;
 }
 
 export interface EuropeFeature {
@@ -115,6 +122,9 @@ export function decodeBasemapTopo(topo: unknown, object: string, level: MapLevel
         ...(p.nameFr ? { nameFr: String(p.nameFr) } : {}),
         ...(p.code ? { code: String(p.code) } : {}),
         ...(p.continent ? { continent: String(p.continent) } : {}),
+        ...(p.label ? { label: String(p.label) } : {}),
+        ...(typeof p.highlight === "boolean" ? { highlight: p.highlight } : {}),
+        ...(typeof p.lon === "number" && typeof p.lat === "number" ? { lon: p.lon, lat: p.lat } : {}),
       },
     };
     const [[x0, y0], [x1, y1]] = geoBounds(ef as unknown as GeoPermissibleObjects);

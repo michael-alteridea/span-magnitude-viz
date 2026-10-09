@@ -30,6 +30,7 @@
     "build:standalone": "node scripts/build-standalone-offline.mjs",
     "build:geo": "node scripts/build-geo.mjs",
     "build:geo:world": "node scripts/build-geo-world.mjs",
+    "build:geo:burundi": "node scripts/build-geo-burundi.mjs",
     "dev:studio": "vite --config studio/vite.config.ts",
     "build:studio": "vite build --config studio/vite.config.ts && node studio/scripts/publish-manifests.mjs",
     "publish:manifests": "node studio/scripts/publish-manifests.mjs",

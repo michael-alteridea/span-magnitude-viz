@@ -20,7 +20,7 @@ export interface GeoPoint {
   /** Region id matching basemap properties.id, e.g. "FR-75", "BE-BE21". */
   regionId: string;
   /** How the point was resolved. */
-  source: "latlon" | "postal-city" | "postal-region" | "none";
+  source: "latlon" | "postal-city" | "postal-region" | "place" | "none";
 }
 
 type CentroidRow = {

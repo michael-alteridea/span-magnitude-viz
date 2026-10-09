@@ -179,3 +179,13 @@ export {
 } from "./geo/europe.js";
 export type { EuropeFeature, EuropeCollection, EuropeRegionProps } from "./geo/europe.js";
 export { worldLayer, worldRegionIdAt, WORLD_ATTRIBUTION_EN, WORLD_ATTRIBUTION_FR } from "./geo/world.js";
+export {
+  burundiLayer,
+  burundiRegionIdAt,
+  burundiProvinceByName,
+  burundiProvinceOfMark,
+  normalizePlaceName,
+  BURUNDI_HIGHLIGHT,
+  BURUNDI_ATTRIBUTION_EN,
+  BURUNDI_ATTRIBUTION_FR,
+} from "./geo/burundi.js";

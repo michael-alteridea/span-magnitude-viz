@@ -9,8 +9,8 @@ export type PersistenceMode = "keep" | "ephemeral" | "finale";
 /** Chart (span×magnitude) vs France/Belgium geographic map. */
 export type ViewMode = "chart" | "map";
 
-/** Basemap extent for `viewMode: "map"`: legacy France+Belgium, Europe or World (countries). */
-export type MapRegion = "fr-be" | "europe" | "world";
+/** Basemap extent for `viewMode: "map"`: legacy France+Belgium, Europe, World (countries) or Burundi (provinces). */
+export type MapRegion = "fr-be" | "europe" | "world" | "burundi";
 /** Region granularity for the European basemap / choropleth. */
 export type MapLevel = "country" | "nuts1" | "nuts2" | "nuts3";
 
@@ -187,7 +187,9 @@ export interface VizOptions {
   /**
    * Basemap for the map view. `"fr-be"` (default) = France départements + Belgian
    * provinces; `"europe"` = Europe (Natural Earth countries, public domain);
-   * `"world"` = World (Natural Earth 1:110m countries, public domain, Equal Earth projection).
+   * `"world"` = World (Natural Earth 1:110m countries, public domain, Equal Earth projection);
+   * `"burundi"` = Burundi, 18 pre-2025 provinces (geoBoundaries, CC0) — marks placed by lat/lon or
+   * matched by province name (`meta.place`, a place-like meta column, label or group).
    */
   mapRegion?: MapRegion;
   /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */

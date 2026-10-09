@@ -27,6 +27,8 @@ export interface ColumnMapping {
   lon?: string | null;
   /** FR (5-digit) / BE (4-digit) postal code column — offline lookup. */
   postal?: string | null;
+  /** Place-name column (Burundi basemap: province name, short or official) → `meta.place`. */
+  place?: string | null;
 }
 
 export interface ImportDocumentOptions {
@@ -468,6 +470,10 @@ export function rowsToDocument(
     if (m.postal) {
       const v = cell(row, m.postal);
       if (v != null && asString(v) !== "") meta.postal = asString(v);
+    }
+    if (m.place) {
+      const v = cell(row, m.place);
+      if (v != null && asString(v) !== "") meta.place = asString(v);
     }
     if (Object.keys(meta).length) mark.meta = meta;
     marks.push(mark);

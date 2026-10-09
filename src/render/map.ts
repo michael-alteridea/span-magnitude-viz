@@ -1,7 +1,8 @@
 /**
  * Map layer (D3 geo + same film reveal schedule).
  * Basemaps: France + Belgium (legacy, `mapRegion: "fr-be"`), Europe
- * (`mapRegion: "europe"`, countries) or World (`mapRegion: "world"`, countries, Equal Earth).
+ * (`mapRegion: "europe"`, countries), World (`mapRegion: "world"`, countries, Equal Earth) or
+ * Burundi (`mapRegion: "burundi"`, 18 pre-2025 provinces, placement by lat/lon or province name).
  * Modes: animated dots; optional choropleth / soft heatmap intensity at finale.
  */
 import {
@@ -27,6 +28,13 @@ import {
   europeRegionIdAt,
 } from "../geo/europe.js";
 import { WORLD_ATTRIBUTION_FR, worldLayer, worldRegionIdAt } from "../geo/world.js";
+import {
+  BURUNDI_ATTRIBUTION_FR,
+  burundiAnchor,
+  burundiLayer,
+  burundiProvinceOfMark,
+  burundiRegionIdAt,
+} from "../geo/burundi.js";
 import {
   effectiveDrawProgress,
   FINALE_START,
@@ -76,7 +84,17 @@ export interface RegionCollection {
 /** Minimal feature shape shared by the FR+BE and European basemaps. */
 export interface BasemapFeature {
   type: "Feature";
-  properties: { id: string; name: string; country?: string; nameFr?: string };
+  properties: {
+    id: string;
+    name: string;
+    country?: string;
+    nameFr?: string;
+    /** Burundi: short display name, highlight flag, interior anchor. */
+    label?: string;
+    highlight?: boolean;
+    lon?: number;
+    lat?: number;
+  };
   geometry: GeoPermissibleObjects | GeoJSON.Geometry;
 }
 
@@ -147,6 +165,20 @@ const MAP_CSS = `
   font-size: 9px;
   fill: #57534e;
 }
+.smv-map-label {
+  fill: #e7e5e4;
+  paint-order: stroke;
+  stroke: #1c1917;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+.smv-root--light .smv-map-label {
+  fill: #0b4f66;
+  stroke: #ffffff;
+}
+.smv-root--light .smv-map-region--bg {
+  fill: #ebe9e7;
+}
 .smv-map-region--active {
   stroke: ${BRAND.accent};
   stroke-width: 1.2;
@@ -206,6 +238,30 @@ export function marksWithGeo(marks: NormalizedMark[]): Array<{
   return out;
 }
 
+/**
+ * Fond Burundi : lat/lon explicites (point dans polygone), sinon nom de province (« Buja »,
+ * « Bujumbura Mairie », « Karusi »… → point d'ancrage intérieur), sinon point d'origine (code postal)
+ * marqué hors fond (`?…`).
+ */
+export function burundiGeocode(marks: NormalizedMark[]): Array<{ mark: NormalizedMark; geo: GeoPoint }> {
+  const out: Array<{ mark: NormalizedMark; geo: GeoPoint }> = [];
+  for (const m of marks) {
+    const geo = resolveMarkGeo(m.meta ?? {});
+    if (geo && geo.source === "latlon") {
+      out.push({ mark: m, geo: { ...geo, regionId: burundiRegionIdAt(geo.lon, geo.lat) ?? `?${geo.regionId}` } });
+      continue;
+    }
+    const f = burundiProvinceOfMark(m);
+    if (f) {
+      const [lon, lat] = burundiAnchor(f);
+      out.push({ mark: m, geo: { lat, lon, regionId: f.properties.id, source: "place" } });
+      continue;
+    }
+    if (geo && geo.source !== "none") out.push({ mark: m, geo: { ...geo, regionId: `?${geo.regionId}` } });
+  }
+  return out;
+}
+
 export function documentHasGeo(marks: NormalizedMark[]): boolean {
   return marksWithGeo(marks).length > 0;
 }
@@ -225,7 +281,13 @@ export function computeMapLayout(
   const innerWidth = Math.max(40, width - margin.left - margin.right);
   const innerHeight = Math.max(40, height - margin.top - margin.bottom);
   const mapRegion: MapRegion =
-    options.mapRegion === "europe" ? "europe" : options.mapRegion === "world" ? "world" : "fr-be";
+    options.mapRegion === "europe"
+      ? "europe"
+      : options.mapRegion === "world"
+        ? "world"
+        : options.mapRegion === "burundi"
+          ? "burundi"
+          : "fr-be";
 
   let geocoded = marksWithGeo(visible);
   let projection: GeoProjection;
@@ -300,6 +362,32 @@ export function computeMapLayout(
     ]);
     caption = "Monde · pays — lat/lon (code postal FR/BE)";
     attribution = WORLD_ATTRIBUTION_FR;
+  } else if (mapRegion === "burundi") {
+    // Burundi : 18 provinces d'avant 2025 ; placement par lat/lon (prioritaire) ou par nom de province.
+    mapLevel = "country";
+    regions = burundiLayer() as unknown as BasemapCollection;
+    geocoded = burundiGeocode(visible);
+    projection = geoMercator();
+    const pad = 6;
+    let fitTarget: unknown = regions;
+    if (options.mapFit === "data" && geocoded.length) {
+      const ids = new Set(geocoded.map((g) => g.geo.regionId));
+      const hit = regions.features.filter((f) => ids.has(f.properties.id));
+      if (hit.length) fitTarget = { type: "FeatureCollection", features: hit };
+    }
+    projection.fitExtent(
+      [
+        [pad, pad],
+        [innerWidth - pad, innerHeight - pad],
+      ],
+      fitTarget as GeoPermissibleObjects
+    );
+    projection.clipExtent([
+      [0, 0],
+      [innerWidth, innerHeight],
+    ]);
+    caption = "Burundi · provinces (avant 2025) — nom de province ou lat/lon";
+    attribution = BURUNDI_ATTRIBUTION_FR;
   } else {
     regions = REGIONS as unknown as BasemapCollection;
     projection = geoMercator().fitSize(
@@ -311,7 +399,7 @@ export function computeMapLayout(
 
   // Dot / heat size follows zoom: full size at the FR+BE framing, smaller for all-Europe.
   let markScale = 1;
-  if (mapRegion === "europe" || mapRegion === "world") {
+  if (mapRegion === "europe" || mapRegion === "world" || mapRegion === "burundi") {
     const ref = geoMercator()
       .fitSize([innerWidth, innerHeight], REGIONS as unknown as GeoPermissibleObjects)
       .scale();
@@ -549,18 +637,51 @@ export function paintMapLayers(ctx: MapPaintContext): void {
       .attr("fill-opacity", 1);
     sel
       .append("title")
-      .text((d) => `${d.properties.nameFr ?? d.properties.name} (${d.properties.id})`);
+      .text((d) =>
+        d.properties.label && d.properties.label !== d.properties.name
+          ? `${d.properties.label} — ${d.properties.name} (${d.properties.id})`
+          : `${d.properties.nameFr ?? d.properties.name} (${d.properties.id})`
+      );
   };
 
   if (layout.background) {
     paintRegions(layout.background.features, "smv-map-layer smv-map-layer--bg", MAP_FILL_BG);
   }
-  paintRegions(layout.regions.features, "smv-map-layer", MAP_FILL);
+  if (layout.mapRegion === "burundi") {
+    // Provinces non mises en avant : gris discret, sans nom ; les 10 autres : fond normal + étiquette
+    const all = layout.regions.features;
+    paintRegions(all.filter((f) => f.properties.highlight === false), "smv-map-layer smv-map-layer--bg", MAP_FILL_BG);
+    paintRegions(all.filter((f) => f.properties.highlight !== false), "smv-map-layer", MAP_FILL);
+  } else {
+    paintRegions(layout.regions.features, "smv-map-layer", MAP_FILL);
+  }
   if (layout.countryBorders) {
     gBasemap
       .append("path")
       .attr("class", "smv-map-borders")
       .attr("d", layout.path(layout.countryBorders as unknown as GeoPermissibleObjects) ?? "");
+  }
+
+  if (layout.mapRegion === "burundi") {
+    const labelled = layout.regions.features.filter((f) => f.properties.highlight && f.properties.label);
+    const fs = Math.max(8, Math.min(13, layout.innerWidth / 70));
+    gBasemap
+      .append("g")
+      .attr("class", "smv-map-labels")
+      .style("pointer-events", "none")
+      .selectAll("text")
+      .data(labelled)
+      .join("text")
+      .attr("class", "smv-map-label")
+      .attr("data-region", (d) => d.properties.id)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "central")
+      .attr("font-size", fs)
+      .attr("font-weight", 600)
+      .attr("x", (d) => (layout.projection([d.properties.lon ?? 0, d.properties.lat ?? 0]) ?? [0, 0])[0])
+      // Au-dessus du point d'ancrage (où se posent les points placés par nom)
+      .attr("y", (d) => (layout.projection([d.properties.lon ?? 0, d.properties.lat ?? 0]) ?? [0, 0])[1] - (fs * 0.6 + 7))
+      .text((d) => d.properties.label!);
   }
 
   // Soft heatmap blobs (hidden until finale unless mapHeatmap always — only at finale)

@@ -250,7 +250,7 @@ export function chartKindOf(spec: unknown): string {
       } as Record<string, string>
     )[v] ?? "Graphique d'exploration";
   }
-  if (t === "map") return sp.special?.mapRegion === "europe" ? "Carte d'Europe" : sp.special?.mapRegion === "world" ? "Carte du monde" : "Carte France · Belgique";
+  if (t === "map") return sp.special?.mapRegion === "europe" ? "Carte d'Europe" : sp.special?.mapRegion === "world" ? "Carte du monde" : sp.special?.mapRegion === "burundi" ? "Carte du Burundi (provinces)" : "Carte France · Belgique";
   return (
     {
       bar: "Graphique en barres verticales",

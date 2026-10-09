@@ -8,6 +8,7 @@ import {
   tryParseDocument,
   resolveInitialMapping,
   analyzeColumns,
+  burundiProvinceByName,
   type VizHandle,
   type ColumnMapping,
   type TickerState,
@@ -51,6 +52,33 @@ export function suggestSpecialEncoding(ds: Dataset): Partial<ChartSpec["encoding
   };
 }
 
+/**
+ * Fond Burundi : colonne de noms de province (texte / catégorie) dont le plus de valeurs distinctes
+ * correspondent à une province (noms courts « Buja », « Karusi »… ou officiels), sinon null.
+ */
+export function burundiPlaceColumn(ds: Dataset): string | null {
+  let best: string | null = null;
+  let bestHits = 0;
+  for (const c of ds.columns) {
+    if (c.type === "number" || c.type === "date") continue;
+    const seen = new Set<string>();
+    let hits = 0;
+    for (const r of ds.rows.slice(0, 2000)) {
+      const v = r[c.name];
+      if (v == null || v === "") continue;
+      const s = String(v);
+      if (seen.has(s)) continue;
+      seen.add(s);
+      if (burundiProvinceByName(s)) hits++;
+    }
+    if (hits > bestHits) {
+      bestHits = hits;
+      best = c.name;
+    }
+  }
+  return best;
+}
+
 function isoOf(v: unknown): unknown {
   return typeof v === "number" ? new Date(v).toISOString().slice(0, 10) : v;
 }
@@ -85,6 +113,8 @@ export function buildSpanDocument(spec: ChartSpec, ds: Dataset): { doc: unknown;
       .filter((n) => ![startCol.name, endCol.name, magCol.name, enc.series, enc.label, enc.lat, enc.lon, enc.postal].includes(n))
       .slice(0, 6),
   };
+  // Fond Burundi : jointure par nom de province (colonne détectée → meta.place) ; autres fonds inchangés
+  if (spec.type === "map" && spec.special.mapRegion === "burundi") mapping.place = burundiPlaceColumn(ds);
   const doc = rowsToDocument(rows, {
     unit,
     mapping,
@@ -136,7 +166,10 @@ export function mountSpecial(
   const parsed = tryParseDocument(doc);
   if (!parsed.ok) return { ...empty, error: "Document invalide : " + parsed.error.issues.slice(0, 3).join(" ; ") };
   const isMap = spec.type === "map";
-  if (isMap && !spec.encoding.postal && !(spec.encoding.lat && spec.encoding.lon))
+  const burundi = isMap && spec.special.mapRegion === "burundi";
+  if (burundi && !(spec.encoding.lat && spec.encoding.lon) && !burundiPlaceColumn(ds))
+    return { ...empty, error: "Carte du Burundi : il faut une colonne de noms de province (Gitega, Buja, Buja rural, Karusi… ou noms officiels) ou « Latitude » + « Longitude »." };
+  if (isMap && !burundi && !spec.encoding.postal && !(spec.encoding.lat && spec.encoding.lon))
     return { ...empty, error: "Carte : choisissez une colonne « Code postal » (FR/BE) ou « Latitude » + « Longitude »." };
   host.innerHTML = "";
   // Accents de la bibliothèque (compteurs, info-bulle, survol) : bleu pétrole sauf palettes rouges
@@ -147,7 +180,7 @@ export function mountSpecial(
     viewMode: isMap ? "map" : "chart",
     mapRegion: spec.special.mapRegion,
     mapLevel: spec.special.mapLevel,
-    // Monde : toujours le planisphère entier (Europe : cadrage sur les pays présents)
+    // Monde et Burundi : toujours le fond entier (Europe : cadrage sur les pays présents)
     mapFit: spec.special.mapRegion === "europe" ? "data" : "region",
     width: Math.round(plot.w),
     height: Math.round(plot.h),

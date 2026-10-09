@@ -43,11 +43,14 @@ export interface CartoucheLayout {
 export const MAP_SOURCE_FRBE = ["Fond : IGN, NGI-Statbel, Natural Earth", "Licence Ouverte · CC BY 4.0 · domaine public"];
 export const MAP_SOURCE_EUROPE = ["Fond : Natural Earth (domaine public)"];
 export const MAP_SOURCE_WORLD = ["Fond : Natural Earth (domaine public)"];
+/** Burundi : geoBoundaries gbOpen BDI ADM1 (CC0 1.0), 18 provinces d'avant la réforme de 2025. */
+export const MAP_SOURCE_BURUNDI = ["Fond : geoBoundaries (CC0 1.0)", "Provinces d'avant la réforme de 2025"];
 export function mapSourceLines(spec: Pick<ChartSpec, "type" | "special"> & { drill?: ChartSpec["drill"] }): string[] {
   if (spec.type === "drill" && spec.drill?.view === "map") return MAP_SOURCE_FRBE;
   if (spec.type !== "map") return [];
   if (spec.special.mapRegion === "europe") return MAP_SOURCE_EUROPE;
   if (spec.special.mapRegion === "world") return MAP_SOURCE_WORLD;
+  if (spec.special.mapRegion === "burundi") return MAP_SOURCE_BURUNDI;
   return MAP_SOURCE_FRBE;
 }
 

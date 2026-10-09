@@ -1,0 +1,70 @@
+{
+  "builtAt": "2026-10-09T15:02:23.931Z",
+  "source": "geoBoundaries gbOpen BDI ADM1 (Province)",
+  "boundaryID": "BDI-ADM1-87207978",
+  "boundarySource": "geoBoundaries, Wikimedia",
+  "boundaryYearRepresented": "2014",
+  "sourceDataUpdateDate": "Thu Jan 19 07:31:04 2023",
+  "buildDate": "Dec 12, 2023",
+  "licence": "CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
+  "api": "https://www.geoboundaries.org/api/current/gbOpen/BDI/ADM1/",
+  "download": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BDI/ADM1/geoBoundaries-BDI-ADM1.geojson",
+  "sourceSha256": "ee7f3281029ea53ea4759a1f8370fecfb04543d6111e922b0127561f71ed249e",
+  "vintage": "18 provinces antérieures à la réforme de 2025 (Rumonge incluse, créée en 2015) ; pas le découpage en 5 provinces de 2025",
+  "simplify": "weighted keep-shapes 20%",
+  "quantization": 20000,
+  "features": 18,
+  "highlighted": [
+    {
+      "label": "Gitega",
+      "name": "Gitega",
+      "id": "BI-GI"
+    },
+    {
+      "label": "Buja rural",
+      "name": "Bujumbura Rural",
+      "id": "BI-BL"
+    },
+    {
+      "label": "Bururi",
+      "name": "Bururi",
+      "id": "BI-BR"
+    },
+    {
+      "label": "Kirundo",
+      "name": "Kirundo",
+      "id": "BI-KI"
+    },
+    {
+      "label": "Karusi",
+      "name": "Karuzi",
+      "id": "BI-KR"
+    },
+    {
+      "label": "Bubanza",
+      "name": "Bubanza",
+      "id": "BI-BB"
+    },
+    {
+      "label": "Rumonge",
+      "name": "Rumonge",
+      "id": "BI-RM"
+    },
+    {
+      "label": "Makamba",
+      "name": "Makamba",
+      "id": "BI-MA"
+    },
+    {
+      "label": "Ngozi",
+      "name": "Ngozi",
+      "id": "BI-NG"
+    },
+    {
+      "label": "Buja",
+      "name": "Bujumbura Mairie",
+      "id": "BI-BM"
+    }
+  ],
+  "bytes": 10915
+}

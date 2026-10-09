@@ -33,9 +33,9 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   ≤ 2 millions de cellules par feuille, texte collé ≤ 20 Mo ; au-delà, message clair en français (« Gardez seulement l'onglet utile… »).
 - **Types** : barres (verticales, horizontales, groupées, empilées), lignes, aires (empilées), points / bulles,
   camembert, donut, arcs radiaux, **écarts IBCS** (réel vs budget / N-1 / prévision, écarts absolus en barres ou
-  relatifs en épingles, rouge / vert réservés aux écarts) ; spéciaux : film 4D (span/magnitude) et carte FR·BE / Europe / Monde (pays, Equal Earth)
+  relatifs en épingles, rouge / vert réservés aux écarts) ; spéciaux : film 4D (span/magnitude) et carte FR·BE / Europe / Monde (pays, Equal Earth) / Burundi (18 provinces d'avant 2025, jointure par nom de province ou lat/lon)
   (toujours avec une **barre d'échelle en km** adaptée à la projection et au cadrage ; source et licence du fond dans le
-  cartouche). Fonds IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0) et Natural Earth (domaine public),
+  cartouche). Fonds IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0) et Natural Earth (domaine public), geoBoundaries (CC0),
   tous réutilisables commercialement : [`docs/licence-cartes.md`](docs/licence-cartes.md).
 - **Encodages** : X, une ou plusieurs mesures Y, axe Y secondaire à droite (échelle indépendante), série / couleur,
   temps (4D), taille, étiquette, agrégat, pas temporel.

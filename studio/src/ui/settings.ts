@@ -985,7 +985,7 @@ export class SettingsPanel {
       if (isVariance(t)) main.push(this.check("variance.total", "Ligne « Total »", undefined, "somme"));
     }
     if (t === "film") main.push(this.line("Géométrie", this.segmented("special.geometry", [["arc", "Arcs"], ["bar", "Barres"], ["point", "Points"]])));
-    if (t === "map") main.push(this.kw(this.line("Fond de carte", this.segmented("special.mapRegion", [["fr-be", "France · Belgique"], ["europe", "Europe (pays)"], ["world", "Monde (pays)"]])), "carte pays régions monde"));
+    if (t === "map") main.push(this.kw(this.line("Fond de carte", this.segmented("special.mapRegion", [["fr-be", "France · Belgique"], ["europe", "Europe (pays)"], ["world", "Monde (pays)"], ["burundi", "Burundi (provinces)"]], { cls: "segmented--grid2" })), "carte pays régions monde burundi provinces"));
     if (isSpecial(t)) {
       main.push(this.row("Persistance", this.select("special.persistence", [["keep", "Garder (keep)"], ["ephemeral", "Éphémère"], ["finale", "Final en nuage"]])));
       main.push(this.check("special.tickers", "Compteurs (nombre, somme)"));
