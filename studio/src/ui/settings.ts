@@ -8,6 +8,7 @@
  * Chaque contrôle est lié à un chemin du spec ; le panneau n'est reconstruit que lorsque
  * la structure change (type, colonnes, options qui affichent / masquent des champs).
  */
+import { colorPicker, type Swatch } from "./nuancier";
 import type { Store } from "../state";
 import {
   AGGREGATES,
@@ -48,6 +49,16 @@ type Opt = [string, string];
 type Kid = Node | null | false | undefined;
 
 /** Actions d'export branchées par main (boutons « Télécharger » de la section Export). */
+/** Fonds proposés en ligne (le nuancier donne le reste). */
+const BACKGROUND_COLORS: Swatch[] = [
+  ["#0B0B0D", "noir profond"],
+  ["#18181B", "anthracite"],
+  ["#08465A", "pétrole foncé"],
+  ["#FAFAF9", "blanc cassé"],
+  ["#F1F5F9", "gris bleuté clair"],
+  ["#FEF3C7", "crème"],
+];
+
 export interface PanelActions {
   exportSvg: () => void;
   exportPng: () => void;
@@ -328,7 +339,23 @@ export class SettingsPanel {
   /* ------------------------------------------------------------ synchronisation */
 
   /** Contrôles reflétant le spec même sans reconstruction (choix faits ailleurs : toucher, Explorer…). */
+  /** Champ de couleur (charte + nuancier) lié à un chemin du spec ; resynchronisé par `syncControls`. */
+  private colorField(path: string, charter: Swatch[], testid: string, title: string): HTMLElement {
+    const el = h("div", { class: "nz-field", "data-path": path });
+    const paint = () => {
+      const v = String(this.store.get(path) ?? "");
+      el.dataset.cur = v;
+      el.replaceChildren(colorPicker({ value: v, charter, onPick: (c) => this.store.set(path, c), testid, base: v || undefined, title }));
+    };
+    (el as HTMLElement & { _paint?: () => void })._paint = paint;
+    paint();
+    return el;
+  }
+
   private syncControls(): void {
+    for (const f of this.body.querySelectorAll<HTMLElement & { _paint?: () => void }>(".nz-field[data-path]")) {
+      if (String(this.store.get(f.dataset.path!) ?? "") !== f.dataset.cur) f._paint?.();
+    }
     for (const g of this.body.querySelectorAll<HTMLElement>("[role=radiogroup][data-path]")) {
       const cur = String(this.store.get(g.dataset.path!));
       for (const b of g.querySelectorAll<HTMLElement>("[data-value]")) {
@@ -989,9 +1016,8 @@ export class SettingsPanel {
     );
     main.push(this.kw(this.line("Fond", this.segmented("style.background", [["dark", "Sombre"], ["light", "Clair"], ["custom", "Perso"]])), "fond thème sombre clair arrière-plan"));
     if (spec.style.background === "custom") {
-      const c = h("input", { type: "color", value: spec.style.backgroundCustom, "data-path": "style.backgroundCustom" });
-      c.addEventListener("input", () => this.store.set("style.backgroundCustom", c.value));
-      main.push(this.row("Couleur de fond", c, undefined, "fond perso pipette"));
+      const c = this.colorField("style.backgroundCustom", BACKGROUND_COLORS, "bg-color", "Couleur de fond");
+      main.push(this.row("Couleur de fond", c, undefined, "fond perso pipette nuancier"));
     }
     if (spec.norme.enabled) main.push(this.kw(h("p", { class: "muted small" }, "Mode norme : données en gris, pétrole pour l'interface, rouge et vert réservés aux écarts. Camemberts, anneaux et arcs sont remplacés par des barres."), "couleurs palette norme"));
     else {

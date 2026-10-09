@@ -732,8 +732,17 @@ la même façon.
     « Modifier le libellé › » ;
   - **Libellé** : texte avec jeton `{valeur}`, taille, graisse, couleur, « Masquer ce libellé », portée
     **Ce libellé / Toute la série**, « Rétablir le libellé calculé ».
-- **Couleurs proposées** : bleu pétrole (#0E6E8C, #3FA7C4, #08465A), bleu glacier et gris ; « + » ouvre une couleur
-  libre. Le rouge et le vert restent réservés aux écarts.
+- **Couleurs proposées** : bleu pétrole (#0E6E8C, #3FA7C4, #08465A), bleu glacier et gris, puis le bouton
+  **Nuancier** (`ui/nuancier.ts`, composant commun à la couleur de série, d'élément, de libellé et de fond) :
+  - rangée **Charte** (pétrole) en tête, rangée **Récentes** (8 dernières couleurs choisies, sur cet appareil,
+    `localStorage` « datanime.couleursRecentes ») ;
+  - grille de 60 pastilles : 10 colonnes de teintes (rouges, oranges, jaunes, verts, turquoises, bleus, violets, roses,
+    bruns, gris), 6 rangées du clair au foncé ; chaque pastille porte un nom français (infobulle et `aria-label`,
+    ex. « bleu nuit »), aucun code n'est affiché ; pastilles de 34 px (iPad) ;
+  - **Plus de couleurs…** ouvre le sélecteur complet du navigateur ; rappel « en mode norme, le rouge et le vert
+    restent réservés aux écarts » ; Échap ou un toucher à côté ferme la fenêtre sans toucher à la sélection.
+  - Tests : `test/nuancier.test.ts`, `node studio/scripts/e2e.mjs --nuancier --shots` (iPad 1024 et 1366 ; captures
+    166 à 168).
 - **Spec** : `style.overrides[clé]` = `{ color, label, labelColor, labelBold, labelSize, hideLabel }`, clés
   `s:<série>`, `e:<catégorie>` ou `e:<série>|<catégorie>` (plusieurs séries) ; 300 surcharges au plus. Vide, le champ
   n'entre pas dans l'empreinte (`fingerprintSpec`) ni dans la signature de projet : empreintes Cadencer et projets

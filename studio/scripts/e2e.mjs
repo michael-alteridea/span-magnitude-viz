@@ -1740,6 +1740,118 @@ if (process.argv.includes("--selection-clics")) {
   process.exit(failures ? 1 : 0);
 }
 
+/** Nuancier (choix de couleur commun) : série, élément, libellé, fond ; iPad 1024 et 1366 au toucher. */
+async function e2eNuancier() {
+  for (const [W, H] of [[1024, 768], [1366, 1024]]) {
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    const shot = async (name) => { if (!SHOTS) return; await sleep(400); await pg.screenshot({ path: join(shotsDir, name) }); };
+    await pg.setViewport({ width: W, height: H, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    await pg.evaluate(async () => {
+      localStorage.removeItem("datanime.couleursRecentes");
+      window.r4d.loadSample("renouvelables");
+      await new Promise((r) => setTimeout(r, 900));
+      window.r4d.set("style.valueLabels", true);
+      window.r4d.set("style.focus.key", null);
+      window.r4d.set("mode.kind", "static");
+      await window.r4d.settle();
+    });
+    await sleep(500);
+    const mk = await pg.evaluate(() => { const e = document.querySelectorAll('[data-testid=chart-svg] rect[data-sel="mark"]')[2]; return { ek: e.getAttribute("data-sel-key"), sk: e.getAttribute("data-sel-series"), name: e.getAttribute("data-sel-name") }; });
+    await pg.evaluate((m) => window.r4d.selection().set({ level: "mark", ...m }), mk);
+    await sleep(400);
+    const inline = await pg.evaluate(() => { const r = document.querySelector("[data-testid=sel-mark-color]"); return { first: r?.querySelector("[data-color]")?.getAttribute("aria-label"), open: !!r?.querySelector("[data-testid=sel-mark-color-nuancier]"), sizes: [...(r?.querySelectorAll("button") ?? [])].map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height)) }; });
+    check(`nuancier (${W}) : en ligne, charte (pétrole) puis bouton « Nuancier », cibles ≥ 32 px`, inline.first === "Pétrole" && inline.open && inline.sizes.every((x) => x >= 32), JSON.stringify(inline));
+    await pg.tap("[data-testid=sel-mark-color-nuancier]");
+    await sleep(350);
+    const pop = await pg.evaluate(() => {
+      const p = document.querySelector("[data-testid=nuancier]");
+      if (!p) return null;
+      const r = p.getBoundingClientRect();
+      const grid = [...p.querySelectorAll("[data-testid=nuancier-grid] button")];
+      const cols = [...p.querySelectorAll("[data-testid=nuancier-grid] .nz-col")].map((c) => c.getAttribute("aria-label"));
+      const sizes = [...p.querySelectorAll("button.selp-sw")].map((b) => { const q = b.getBoundingClientRect(); return Math.min(q.width, q.height); });
+      return {
+        inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+        n: grid.length,
+        cols,
+        charte: p.querySelector("[data-testid=nuancier-charte] button")?.getAttribute("aria-label"),
+        recentEmpty: !!p.querySelector("[data-testid=nuancier-recentes] .nz-empty"),
+        more: !!p.querySelector("[data-testid=nuancier-more] input[type=color]") && /Plus de couleurs/.test(p.querySelector("[data-testid=nuancier-more]").textContent),
+        hint: /rouge et le vert restent réservés aux écarts/.test(p.textContent),
+        hex: /#[0-9a-f]{3,6}/i.test(p.innerText),
+        named: grid.every((b) => b.getAttribute("aria-label") && b.getAttribute("title") === b.getAttribute("aria-label")),
+        nuit: !!p.querySelector('[data-testid=nuancier-grid] button[aria-label="Bleu nuit"]'),
+        minSize: Math.min(...sizes),
+      };
+    });
+    check(`nuancier (${W}) : fenêtre dans l'écran, 60 pastilles en 10 colonnes de teintes, noms français, aucun code affiché, cibles ≥ 32 px`, !!pop && pop.inView && pop.n === 60 && pop.cols.join() === "Rouges,Oranges,Jaunes,Verts,Turquoises,Bleus,Violets,Roses,Bruns,Gris" && pop.named && pop.nuit && !pop.hex && pop.minSize >= 32, JSON.stringify(pop));
+    check(`nuancier (${W}) : rangée Charte en tête, « Récentes » (vide au départ), « Plus de couleurs… », rappel rouge / vert`, pop?.charte === "Pétrole" && pop.recentEmpty && pop.more && pop.hint, JSON.stringify(pop));
+    await shot(`166-nuancier-element-ipad-${W}.png`);
+    // élément : bleu nuit
+    await pg.tap('[data-testid=nuancier-grid] button[aria-label="Bleu nuit"]');
+    await sleep(400);
+    const e1 = await pg.evaluate((m) => ({ ov: window.r4d.getSpec().style.overrides[m.ek], fill: document.querySelector(`[data-testid=chart-svg] rect[data-sel="mark"][data-sel-key="${CSS.escape(m.ek)}"]`)?.getAttribute("fill"), open: !!document.querySelector("[data-testid=nuancier]"), sel: window.r4d.selection().sel?.level }), mk);
+    check(`nuancier (${W}) : « bleu nuit » colore l'élément seul et ferme la fenêtre (sélection gardée)`, e1.ov?.color?.toUpperCase() === "#1E3A8A" && e1.fill?.toUpperCase() === "#1E3A8A" && !e1.open && e1.sel === "mark", JSON.stringify(e1));
+    // série : récentes + violet
+    await pg.evaluate((m) => window.r4d.selection().set({ level: "series", ek: null, sk: m.sk, name: "" }), mk);
+    await sleep(400);
+    await pg.tap("[data-testid=sel-series-color-nuancier]");
+    await sleep(350);
+    const rec = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=nuancier-recentes] button")].map((b) => b.getAttribute("aria-label")));
+    check(`nuancier (${W}) : « Récentes » retient la couleur choisie (bleu nuit), partagée entre série, élément, libellé et fond`, rec[0] === "Bleu nuit", JSON.stringify(rec));
+    await pg.tap('[data-testid=nuancier-grid] button[aria-label="Violet"]');
+    await sleep(400);
+    const s1 = await pg.evaluate((m) => window.r4d.getSpec().style.overrides[m.sk]?.color, mk);
+    check(`nuancier (${W}) : couleur de la série`, s1?.toUpperCase() === "#7C3AED", String(s1));
+    // libellé : Échap ferme sans changer la sélection, puis « jaune »
+    await pg.evaluate((m) => window.r4d.selection().set({ level: "label", ...m }), mk);
+    await sleep(400);
+    await pg.tap("[data-testid=sel-label-color-nuancier]");
+    await sleep(300);
+    await pg.keyboard.press("Escape");
+    await sleep(250);
+    const esc = await pg.evaluate(() => ({ open: !!document.querySelector("[data-testid=nuancier]"), sel: window.r4d.selection().sel?.level }));
+    await pg.tap("[data-testid=sel-label-color-nuancier]");
+    await sleep(300);
+    const rec2 = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=nuancier-recentes] button")].map((b) => b.getAttribute("aria-label")));
+    await shot(`167-nuancier-libelle-ipad-${W}.png`);
+    await pg.tap('[data-testid=nuancier-grid] button[aria-label="Jaune"]');
+    await sleep(400);
+    const l1 = await pg.evaluate((m) => window.r4d.getSpec().style.overrides[m.ek]?.labelColor, mk);
+    check(`nuancier (${W}) : Échap ferme le nuancier sans remonter la sélection ; couleur du libellé ; récentes dans l'ordre (violet, bleu nuit)`, !esc.open && esc.sel === "label" && l1?.toUpperCase() === "#FACC15" && rec2.slice(0, 2).join() === "Violet,Bleu nuit", JSON.stringify({ esc, l1, rec2 }));
+    // fond personnalisé
+    await pg.evaluate(async () => { window.r4d.selection().clear(); window.r4d.set("style.background", "custom"); await window.r4d.settle(); window.r4d.panel().reveal({ section: "style", paths: ["style.backgroundCustom"] }); });
+    await sleep(500);
+    await pg.evaluate(() => document.querySelector("[data-testid=bg-color-nuancier]")?.scrollIntoView({ block: "center" }));
+    await sleep(250);
+    await pg.tap("[data-testid=bg-color-nuancier]");
+    await sleep(350);
+    await shot(`168-nuancier-fond-ipad-${W}.png`);
+    await pg.tap('[data-testid=nuancier-grid] button[aria-label="Lin"]');
+    await sleep(500);
+    const bg = await pg.evaluate(() => ({ v: window.r4d.getSpec().style.backgroundCustom, fill: document.querySelector("[data-testid=chart-svg] .r4d-bg")?.getAttribute("fill"), on: document.querySelector("[data-testid=bg-color] [aria-pressed=true]")?.getAttribute("aria-label") }));
+    check(`nuancier (${W}) : couleur de fond (même composant), pastille active à jour`, bg.v?.toUpperCase() === "#F5E6D3" && bg.fill?.toUpperCase() === "#F5E6D3" && bg.on === "Lin", JSON.stringify(bg));
+    check(`nuancier (${W}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--nuancier")) {
+  try { await e2eNuancier(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--selection")) {
   try { await e2eSelection(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -4468,6 +4580,8 @@ try {
   await e2eSelection();
   /* 28 bis. Sélection : vrais clics à des endroits différents, souris et toucher, tous les types ; double-clic */
   await e2eSelectionClics();
+  /* 28 ter. Nuancier : série, élément, libellé, fond (iPad) */
+  await e2eNuancier();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

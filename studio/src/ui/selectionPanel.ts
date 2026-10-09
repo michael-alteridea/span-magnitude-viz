@@ -10,6 +10,7 @@ import { withOverride } from "../charts/overrides";
 import { crumbs, levelNames, seriesNameOf, SEL_LEVELS, type Sel, type Selection } from "./selection";
 import { focusInfo } from "./focusUi";
 import { h, svgIcon, ICONS } from "./dom";
+import { colorPicker } from "./nuancier";
 
 /** Couleurs proposées : bleu pétrole (charte) et neutres ; le rouge et le vert restent réservés aux écarts. */
 export const MARK_COLORS: [string, string][] = [
@@ -109,12 +110,9 @@ export class SelectionPanel {
     return h("section", { class: "selp-card" }, h("h4", null, title), ...(kids.filter(Boolean) as Node[]));
   }
 
-  private swatches(cur: string | undefined, list: [string, string][], pick: (c: string | null) => void, testid: string, base?: string): HTMLElement {
-    const btn = (c: string, label: string) =>
-      h("button", { type: "button", class: `selp-sw${cur?.toLowerCase() === c.toLowerCase() ? " on" : ""}`, style: `--sw:${c}`, title: label, "aria-label": label, "aria-pressed": cur?.toLowerCase() === c.toLowerCase() ? "true" : "false", "data-color": c, onclick: () => pick(c) });
-    const custom = h("input", { type: "color", class: "selp-sw-custom", title: "Autre couleur", "aria-label": "Autre couleur", value: cur ?? base ?? "#3FA7C4" });
-    custom.addEventListener("change", () => pick(custom.value));
-    return h("div", { class: "selp-sws", "data-testid": testid }, ...list.map(([c, l]) => btn(c, l)), h("label", { class: "selp-sw selp-sw-more", title: "Autre couleur" }, "+", custom));
+  /** Choix de couleur : charte en ligne + « Nuancier » (grille par teinte, récentes, plus de couleurs). */
+  private swatches(cur: string | undefined, list: [string, string][], pick: (c: string | null) => void, testid: string, base?: string, title?: string): HTMLElement {
+    return colorPicker({ value: cur ?? null, charter: list, onPick: (c) => pick(c), testid, base, title });
   }
 
   private seg(cur: string, opts: [string, string][], pick: (v: string) => void, testid: string): HTMLElement {
@@ -218,7 +216,7 @@ export class SelectionPanel {
       out.push(
         this.card(
           "Couleur de la série",
-          this.swatches(o.color, MARK_COLORS, (c) => this.patch(sk, { color: c }), "sel-series-color"),
+          this.swatches(o.color, MARK_COLORS, (c) => this.patch(sk, { color: c }), "sel-series-color", undefined, "Couleur de la série"),
           o.color ? h("button", { type: "button", class: "selp-link", "data-testid": "sel-series-color-reset", onclick: () => this.patch(sk, { color: undefined }) }, "Couleur de la palette") : null
         )
       );
@@ -243,7 +241,7 @@ export class SelectionPanel {
     const out: HTMLElement[] = [
       this.card(
         ({ Barre: "Couleur de cette barre", Part: "Couleur de cette part", Point: "Couleur de ce point", Arc: "Couleur de cet arc" } as Record<string, string>)[n.mark] ?? "Couleur",
-        this.swatches(o.color, MARK_COLORS, (c) => this.patch(ek, { color: c }), "sel-mark-color"),
+        this.swatches(o.color, MARK_COLORS, (c) => this.patch(ek, { color: c }), "sel-mark-color", undefined, "Couleur de l'élément"),
         h(
           "small",
           { class: "hint" },
@@ -284,7 +282,7 @@ export class SelectionPanel {
         "Police",
         this.field("Taille", size),
         this.field("Graisse", this.seg(o.labelBold === false ? "normal" : o.labelBold ? "bold" : "auto", [["auto", "Auto"], ["normal", "Normal"], ["bold", "Gras"]], (x) => this.patch(k, { labelBold: x === "auto" ? undefined : x === "bold" }), "sel-label-weight")),
-        this.field("Couleur", this.swatches(o.labelColor, LABEL_COLORS, (c) => this.patch(k, { labelColor: c }), "sel-label-color")),
+        this.field("Couleur", this.swatches(o.labelColor, LABEL_COLORS, (c) => this.patch(k, { labelColor: c }), "sel-label-color", undefined, "Couleur du libellé")),
         o.labelColor ? h("button", { type: "button", class: "selp-link", onclick: () => this.patch(k, { labelColor: undefined }) }, "Couleur automatique") : null,
         this.toggle(!!o.hideLabel, "Masquer ce libellé", (x) => this.patch(k, { hideLabel: x || undefined }), "sel-label-hide")
       )
