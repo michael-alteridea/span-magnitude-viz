@@ -734,7 +734,9 @@ la même façon.
     **Ce libellé / Toute la série**, « Rétablir le libellé calculé ».
 - **Couleurs proposées** : bleu pétrole (#0E6E8C, #3FA7C4, #08465A), bleu glacier et gris, puis le bouton
   **Nuancier** (`ui/nuancier.ts`, composant commun à la couleur de série, d'élément, de libellé et de fond) :
-  - rangée **Charte** (pétrole) en tête, rangée **Récentes** (8 dernières couleurs choisies, sur cet appareil,
+  - rangée **Couleurs de base** tout en haut (12 couleurs franches, comme les couleurs standard d'un tableur : vrai
+    rouge, orange, jaune, vert, vert clair, bleu clair, bleu, bleu foncé, violet, noir, blanc, gris), puis rangée
+    **Charte** (pétrole), rangée **Récentes** (8 dernières couleurs choisies, sur cet appareil,
     `localStorage` « datanime.couleursRecentes ») ;
   - grille de 60 pastilles : 10 colonnes de teintes (rouges, oranges, jaunes, verts, turquoises, bleus, violets, roses,
     bruns, gris), 6 rangées du clair au foncé ; chaque pastille porte un nom français (infobulle et `aria-label`,

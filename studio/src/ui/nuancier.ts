@@ -1,7 +1,7 @@
 /**
  * Nuancier : choix de couleur commun (couleur de série, d'élément, de libellé, de fond).
  *  - en ligne : les couleurs de la charte (pétrole) + un bouton « Nuancier » ;
- *  - fenêtre « Nuancier » : rangée Charte, rangée « Récentes » (8 dernières couleurs choisies, sur cet appareil),
+ *  - fenêtre « Nuancier » : rangée « Couleurs de base » (couleurs franches, comme les couleurs standard d'un tableur), rangée Charte, rangée « Récentes » (8 dernières couleurs choisies, sur cet appareil),
  *    grille de 60 teintes (colonnes : rouges, oranges, jaunes, verts, turquoises, bleus, violets, roses, bruns, gris ;
  *    rangées : du clair au foncé), lien « Plus de couleurs… » vers le sélecteur complet du navigateur, rappel
  *    « rouge et vert réservés aux écarts » (mode norme).
@@ -26,6 +26,22 @@ export const NUANCIER: { hue: string; swatches: Swatch[] }[] = [
   { hue: "Gris", swatches: [["#FFFFFF", "blanc"], ["#E4E4E7", "gris perle"], ["#A1A1AA", "gris"], ["#71717A", "gris moyen"], ["#3F3F46", "anthracite"], ["#18181B", "noir"]] },
 ];
 
+/** Couleurs de base (franches, à la manière des couleurs standard d'un tableur) : première rangée du nuancier. */
+export const BASE: Swatch[] = [
+  ["#FF0000", "vrai rouge"],
+  ["#FFC000", "orange"],
+  ["#FFFF00", "jaune"],
+  ["#00B050", "vert"],
+  ["#92D050", "vert clair"],
+  ["#00B0F0", "bleu clair"],
+  ["#0070C0", "bleu"],
+  ["#002060", "bleu foncé"],
+  ["#7030A0", "violet"],
+  ["#000000", "noir"],
+  ["#FFFFFF", "blanc"],
+  ["#808080", "gris"],
+];
+
 /** Couleurs de la charte (pétrole) et neutres : rangée « Charte », la première. */
 export const CHARTE: Swatch[] = [
   ["#0E6E8C", "pétrole"],
@@ -44,7 +60,7 @@ const norm = (c: string) => c.trim().toUpperCase();
 /** Nom français d'une couleur connue (charte, nuancier, listes passées) ; sinon une description neutre. */
 export function colorName(hex: string, extra: Swatch[] = []): string {
   const c = norm(hex);
-  for (const [x, n] of [...extra, ...CHARTE, ...NUANCIER.flatMap((col) => col.swatches)]) if (norm(x) === c) return n;
+  for (const [x, n] of [...extra, ...CHARTE, ...BASE, ...NUANCIER.flatMap((col) => col.swatches)]) if (norm(x) === c) return n;
   return "couleur personnalisée";
 }
 
@@ -121,6 +137,7 @@ export function openNuancier(anchor: HTMLElement, o: ColorPickerOpts): HTMLEleme
     "div",
     { class: "nz-pop", role: "dialog", "aria-modal": "false", "aria-label": o.title ? `Nuancier — ${o.title}` : "Nuancier", "data-testid": "nuancier" },
     h("div", { class: "nz-head" }, h("b", null, o.title ?? "Nuancier"), h("button", { type: "button", class: "nz-close", "aria-label": "Fermer le nuancier", title: "Fermer", "data-testid": "nuancier-close", onclick: () => close() }, "×")),
+    row("Couleurs de base", "nuancier-base", BASE.map(([c, n]) => swatchBtn(c, n, o.value, pick))),
     row("Charte", "nuancier-charte", charter.map(([c, n]) => swatchBtn(c, n, o.value, pick))),
     row(
       "Récentes",

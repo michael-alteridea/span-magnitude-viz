@@ -1782,6 +1782,8 @@ async function e2eNuancier() {
         n: grid.length,
         cols,
         charte: p.querySelector("[data-testid=nuancier-charte] button")?.getAttribute("aria-label"),
+        base: [...p.querySelectorAll("[data-testid=nuancier-base] button")].map((b) => b.getAttribute("aria-label")),
+        firstRow: p.querySelector(".nz-row")?.getAttribute("data-testid"),
         recentEmpty: !!p.querySelector("[data-testid=nuancier-recentes] .nz-empty"),
         more: !!p.querySelector("[data-testid=nuancier-more] input[type=color]") && /Plus de couleurs/.test(p.querySelector("[data-testid=nuancier-more]").textContent),
         hint: /rouge et le vert restent réservés aux écarts/.test(p.textContent),
@@ -1792,7 +1794,14 @@ async function e2eNuancier() {
       };
     });
     check(`nuancier (${W}) : fenêtre dans l'écran, 60 pastilles en 10 colonnes de teintes, noms français, aucun code affiché, cibles ≥ 32 px`, !!pop && pop.inView && pop.n === 60 && pop.cols.join() === "Rouges,Oranges,Jaunes,Verts,Turquoises,Bleus,Violets,Roses,Bruns,Gris" && pop.named && pop.nuit && !pop.hex && pop.minSize >= 32, JSON.stringify(pop));
-    check(`nuancier (${W}) : rangée Charte en tête, « Récentes » (vide au départ), « Plus de couleurs… », rappel rouge / vert`, pop?.charte === "Pétrole" && pop.recentEmpty && pop.more && pop.hint, JSON.stringify(pop));
+    check(`nuancier (${W}) : « Couleurs de base » tout en haut (vrai rouge … gris, 12), puis la Charte, « Récentes » (vide au départ), « Plus de couleurs… », rappel rouge / vert`, pop?.firstRow === "nuancier-base" && pop.base.length === 12 && pop.base[0] === "Vrai rouge" && pop.base[11] === "Gris" && pop.charte === "Pétrole" && pop.recentEmpty && pop.more && pop.hint, JSON.stringify(pop));
+    // couleur de base : « bleu foncé » sur l'élément (puis « bleu nuit » du nuancier ci-dessous)
+    await pg.tap('[data-testid=nuancier-base] button[aria-label="Bleu foncé"]');
+    await sleep(400);
+    const b0 = await pg.evaluate((m) => ({ ov: window.r4d.getSpec().style.overrides[m.ek]?.color, open: !!document.querySelector("[data-testid=nuancier]") }), mk);
+    check(`nuancier (${W}) : une couleur de base (bleu foncé) s'applique à l'élément`, b0.ov?.toUpperCase() === "#002060" && !b0.open, JSON.stringify(b0));
+    await pg.tap("[data-testid=sel-mark-color-nuancier]");
+    await sleep(350);
     await shot(`166-nuancier-element-ipad-${W}.png`);
     // élément : bleu nuit
     await pg.tap('[data-testid=nuancier-grid] button[aria-label="Bleu nuit"]');

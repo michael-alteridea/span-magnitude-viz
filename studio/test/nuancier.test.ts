@@ -1,6 +1,6 @@
 /** Nuancier : grille par teinte, noms français uniques, sans code affiché, récentes. */
 import { describe, expect, it } from "vitest";
-import { CHARTE, NUANCIER, RECENT_MAX, colorName, pushRecent } from "../src/ui/nuancier";
+import { BASE, CHARTE, NUANCIER, RECENT_MAX, colorName, pushRecent } from "../src/ui/nuancier";
 
 const lum = (hex: string) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -32,7 +32,17 @@ describe("nuancier", () => {
     expect(colorName("#0E6E8C")).toBe("pétrole");
     expect(colorName("#123456")).toBe("couleur personnalisée");
   });
-  it("la charte (pétrole) reste la première rangée", () => {
+  it("couleurs de base (franches, comme un tableur) : 12 couleurs nommées, uniques, au-dessus de la charte", () => {
+    expect(BASE.map(([, n]) => n)).toEqual(["vrai rouge", "orange", "jaune", "vert", "vert clair", "bleu clair", "bleu", "bleu foncé", "violet", "noir", "blanc", "gris"]);
+    expect(new Set(BASE.map(([c]) => c)).size).toBe(BASE.length);
+    expect(BASE[0]![0]).toBe("#FF0000");
+    expect(colorName("#002060")).toBe("bleu foncé");
+    for (const [c, n] of BASE) {
+      expect(c).toMatch(/^#[0-9A-F]{6}$/);
+      expect(n).not.toMatch(/#/);
+    }
+  });
+  it("la charte (pétrole) commence par le pétrole", () => {
     expect(CHARTE[0]).toEqual(["#0E6E8C", "pétrole"]);
   });
   it("récentes : la dernière en tête, sans doublon, 8 au plus", () => {
