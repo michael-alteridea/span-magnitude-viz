@@ -1,7 +1,8 @@
 import type { Selection } from "d3";
 import type { ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
-import type { Model } from "../data/model";
+import type { Model, TimeModel } from "../data/model";
+import type { RaceData } from "./race";
 import type { Theme } from "../theme";
 import type { VarianceModel } from "../data/variance";
 import type { DrillCtx, DrillModel } from "../data/drill";
@@ -46,6 +47,8 @@ export interface Prepared {
   variance?: VarianceModel | null;
   /** Exploration guidée (type « drill »). */
   drill?: { model: DrillModel; ctx: DrillCtx } | null;
+  /** Course de barres : données, modèle temporel et position (en pas). */
+  race?: { data: RaceData; time: TimeModel; pos: number } | null;
 }
 
 export interface DrawCtx {

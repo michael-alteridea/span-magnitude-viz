@@ -659,6 +659,27 @@ export class SettingsPanel {
       more.push(this.row("Code postal FR/BE", this.select("encoding.postal", this.colOpts(cols), true), undefined, "carte localisation"));
       more.push(this.row("Latitude", this.select("encoding.lat", this.colOpts(cols, num), true), undefined, "carte gps"));
       more.push(this.row("Longitude", this.select("encoding.lon", this.colOpts(cols, num), true), undefined, "carte gps"));
+    } else if (t === "race") {
+      const catOk = (c: Column) => c.type === "category" || c.type === "text";
+      main.push(this.row("Catégories à classer", this.select("encoding.x", this.colOpts(cols, catOk), true), "Une barre par catégorie (pays, produit…)", "axe x catégories course"));
+      main.push(this.row("Mesure", this.ySingle(cols), undefined, "mesure valeur"));
+      main.push(this.row("Calcul", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat somme moyenne nombre"));
+      main.push(this.row("Temps (périodes)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), "Une image par période : année, mois, trimestre…", "temps date période année 4d course"));
+      const n = spec.encoding.topN ?? 10;
+      main.push(
+        this.kw(
+          this.line(
+            "Barres visibles",
+            h(
+              "div",
+              { class: "segmented", role: "radiogroup", "aria-label": "Barres visibles", "data-target": "encoding.topN", "data-testid": "race-n" },
+              ...[5, 8, 10, 12, 15, 20].map((v) => h("button", { type: "button", role: "radio", class: v === n ? "active" : "", "aria-checked": v === n ? "true" : "false", "data-value": String(v), onclick: () => this.store.set("encoding.topN", v) }, String(v)))
+            )
+          ),
+          "nombre de barres top classement course"
+        )
+      );
+      main.push(this.row("Valeur affichée", this.segmented("mode.fourD.mode", [["snapshot", "De la période"], ["cumulative", "Cumul"]], { testid: "race-mode" }), "Cumul : total depuis la première période", "cumul instantané course"));
     } else {
       const xFilter = t === "scatter" ? (c: Column) => c.type !== "text" || c.cardinality <= 60 : undefined;
       main.push(this.row(isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Catégories (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x"));
@@ -1103,7 +1124,7 @@ export class SettingsPanel {
         "animation fixe dynamique entrée 4d temps vidéo mode"
       )
     );
-    if (cur === "4d") main.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), undefined, "4d date période"));
+    if (cur === "4d" && t !== "race") main.push(this.row("Temps (animation 4D)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number" || c.type === "category"), true), undefined, "4d date période"));
     main.push(this.check("style.authQr", "QR d’empreinte des données", "Lien « Vérifier l'empreinte » vers la page de vérification", "qr code empreinte vérification"));
     if (spec.mode.kind === "dynamic") {
       if (special) more.push(this.row("Durée du film (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 }), undefined, "durée secondes"));
@@ -1111,12 +1132,14 @@ export class SettingsPanel {
         if (cur === "4d") more.push(this.check("mode.buildIn", "Animation d'entrée avant la 4D", undefined, "entrée"));
         if (spec.mode.buildIn || cur === "build") more.push(this.row("Durée d'entrée (s)", this.number("mode.buildInMs", { min: 0.2, max: 10, step: 0.1, scale: 1000 }), undefined, "durée secondes animation"));
         if (cur === "4d") {
-          more.push(this.row("Mode 4D", this.segmented("mode.fourD.mode", [["cumulative", "Cumulatif"], ["snapshot", "Instantané"]]), spec.encoding.time === spec.encoding.x ? "X = temps : révélation le long de l'axe" : undefined, "4d cumul"));
+          if (t !== "race") more.push(this.row("Mode 4D", this.segmented("mode.fourD.mode", [["cumulative", "Cumulatif"], ["snapshot", "Instantané"]]), spec.encoding.time === spec.encoding.x ? "X = temps : révélation le long de l'axe" : undefined, "4d cumul"));
           more.push(this.row("Pas de temps", this.select("mode.fourD.step", [["auto", "Auto"], ["raw", "Valeurs brutes"], ["day", "Jour"], ["week", "Semaine"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "4d"));
           more.push(this.row("Durée de la 4D (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 }), undefined, "durée secondes"));
           more.push(this.check("mode.fourD.loop", "Lecture en boucle", undefined, "4d"));
-          more.push(this.check("mode.fourD.stamp", "Tampon de date (filigrane)", undefined, "4d"));
-          more.push(this.check("mode.fourD.freezeScales", "Échelles figées (pas de sauts)", undefined, "4d axes"));
+          if (t !== "race") {
+            more.push(this.check("mode.fourD.stamp", "Tampon de date (filigrane)", undefined, "4d"));
+            more.push(this.check("mode.fourD.freezeScales", "Échelles figées (pas de sauts)", undefined, "4d axes"));
+          }
         }
       }
     }

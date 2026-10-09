@@ -1130,7 +1130,10 @@ async function pickType(t: ChartType): Promise<void> {
     };
   }
   const drill = t === "drill" && ds ? initDrill(ds, spec.drill) : spec.drill;
-  const errs = store.setSpec({ ...spec, type: t, encoding, drill });
+  // Course de barres : animée dans le temps par défaut (instantané par période, 10 barres visibles)
+  const mode = t === "race" && spec.type !== "race" ? { ...spec.mode, kind: "dynamic" as const, fourD: { ...spec.mode.fourD, enabled: true, mode: "snapshot" as const, durationMs: Math.max(spec.mode.fourD.durationMs, 12000) } } : spec.mode;
+  if (t === "race" && spec.type !== "race" && encoding.topN == null) encoding = { ...encoding, topN: 10 };
+  const errs = store.setSpec({ ...spec, type: t, encoding, drill, mode });
   if (errs.length) toast(errs.join(" ; "), "error");
 }
 

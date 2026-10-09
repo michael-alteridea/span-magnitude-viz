@@ -3,7 +3,7 @@
  * et les types de colonnes détectés. Conserve les choix valides de l'utilisateur.
  */
 import type { ChartSpec, ChartType } from "../spec";
-import { isBarType, isRadial, isSpecial, isVariance } from "../spec";
+import { isBarType, isRace, isRadial, isSpecial, isVariance } from "../spec";
 import { detectRoles } from "../story/roles";
 import type { Column, Dataset } from "./table";
 
@@ -18,6 +18,34 @@ const col = (ds: Dataset, n: string | null | undefined) => (n ? ds.columns.find(
 
 function bestCategory(ds: Dataset, exclude: (string | null | undefined)[], maxCard = 30): Column | undefined {
   return cats(ds).find((c) => !exclude.includes(c.name) && c.cardinality <= maxCard) ?? texts(ds).find((c) => !exclude.includes(c.name));
+}
+
+/** Colonne de temps plausible : date, ou nombre entier ressemblant à une année (« Année », « year »…). */
+export function timeColumn(ds: Dataset, prefer: (string | null | undefined)[] = []): Column | undefined {
+  const ok = (c: Column | undefined) =>
+    !!c && (c.type === "date" || (c.type === "number" && (/ann[ée]e|year|^an$|p[ée]riode|exercice/i.test(c.name) || ds.rows.every((r) => { const v = r[c.name]; return v == null || (typeof v === "number" && Number.isInteger(v) && v >= 1800 && v <= 2200); }))));
+  for (const n of prefer) {
+    const c = col(ds, n);
+    if (ok(c)) return c;
+  }
+  return dates(ds)[0] ?? ds.columns.find((c) => c.type === "number" && ok(c));
+}
+
+/** Course de barres : X = catégories à classer, Y = une mesure, temps = date / année ; ni série ni Y secondaire. */
+function raceEncode(ds: Dataset, enc: Enc): Enc {
+  const t = timeColumn(ds, [enc.time, enc.x]);
+  enc.time = t?.name ?? null;
+  const xCol = col(ds, enc.x);
+  const sCol = col(ds, enc.series);
+  if (!xCol || xCol.name === enc.time || (xCol.type !== "category" && xCol.type !== "text")) {
+    enc.x = sCol && (sCol.type === "category" || sCol.type === "text") && sCol.name !== enc.time ? sCol.name : bestCategory(ds, [enc.time], 400)?.name ?? null;
+  }
+  const y = enc.y.find((f) => col(ds, f)?.type === "number" && f !== enc.time) ?? measures(ds).find((c) => c.name !== enc.time)?.name;
+  enc.y = y ? [y] : [];
+  enc.series = null;
+  enc.y2 = null;
+  enc.xGrain = "none";
+  return enc;
 }
 
 /**
@@ -51,6 +79,8 @@ export function autoEncode(spec: ChartSpec, ds: Dataset | null, type: ChartType,
     enc.aggregate = "sum";
     return enc;
   }
+
+  if (isRace(type)) return raceEncode(ds, enc);
 
   if (!enc.y.length && M[0]) enc.y = [M[0].name];
   const xCol = col(ds, enc.x);

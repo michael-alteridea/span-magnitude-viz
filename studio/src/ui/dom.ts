@@ -37,6 +37,7 @@ export const ICONS = {
   pie: `<path d="M12 3 A9 9 0 1 1 3 12 L12 12 Z" fill="currentColor" stroke="none"/><path d="M12 3 A9 9 0 0 0 3 12 L12 12 Z" fill="currentColor" opacity=".45" stroke="none"/>`,
   donut: `<circle cx="12" cy="12" r="7.5" stroke-width="4" opacity=".4"/><path d="M12 4.5 A7.5 7.5 0 1 1 4.5 12" stroke-width="4" stroke-linecap="butt"/>`,
   radialBar: `<path d="M12 3 A9 9 0 1 1 3 12" stroke-width="2.4"/><path d="M12 7 A5 5 0 1 1 7 12" stroke-width="2.4" opacity=".6"/><path d="M12 10.5 A1.5 1.5 0 0 1 13.5 12" stroke-width="2.4" opacity=".4"/>`,
+  race: `<rect x="7" y="4" width="13" height="3.5" rx="1" fill="currentColor" stroke="none"/><rect x="7" y="10.25" width="9" height="3.5" rx="1" fill="currentColor" stroke="none"/><rect x="7" y="16.5" width="5" height="3.5" rx="1" fill="currentColor" stroke="none" opacity=".55"/><path d="M3.5 9 V4.5 M2 6 L3.5 4.5 L5 6"/><path d="M3.5 15 V19.5 M2 18 L3.5 19.5 L5 18" opacity=".55"/>`,
   variance: `<path d="M3 12 H21" opacity=".5"/><rect x="5" y="5" width="3.2" height="7" fill="currentColor" stroke="none"/><rect x="10.4" y="12" width="3.2" height="5" fill="currentColor" stroke="none" opacity=".55"/><rect x="15.8" y="7" width="3.2" height="5" fill="currentColor" stroke="none"/>`,
   explore: `<circle cx="11" cy="11" r="6.5"/><path d="M16 16 L20.5 20.5"/><path d="M8 12.5 L10 10 L12 11.5 L14 9" stroke-width="1.6"/>`,
   camera: `<path d="M4 8 H8 L9.5 5.5 H14.5 L16 8 H20 V19 H4 Z"/><circle cx="12" cy="13" r="3.3"/>`,

@@ -1619,6 +1619,113 @@ if (process.argv.includes("--selection")) {
   process.exit(failures ? 1 : 0);
 }
 
+/** Course de barres + export GIF (P2, déploiement 2), iPad 1366 et 1024. */
+async function e2eRace() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await sleep(500); await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  // Global Carbon Project (CC BY 4.0) : pays seulement (sans Monde ni UE-27), 1990 → 2024
+  await pg.evaluate(async () => {
+    window.r4d.loadSample("co2-fossile-pays");
+    await new Promise((r) => setTimeout(r, 900));
+    await window.r4d.pickType("race");
+    window.r4d.set("transform.filters", [{ field: "Zone", op: "notIn", values: ["Monde", "UE-27 (somme des 27)"], label: "pays" }]);
+    window.r4d.set("style.title", "La Chine dépasse les États-Unis en 2006");
+    window.r4d.set("style.subtitle", "Émissions de CO₂ fossile par pays (Mt), 1990 → 2024, 10 premiers");
+    await window.r4d.settle();
+  });
+  await sleep(600);
+  const sp = await pg.evaluate(() => { const s = window.r4d.getSpec(); return { type: s.type, x: s.encoding.x, y: s.encoding.y, time: s.encoding.time, topN: s.encoding.topN, kind: s.mode.kind, fourD: s.mode.fourD.enabled, mode: s.mode.fourD.mode, play: window.r4d.preview.playMode }; });
+  check("course de barres : choisie dans la bande (famille Barres), X = Zone, temps = Année, 10 barres, animée dans le temps", sp.type === "race" && sp.x === "Zone" && sp.time === "Année" && sp.topN === 10 && sp.kind === "dynamic" && sp.fourD && sp.mode === "snapshot" && sp.play === "4d", JSON.stringify(sp));
+  const look = (p) => pg.evaluate(async (p) => {
+    window.r4d.seek(p);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const svg = document.querySelector("[data-testid=chart-svg]");
+    const rows = [...svg.querySelectorAll(".r4d-race-row")].map((g) => ({ k: g.getAttribute("data-key"), op: +g.getAttribute("opacity"), y: +g.querySelector("rect").getAttribute("y"), w: +g.querySelector("rect").getAttribute("width") }));
+    const vis = rows.filter((r) => r.op > 0.99).sort((a, b) => a.y - b.y);
+    return { period: svg.querySelector("[data-testid=race-period]")?.textContent ?? "", top: vis[0]?.k ?? "", n: vis.length, ys: Object.fromEntries(rows.map((r) => [r.k, r.y])), band: vis.length > 1 ? vis[1].y - vis[0].y : 0, labels: svg.querySelectorAll(".r4d-race-value").length, cart: !!svg.querySelector(".r4d-cartouche"), date: svg.querySelector(".r4d-cartouche-date")?.textContent ?? "" };
+  }, p);
+  const a0 = await look(0);
+  const a1 = await look(1);
+  check("compteur de période : 1990 au début, 2024 à la fin ; États-Unis en tête en 1990, Chine en 2024", a0.period === "1990" && a1.period === "2024" && a0.top === "États-Unis" && a1.top === "Chine", JSON.stringify({ a0: [a0.period, a0.top], a1: [a1.period, a1.top] }));
+  check("10 barres visibles, libellés de valeur, cartouche et date de génération", a1.n === 10 && a1.labels >= 10 && a1.cart && /\d/.test(a1.date), JSON.stringify({ n: a1.n, labels: a1.labels, cart: a1.cart, date: a1.date }));
+  // reclassement fluide : la Chine passe de la 2e à la 1re place autour de 2006 sans saut (positions intermédiaires)
+  const cn = [];
+  for (let i = 0; i <= 60; i++) {
+    const r = await look(0.42 + (i / 60) * 0.12);
+    if (r.ys["Chine"] != null && r.ys["États-Unis"] != null) cn.push({ d: r.ys["Chine"] - r.ys["États-Unis"], band: r.band, period: r.period });
+  }
+  const mids = cn.filter((c) => c.band > 0 && Math.abs(c.d) > 0.08 * c.band && Math.abs(c.d) < 0.92 * c.band);
+  check("reclassement fluide : la Chine double les États-Unis en glissant (positions intermédiaires), compteur 2005 → 2007", cn.length > 0 && cn[0].d > 0 && cn[cn.length - 1].d < 0 && mids.length >= 1, JSON.stringify({ first: cn[0], last: cn[cn.length - 1], mids: mids.length }));
+  await pg.evaluate(() => window.r4d.seek(0.5));
+  await sleep(300);
+  await shot("170-course-barres-ipad-1366.png");
+  // panneau : réglages propres à la course
+  const panel = await pg.evaluate(() => ({ n: !!document.querySelector("[data-testid=race-n]"), mode: !!document.querySelector("[data-testid=race-mode]") }));
+  check("réglages de la course : barres visibles (5 → 20) et valeur de la période / cumul", panel.n && panel.mode, JSON.stringify(panel));
+  // figé : dernière période
+  await pg.evaluate(async () => { window.r4d.set("mode.kind", "static"); await window.r4d.settle(); });
+  await sleep(300);
+  const st = await pg.evaluate(() => ({ play: window.r4d.preview.playMode, period: document.querySelector("[data-testid=race-period]")?.textContent }));
+  check("mode « Fixe » : image de la dernière période (2024)", st.play === "none" && st.period === "2024", JSON.stringify(st));
+  // GIF animé : bouton du menu Exporter, mêmes images que la vidéo
+  await pg.evaluate(async () => {
+    window.r4d.set("mode.kind", "dynamic");
+    window.r4d.set("mode.fourD.durationMs", 3000);
+    window.r4d.set("mode.buildIn", false);
+    await window.r4d.settle();
+    const orig = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (b) => { if (b instanceof Blob && b.type === "image/gif") window.__gif = b; return orig(b); };
+  });
+  await pg.tap("[data-testid=export-menu]");
+  await sleep(300);
+  const gifItem = await pg.evaluate(() => { const b = document.querySelector("[data-testid=export-gif]"); return { disabled: b.disabled || b.getAttribute("aria-disabled") === "true", text: b.textContent.replace(/\s+/g, " ").trim() }; });
+  await shot("171-export-gif-menu-ipad-1366.png");
+  await pg.tap("[data-testid=export-gif]");
+  await pg.waitForFunction(() => !!window.__gif, { timeout: 120000 });
+  const gif = await pg.evaluate(async () => {
+    const b = new Uint8Array(await window.__gif.arrayBuffer());
+    const head = String.fromCharCode(...b.slice(0, 6));
+    let frames = 0;
+    for (let i = 0; i < b.length - 3; i++) if (b[i] === 0x21 && b[i + 1] === 0xf9 && b[i + 2] === 0x04) frames++;
+    const loop = String.fromCharCode(...b.slice(0, 2000)).includes("NETSCAPE2.0");
+    return { head, w: b[6] | (b[7] << 8), h: b[8] | (b[9] << 8), frames, size: b.length, loop };
+  });
+  check("export GIF animé : actif dans le menu, GIF89a en boucle, 960 px de large, ≈ 12 images/s (37 images pour 3 s)", !gifItem.disabled && !/V2/.test(gifItem.text) && gif.head === "GIF89a" && gif.loop && gif.w === 960 && gif.h === 540 && gif.frames >= 36 && gif.frames <= 40, JSON.stringify({ gifItem, gif }));
+  // iPad 1024
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await sleep(900);
+  const r1024 = await look(0.62);
+  const sw = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth }));
+  check("iPad 1024 : course lisible (10 barres, compteur), pas de défilement horizontal", r1024.n === 10 && /^\d{4}$/.test(r1024.period) && sw.sw <= sw.vw, JSON.stringify({ n: r1024.n, p: r1024.period, sw }));
+  await shot("172-course-barres-ipad-1024.png");
+  await pg.evaluate(() => window.r4d.panel().reveal({ section: "graphique", paths: ["encoding.topN"] }));
+  await sleep(300);
+  await pg.evaluate(() => document.querySelector("[data-testid=race-n]")?.scrollIntoView({ block: "center" }));
+  await sleep(300);
+  await shot("173-course-reglages-ipad-1024.png");
+  check("course / GIF : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("course / GIF : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  await ctx.close();
+}
+
+if (process.argv.includes("--race")) {
+  try { await e2eRace(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--datasets")) {
   try { await e2eDatasets(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -2358,7 +2465,7 @@ try {
 
   /* 2. Chaque type de graphique */
   const types = await page.$$eval("[data-testid=gallery] .type-tile", (els) => els.map((e) => e.dataset.type));
-  check("galerie : 15 types", types.length === 15, types.join(","));
+  check("galerie : 16 types", types.length === 16, types.join(","));
   for (const t of types) {
     if (t === "film" || t === "map") continue;
     await clickType(t);
@@ -4336,6 +4443,8 @@ try {
   await e2eDatasets();
   /* 28. Sélection par touchers successifs (série A), iPad : voir e2eSelection() */
   await e2eSelection();
+  /* 29. Course de barres + export GIF, iPad : voir e2eRace() */
+  await e2eRace();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
