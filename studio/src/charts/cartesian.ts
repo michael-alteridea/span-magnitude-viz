@@ -2,6 +2,7 @@
  * Graphiques cartésiens en SVG pur (D3) : barres (verticales, horizontales, groupées, empilées),
  * lignes, aires (empilées ou non), nuage de points ; axe Y secondaire indépendant.
  */
+import { elemKey, labelLook, markColor, selAttrs, seriesKey } from "./overrides";
 import {
   area as d3area,
   axisBottom,
@@ -243,7 +244,10 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
   if (deco.cap === "icon" || goal) reserve = horizontal ? capEst * 2 + 64 * s : capEst + 18 * s;
   if (deco.cap === "picto") reserve = horizontal ? 110 * s : 28 * s;
   // barres horizontales : l'étiquette de valeur de la plus grande barre doit aussi tenir avant l'annotation
-  const labelRoom = horizontal && callout && spec.style.valueLabels ? measure(fmtDeco(ext[1]), 13.5 * s, font, 700) + 12 * s : 0;
+  const labelRoom =
+    horizontal && callout && spec.style.valueLabels
+      ? Math.max(measure(fmtDeco(ext[1]), 13.5 * s, font, 700), ...model.labels.map((l, k) => { const o = labelLook(spec, fmtDeco(model.values[0]?.[k] ?? 0), elemKey(l), seriesKey(model.series[0] ?? "")); return o.text !== fmtDeco(model.values[0]?.[k] ?? 0) ? measure(o.text, 13.5 * s, font, 700) : 0; })) + 12 * s
+      : 0;
   if (callout && !horizontal) reserve = Math.max(reserve, callout.h + 30 * s + reserve);
   const growable = spec.axes.y.max == null && ext[1] > 0 && !ctx.sharedMax;
   const ext0 = ext[1];
@@ -455,14 +459,17 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       .domain(model.series.map((_, i) => i))
       .range([0, band.bandwidth()])
       .paddingInner(grouped && nS > 1 ? 0.08 : 0);
-    const labels: { x: number; y: number; text: string; anchor: string; inside: boolean; color: string; bold?: boolean }[] = [];
+    const labels: { x: number; y: number; text: string; anchor: string; inside: boolean; color: string; bold?: boolean; ek?: string; sk?: string; name?: string }[] = [];
     const greyFocus = focusGrey(theme);
     const bft = focusK != null ? easeInOut(focusProgress(frame)) : 0;
     const placed: { k: number; c0: number; thick: number; pa: number; pb: number; raw: number; full: boolean; color: string }[] = [];
     const capR = (thick: number) => Math.max(8 * s, Math.min(18 * s, thick * 0.34));
     for (let si = 0; si < (goal ? 1 : nS); si++) {
-      const baseColor = colors[si % colors.length]!;
+      const sName = model.series[si] ?? "";
+      const sk = seriesKey(sName);
       for (let k = 0; k < nK; k++) {
+        const ek = elemKey(model.labels[k]!, nS > 1 ? sName : null);
+        const baseColor = markColor(spec, colors[si % colors.length]!, ek, sk);
         const color = focusK != null && k !== focusK ? mixHex(baseColor, greyFocus, bft) : baseColor;
         const raw = model.values[si]![k]!;
         if (!Number.isFinite(raw)) continue;
@@ -492,6 +499,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
           ? gm.append("rect").attr("x", Math.min(pa, pb)).attr("y", c0).attr("width", Math.abs(pb - pa)).attr("height", thick)
           : gm.append("rect").attr("x", c0).attr("y", Math.min(pa, pb)).attr("width", thick).attr("height", Math.abs(pb - pa));
         r.attr("fill", color).attr("rx", stacked ? 0 : rx);
+        selAttrs(r, "mark", ek, sk, nS > 1 ? `${model.labels[k]!} · ${sName}` : model.labels[k]!, fmtV(raw));
         if (deco.cap === "picto") r.attr("fill-opacity", 0.1);
         if (focusK === k) r.attr("class", "r4d-focus-bar");
         if (!grouped && nS === 1) r.attr("data-focus-key", model.labels[k]!);
@@ -506,7 +514,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
             const len = Math.abs(pb - pa);
             const tw = measure(valTxt, 11 * s, font);
             if ((horizontal ? len > tw + 8 * s && thick > 12 * s : len > 15 * s && thick > tw + 4 * s))
-              labels.push({ x: horizontal ? (pa + pb) / 2 : c0 + thick / 2, y: horizontal ? c0 + thick / 2 : (pa + pb) / 2, text: valTxt, anchor: "middle", inside: true, color });
+              labels.push({ x: horizontal ? (pa + pb) / 2 : c0 + thick / 2, y: horizontal ? c0 + thick / 2 : (pa + pb) / 2, text: valTxt, anchor: "middle", inside: true, color, ek, sk, name: model.labels[k]! });
           } else if (nK * nS <= 60) {
             const hasCap = (deco.cap === "icon" && !!deco.icons[k]) || (goal && Number.isFinite(model.values[1]?.[k] ?? NaN));
             const off = hasCap ? capR(thick) + 3 * s : deco.cap === "picto" ? 5 * s : 0;
@@ -515,20 +523,20 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
             const len = Math.abs(pb - pa);
             if (focusK != null && k !== focusK && !hasCap && len > (horizontal ? measure(valTxt, 11 * s, font) + 12 * s : 22 * s) && thick > (horizontal ? 13 * s : measure(valTxt, 11 * s, font) + 4 * s))
               // mode focus : valeurs des autres barres dans la barre (gris), la barre mise en avant garde la sienne au-dessus
-              labels.push(horizontal ? { x: pb - 6 * s, y: c0 + thick / 2, text, anchor: "end", inside: true, color } : { x: c0 + thick / 2, y: pb + 14 * s, text, anchor: "middle", inside: true, color });
+              labels.push(horizontal ? { x: pb - 6 * s, y: c0 + thick / 2, text, anchor: "end", inside: true, color, ek, sk, name: model.labels[k]! } : { x: c0 + thick / 2, y: pb + 14 * s, text, anchor: "middle", inside: true, color, ek, sk, name: model.labels[k]! });
             else if (goal && tv != null && Number.isFinite(tv) && raw >= base && tv >= base) {
               // objectif : l'étiquette passe au-delà du repère s'il dépasse la barre (pas de trait sur le texte)
               const tp = v(tv);
               labels.push(
                 horizontal
-                  ? { x: Math.max(pb + off, tp + 3 * s) + 6 * s, y: c0 + thick / 2, text, anchor: "start", inside: false, color }
-                  : { x: c0 + thick / 2, y: Math.min(pb - off, tp - 3 * s) - 7 * s, text, anchor: "middle", inside: false, color }
+                  ? { x: Math.max(pb + off, tp + 3 * s) + 6 * s, y: c0 + thick / 2, text, anchor: "start", inside: false, color, ek, sk, name: model.labels[k]! }
+                  : { x: c0 + thick / 2, y: Math.min(pb - off, tp - 3 * s) - 7 * s, text, anchor: "middle", inside: false, color, ek, sk, name: model.labels[k]! }
               );
             } else
               labels.push(
                 horizontal
-                  ? { x: pb + (raw >= base ? 6 * s + off : -6 * s - off), y: c0 + thick / 2, text, anchor: raw >= base ? "start" : "end", inside: false, color, bold: focusK === k }
-                  : { x: c0 + thick / 2, y: pb + (raw >= base ? -7 * s - off : 14 * s + off), text, anchor: "middle", inside: false, color, bold: focusK === k }
+                  ? { x: pb + (raw >= base ? 6 * s + off : -6 * s - off), y: c0 + thick / 2, text, anchor: raw >= base ? "start" : "end", inside: false, color, bold: focusK === k, ek, sk, name: model.labels[k]! }
+                  : { x: c0 + thick / 2, y: pb + (raw >= base ? -7 * s - off : 14 * s + off), text, anchor: "middle", inside: false, color, bold: focusK === k, ek, sk, name: model.labels[k]! }
               );
           }
         }
@@ -537,17 +545,19 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
     if (placed.length) drawBarDeco(gm, g, { ctx, deco, placed, horizontal, capR, v, base, pw, ph, fmt: fmtDeco, model, callout, callFs, noteFs, callPad });
     const gl = gm.append("g").attr("class", "r4d-value-labels");
     for (const l of labels) {
-      gl.append("text")
+      const look = labelLook(spec, l.text, l.ek ?? null, l.sk ?? null);
+      if (look.hidden) continue;
+      const t = gl.append("text")
         .attr("x", l.x)
         .attr("y", l.y)
         .attr("dy", horizontal || l.inside ? "0.35em" : null)
         .attr("text-anchor", l.anchor)
-        .attr("font-size", (l.inside ? 11 : l.bold ? 13.5 : 12) * s)
-        .attr("font-weight", 700)
+        .attr("font-size", (look.size ?? (l.inside ? 11 : l.bold ? 13.5 : 12)) * s)
         .attr("font-family", font)
-        .attr("fill", l.inside ? (!theme.dark && l.color === "#c4c4c8" ? "#27272a" : "#ffffff") : theme.text)
-        .attr("font-weight", 700)
-        .text(l.text);
+        .attr("fill", look.color ?? (l.inside ? (!theme.dark && l.color === "#c4c4c8" ? "#27272a" : "#ffffff") : theme.text))
+        .attr("font-weight", look.bold === false ? 400 : 700)
+        .text(look.text);
+      if (l.ek) selAttrs(t, "label", l.ek, l.sk ?? null, l.name ?? "", l.text);
     }
   } else {
     // lignes / aires
@@ -577,7 +587,9 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
     const lgrey = focusGrey(theme);
     const lboxes: Rect[] = [];
     for (let si = 0; si < nS; si++) {
-      const color0 = colors[si % colors.length]!;
+      const lsName = model.series[si] ?? "";
+      const lsk = seriesKey(lsName);
+      const color0 = markColor(spec, colors[si % colors.length]!, null, lsk);
       const color = lkind === "series" && lfk != null && si !== lfk ? mixHex(color0, lgrey, lft) : color0;
       const pts: [number, number, number][] = [];
       for (let k = 0; k < nK; k++) {
@@ -588,7 +600,8 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       if (!pts.length) continue;
       if (t === "area" || t === "stackedArea") {
         const ar = d3area<[number, number, number]>().x((d) => d[0]).y0((d) => d[1]).y1((d) => d[2]).curve(curve);
-        gm.append("path").attr("d", ar(pts)).attr("fill", color).attr("fill-opacity", stacked ? 0.88 : 0.22).attr("data-focus-key", lkind === "series" ? model.series[si]! : null);
+        const ap = gm.append("path").attr("d", ar(pts)).attr("fill", color).attr("fill-opacity", stacked ? 0.88 : 0.22).attr("data-focus-key", lkind === "series" ? model.series[si]! : null);
+        selAttrs(ap, "series", null, lsk, lsName);
       }
       const ln = d3line<[number, number, number]>().x((d) => d[0]).y((d) => d[2]).curve(curve);
       const st = stacked ? null : scn(si);
@@ -600,6 +613,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
         .attr("stroke-linejoin", "round")
         .attr("stroke-linecap", "round");
       if (lkind === "series") path.attr("data-focus-key", model.series[si]!).attr("class", si === lfk ? "r4d-focus-series" : null);
+      if (!stacked) selAttrs(path, "series", null, lsk, lsName);
       if (st) path.attr("class", `r4d-scn r4d-scn-${st.code}`).attr("data-scenario", st.code).attr("stroke-dasharray", st.dash ? st.dash.split(" ").map((v) => Number(v) * s).join(" ") : null);
       if (!stacked && pts.length <= 60) {
         model.values[si]!.forEach((raw, k) => {
@@ -607,13 +621,15 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
           const st = scn(si);
           const dimP = lkind === "linePoint" && lfk != null && k !== lfk ? 1 - 0.7 * lft : 1;
           if (lfk != null) lboxes.push({ x: xc(k) - 6 * s, y: v(raw) - 6 * s, w: 12 * s, h: 12 * s });
+          const pek = elemKey(model.labels[k]!, nS > 1 ? lsName : null);
           gm.append("circle")
+            .call((c) => selAttrs(c, "mark", pek, lsk, nS > 1 ? `${model.labels[k]!} · ${lsName}` : model.labels[k]!))
             .attr("data-focus-key", lkind === "series" ? model.series[si]! : model.labels[k]!)
             .attr("opacity", dimP < 1 ? dimP : null)
             .attr("cx", xc(k))
             .attr("cy", v(raw))
             .attr("r", 3.4 * s)
-            .attr("fill", st ? (st.code === "AC" || st.code === "PY" ? st.fill : theme.bg) : color)
+            .attr("fill", st ? (st.code === "AC" || st.code === "PY" ? st.fill : theme.bg) : markColor(spec, color, pek, null))
             .attr("stroke", st && (st.code === "PL" || st.code === "FC") ? st.ink : theme.bg)
             .attr("stroke-width", 1.5 * s)
             .call((c) => tip(c, cellTip(model, k, si, fmtV(raw), st?.code ?? null)));
@@ -625,7 +641,11 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
           const tv = fmtV(raw);
           const dimL = lfk != null && ((lkind === "series" && si !== lfk) || (lkind === "linePoint" && k !== lfk)) ? 1 - 0.6 * lft : 1;
           if (lfk != null) lboxes.push({ x: xc(k) - measure(tv, 11 * s, font, 700) / 2, y: v(raw) - 20 * s, w: measure(tv, 11 * s, font, 700), h: 14 * s });
-          gm.append("text").attr("x", xc(k)).attr("y", v(raw) - 9 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", theme.text).attr("opacity", dimL < 1 ? dimL : null).text(tv);
+          const lek = elemKey(model.labels[k]!, nS > 1 ? lsName : null);
+          const look = labelLook(spec, tv, lek, lsk);
+          if (look.hidden) return;
+          const lt = gm.append("text").attr("x", xc(k)).attr("y", v(raw) - 9 * s).attr("text-anchor", "middle").attr("font-size", (look.size ?? 11) * s).attr("font-weight", look.bold === false ? 400 : 700).attr("font-family", font).attr("fill", look.color ?? theme.text).attr("opacity", dimL < 1 ? dimL : null).text(look.text);
+          selAttrs(lt, "label", lek, lsk, model.labels[k]!, tv);
         });
       }
     }
@@ -826,7 +846,9 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
     const f = stagger(frame.build, j, order.length, 0.6) * p.w;
     if (f <= 0) return;
     const si = Math.max(0, model.series.indexOf(p.series));
-    const color = colors[si % colors.length]!;
+    const pk = elemKey(pointKey(p));
+    const psk = seriesKey(p.series || model.series[0] || "");
+    const color = markColor(spec, colors[si % colors.length]!, pk, psk);
     const r0 = (R && p.size != null ? R(Math.max(0, p.size)) : baseR) * Math.min(1, 0.3 + 0.7 * f);
     const icon = icons[si] ?? null;
     const r = icon ? pointIconSize(r0, s) / 2 : r0;
@@ -842,6 +864,7 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
       const col = fk != null && !isF ? mixHex(color, grey, ft) : color;
       const ig = drawIcon(gm, icon, cx, cy, 2 * r, col, isF ? "r4d-point-icon r4d-focus-point" : "r4d-point-icon", true);
       if (ig) {
+        selAttrs(ig as never, "mark", pk, psk, p.label || pointKey(p));
         ig.attr("data-focus-key", pointKey(p)).attr("opacity", f * (fk != null && !isF ? 1 - 0.3 * ft : 1));
         ig.insert("rect", ":first-child").attr("width", 256).attr("height", 256).attr("fill", "transparent");
         ig.select("path").attr("stroke", theme.bg).attr("stroke-width", (1.2 * s * 256) / (2 * r)).attr("paint-order", "stroke");
@@ -849,6 +872,7 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
       }
     } else
       gm.append("circle")
+        .call((c) => selAttrs(c, "mark", pk, psk, p.label || pointKey(p)))
         .attr("class", isF ? "r4d-focus-point" : null)
         .attr("data-focus-key", pointKey(p))
         .attr("cx", cx)
@@ -861,7 +885,11 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
         .attr("stroke-width", 0.8 * s)
         .call((c) => tip(c, tipData));
     if (showLabels && p.label && !(isF && ft > 0)) {
-      gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-family", font).attr("fill", theme.text).attr("fill-opacity", f * dim).text(p.label);
+      const look = labelLook(spec, fmtY(p.y), pk, psk, p.label);
+      if (!look.hidden) {
+        const lt = gm.append("text").attr("x", cx + r + 4 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", (look.size ?? 11.5) * s).attr("font-family", font).attr("font-weight", look.bold ? 700 : null).attr("fill", look.color ?? theme.text).attr("fill-opacity", f * dim).text(look.text);
+        selAttrs(lt, "label", pk, psk, p.label, fmtY(p.y));
+      }
       if (fk != null) boxes.push({ x: cx + r + 4 * s, y: cy - 8 * s, w: measure(p.label, 11.5 * s, font), h: 16 * s });
     }
   });
@@ -1059,10 +1087,11 @@ function drawBarDeco(gm: G, g: G, a: DecoArgs): void {
     }
   } else {
     bx = pw - co.w;
-    const lw = spec.style.valueLabels ? measure(fmt(fp.raw), 13.5 * s, font, 700) + 10 * s : 0;
+    const labTxt = (q: { k: number; raw: number }) => labelLook(spec, fmt(q.raw), elemKey(model.labels[q.k]!), seriesKey(model.series[0] ?? "")).text;
+    const lw = spec.style.valueLabels ? measure(labTxt(fp), 13.5 * s, font, 700) + 10 * s : 0;
     // hauteur : à côté de la barre mise en avant si la place le permet, sinon à hauteur des barres plus courtes
     const hasCap = deco.cap === "icon" || deco.cap === "goal";
-    const reach = (q: (typeof placed)[number]) => Math.max(q.pa, q.pb) + (hasCap ? 2 * capR(q.thick) + 10 * s : 0) + (spec.style.valueLabels ? measure(fmt(q.raw), 13.5 * s, font, 700) + 10 * s : 0);
+    const reach = (q: (typeof placed)[number]) => Math.max(q.pa, q.pb) + (hasCap ? 2 * capR(q.thick) + 10 * s : 0) + (spec.style.valueLabels ? measure(labTxt(q), 13.5 * s, font, 700) + 10 * s : 0);
     const fits = (y: number) => placed.every((q) => q.c0 + q.thick < y - 2 * s || q.c0 > y + co.h + 2 * s || reach(q) <= bx - 12 * s);
     const cands = [end.y - co.h / 2, ...placed.flatMap((q) => [q.c0, q.c0 + q.thick - co.h])].map((y) => Math.max(0, Math.min(ph - co.h, y)));
     const ok = cands.filter(fits).sort((p, q) => Math.abs(p + co.h / 2 - end.y) - Math.abs(q + co.h / 2 - end.y));

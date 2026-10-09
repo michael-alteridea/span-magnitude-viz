@@ -699,6 +699,46 @@ choix de colonnes, nommés et réutilisés par les graphiques et les scènes.
 - Tests : `test/datasets.test.ts`, `node studio/scripts/e2e.mjs --datasets --shots` (iPad 1366 et 1024, toucher ;
   captures 150 à 156).
 
+## Sélection par touchers successifs (série A)
+
+Chaque toucher (ou clic) **au même endroit** du graphique descend d'un niveau : **Page › Graphique › Barres (la série)
+› une barre › son libellé**. Toucher ailleurs, **Échap** ou le bouton **↑** du panneau remonte d'un niveau (depuis la
+page : plus de sélection).
+
+- **Repères** sur la scène (calque HTML, jamais exporté) : cadre pointillé pétrole autour de l'objet, parent en
+  pointillé discret, pastille fil d'Ariane (« Page › Graphique › Barres › Belgique › Libellé »), anneau de toucher
+  numéroté (1ᵉʳ… 5ᵉ).
+- **Panneau de droite contextuel** (l'accordéon s'efface ; « Tous les réglages » le rappelle) : fil d'Ariane cliquable,
+  titre de l'objet, bouton ↑ parent, puis seulement ses réglages :
+  - **Graphique** : type (même famille), tri, axes X / Y, légende ;
+  - **Série** : couleur de la série, forme (extrémité des barres, forme des points, courbe), étiquettes de valeur,
+    mise en avant d'une série (lignes) ;
+  - **Élément** (barre, part, arc, point) : couleur propre (« revenir à la série »), « Mettre en avant » + note,
+    « Modifier le libellé › » ;
+  - **Libellé** : texte avec jeton `{valeur}`, taille, graisse, couleur, « Masquer ce libellé », portée
+    **Ce libellé / Toute la série**, « Rétablir le libellé calculé ».
+- **Couleurs proposées** : bleu pétrole (#0E6E8C, #3FA7C4, #08465A), bleu glacier et gris ; « + » ouvre une couleur
+  libre. Le rouge et le vert restent réservés aux écarts.
+- **Spec** : `style.overrides[clé]` = `{ color, label, labelColor, labelBold, labelSize, hideLabel }`, clés
+  `s:<série>`, `e:<catégorie>` ou `e:<série>|<catégorie>` (plusieurs séries) ; 300 surcharges au plus. Vide, le champ
+  n'entre pas dans l'empreinte (`fingerprintSpec`) ni dans la signature de projet : empreintes Cadencer et projets
+  existants inchangés. La légende suit les couleurs de série et de part.
+- Les marques portent `data-sel` (`mark` | `label` | `series`), `data-sel-key`, `data-sel-series`, `data-sel-name`,
+  `data-sel-value` (charts/overrides.ts) ; contrôleur `ui/selection.ts`, panneau `ui/selectionPanel.ts`.
+- **Couverture** : barres (verticales, horizontales, groupées, empilées), lignes et aires (série ; points quand ils
+  sont dessinés, ≤ 60 par série), camembert et anneau (parts et leurs étiquettes), arcs radiaux, nuage de points
+  (groupe de « Couleur par » = série ; points ; libellés quand ils sont affichés, ≤ 30 points).
+- **Limites** :
+  - **Exploration** (drill) et carte des régions : un toucher sur une barre ou une région continue d'**explorer** ;
+    la sélection s'arrête à Page › Graphique ; pas de couleur par région.
+  - **Carte (points) et film 4D** (bibliothèque span-magnitude) : Page › Graphique seulement.
+  - **Notation IBCS** (scénarios AC / PY / PL / FC) : le style de scénario prime sur la couleur propre.
+  - Le « repère » (ligne de référence) de la maquette A3 n'est pas construit.
+  - Hors du mode « Choisir sur le graphique », toucher une autre barre ne déplace plus la mise en avant : on la
+    déplace depuis le panneau de l'élément (« Mettre en avant »).
+- Tests : `test/selection.test.ts`, `node studio/scripts/e2e.mjs --selection --shots` (iPad 1366 et 1024, toucher ;
+  captures 160 à 164).
+
 ## Menu du haut : variante B « Deux niveaux calmes »
 
 - **Barre du haut (48 px)** : logo Datanime · Studio, puis **Ouvrir des données**, **Mes revues (n)**, **Projets ▾** (ex-« Fichier ») et **Exporter ▾** (seul

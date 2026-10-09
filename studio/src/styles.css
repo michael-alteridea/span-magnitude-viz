@@ -1197,3 +1197,47 @@ body.dw-open { overflow: hidden; }
 .dsd-opt small { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .dsd-box .cf-actions { margin-top: 2px; }
 @media (max-width: 700px) { .dsd-scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Sélection par touchers successifs (Page › Graphique › Série › élément › libellé)
+   --------------------------------------------------------------------------------------------------------------- */
+.sel-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.sel-frame { position: absolute; border: 2px dashed #3FA7C4; border-radius: 6px; box-shadow: 0 0 0 1px rgba(4, 34, 44, .55), inset 0 0 0 1px rgba(4, 34, 44, .35); transition: left .16s ease, top .16s ease, width .16s ease, height .16s ease; }
+.sel-layer[data-level="page"] .sel-frame { border-radius: 8px; }
+.sel-parent { border: 1.5px dashed rgba(63, 167, 196, .42); box-shadow: none; }
+.sel-chip { position: absolute; display: inline-flex; align-items: center; gap: 5px; max-width: 92%; padding: 3px 10px; border-radius: 999px; background: #3FA7C4; color: var(--on-accent); font-size: 11.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .6); }
+.sel-chip b { font-weight: 700; }
+.sel-chip .sel-sep { opacity: .65; }
+.sel-ring { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(63, 167, 196, .7); opacity: 0; }
+.sel-ring::after { content: attr(data-n); position: absolute; right: -14px; top: -12px; padding: 1px 5px; border-radius: 8px; background: #fff; color: #08465A; font-size: 10.5px; font-weight: 700; }
+.sel-ring-on { animation: sel-ring 1.6s ease forwards; }
+@keyframes sel-ring { 0% { opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+.r4d-svg [data-sel] { cursor: pointer; }
+
+.panel-right.sel-ctx > .acc-search, .panel-right.sel-ctx > .settings-body { display: none; }
+.selp { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.selp.selp-page { flex: none; padding-bottom: 4px; }
+.selp-head { display: flex; flex-direction: column; gap: 6px; }
+.selp-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--accent); }
+.selp-crumbs b { color: var(--text); }
+.selp-crumbs .sel-sep { color: var(--faint); }
+.selp-crumb { border: 0; background: none; padding: 2px 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(63, 167, 196, .35); text-underline-offset: 3px; min-height: 28px; }
+.selp-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.selp-title strong { font-size: 16px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
+.selp-up { flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 32px; }
+.selp-sub { color: var(--muted); font-size: 12px; }
+.selp-card { border: 1px solid var(--line); border-radius: 12px; background: #121216; padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; }
+.selp-card h4 { margin: 0; font-size: 12.5px; font-weight: 700; }
+.selp-card .field { margin: 0; }
+.selp-card input[type="text"] { width: 100%; min-height: 36px; }
+.selp-sws { display: flex; flex-wrap: wrap; gap: 8px; }
+.selp-sw { width: 34px; height: 34px; border-radius: 9px; border: 2px solid transparent; background: var(--sw); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; padding: 0; }
+.selp-sw.on { border-color: #fff; box-shadow: 0 0 0 2px #3FA7C4; }
+.selp-sw-more { position: relative; display: inline-flex; align-items: center; justify-content: center; background: var(--panel-3); color: var(--muted); font-size: 16px; border: 1px dashed var(--line-2); }
+.selp-sw-custom { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.selp-link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; align-self: flex-start; }
+.selp-reset { margin-top: -2px; }
+.selp-token { flex: none; font-family: ui-monospace, monospace; }
+.selp-foot { display: flex; flex-direction: column; gap: 8px; color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+.selp-foot .btn { align-self: flex-start; }
+.selp .segmented button { min-height: 34px; }

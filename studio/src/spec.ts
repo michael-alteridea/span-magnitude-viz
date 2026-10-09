@@ -198,6 +198,17 @@ export const modeSchema = z.object({
     .default({}),
 });
 
+/** Surcharge d'un élément ou d'une série (couleur propre, libellé). */
+export const markOverrideSchema = z.object({
+  color: hex.optional(),
+  label: z.string().max(120).optional(),
+  labelColor: hex.optional(),
+  labelBold: z.boolean().optional(),
+  labelSize: z.number().int().min(8).max(32).optional(),
+  hideLabel: z.boolean().optional(),
+});
+export type MarkOverride = z.infer<typeof markOverrideSchema>;
+
 export const styleSchema = z.object({
   title: z.string().max(200).default(""),
   subtitle: z.string().max(300).default(""),
@@ -259,6 +270,14 @@ export const styleSchema = z.object({
       /** Ligne « Moyenne des autres ». */
       average: z.boolean().default(true),
     })
+    .default({}),
+  /**
+   * Surcharges par élément (sélection par touchers) : clé « s:<série> » (toute la série) ou « e:<catégorie> »
+   * (« e:<série>|<catégorie> » si plusieurs séries). `label` = texte du libellé, jeton {valeur}. Vide = hors empreinte.
+   */
+  overrides: z
+    .record(z.string().max(240), markOverrideSchema)
+    .refine((o) => Object.keys(o).length <= 300, "300 surcharges au maximum")
     .default({}),
   /** Réservé V2 : identifiant de charte de marque. */
   charterId: z.string().nullable().default(null),

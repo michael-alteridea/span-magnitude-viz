@@ -119,8 +119,10 @@ function stripProvenance(spec: unknown): unknown {
   const { provenance: _p, ...rest } = spec as Record<string, unknown>;
   if (rest.dataset == null) delete rest.dataset;
   const st = rest.style as Record<string, unknown> | undefined;
-  if (st && typeof st === "object" && (st.pointShape === "circle" || st.pointIcon === "" || (st.pointIcons && typeof st.pointIcons === "object" && !Object.keys(st.pointIcons).length))) {
+  const emptyRec = (v: unknown) => !!v && typeof v === "object" && !Object.keys(v as object).length;
+  if (st && typeof st === "object" && (st.pointShape === "circle" || st.pointIcon === "" || emptyRec(st.pointIcons) || emptyRec(st.overrides))) {
     const style = { ...st };
+    if (emptyRec(style.overrides)) delete style.overrides;
     if (style.pointShape === "circle") delete style.pointShape;
     if (style.pointIcon === "") delete style.pointIcon;
     if (style.pointIcons && typeof style.pointIcons === "object" && !Object.keys(style.pointIcons as object).length) delete style.pointIcons;

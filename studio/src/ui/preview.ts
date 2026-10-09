@@ -14,6 +14,7 @@ import { composeSvg } from "../export";
 import { h, svgIcon, ICONS } from "./dom";
 import { formatDate } from "../format";
 import type { SpecialMount } from "../charts/special";
+import { Selection } from "./selection";
 
 type PlayMode = "none" | "build" | "4d" | "special";
 
@@ -53,6 +54,8 @@ export class Preview {
   private prevDrill: { path: DrillStep[]; ds: number } | null = null;
   private speed = 1;
   private scrubbing = false;
+  /** Sélection par touchers successifs (page › graphique › série › élément › libellé). */
+  readonly selection: Selection;
   /** Écouteurs externes (ex. bouton d'export vidéo). */
   onModeChange: ((mode: PlayMode) => void) | null = null;
 
@@ -82,6 +85,13 @@ export class Preview {
     this.bar = h("div", { class: "player", "data-testid": "player" }, this.playBtn, restart, this.scrub, this.timeLabel, this.speedSel);
     this.status = h("div", { class: "status", "data-testid": "status" });
     this.root = h("div", { class: "preview" }, this.wrap, this.bar, this.status);
+    this.selection = new Selection({
+      svg: this.svg,
+      box: this.box,
+      plot: () => (this.last && !this.last.prepared.error ? this.last.plot : null),
+      scale: () => this.scale,
+      chartType: () => this.store.state.spec.type,
+    });
     new ResizeObserver(() => this.fit()).observe(this.wrap);
     this.svg.addEventListener("dblclick", (e) => this.onEditRequest(e));
     // Infobulles riches (survol, toucher, clavier) ; un premier toucher affiche, un second explore
@@ -105,8 +115,35 @@ export class Preview {
       if (el && this.onDrill) {
         e.preventDefault();
         this.onDrill(el);
-      } else if (!el && this.onPick && e.target instanceof Element && !this.svg.hasAttribute("data-zoom")) this.onPick(e.target);
+        return;
+      }
+      if (el || !(e.target instanceof Element) || this.svg.hasAttribute("data-zoom")) return;
+      // sélection par touchers successifs ; au niveau « Page », le toucher ouvre aussi le réglage visé (titre, axe…)
+      const sel = this.selection.tap(e.target, e.clientX, e.clientY);
+      // une série, un élément ou un libellé sélectionné : l'infobulle du toucher s'efface (le cadre et le panneau suffisent)
+      if (sel && sel.level !== "page" && sel.level !== "chart") this.tooltip.hide();
+      if ((!sel || sel.level === "page") && this.onPick) this.onPick(e.target);
     });
+    // type spécial (film, carte de la bibliothèque) : page › graphique
+    this.specialHost.addEventListener("click", (e) => {
+      if ((e.target as Element | null)?.closest?.("button, a, input, select")) return;
+      this.selection.tap(null, e.clientX, e.clientY);
+    });
+    // toucher hors de la scène (fond gris autour) : niveau parent
+    this.wrap.addEventListener("click", (e) => {
+      const t = e.target as Node | null;
+      if (t && (this.svg.contains(t) || this.specialHost.contains(t) || this.overlay.contains(t))) return;
+      this.selection.up();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !this.selection.sel) return;
+      const a = document.activeElement as HTMLElement | null;
+      if (a && (["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) || a.isContentEditable)) return;
+      const modal = [...document.querySelectorAll<HTMLElement>('[aria-modal="true"], [role="dialog"], [role="alertdialog"]')].some((d) => d.offsetParent !== null || d.getClientRects().length > 0);
+      if (modal) return;
+      e.preventDefault();
+      this.selection.up();
+    }, true);
     document.addEventListener("keydown", (e) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (e.code === "Space" && !["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) && this.mode !== "none") {
@@ -176,6 +213,7 @@ export class Preview {
     this.last = renderChart(this.svg, spec, ds, this.cache!, frame);
     this.paintZoomFx();
     this.fit();
+    this.selection.paint();
     this.syncSpecial();
     if (this.mode !== "special") {
       if (!this.scrubbing) this.setScrub(p);
@@ -251,6 +289,7 @@ export class Preview {
     this.stage.style.transform = `scale(${k})`;
     this.box.style.width = `${W * k}px`;
     this.box.style.height = `${H * k}px`;
+    this.selection?.paint();
   }
 
   /* -------------------------------------------------------- types spéciaux */

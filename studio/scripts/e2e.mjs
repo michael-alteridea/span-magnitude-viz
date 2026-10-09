@@ -857,7 +857,9 @@ async function e2eFocus() {
   const other = await fp.evaluate((t) => [...document.querySelectorAll("[data-testid=chart-svg] .r4d-marks path[data-focus-key]")].map((e) => e.getAttribute("data-focus-key")).find((k) => k !== t), target);
   await tapSlice(other);
   await settleF();
-  check("mise en avant active : toucher une autre part la met en avant", (await fp.evaluate(() => window.r4d.getSpec().style.focus.key)) === other);
+  // depuis la sélection par touchers successifs, un toucher sert la sélection : la mise en avant reste (« Mettre en avant » du panneau de l'élément pour la déplacer)
+  check("mise en avant active : un toucher sur une autre part sélectionne sans déplacer la mise en avant", (await fp.evaluate(() => window.r4d.getSpec().style.focus.key)) === target && !!(await fp.evaluate(() => window.r4d.selection().sel)));
+  await fp.evaluate(() => window.r4d.selection().clear());
 
   // ---- « Dupliquer et mettre en avant »
   await fp.evaluate(() => window.r4d.set("style.focus.key", null));
@@ -1452,6 +1454,169 @@ async function e2eDatasets() {
   check("datasets : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
   check("datasets : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
   await ctx.close();
+}
+
+
+/** Sélection par touchers successifs (série A) : page › graphique › barres › une barre › son libellé, panneau contextuel, surcharges (iPad). */
+async function e2eSelection() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(String(e)));
+  pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const shot = async (name) => { if (!SHOTS) return; await sleep(500); await pg.screenshot({ path: join(shotsDir, name) }); };
+  await pg.setViewport({ width: 1366, height: 1024, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+  await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+  await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+  await pg.evaluate(async () => {
+    window.r4d.loadSample("renouvelables");
+    await new Promise((r) => setTimeout(r, 900));
+    window.r4d.set("style.valueLabels", true);
+    window.r4d.set("style.focus.key", null);
+    await window.r4d.settle();
+    window.r4d.seek(1);
+  });
+  await sleep(700);
+  // centre d'un élément du graphique (coordonnées écran)
+  const at = (sel) => pg.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
+  const tapAt = async (p) => { await pg.touchscreen.tap(p.x, p.y); await sleep(260); };
+  const state = () => pg.evaluate(() => ({
+    sel: window.r4d.selection().sel,
+    chip: document.querySelector("[data-testid=sel-chip]")?.hidden ? "" : document.querySelector("[data-testid=sel-chip]")?.textContent.replace(/\s*›\s*/g, " › ").trim(),
+    frame: !document.querySelector("[data-testid=sel-frame]")?.hidden,
+    parent: !document.querySelector("[data-testid=sel-parent]")?.hidden,
+    crumbs: document.querySelector("[data-testid=sel-crumbs]")?.textContent.replace(/\s+/g, " ").trim() ?? "",
+    title: document.querySelector("[data-testid=sel-title]")?.textContent ?? "",
+    ctx: document.querySelector("[data-testid=settings-panel]").classList.contains("sel-ctx"),
+    acc: document.querySelector("[data-testid=settings-panel] .settings-body")?.offsetParent !== null,
+  }));
+  const bars = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=chart-svg] rect[data-sel="mark"]')].map((e) => e.getAttribute("data-sel-name")));
+  const name = bars[5];
+  const barSel = `[data-testid=chart-svg] rect[data-sel="mark"][data-sel-name="${name}"]`;
+  const p = await at(barSel);
+  const seen = [];
+  for (let i = 0; i < 5; i++) {
+    await tapAt(p);
+    seen.push(await state());
+  }
+  check("touchers successifs au même endroit : Page › Graphique › Barres › une barre › son libellé", seen.map((x) => x.sel?.level).join() === "page,chart,series,mark,label" && seen[3].sel.name === name && seen[3].sel.ek === `e:${name}`, JSON.stringify(seen.map((x) => [x.sel?.level, x.chip])));
+  check("repères : cadre pointillé, parent en pointillé discret, pastille fil d'Ariane « Page › Graphique › Barres › … › Libellé »", seen.every((x) => x.frame) && seen[3].parent && seen[4].chip === `Page › Graphique › Barres › ${name} › Libellé` && seen[1].chip === "Page › Graphique", JSON.stringify(seen.map((x) => x.chip)));
+  check("panneau de droite contextuel : fil d'Ariane répété, réglages de l'objet seulement (accordéon masqué)", seen[2].ctx && !seen[2].acc && seen[2].title === "Barres" && seen[3].title === `Barre « ${name} »` && seen[4].title === `Libellé de « ${name} »` && seen[4].crumbs.endsWith("Libellé") && !seen[0].ctx, JSON.stringify(seen.map((x) => [x.title, x.ctx, x.acc])));
+  // remonter : Échap, puis ↑
+  await pg.keyboard.press("Escape");
+  await sleep(200);
+  const e1 = await state();
+  await pg.tap("[data-testid=sel-up]");
+  await sleep(200);
+  const e2 = await state();
+  const dbg = await pg.evaluate(() => ({ a: document.activeElement?.tagName + "." + document.activeElement?.className, d: [...document.querySelectorAll('[aria-modal="true"], [role="dialog"], [role="alertdialog"]')].filter((d) => d.offsetParent !== null || d.getClientRects().length > 0).map((d) => d.className) }));
+  check("Échap puis « ↑ » : remonte d'un niveau à chaque fois (libellé → barre → barres)", e1.sel?.level === "mark" && e2.sel?.level === "series", JSON.stringify([e1.sel, e2.sel, dbg]));
+  // barre : couleur propre (surcharge style.overrides["e:…"])
+  await tapAt(p);
+  await pg.tap('[data-testid=sel-mark-color] [data-color="#08465A"]');
+  await sleep(400);
+  const c1 = await pg.evaluate((n) => ({ ov: window.r4d.getSpec().style.overrides, fill: document.querySelector(`[data-testid=chart-svg] rect[data-sel="mark"][data-sel-name="${n}"]`)?.getAttribute("fill"), others: [...document.querySelectorAll('[data-testid=chart-svg] rect[data-sel="mark"]')].filter((e) => e.getAttribute("data-sel-name") !== n).map((e) => e.getAttribute("fill")) }), name);
+  check("barre : « Couleur de cette barre » ne change qu'elle (style.overrides[e:…])", JSON.stringify(c1.ov) === JSON.stringify({ [`e:${name}`]: { color: "#08465A" } }) && c1.fill?.toLowerCase() === "#08465a" && c1.others.every((f) => f?.toLowerCase() !== "#08465a"), JSON.stringify(c1));
+  // mise en avant depuis le panneau de la barre
+  await pg.tap("[data-testid=sel-focus]");
+  await sleep(500);
+  const fk = await pg.evaluate(() => window.r4d.getSpec().style.focus.key);
+  check("barre : « Mettre en avant » depuis le panneau contextuel", fk === name, String(fk));
+  await shot("160-selection-barre-ipad-1366.png");
+  // libellé : texte avec {valeur}, gras, couleur
+  await tapAt(p);
+  const lv = await pg.evaluate((n) => document.querySelector(`[data-testid=chart-svg] text[data-sel="label"][data-sel-name="${n}"]`)?.getAttribute("data-sel-value"), name);
+  await pg.tap("[data-testid=sel-label-text]");
+  await pg.type("[data-testid=sel-label-text]", "{valeur} · objectif 2030");
+  await pg.tap('[data-testid=sel-label-weight] [data-value="bold"]');
+  await pg.tap('[data-testid=sel-label-color] [data-color="#3FA7C4"]');
+  await sleep(500);
+  const l1 = await pg.evaluate((n) => { const t = document.querySelector(`[data-testid=chart-svg] text[data-sel="label"][data-sel-name="${n}"]`); return { txt: t?.textContent, fill: t?.getAttribute("fill"), w: t?.getAttribute("font-weight"), ov: window.r4d.getSpec().style.overrides[`e:${n}`], focusInput: document.activeElement?.dataset?.testid ?? null }; }, name);
+  check("libellé : texte libre avec jeton {valeur}, gras, couleur (ce libellé seulement)", l1.txt === `${lv} · objectif 2030` && l1.fill?.toLowerCase() === "#3fa7c4" && l1.w === "700" && l1.ov?.label === "{valeur} · objectif 2030", JSON.stringify({ lv, l1 }));
+  await shot("161-selection-libelle-ipad-1366.png");
+  // portée « toute la série »
+  await pg.tap('[data-testid=sel-label-scope] [data-value="series"]');
+  await sleep(150);
+  await pg.tap('[data-testid=sel-label-color] [data-color="#9CA3AF"]');
+  await sleep(400);
+  const l2 = await pg.evaluate(() => { const o = window.r4d.getSpec().style.overrides; const sk = Object.keys(o).find((k) => k.startsWith("s:")); return { sk, ov: sk ? o[sk] : null, greys: [...document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]')].filter((t) => t.getAttribute("fill")?.toLowerCase() === "#9ca3af").length, n: document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]').length }; });
+  check("libellé : « Toute la série » écrit la surcharge de série (les autres libellés suivent, le libellé propre garde la sienne)", l2.ov?.labelColor === "#9CA3AF" && l2.greys === l2.n - 1, JSON.stringify(l2));
+  // toucher ailleurs : niveau parent
+  const tp = await at("[data-testid=chart-svg] .r4d-title");
+  await tapAt(tp);
+  const away = await state();
+  check("toucher ailleurs (titre) : remonte d'un niveau (libellé → barre)", away.sel?.level === "mark", JSON.stringify(away.sel));
+  for (let i = 0; i < 4; i++) { await pg.keyboard.press("Escape"); await sleep(120); }
+  const none = await state();
+  check("Échap jusqu'en haut : plus de sélection, réglages complets", !none.sel && !none.ctx && none.acc && !none.frame, JSON.stringify(none));
+  // empreinte : surcharges vides hors empreinte ; surcharges posées dans l'empreinte
+  const fp = await pg.evaluate(async () => {
+    const sp = window.r4d.getSpec();
+    const a = window.r4d.fingerprintSpec(sp);
+    const b = window.r4d.fingerprintSpec({ ...sp, style: { ...sp.style, overrides: {} } });
+    return { withO: "overrides" in a.style, emptyO: "overrides" in b.style };
+  });
+  check("empreinte : style.overrides absent tant qu'il est vide, présent dès qu'une surcharge existe", fp.withO && !fp.emptyO, JSON.stringify(fp));
+  // camembert / anneau : une part
+  await pg.evaluate(async () => { window.r4d.set("style.overrides", {}); window.r4d.set("style.focus.key", null); window.r4d.setSpec({ type: "donut" }); await window.r4d.settle(); window.r4d.seek(1); });
+  await sleep(700);
+  const slice = await pg.evaluate(() => { const e = [...document.querySelectorAll('[data-testid=chart-svg] path[data-sel="mark"]')][1]; return e?.getAttribute("data-sel-name"); });
+  const sp = await at(`[data-testid=chart-svg] path[data-sel="mark"][data-sel-name="${slice}"]`);
+  for (let i = 0; i < 4; i++) await tapAt(sp);
+  const pie = await state();
+  await pg.tap('[data-testid=sel-mark-color] [data-color="#9CA3AF"]');
+  await sleep(400);
+  const pieFill = await pg.evaluate((n) => document.querySelector(`[data-testid=chart-svg] path[data-sel="mark"][data-sel-name="${n}"]`)?.getAttribute("fill"), slice);
+  check("anneau : Page › Graphique › Parts › une part, couleur propre de la part", pie.sel?.level === "mark" && pie.title === `Part « ${slice} »` && pie.chip === `Page › Graphique › Parts › ${slice}` && pieFill?.toLowerCase() === "#9ca3af", JSON.stringify({ pie, pieFill }));
+  await pg.keyboard.press("Escape");
+  await pg.keyboard.press("Escape");
+  await pg.keyboard.press("Escape");
+  await pg.keyboard.press("Escape");
+  // lignes : une série
+  await pg.evaluate(async () => {
+    window.r4d.set("style.overrides", {});
+    window.r4d.setSpec({ type: "line", encoding: { ...window.r4d.getSpec().encoding, x: "Année", series: "Pays", topN: null }, transform: { filters: [{ field: "Pays", op: "in", values: ["France", "Belgique", "UE-27"], label: "3 pays" }] } });
+    await window.r4d.settle();
+    window.r4d.seek(1);
+  });
+  await sleep(800);
+  const lineName = await pg.evaluate(() => document.querySelector('[data-testid=chart-svg] path[data-sel="series"]')?.getAttribute("data-sel-name"));
+  const lp = await pg.evaluate((n) => { const e = document.querySelector(`[data-testid=chart-svg] path[data-sel="series"][data-sel-name="${n}"]`); const L = e.getTotalLength(); const pt = e.getPointAtLength(L * 0.45); const m = e.getScreenCTM(); return { x: m.a * pt.x + m.c * pt.y + m.e, y: m.b * pt.x + m.d * pt.y + m.f }; }, lineName);
+  for (let i = 0; i < 3; i++) await tapAt(lp);
+  const ln = await state();
+  await pg.tap('[data-testid=sel-series-color] [data-color="#7FC8DC"]');
+  await sleep(400);
+  const lnc = await pg.evaluate((n) => ({ stroke: document.querySelector(`[data-testid=chart-svg] path[data-sel="series"][data-sel-name="${n}"]`)?.getAttribute("stroke"), legend: [...document.querySelectorAll("[data-testid=chart-svg] .r4d-legend *")].some((e) => (e.getAttribute("fill") ?? e.getAttribute("stroke") ?? "").toLowerCase() === "#7fc8dc") }), lineName);
+  check("lignes : Page › Graphique › une série, « Couleur de la série » (tracé et légende)", ln.sel?.level === "series" && ln.title === `Série « ${lineName} »` && lnc.stroke?.toLowerCase() === "#7fc8dc" && lnc.legend, JSON.stringify({ ln, lnc }));
+  await shot("162-selection-serie-ipad-1366.png");
+  // iPad 1024 : barres, une barre, libellé
+  for (let i = 0; i < 4; i++) { await pg.keyboard.press("Escape"); await sleep(80); }
+  await pg.evaluate(async () => { window.r4d.set("style.overrides", {}); window.r4d.loadSample("renouvelables"); await new Promise((r) => setTimeout(r, 900)); window.r4d.set("style.valueLabels", true); await window.r4d.settle(); window.r4d.seek(1); });
+  await pg.setViewport({ width: 1024, height: 768, deviceScaleFactor: SHOTS ? 2 : 1, hasTouch: true });
+  await sleep(900);
+  const p2 = await at(`[data-testid=chart-svg] rect[data-sel="mark"][data-sel-name="${name}"]`);
+  for (let i = 0; i < 4; i++) await tapAt(p2);
+  await pg.tap('[data-testid=sel-mark-color] [data-color="#08465A"]');
+  await sleep(300);
+  const i1 = await pg.evaluate(() => { const b = [...document.querySelectorAll("[data-testid=sel-panel] button")].filter((x) => x.offsetParent); const r = document.querySelector("[data-testid=sel-panel]").getBoundingClientRect(); return { sw: document.documentElement.scrollWidth, vw: innerWidth, minH: Math.min(...b.filter((x) => x.classList.contains("selp-sw") || x.closest(".segmented")).map((x) => x.getBoundingClientRect().height)), inView: r.right <= innerWidth + 1, lvl: window.r4d.selection().sel?.level }; });
+  check("iPad 1024 : sélection d'une barre, panneau contextuel visible, cibles ≥ 34 px, pas de défilement horizontal", i1.lvl === "mark" && i1.sw <= i1.vw && i1.minH >= 34 && i1.inView, JSON.stringify(i1));
+  await shot("163-selection-barre-ipad-1024.png");
+  await tapAt(p2);
+  await shot("164-selection-libelle-ipad-1024.png");
+  check("sélection : pas d'erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
+  const words = await pg.evaluate(() => document.body.innerText);
+  check("sélection : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  await ctx.close();
+}
+
+if (process.argv.includes("--selection")) {
+  try { await e2eSelection(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--datasets")) {
@@ -4169,6 +4334,8 @@ try {
   await e2ePoints();
   /* 27. Datasets dérivés (étape Filtrer, panneau Datasets, versions), iPad : voir e2eDatasets() */
   await e2eDatasets();
+  /* 28. Sélection par touchers successifs (série A), iPad : voir e2eSelection() */
+  await e2eSelection();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

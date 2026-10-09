@@ -307,6 +307,8 @@ export function fingerprintSpec(spec: unknown): unknown {
   if (style.pointShape === "circle") delete style.pointShape;
   if (style.pointIcon === "") delete style.pointIcon;
   if (style.pointIcons && typeof style.pointIcons === "object" && !Object.keys(style.pointIcons).length) delete style.pointIcons;
+  // Surcharges par élément (sélection par touchers) : vides = hors empreinte (empreintes publiées inchangées)
+  if (style.overrides && typeof style.overrides === "object" && !Object.keys(style.overrides).length) delete style.overrides;
   const f = style.focus as { key?: unknown; title?: unknown; note?: unknown; average?: unknown } | undefined;
   if (f && f.key == null && !f.title && !f.note && f.average !== false) delete style.focus;
   return { ...(spec as object), style };

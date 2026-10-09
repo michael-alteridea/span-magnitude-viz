@@ -1,4 +1,5 @@
 /** Camembert, donut (centre évidé) et arcs radiaux — SVG pur via d3.arc / d3.pie. */
+import { elemKey, labelLook, markColor, selAttrs, seriesKey } from "./overrides";
 import { arc as d3arc, pie as d3pie, type PieArcDatum } from "d3";
 import type { CatModel } from "../data/model";
 import { valueFormatter, formatPercent } from "../format";
@@ -27,7 +28,8 @@ export function slicesOf(model: CatModel, colors: string[]): Slice[] {
 
 export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, donut: boolean): void {
   const { theme, s, font, spec, frame } = ctx;
-  const slices = slicesOf(model, ctx.colors);
+  const pieSk = seriesKey(model.series[0] ?? model.yName ?? "");
+  const slices = slicesOf(model, ctx.colors).map((d) => ({ ...d, color: markColor(spec, d.color, elemKey(d.label), null) }));
   const total = slices.reduce((a, b) => a + b.value, 0);
   const fmt = valueFormatter(spec.axes.y);
   const outsideLabels = slices.length <= 12;
@@ -115,6 +117,7 @@ export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, 
       .attr("stroke", theme.bg)
       .attr("stroke-width", (donut ? 1.5 : 1.5) * s)
       .attr("data-focus-key", a.data.label)
+      .call((c) => selAttrs(c, "mark", elemKey(a.data.label), pieSk, a.data.label))
       .attr("data-slice", `${(a.startAngle * 180) / Math.PI} ${(a.endAngle * 180) / Math.PI} ${inner} ${R}`)
       .call((c) => tip(c, { t: a.data.label, v: fmt(a.data.value), rows: tipRows(shareRow(a.data.value, total)) }));
     if (off.x || off.y) path.attr("transform", `translate(${off.x.toFixed(2)},${off.y.toFixed(2)})`);
@@ -173,9 +176,11 @@ export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, 
         .attr("stroke-width", 1 * s);
       const anchor = l.side > 0 ? "start" : "end";
       const name = ellipsize(l.a.data.label, maxW, 13 * s, font, 700);
-      const sub = `${fmt(l.a.data.value)} · ${formatPercent(l.a.data.value / total, 0)}`;
-      gl.append("text").attr("x", xt).attr("y", l.y - 2 * s).attr("text-anchor", anchor).attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", fk != null && !f && ft > 0.5 ? theme.muted : theme.text).text(name);
-      gl.append("text").attr("x", xt).attr("y", l.y + 13 * s).attr("text-anchor", anchor).attr("font-size", 12 * s).attr("font-family", font).attr("fill", theme.muted).text(sub);
+      const lek = elemKey(l.a.data.label);
+      const look = labelLook(spec, fmt(l.a.data.value), lek, pieSk, `${fmt(l.a.data.value)} · ${formatPercent(l.a.data.value / total, 0)}`);
+      const sub = look.hidden ? "" : look.text;
+      gl.append("text").attr("x", xt).attr("y", l.y - 2 * s).attr("text-anchor", anchor).attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", fk != null && !f && ft > 0.5 ? theme.muted : theme.text).text(name).call((c) => selAttrs(c, "label", lek, pieSk, l.a.data.label));
+      gl.append("text").attr("x", xt).attr("y", l.y + 13 * s).attr("text-anchor", anchor).attr("font-size", (look.size ?? 12) * s).attr("font-weight", look.bold ? 700 : null).attr("font-family", font).attr("fill", look.color ?? theme.muted).text(sub).call((c) => selAttrs(c, "label", lek, pieSk, l.a.data.label, fmt(l.a.data.value)));
       const lw = Math.max(measure(name, 13 * s, font, 700), measure(sub, 12 * s, font));
       labelBoxes.push({ x: cx + (l.side > 0 ? xt : xt - lw), y: cy + l.y - 16 * s, w: lw, h: 34 * s });
       if (f) focusLabelEnd = { x: cx + xt + l.side * (lw + 8 * s), y: cy + l.y + 4 * s };
@@ -249,20 +254,25 @@ export function drawRadialBars(root: G, rect: PlotRect, ctx: DrawCtx, model: Cat
       .attr("fill", theme.track);
     const f = stagger(frame.build, i, n, 0.5);
     const ang = Math.max(0.0001, Math.min(1, d.value / (domMax || 1)) * maxAngle * f);
-    const color = fk == null || i === fk ? d.color : mixHex(d.color, grey, ft);
+    const rek = elemKey(d.label);
+    const rsk = seriesKey(model.series[0] ?? model.yName ?? "");
+    const base = markColor(spec, d.color, rek, null);
+    const color = fk == null || i === fk ? base : mixHex(base, grey, ft);
     const path = g
       .append("path")
       .attr("class", i === fk ? "r4d-mark r4d-focus-arc" : "r4d-mark")
       .attr("d", arc({ innerRadius: innerR, outerRadius: outer, startAngle: 0, endAngle: ang }) ?? "")
       .attr("fill", color)
       .attr("data-focus-key", d.label)
+      .call((c) => selAttrs(c, "mark", rek, rsk, d.label))
       .attr("data-slice", `0 ${((ang * 180) / Math.PI).toFixed(3)} ${innerR} ${outer}`)
       .call((c) => tip(c, { t: d.label, v: fmt(d.value), rows: tipRows(shareRow(d.value, slices.reduce((a, b) => a + Math.max(0, b.value), 0)), Number.isFinite(domMax) && domMax > 0 ? { k: "Part du maximum de l'échelle", v: formatPercent(d.value / domMax, 0) } : null) }));
     const tipA = ang;
     tipPts.push({ k: i, x: Math.sin(tipA) * ((innerR + outer) / 2), y: -Math.cos(tipA) * ((innerR + outer) / 2), r: (outer - innerR) / 2, a: tipA });
     const fsz = Math.min(14 * s, thick * 0.62);
     const ly = -(outer - thick / 2);
-    const vtxt = fmt(d.value);
+    const rlook = labelLook(spec, fmt(d.value), rek, rsk);
+    const vtxt = rlook.hidden ? "" : rlook.text;
     const vw = measure(vtxt, fsz, font, 700);
     const t = g
       .append("text")
@@ -277,7 +287,8 @@ export function drawRadialBars(root: G, rect: PlotRect, ctx: DrawCtx, model: Cat
     const lw = measure(ltxt, fsz, font) + vw;
     labelObs.push({ x: cx - 10 * s - lw, y: cy + ly - fsz * 0.7, w: lw, h: fsz * 1.4 });
     t.append("tspan").text(ltxt);
-    t.append("tspan").attr("font-weight", 700).attr("fill", fk != null && i !== fk && ft > 0.5 ? theme.muted : theme.text).text(vtxt);
+    t.append("tspan").attr("font-weight", rlook.bold === false ? 400 : 700).attr("fill", rlook.color ?? (fk != null && i !== fk && ft > 0.5 ? theme.muted : theme.text)).text(vtxt);
+    selAttrs(t, "label", rek, rsk, d.label, fmt(d.value));
   });
   if (fk == null || !call || ft <= 0) return;
   const tp = tipPts.find((p) => p.k === fk)!;

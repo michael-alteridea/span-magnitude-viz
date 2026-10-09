@@ -12,6 +12,7 @@ import { DataWindow, tabFromParam } from "./ui/dataWindow";
 import { recentId, rowsToTsv, type RecentEntry } from "./data/recents";
 import { SAMPLES, sampleById, sampleLicence } from "./data/samples";
 import { autoEncode } from "./data/suggest";
+import { SelectionPanel } from "./ui/selectionPanel";
 import { Preview } from "./ui/preview";
 import { SettingsPanel } from "./ui/settings";
 import { chartTarget } from "./ui/panelMap";
@@ -47,7 +48,7 @@ import { StoryFilm } from "./ui/storyFilm";
 import { LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryDef, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, type ReadRoute } from "./story/reading";
 import { DEMO_FINANCE_ID, DEMO_ORG, DEMO_PIPELINE_ID, demoFinanceReview, demoPipelineReview, demoReadingStory } from "./review/demo";
 import { demoNotesFor } from "./publish/demoNotes";
-import { DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES, IMAGE_H, IMAGE_W, buildIndex, buildManifest, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
+import { DATA_URL_MAX_CHARS, MANIFEST_MAX_BYTES, IMAGE_H, IMAGE_W, buildIndex, buildManifest, fingerprintSpec, isPublished, isoLocal, isoOrNull, localStoryManifestId, manifestDownloadName, manifestSchema, manifestUrl, PUBLISHED_STORIES, type Manifest } from "./publish/manifest";
 import { CadencerDialog, type CadencerTarget } from "./ui/cadencerDialog";
 import { ReelDialog } from "./ui/reelDialog";
 import type { ReelItem } from "./reel/charts";
@@ -600,7 +601,9 @@ function stopFocusPick(): void {
 function onFocusTap(key: string): boolean {
   const spec = store.state.spec;
   if (!key) return false;
-  if (!focusPicking && (!spec.style.focus.key || spec.type === "drill")) return false;
+  // hors du mode « Choisir sur le graphique », un toucher sur une marque sert la sélection par touchers successifs
+  // (la mise en avant se déplace depuis le panneau contextuel de l'élément : « Mettre en avant »)
+  if (!focusPicking) return false;
   stopFocusPick();
   if (spec.style.focus.key !== key) store.set("style.focus.key", key);
   settings.reveal({ section: "recit", paths: ["style.focus.key"], group: "focus" });
@@ -1654,6 +1657,21 @@ const settings = new SettingsPanel(store, {
   pickFocus: () => startFocusPick(),
   editDataset: (id) => openDatasetEditor(id),
 });
+// Sélection par touchers successifs : panneau contextuel en tête des réglages
+const selPanel = new SelectionPanel(store, preview.selection, {
+  showAll: () => preview.selection.set({ level: "page", ek: null, sk: null, name: "" }),
+  pickType: (t) => void pickType(t),
+});
+settings.root.insertBefore(selPanel.root, settings.root.querySelector(".acc-search"));
+const syncSelCtx = () => {
+  const lvl = preview.selection.sel?.level ?? null;
+  settings.root.classList.toggle("sel-ctx", !!lvl && lvl !== "page");
+  settings.root.classList.toggle("sel-page", lvl === "page");
+};
+preview.selection.onChange((sel) => {
+  syncSelCtx();
+  if (sel && sel.level !== "page" && store.state.ui.rightCollapsed) store.setUi({ rightCollapsed: false });
+});
 const explorer = new Explorer(store, storyContext, openInsight);
 const storyStrip: StoryStrip = new StoryStrip(store, {
   snapshot: () => void takeSnapshot(),
@@ -2002,7 +2020,12 @@ store.subscribe((kinds) => {
   dataWindow.update(store.state.sampleId);
   settings.update();
   if (kinds.has("data") && explorer.isOpen) explorer.open();
+  if (kinds.has("data")) preview.selection.clear();
   lastUpdate = preview.update(kinds);
+  void Promise.resolve(lastUpdate).then(() => {
+    selPanel.update();
+    syncSelCtx();
+  });
 });
 
 preview.onModeChange = (m) => {
@@ -2056,6 +2079,8 @@ const api = {
   setSpec: (patch: Record<string, unknown>) => store.setSpec({ ...store.state.spec, ...patch }),
   set: (path: string, v: unknown) => store.set(path, v),
   pickType: (t: ChartType) => pickType(t),
+  selection: () => preview.selection,
+  fingerprintSpec: (sp: unknown) => fingerprintSpec(sp),
   loadSample,
   importText: (t: string) => importPasted(t),
   provenance: () => store.state.provenance,

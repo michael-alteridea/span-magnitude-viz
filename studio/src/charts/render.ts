@@ -3,6 +3,7 @@
  * puis dessine le cadre éditorial (titre, sous-titre, légende, source, signature)
  * et le graphique, le tout dans un unique <svg> autonome.
  */
+import { elemKey, markColor, seriesKey } from "./overrides";
 import { groupIcons } from "./pointIcons";
 import { drawIcon } from "./icons";
 import { select } from "d3";
@@ -243,11 +244,11 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
   if (model.kind === "points") {
     if (model.series.length <= 1 && !spec.encoding.series) return [];
     const icons = groupIcons(spec, model.series);
-    return model.series.slice(0, 24).map((s, i) => ({ label: s, color: colors[i % colors.length]!, shape: "dot", icon: icons[i] ?? null }));
+    return model.series.slice(0, 24).map((s, i) => ({ label: s, color: markColor(spec, colors[i % colors.length]!, null, seriesKey(s)), shape: "dot", icon: icons[i] ?? null }));
   }
   if (isRadial(t)) {
     if (spec.style.legend === "auto" || spec.style.legend === "none") return [];
-    return slicesOf(model, colors).map((s) => ({ label: s.label, color: s.color, shape: "square" }));
+    return slicesOf(model, colors).map((s) => ({ label: s.label, color: markColor(spec, s.color, elemKey(s.label), null), shape: "square" }));
   }
   // Objectif (étape I) : réalisé en barres, objectif en repère
   if ((t === "bar" || t === "barH") && spec.style.barCap === "goal" && model.kind === "cat" && model.series.length >= 2 && !spec.encoding.series && !norme)
@@ -258,7 +259,7 @@ function legendItems(spec: ChartSpec, model: Model | null, colors: string[], neu
   const items: LegendItem[] = [];
   const shape: LegendItem["shape"] = t === "line" ? "line" : "square";
   if (model.series.length > 1 || spec.encoding.series || (spec.encoding.y2 && model.series.length >= 1))
-    model.series.forEach((s, i) => items.push({ label: s, color: colors[i % colors.length]!, shape }));
+    model.series.forEach((s, i) => items.push({ label: s, color: markColor(spec, colors[i % colors.length]!, null, seriesKey(s)), shape }));
   if (spec.encoding.y2 && model.y2) {
     const nS = model.series.length;
     const c = y2Color(nS, colors, neutral);
