@@ -16,7 +16,7 @@
 - **P3** : plus tard, après les pilotes ou après un accord à obtenir.
 - **P2/P3** : la priorité reste à trancher. Ces lignes sont rangées dans la table P2.
 
-**Statuts** : en cours · prévu · promis (annoncé dans un échange) · à faire · bloqué · à trancher.
+**Statuts** : livré · en cours · prévu · promis (annoncé dans un échange) · à faire · bloqué · à trancher.
 
 **Sources**
 
@@ -37,11 +37,11 @@
 
 | Idée | Priorité | Statut | Source | Note |
 |---|---|---|---|---|
-| **Sélection par touchers successifs** : chaque toucher au même endroit descend d'un niveau (page › graphique › barres › une barre › son libellé), cadre pointillé, panneau de droite contextuel | P2 | prévu | `NOTES.md` l. 59-71 et l. 100 (phase 6) ; maquettes `mockups/dataset-flow/` (série A) ; audit n° 64 | Après les déploiements 1 et 2 |
+| **Sélection par touchers successifs** : chaque toucher au même endroit descend d'un niveau (page › graphique › barres › une barre › son libellé), cadre pointillé, panneau de droite contextuel | P2 | livré (09/10 : main 14197da, en ligne 31fe331) | `NOTES.md` l. 59-71 et l. 100 (phase 6) ; maquettes `mockups/dataset-flow/` (série A) ; audit n° 64 | Empreintes publiées et liens profonds inchangés |
 | **« Forme des points » du nuage** : ronds / une icône / une icône par groupe | P2 | livré (09/10 : smv e71baaa, dash f2ed653) | audit n° 88 (promesse du 09/10, 00:07) | Après la Séquence |
-| **Versions d'un dataset** : remplacer les données d'un dataset utilisé par N scènes | P2 | prévu | `NOTES.md` l. 99 (phase 5) | Suit les Datasets dérivés |
-| **Export GIF** | P2 | à faire | `studio/README.md` l. 50 et l. 689 (`exportGif()`, même boucle d'images que le WebM) ; audit n° 66 | Entrée de menu grisée « Prévu en V2 » |
-| **Course de barres** à côté du GIF | P2/P3 | à trancher | audit n° 85 | Idée oubliée depuis le 08/10, retrouvée par l'audit |
+| **Versions d'un dataset** : remplacer les données d'un dataset utilisé par N scènes | P2 | livré (09/10) | `NOTES.md` l. 99 (phase 5) | Livré avec les Datasets dérivés (déploiement 2, smv 5b47b5a : versions des scènes) |
+| **Export GIF** | P2 | en cours (branche `feat/export-gif`) | `studio/README.md` l. 50 et l. 689 (`exportGif()`, même boucle d'images que le WebM) ; audit n° 66 | Encodeur gifenc (licence MIT). Ni fusionné ni déployé |
+| **Course de barres** à côté du GIF | P2/P3 | en cours (branche `feat/course-de-barres`) | audit n° 85 | Démarrée avec le « go pour P2 » de Michaël (09/10 au matin). Ni fusionnée ni déployée |
 | **Fonds de carte Monde** issus de la R&D (Natural Earth, 236 pays, projection Equal Earth) | P2/P3 | à trancher | `/workspace/datanime-maps/world-countries-*` (110m, 50m, `.csv`, `demo-world.html`) ; audit n° 89 | Aujourd'hui `src/geo` ne contient que `europe` et `frBe` |
 | **Acheter `datanime.io`** puis basculer `PLATFORM_URL` / `VERIFY_BASE` | P2 | à faire (décision Michaël) | `datanime-landing/README.md` l. 3 et l. 95-99 ; `studio/docs/contrat-cadencer.md` l. 24 ; audit n° 76 | Un changement d'une ligne côté Studio. Côté Cadencer, `DATANIME_HOSTS` |
 | **Marque, accord écrit de l'employeur, mentions légales** | P2 | à faire | `datanime-landing/README.md` l. 4-5, l. 55, l. 95-99 ; audit n° 77 | La landing reste en `noindex` et ne se déploie pas avant cet accord |
