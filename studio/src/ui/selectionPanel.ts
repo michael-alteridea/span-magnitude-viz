@@ -172,7 +172,7 @@ export class SelectionPanel {
     const foot = h(
       "div",
       { class: "selp-foot" },
-      h("small", null, "Toucher encore au même endroit : niveau suivant · Échap ou ↑ : niveau parent"),
+      h("small", null, "Toucher un objet de la sélection : niveau suivant · double-toucher une barre : cette barre · Échap ou ↑ : niveau parent"),
       h("button", { type: "button", class: "btn btn-small btn-ghost", "data-testid": "sel-all", onclick: () => this.actions.showAll() }, "Tous les réglages")
     );
     void names;

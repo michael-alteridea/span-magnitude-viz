@@ -1,9 +1,15 @@
 /**
- * Sélection par touchers successifs (série A des maquettes « dataset-flow ») : chaque toucher au même endroit
- * descend d'un niveau — Page › Graphique › Série (toutes les barres) › un élément › son libellé. Toucher ailleurs,
- * Échap ou « ↑ » remonte d'un niveau. Repères : cadre pointillé pétrole (objet courant), parent en pointillé discret,
- * pastille fil d'Ariane près de l'objet, anneau de toucher numéroté. Les marques portent `data-sel` (mark | label |
- * series), `data-sel-key` (« e:… »), `data-sel-series` (« s:… ») et `data-sel-name` (voir charts/overrides.ts).
+ * Sélection par touchers successifs (série A des maquettes « dataset-flow ») : Page › Graphique › Série (toutes les
+ * barres) › un élément › son libellé.
+ *  - Toucher un objet situé DANS la sélection courante (même endroit ou non) descend d'un niveau vers lui :
+ *    graphique → série de la barre touchée → cette barre → son libellé.
+ *  - Toucher un objet HORS de la sélection courante le sélectionne directement, au même niveau (une autre barre
+ *    quand une barre est choisie, une autre série quand une série est choisie) ; toucher le fond du graphique
+ *    revient au graphique, toucher hors du graphique revient à la page. Échap ou « ↑ » remonte d'un niveau.
+ *  - Double-clic ou double-toucher sur une marque : directement au niveau « élément » (cette barre, cette part…).
+ * Repères : cadre pointillé pétrole (objet courant), parent en pointillé discret, pastille fil d'Ariane près de
+ * l'objet, anneau de toucher numéroté. Les marques portent `data-sel` (mark | label | series), `data-sel-key`
+ * (« e:… »), `data-sel-series` (« s:… ») et `data-sel-name` (voir charts/overrides.ts).
  */
 import { h } from "./dom";
 import type { ChartType } from "../spec";
@@ -58,7 +64,32 @@ export function crumbs(sel: Sel | null, t: ChartType): string[] {
   return out;
 }
 
-const same = (a: Sel | null, b: Sel | null): boolean => !!a && !!b && a.level === b.level && (a.ek ?? null) === (b.ek ?? null) && (a.sk ?? null) === (b.sk ?? null);
+export const same = (a: Sel | null, b: Sel | null): boolean => !!a && !!b && a.level === b.level && (a.ek ?? null) === (b.ek ?? null) && (a.sk ?? null) === (b.sk ?? null);
+
+/** Double-toucher : deux touchers à moins de 320 ms et 24 px l'un de l'autre (ou `detail` ≥ 2 du navigateur). */
+export const DOUBLE_TAP_MS = 320;
+export const DOUBLE_TAP_PX = 24;
+
+/**
+ * Transition d'un toucher. `chain` = objets sous le pointeur, de la page au plus fin ; `hit` = niveau de l'objet
+ * réellement touché (« mark » pour une barre, « label » pour un libellé, « chart » pour le fond…).
+ *  - pas de sélection : la page ;
+ *  - double-toucher sur une marque : cette marque (niveau « élément ») ;
+ *  - l'objet courant est sous le pointeur : un niveau plus bas, vers l'objet touché ;
+ *  - sinon : l'objet touché au niveau courant (ou au niveau de ce qui a été touché, s'il est moins profond).
+ */
+export function nextSelection(cur: Sel | null, chain: Sel[], hit: SelLevel, double = false): Sel | null {
+  if (!chain.length) return cur;
+  const mark = chain.find((c) => c.level === "mark");
+  if (double && mark) return mark;
+  if (!cur) return chain[0]!;
+  const i = chain.findIndex((c) => same(c, cur));
+  if (i >= 0) return chain[Math.min(i + 1, chain.length - 1)]!;
+  const want = Math.min(SEL_LEVELS.indexOf(cur.level), SEL_LEVELS.indexOf(hit));
+  let best = chain[0]!;
+  for (const c of chain) if (SEL_LEVELS.indexOf(c.level) <= want) best = c;
+  return best;
+}
 
 const esc = (v: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v.replace(/["\\]/g, "\\$&"));
 
@@ -72,6 +103,7 @@ export class Selection {
   private ring: HTMLElement;
   private ringTimer = 0;
   private listeners: ((s: Sel | null) => void)[] = [];
+  private lastTap: { x: number; y: number; t: number } | null = null;
   /** Désactivée (mode lecture, enregistrement). */
   enabled = true;
 
@@ -117,24 +149,52 @@ export class Selection {
 
   /** Chaîne des objets sous le toucher, de la page à l'objet le plus fin. */
   chainAt(target: Element | null, clientX: number, clientY: number): Sel[] {
+    return this.probe(target, clientX, clientY).chain;
+  }
+
+  /** Chaîne sous le pointeur + niveau de l'objet réellement touché. */
+  probe(target: Element | null, clientX: number, clientY: number, tolerance = 0): { chain: Sel[]; hit: SelLevel } {
     const chain: Sel[] = [{ level: "page", ek: null, sk: null, name: "" }];
     const svg = this.host.svg;
     let el = target?.closest?.("[data-sel]") ?? null;
     if (!el || !svg.contains(el))
       el = (typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(clientX, clientY) : []).find((n) => svg.contains(n) && n.matches("[data-sel]")) ?? null;
+    if (!el && tolerance > 0) el = this.nearSmallMark(clientX, clientY, tolerance);
     const inPlot = this.inPlot(clientX, clientY);
-    if (!el && !inPlot) return chain;
+    if (!el && !inPlot) return { chain, hit: "page" };
     chain.push({ level: "chart", ek: null, sk: null, name: "" });
-    if (!el) return chain;
+    if (!el) return { chain, hit: "chart" };
     const role = el.getAttribute("data-sel");
     const ek = el.getAttribute("data-sel-key");
     const sk = el.getAttribute("data-sel-series");
     const name = el.getAttribute("data-sel-name") ?? "";
     if (sk) chain.push({ level: "series", ek: null, sk, name: seriesNameOf(sk) });
-    if (role === "series" || !ek) return chain;
+    if (role === "series" || !ek) return { chain, hit: sk ? "series" : "chart" };
     chain.push({ level: "mark", ek, sk, name });
     chain.push({ level: "label", ek, sk, name });
-    return chain;
+    return { chain, hit: role === "label" ? "label" : "mark" };
+  }
+
+  /**
+   * Petites marques (points d'une courbe ou d'un nuage, quelques pixels) : au doigt, la plus proche à moins de
+   * `r` px compte comme touchée. Les barres et les parts (plus grandes) ne sont pas concernées.
+   */
+  private nearSmallMark(x: number, y: number, r: number): Element | null {
+    let best: Element | null = null;
+    let bd = r;
+    for (const m of this.host.svg.querySelectorAll('[data-sel="mark"]')) {
+      const b = m.getBoundingClientRect();
+      if (!b.width && !b.height) continue;
+      if (Math.min(b.width, b.height) > 16) continue;
+      const dx = Math.max(b.left - x, 0, x - b.right);
+      const dy = Math.max(b.top - y, 0, y - b.bottom);
+      const d = Math.hypot(dx, dy);
+      if (d <= bd) {
+        bd = d;
+        best = m;
+      }
+    }
+    return best;
   }
 
   private inPlot(x: number, y: number): boolean {
@@ -147,18 +207,21 @@ export class Selection {
     return px >= p.x && px <= p.x + p.w && py >= p.y && py <= p.y + p.h;
   }
 
-  /** Un toucher : au même endroit → niveau suivant ; ailleurs → niveau parent. Renvoie la nouvelle sélection. */
-  tap(target: Element | null, clientX: number, clientY: number): Sel | null {
+  /**
+   * Un toucher (voir `nextSelection`). `opts.detail` : compteur de clics du navigateur (2 = double-clic) ;
+   * `opts.pointerType` : « touch » active aussi la détection du double-toucher par le temps et la distance.
+   */
+  tap(target: Element | null, clientX: number, clientY: number, opts: { detail?: number; pointerType?: string; now?: number } = {}): Sel | null {
     if (!this.enabled) return this.sel;
-    const chain = this.chainAt(target, clientX, clientY);
-    const cur = this.sel;
-    let next: Sel | null;
-    if (!cur) next = chain[0]!;
-    else {
-      const i = chain.findIndex((c) => same(c, cur));
-      if (i >= 0) next = chain[Math.min(i + 1, chain.length - 1)]!;
-      else next = this.parentOf(cur);
-    }
+    const { chain, hit } = this.probe(target, clientX, clientY, opts.pointerType === "touch" ? 14 : 6);
+    const now = opts.now ?? performance.now();
+    const prev = this.lastTap;
+    this.lastTap = { x: clientX, y: clientY, t: now };
+    const quick = !!prev && now - prev.t < DOUBLE_TAP_MS && Math.hypot(clientX - prev.x, clientY - prev.y) < DOUBLE_TAP_PX;
+    const double = (opts.detail ?? 1) >= 2 || (opts.pointerType === "touch" && quick);
+    // un double-toucher ne compte qu'une fois (le suivant repart d'un toucher simple)
+    if (double) this.lastTap = null;
+    const next = nextSelection(this.sel, chain, hit, double);
     this.set(next);
     this.showRing(clientX, clientY);
     return next;

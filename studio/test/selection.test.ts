@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseSpec } from "../src/spec";
 import { elemKey, labelLook, markColor, seriesKey, withOverride } from "../src/charts/overrides";
 import { fingerprintSpec } from "../src/publish/manifest";
-import { crumbs, levelNames } from "../src/ui/selection";
+import { crumbs, levelNames, nextSelection, type Sel } from "../src/ui/selection";
 
 const spec = (overrides: Record<string, unknown> = {}) => {
   const r = parseSpec({ type: "barH", encoding: { x: "Pays", y: ["Part (%)"] }, style: { overrides } });
@@ -57,5 +57,54 @@ describe("fil d'Ariane", () => {
     expect(crumbs({ level: "series", ek: null, sk: "s:France", name: "France" }, "line")).toEqual(["Page", "Graphique", "France"]);
     expect(crumbs({ level: "mark", ek: "e:Web", sk: "s:CA", name: "Web" }, "donut")).toEqual(["Page", "Graphique", "Parts", "Web"]);
     expect(levelNames("scatter").mark).toBe("Point");
+  });
+});
+
+describe("transitions d'un toucher (nextSelection)", () => {
+  const page: Sel = { level: "page", ek: null, sk: null, name: "" };
+  const chart: Sel = { level: "chart", ek: null, sk: null, name: "" };
+  const series = (sk: string): Sel => ({ level: "series", ek: null, sk, name: sk.slice(2) });
+  const mark = (name: string, sk = "s:Part (%)"): Sel => ({ level: "mark", ek: `e:${name}`, sk, name });
+  const label = (name: string, sk = "s:Part (%)"): Sel => ({ level: "label", ek: `e:${name}`, sk, name });
+  /** Chaîne sous le pointeur : fond (page, graphique) ou une barre (page › graphique › série › barre › libellé). */
+  const onBar = (name: string, sk = "s:Part (%)") => [page, chart, series(sk), mark(name, sk), label(name, sk)];
+  const onPlot = [page, chart];
+  const outside = [page];
+
+  it("scénario signalé : page, puis le graphique, puis une barre à un AUTRE endroit, puis la même barre, puis son libellé", () => {
+    let s = nextSelection(null, outside, "page");
+    expect(s?.level).toBe("page");
+    s = nextSelection(s, onPlot, "chart");
+    expect(s?.level).toBe("chart");
+    s = nextSelection(s, onBar("Belgique"), "mark");
+    expect(s).toEqual(series("s:Part (%)"));
+    s = nextSelection(s, onBar("Belgique"), "mark");
+    expect(s).toEqual(mark("Belgique"));
+    s = nextSelection(s, onBar("Belgique"), "label");
+    expect(s).toEqual(label("Belgique"));
+    // le libellé est le niveau le plus fin : on y reste
+    expect(nextSelection(s, onBar("Belgique"), "label")).toEqual(label("Belgique"));
+  });
+  it("hors de la sélection : l'objet touché, au même niveau (autre barre, autre série)", () => {
+    expect(nextSelection(mark("Belgique"), onBar("France"), "mark")).toEqual(mark("France"));
+    expect(nextSelection(series("s:2024"), onBar("France", "s:2025"), "mark")).toEqual(series("s:2025"));
+    // libellé choisi, toucher la barre d'un autre élément : cette barre (pas son libellé)
+    expect(nextSelection(label("Belgique"), onBar("France"), "mark")).toEqual(mark("France"));
+    expect(nextSelection(label("Belgique"), onBar("France"), "label")).toEqual(label("France"));
+  });
+  it("hors de la sélection, sur le fond : le graphique ; hors du graphique : la page", () => {
+    expect(nextSelection(mark("Belgique"), onPlot, "chart")).toEqual(chart);
+    expect(nextSelection(series("s:Part (%)"), outside, "page")).toEqual(page);
+  });
+  it("double-clic / double-toucher sur une barre : directement l'élément, quel que soit le niveau", () => {
+    expect(nextSelection(null, onBar("Belgique"), "mark", true)).toEqual(mark("Belgique"));
+    expect(nextSelection(chart, onBar("Belgique"), "mark", true)).toEqual(mark("Belgique"));
+    expect(nextSelection(label("France"), onBar("Belgique"), "label", true)).toEqual(mark("Belgique"));
+    // double-clic sur le fond : comportement d'un toucher simple
+    expect(nextSelection(page, onPlot, "chart", true)).toEqual(chart);
+  });
+  it("graphique sans série (pas de data-sel-series) : graphique → élément directement", () => {
+    const chain = [page, chart, { level: "mark", ek: "e:A", sk: null, name: "A" } as Sel, { level: "label", ek: "e:A", sk: null, name: "A" } as Sel];
+    expect(nextSelection(chart, chain, "mark")?.level).toBe("mark");
   });
 });

@@ -701,9 +701,24 @@ choix de colonnes, nommés et réutilisés par les graphiques et les scènes.
 
 ## Sélection par touchers successifs (série A)
 
-Chaque toucher (ou clic) **au même endroit** du graphique descend d'un niveau : **Page › Graphique › Barres (la série)
-› une barre › son libellé**. Toucher ailleurs, **Échap** ou le bouton **↑** du panneau remonte d'un niveau (depuis la
-page : plus de sélection).
+Les niveaux : **Page › Graphique › Barres (la série) › une barre › son libellé**. Souris et toucher se comportent de
+la même façon.
+
+- **Toucher un objet situé dans la sélection courante** descend d'un niveau **vers lui**, quel que soit l'endroit
+  exact : graphique choisi, toucher une barre → sa série ; série choisie, toucher une de ses barres → cette barre ;
+  barre choisie, toucher la barre ou son libellé → le libellé. Toucher au même endroit continue donc de descendre.
+- **Toucher un objet hors de la sélection courante le sélectionne directement, au même niveau** (choix retenu : plus
+  direct que « remonter d'un cran », on garde le niveau où l'on travaille) : une barre choisie, toucher une autre
+  barre → cette autre barre ; une série choisie, toucher une barre d'une autre série → cette autre série. Si l'objet
+  touché est moins profond, on s'arrête à lui : toucher le **fond du graphique** → le graphique ; toucher **hors du
+  graphique** (titre, marges) → la page. Depuis un libellé, toucher une autre barre → cette barre (pas son libellé).
+- **Raccourci** : **double-clic** ou **double-toucher** (deux touchers à moins de 320 ms et 24 px) sur une marque →
+  directement le niveau **élément** (cette barre, cette part, ce point). Conséquence : pour descendre pas à pas au
+  même endroit, laisser un court instant entre deux touchers.
+- **Petites marques** (points d'une courbe ou d'un nuage) : au doigt, le point le plus proche à moins de 14 px compte
+  comme touché (6 px à la souris) ; les barres et les parts ne sont pas concernées.
+- **Échap** ou le bouton **↑** du panneau remonte d'un niveau ; toucher le fond gris autour de la scène aussi (depuis
+  la page : plus de sélection).
 
 - **Repères** sur la scène (calque HTML, jamais exporté) : cadre pointillé pétrole autour de l'objet, parent en
   pointillé discret, pastille fil d'Ariane (« Page › Graphique › Barres › Belgique › Libellé »), anneau de toucher
@@ -732,12 +747,20 @@ page : plus de sélection).
   - **Exploration** (drill) et carte des régions : un toucher sur une barre ou une région continue d'**explorer** ;
     la sélection s'arrête à Page › Graphique ; pas de couleur par région.
   - **Carte (points) et film 4D** (bibliothèque span-magnitude) : Page › Graphique seulement.
-  - **Notation IBCS** (scénarios AC / PY / PL / FC) : le style de scénario prime sur la couleur propre.
+  - **Mode norme** (scénarios AC / PY / PL / FC, notation inspirée d'IBCS) : chaque scénario est une série, chaque
+    colonne (scénario, catégorie) un élément, la valeur affichée est le libellé du scénario principal. Le style de
+    scénario prime sur la couleur propre. Les barres et épingles d'écart (bandeau Δ) ne sont pas sélectionnables.
+  - **Graphique d'écarts** (type « Écarts ») : sélection limitée à Page › Graphique.
   - Le « repère » (ligne de référence) de la maquette A3 n'est pas construit.
   - Hors du mode « Choisir sur le graphique », toucher une autre barre ne déplace plus la mise en avant : on la
     déplace depuis le panneau de l'élément (« Mettre en avant »).
-- Tests : `test/selection.test.ts`, `node studio/scripts/e2e.mjs --selection --shots` (iPad 1366 et 1024, toucher ;
-  captures 160 à 164).
+- Tests : `test/selection.test.ts` (dont les transitions `nextSelection`), `node studio/scripts/e2e.mjs --selection
+  --shots` (iPad 1366 et 1024, toucher ; captures 160 à 164) et `--selection-clics` (vrais clics à des endroits
+  différents : page, graphique, barre, même barre, libellé ; souris 1366 et iPad 1024 ; barres, horizontales,
+  groupées, empilées, camembert, anneau, lignes, nuage, mode norme ; autre élément ; fond ; double-clic / double-toucher ;
+  capture 165).
+- **Correctif du 9 octobre 2026** : en mode norme (ex. « Revue mensuelle (norme) »), les colonnes ne portaient pas
+  `data-sel` ; un clic sur une colonne laissait la sélection sur « Page › Graphique ».
 
 ## Menu du haut : variante B « Deux niveaux calmes »
 

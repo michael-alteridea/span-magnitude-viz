@@ -119,7 +119,7 @@ export class Preview {
       }
       if (el || !(e.target instanceof Element) || this.svg.hasAttribute("data-zoom")) return;
       // sélection par touchers successifs ; au niveau « Page », le toucher ouvre aussi le réglage visé (titre, axe…)
-      const sel = this.selection.tap(e.target, e.clientX, e.clientY);
+      const sel = this.selection.tap(e.target, e.clientX, e.clientY, { detail: e.detail, pointerType: (e as PointerEvent).pointerType });
       // une série, un élément ou un libellé sélectionné : l'infobulle du toucher s'efface (le cadre et le panneau suffisent)
       if (sel && sel.level !== "page" && sel.level !== "chart") this.tooltip.hide();
       if ((!sel || sel.level === "page") && this.onPick) this.onPick(e.target);
@@ -127,7 +127,7 @@ export class Preview {
     // type spécial (film, carte de la bibliothèque) : page › graphique
     this.specialHost.addEventListener("click", (e) => {
       if ((e.target as Element | null)?.closest?.("button, a, input, select")) return;
-      this.selection.tap(null, e.clientX, e.clientY);
+      this.selection.tap(null, e.clientX, e.clientY, { detail: e.detail, pointerType: (e as PointerEvent).pointerType });
     });
     // toucher hors de la scène (fond gris autour) : niveau parent
     this.wrap.addEventListener("click", (e) => {

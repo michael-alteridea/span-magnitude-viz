@@ -15,6 +15,7 @@ import { formatSignedPct } from "../story/fr";
 import { stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
 import { rows as tipRows, tip, type TipRow } from "./tip";
+import { elemKey, selAttrs, seriesKey } from "./overrides";
 
 let hatchSeq = 0;
 
@@ -52,6 +53,8 @@ export function canOverlapScenarios(codes: (ScenarioCode | null)[]): boolean {
 
 interface Row {
   label: string;
+  /** Libellé complet de la catégorie (clé de sélection, avant raccourcissement de l'année). */
+  key: string;
   main: number;
   mainCode: ScenarioCode | null;
   py: number;
@@ -76,7 +79,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     const mainCode: ScenarioCode | null = Number.isFinite(a) ? "AC" : Number.isFinite(f) ? "FC" : null;
     const pl = val(iPL, k);
     const py = val(iPY, k);
-    return { label: model.labels[k]!, main, mainCode, pl, py, ref: refCode === "PL" ? pl : refCode === "PY" ? py : NaN };
+    return { label: model.labels[k]!, key: model.labels[k]!, main, mainCode, pl, py, ref: refCode === "PL" ? pl : refCode === "PY" ? py : NaN };
   });
   // Même année partout (« janv. 2026 » … « déc. 2026 ») : l'année est dans le sous-titre, libellés courts
   const years = new Set(rows.map((r) => /\s(\d{4})$/.exec(r.label)?.[1] ?? "?"));
@@ -129,6 +132,15 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
       .attr("stroke", st.stroke)
       .attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s);
     tip(sel, { t: r.label, sub: `${SCENARIO_NAMES[code]} (${code})`, v: fmt(v), rows: tipRows(vsRow(r, v, code, r.pl, "PL"), vsRow(r, v, code, r.py, "PY")) });
+    // sélection par touchers successifs : une série par scénario, un élément par (scénario, catégorie)
+    const sName = model.series[codes.indexOf(code)] ?? code;
+    selAttrs(sel, "mark", elemKey(r.key, sName), seriesKey(sName), `${r.key} · ${sName}`, fmt(v));
+  };
+  /** Libellé de valeur rattaché à la marque principale (réel, ou prévision à défaut). */
+  const valueSel = (t: Selection<SVGTextElement, unknown, null, undefined>, r: Row) => {
+    if (!r.mainCode) return;
+    const sName = model.series[codes.indexOf(r.mainCode)] ?? r.mainCode;
+    selAttrs(t, "label", elemKey(r.key, sName), seriesKey(sName), `${r.key} · ${sName}`, fmt(r.main));
   };
 
   if (!horizontal) {
@@ -167,7 +179,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
       bar(r.pl, cx - w / 2 + off, "PL");
       if (r.mainCode) bar(r.main, cx - w / 2, r.mainCode);
       const top = Math.max(...[r.main, r.pl, r.py].filter(Number.isFinite));
-      if (showLabels && f >= 1 && Number.isFinite(r.main) && bw > 26 * s) g.append("text").attr("class", "r4d-value").attr("x", cx).attr("y", yV(top) - 6 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main));
+      if (showLabels && f >= 1 && Number.isFinite(r.main) && bw > 26 * s) g.append("text").attr("class", "r4d-value").attr("x", cx).attr("y", yV(top) - 6 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main)).call((t) => valueSel(t, r));
       // écart
       const d = dv[i];
       if (yD && d) {
@@ -230,7 +242,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     bar(r.pl, cy - t / 2 + off, "PL");
     if (r.mainCode) bar(r.main, cy - t / 2, r.mainCode);
     const right = Math.max(...[r.main, r.pl, r.py].filter(Number.isFinite));
-    if (f >= 1 && Number.isFinite(r.main)) g.append("text").attr("class", "r4d-value").attr("x", xs(right) + 6 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main));
+    if (f >= 1 && Number.isFinite(r.main)) g.append("text").attr("class", "r4d-value").attr("x", xs(right) + 6 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main)).call((t) => valueSel(t, r));
     const d = dv[i];
     if (!hasVar || !d) return;
     const v = rel ? d.rel * 100 : d.delta;

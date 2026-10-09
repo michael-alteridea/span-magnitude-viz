@@ -1480,7 +1480,8 @@ async function e2eSelection() {
   await sleep(700);
   // centre d'un élément du graphique (coordonnées écran)
   const at = (sel) => pg.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
-  const tapAt = async (p) => { await pg.touchscreen.tap(p.x, p.y); await sleep(260); };
+  // touchers espacés au-delà du délai du double-toucher (320 ms), qui mène directement à l'élément
+  const tapAt = async (p) => { await pg.touchscreen.tap(p.x, p.y); await sleep(600); };
   const state = () => pg.evaluate(() => ({
     sel: window.r4d.selection().sel,
     chip: document.querySelector("[data-testid=sel-chip]")?.hidden ? "" : document.querySelector("[data-testid=sel-chip]")?.textContent.replace(/\s*›\s*/g, " › ").trim(),
@@ -1542,11 +1543,11 @@ async function e2eSelection() {
   await sleep(400);
   const l2 = await pg.evaluate(() => { const o = window.r4d.getSpec().style.overrides; const sk = Object.keys(o).find((k) => k.startsWith("s:")); return { sk, ov: sk ? o[sk] : null, greys: [...document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]')].filter((t) => t.getAttribute("fill")?.toLowerCase() === "#9ca3af").length, n: document.querySelectorAll('[data-testid=chart-svg] text[data-sel="label"]').length }; });
   check("libellé : « Toute la série » écrit la surcharge de série (les autres libellés suivent, le libellé propre garde la sienne)", l2.ov?.labelColor === "#9CA3AF" && l2.greys === l2.n - 1, JSON.stringify(l2));
-  // toucher ailleurs : niveau parent
+  // toucher hors de la sélection, hors du graphique (titre) : la page (règle du 09/10 : l'objet touché, au niveau où il est)
   const tp = await at("[data-testid=chart-svg] .r4d-title");
   await tapAt(tp);
   const away = await state();
-  check("toucher ailleurs (titre) : remonte d'un niveau (libellé → barre)", away.sel?.level === "mark", JSON.stringify(away.sel));
+  check("toucher ailleurs (titre, hors du graphique) : sélectionne la page", away.sel?.level === "page", JSON.stringify(away.sel));
   for (let i = 0; i < 4; i++) { await pg.keyboard.press("Escape"); await sleep(120); }
   const none = await state();
   check("Échap jusqu'en haut : plus de sélection, réglages complets", !none.sel && !none.ctx && none.acc && !none.frame, JSON.stringify(none));
@@ -1608,6 +1609,135 @@ async function e2eSelection() {
   const words = await pg.evaluate(() => document.body.innerText);
   check("sélection : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
   await ctx.close();
+}
+
+/**
+ * Sélection : vrais clics / touchers à des endroits DIFFÉRENTS (scénario signalé le 09/10 : page, puis le
+ * graphique, puis une barre, puis la même barre, puis son libellé), à la souris (1366) et au toucher (iPad 1024),
+ * sur barres, horizontales, groupées, empilées, secteurs, donut, lignes, nuage et barres en mode norme (scénarios) ;
+ * double-clic / double-toucher → élément ; toucher une autre barre → cette barre ; toucher le fond → graphique.
+ */
+async function e2eSelectionClics() {
+  const CASES = [
+    ["ventes", "bar"], ["ventes", "barH"], ["objectifs", "groupedBar"], ["objectifs", "stackedBar"], ["ventes", "pie"], ["canaux", "donut"],
+    ["objectifs", "line"], ["ventes", "scatter"], ["revue-mensuelle-norme", null],
+  ];
+  for (const input of ["souris", "toucher"]) {
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    const touch = input === "toucher";
+    await pg.setViewport(touch ? { width: 1024, height: 768, deviceScaleFactor: 1, hasTouch: true } : { width: 1366, height: 900, deviceScaleFactor: 1 });
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+    const act = async (pt, dbl = false) => {
+      if (touch) {
+        await pg.touchscreen.tap(pt.x, pt.y);
+        if (dbl) { await sleep(90); await pg.touchscreen.tap(pt.x, pt.y); }
+      } else {
+        await pg.mouse.move(pt.x, pt.y, { steps: 6 });
+        await sleep(120);
+        await pg.mouse.click(pt.x, pt.y, { count: dbl ? 2 : 1 });
+      }
+      // au-delà du délai du double-toucher : chaque geste compte pour un
+      await sleep(650);
+    };
+    const level = () => pg.evaluate(() => { const s = window.r4d.selection().sel; return s ? { level: s.level, ek: s.ek, sk: s.sk } : null; });
+    /** Points écran réellement sur une marque (elementFromPoint === la marque), le fond de la zone de tracé, le libellé d'une clé. */
+    const geo = (key) => pg.evaluate((key) => {
+      const svg = document.querySelector("[data-testid=chart-svg]");
+      const sr = svg.getBoundingClientRect();
+      const p = window.r4d.preview.last?.plot;
+      const k = window.r4d.preview.scale;
+      const plot = p ? { x: sr.left + p.x * k, y: sr.top + p.y * k, w: p.w * k, h: p.h * k } : null;
+      const marks = [];
+      for (const m of svg.querySelectorAll('[data-sel="mark"]')) {
+        const r = m.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) continue;
+        const pts = [];
+        for (let i = 1; i < 10; i++) for (let j = 1; j < 10; j++) { const x = r.left + (r.width * i) / 10, y = r.top + (r.height * j) / 10; if (document.elementFromPoint(x, y) === m) pts.push({ x, y }); }
+        if (pts.length) marks.push({ key: m.getAttribute("data-sel-key"), sk: m.getAttribute("data-sel-series"), area: r.width * r.height, a: pts[0], b: pts[pts.length - 1] });
+      }
+      marks.sort((a, b) => b.area - a.area);
+      let empty = null;
+      if (plot) for (let j = 1; j < 12 && !empty; j++) for (let i = 11; i > 0 && !empty; i--) { const x = plot.x + (plot.w * i) / 12, y = plot.y + (plot.h * j) / 12; const e = document.elementFromPoint(x, y); if (e && svg.contains(e) && !e.closest("[data-sel], [data-r4d-edit], a") && ![...svg.querySelectorAll('[data-sel="mark"]')].some((m) => { const b = m.getBoundingClientRect(); return x > b.left - 20 && x < b.right + 20 && y > b.top - 20 && y < b.bottom + 20; })) empty = { x, y }; }
+      const lab = (key && svg.querySelector(`[data-sel="label"][data-sel-key="${CSS.escape(key)}"]`)) || null;
+      const lr = lab?.getBoundingClientRect();
+      return { type: window.r4d.store.state.spec.type, norme: !!window.r4d.store.state.spec.norme?.enabled, outside: { x: sr.left + sr.width - 24, y: sr.top + 16 }, plot, empty, marks, label: lr && lr.width ? { x: lr.left + lr.width / 2, y: lr.top + lr.height / 2 } : null };
+    }, key ?? null);
+    for (const [sample, type] of CASES) {
+      await pg.evaluate(async (id, t) => {
+        window.r4d.selection().clear();
+        window.r4d.loadSample(id);
+        await new Promise((r) => setTimeout(r, 900));
+        if (t) await window.r4d.pickType(t);
+        window.r4d.set("style.valueLabels", true);
+        window.r4d.set("style.focus.key", null);
+        window.r4d.set("mode.kind", "static");
+        await window.r4d.settle();
+      }, sample, type);
+      await sleep(700);
+      const name = `${type ?? "barres norme"} (${sample})`;
+      let g = await geo();
+      if (!g.marks.length || !g.empty) {
+        check(`sélection (${input}) ${name} : marques sélectionnables et fond de graphique`, false, JSON.stringify({ marks: g.marks.length, empty: g.empty }));
+        continue;
+      }
+      const seen = [];
+      await act(g.outside); seen.push(await level());
+      await act(g.empty); seen.push(await level());
+      g = await geo();
+      const m = g.marks[0];
+      await act(m.a); seen.push(await level());
+      g = await geo();
+      const m2 = g.marks.find((x) => x.key === m.key) ?? m;
+      await act(m2.b); seen.push(await level());
+      g = await geo(m.key);
+      if (g.label) { await act(g.label); seen.push(await level()); }
+      const lv = seen.map((x) => x?.level ?? "-");
+      const want = g.label ? "page,chart,series,mark,label" : "page,chart,series,mark";
+      const okKeys = seen[3]?.ek === m.key && (!g.label || seen[4]?.ek === m.key);
+      check(`sélection (${input}) ${name} : page → graphique → série → cet élément${g.label ? " → son libellé" : ""}, clics à des endroits différents`, lv.join() === want && okKeys, JSON.stringify({ lv, key: m.key, got: seen.map((x) => x?.ek ?? null), label: !!g.label }));
+      // autre élément touché depuis un élément : cet autre élément ; fond : graphique
+      g = await geo();
+      const other = g.marks.find((x) => x.key !== m.key);
+      if (other) {
+        await act(g.marks.find((x) => x.key === m.key)?.a ?? m.a);
+        const before = await level();
+        await act(other.a);
+        const after = await level();
+        const exp = before?.level === "label" ? "mark" : before?.level;
+        check(`sélection (${input}) ${name} : toucher un autre élément le sélectionne au même niveau`, after?.ek === other.key && after?.level === exp, JSON.stringify({ before, after, other: other.key }));
+      }
+      g = await geo();
+      await act(g.empty);
+      const bg = await level();
+      check(`sélection (${input}) ${name} : toucher le fond du graphique revient au graphique`, bg?.level === "chart", JSON.stringify(bg));
+      // double-clic / double-toucher : directement l'élément
+      await pg.evaluate(() => window.r4d.selection().set({ level: "chart", ek: null, sk: null, name: "" }));
+      await sleep(200);
+      g = await geo();
+      const d = g.marks[g.marks.length > 2 ? 1 : 0];
+      await act(d.a, true);
+      const dd = await level();
+      check(`sélection (${input}) ${name} : ${touch ? "double-toucher" : "double-clic"} sur un élément → niveau « élément »`, dd?.level === "mark" && dd?.ek === d.key, JSON.stringify({ dd, key: d.key }));
+      if (SHOTS && sample === "revue-mensuelle-norme") await pg.screenshot({ path: join(shotsDir, `165-selection-norme-${input}.png`) });
+    }
+    check(`sélection (${input}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--selection-clics")) {
+  try { await e2eSelectionClics(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
 }
 
 if (process.argv.includes("--selection")) {
@@ -4336,6 +4466,8 @@ try {
   await e2eDatasets();
   /* 28. Sélection par touchers successifs (série A), iPad : voir e2eSelection() */
   await e2eSelection();
+  /* 28 bis. Sélection : vrais clics à des endroits différents, souris et toucher, tous les types ; double-clic */
+  await e2eSelectionClics();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {
