@@ -1802,10 +1802,11 @@ async function e2eNuancier() {
     check(`nuancier (${W}) : une couleur de base (bleu foncé) s'applique à l'élément`, b0.ov?.toUpperCase() === "#002060" && !b0.open, JSON.stringify(b0));
     await pg.tap("[data-testid=sel-mark-color-nuancier]");
     await sleep(350);
-    await shot(`166-nuancier-element-ipad-${W}.png`);
     // élément : bleu nuit
     await pg.tap('[data-testid=nuancier-grid] button[aria-label="Bleu nuit"]');
     await sleep(400);
+    // capture une fois la couleur posée : la barre et sa puce colorée « À retenir » sont visibles (la fenêtre les couvrirait)
+    await shot(`166-nuancier-element-ipad-${W}.png`);
     const e1 = await pg.evaluate((m) => ({ ov: window.r4d.getSpec().style.overrides[m.ek], fill: document.querySelector(`[data-testid=chart-svg] rect[data-sel="mark"][data-sel-key="${CSS.escape(m.ek)}"]`)?.getAttribute("fill"), open: !!document.querySelector("[data-testid=nuancier]"), sel: window.r4d.selection().sel?.level }), mk);
     check(`nuancier (${W}) : « bleu nuit » colore l'élément seul et ferme la fenêtre (sélection gardée)`, e1.ov?.color?.toUpperCase() === "#1E3A8A" && e1.fill?.toUpperCase() === "#1E3A8A" && !e1.open && e1.sel === "mark", JSON.stringify(e1));
     // série : récentes + violet
@@ -1830,9 +1831,9 @@ async function e2eNuancier() {
     await pg.tap("[data-testid=sel-label-color-nuancier]");
     await sleep(300);
     const rec2 = await pg.evaluate(() => [...document.querySelectorAll("[data-testid=nuancier-recentes] button")].map((b) => b.getAttribute("aria-label")));
-    await shot(`167-nuancier-libelle-ipad-${W}.png`);
     await pg.tap('[data-testid=nuancier-grid] button[aria-label="Jaune"]');
     await sleep(400);
+    await shot(`167-nuancier-libelle-ipad-${W}.png`);
     const l1 = await pg.evaluate((m) => window.r4d.getSpec().style.overrides[m.ek]?.labelColor, mk);
     check(`nuancier (${W}) : Échap ferme le nuancier sans remonter la sélection ; couleur du libellé ; récentes dans l'ordre (violet, bleu nuit)`, !esc.open && esc.sel === "label" && l1?.toUpperCase() === "#FACC15" && rec2.slice(0, 2).join() === "Violet,Bleu nuit", JSON.stringify({ esc, l1, rec2 }));
     // fond personnalisé
@@ -1842,9 +1843,9 @@ async function e2eNuancier() {
     await sleep(250);
     await pg.tap("[data-testid=bg-color-nuancier]");
     await sleep(350);
-    await shot(`168-nuancier-fond-ipad-${W}.png`);
     await pg.tap('[data-testid=nuancier-grid] button[aria-label="Lin"]');
     await sleep(500);
+    await shot(`168-nuancier-fond-ipad-${W}.png`);
     const bg = await pg.evaluate(() => ({ v: window.r4d.getSpec().style.backgroundCustom, fill: document.querySelector("[data-testid=chart-svg] .r4d-bg")?.getAttribute("fill"), on: document.querySelector("[data-testid=bg-color] [aria-pressed=true]")?.getAttribute("aria-label") }));
     check(`nuancier (${W}) : couleur de fond (même composant), pastille active à jour`, bg.v?.toUpperCase() === "#F5E6D3" && bg.fill?.toUpperCase() === "#F5E6D3" && bg.on === "Lin", JSON.stringify(bg));
     check(`nuancier (${W}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
