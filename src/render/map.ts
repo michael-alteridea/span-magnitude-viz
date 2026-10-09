@@ -521,6 +521,42 @@ export function computeScaleBar(
   return { km, px, label: `${km.toLocaleString("fr-FR").replace(/\u202f/g, "\u00a0")}\u00a0km`, x, y };
 }
 
+/** Map view transform (inner map coordinates): screen = k · p + (x, y). */
+export interface MapZoomTransform {
+  k: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Projection seen through a view zoom (forward and inverse), for the scale bar of a zoomed map:
+ * a ground distance spans k times more pixels.
+ */
+export function zoomedProjection(projection: GeoProjection, z: MapZoomTransform): GeoProjection {
+  if (z.k === 1 && z.x === 0 && z.y === 0) return projection;
+  const f = ((p: [number, number]) => {
+    const q = projection(p);
+    return q ? [q[0] * z.k + z.x, q[1] * z.k + z.y] : null;
+  }) as unknown as GeoProjection;
+  (f as { invert?: GeoProjection["invert"] }).invert = projection.invert
+    ? (p: [number, number]) => projection.invert!([(p[0] - z.x) / z.k, (p[1] - z.y) / z.k])
+    : undefined;
+  return f;
+}
+
+/**
+ * Keeps Burundi province labels readable under a view zoom: same on-screen size and offset above the anchor.
+ */
+export function applyMapLabelZoom(ctx: MapPaintContext, k: number): void {
+  const { layout } = ctx;
+  if (layout.mapRegion !== "burundi") return;
+  const fs = Math.max(8, Math.min(13, layout.innerWidth / 70));
+  ctx.gBasemap.selectAll<SVGTextElement, BasemapFeature>("text.smv-map-label")
+    .attr("font-size", fs / k)
+    .attr("y", (d) => (layout.projection([d.properties.lon ?? 0, d.properties.lat ?? 0]) ?? [0, 0])[1] - (fs * 0.6 + 7) / k)
+    .style("stroke-width", () => (k === 1 ? null : `${2.5 / k}px`));
+}
+
 /** Paints the km scale bar (always shown on maps) into `g` (inner map coordinates). */
 export function paintScaleBar(
   g: Selection<SVGGElement, unknown, null, undefined>,
@@ -593,6 +629,8 @@ function choroplethColor(t: number, scheme?: string): string {
 }
 
 export interface MapPaintContext {
+  /** View zoom factor (dots, halos and labels keep their on-screen size). Default 1. */
+  zoomK?: number;
   gBasemap: Selection<SVGGElement, unknown, null, undefined>;
   gHeat: Selection<SVGGElement, unknown, null, undefined>;
   gDots: Selection<SVGGElement, unknown, null, undefined>;
@@ -729,6 +767,7 @@ export function applyMapFrame(
   hoveredId: string | null
 ): void {
   const { gBasemap, gHeat, gDots, layout, schedule, options } = ctx;
+  const zk = ctx.zoomK ?? 1;
   const persistence: PersistenceMode = options.persistence ?? "keep";
   const choroplethOn = options.mapChoropleth !== false;
   const heatmapOn = options.mapHeatmap !== false;
@@ -787,7 +826,7 @@ export function applyMapFrame(
         intensity * persist * (p > 0 ? 0.08 + 0.14 * p : 0);
       el.attr("fill-opacity", heatOp).attr(
         "r",
-        d.r * (3.5 + 2.5 * intensity) * layout.markScale
+        (d.r * (3.5 + 2.5 * intensity) * layout.markScale) / zk
       );
     });
   }
@@ -799,9 +838,10 @@ export function applyMapFrame(
     const r = Math.max(
       0.5,
       d.r * (options.entrance === false ? p : 0.35 + 0.65 * p)
-    );
+    ) / zk;
     const op = (p > 0 ? 0.55 + 0.4 * p : 0) * persist;
     el.attr("r", r)
+      .attr("stroke-width", 0.8 / zk)
       .style("opacity", String(op))
       .attr(
         "transform",

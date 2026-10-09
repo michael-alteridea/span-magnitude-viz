@@ -1,4 +1,4 @@
-import { axisBottom, scaleLinear, select } from "d3";
+import { axisBottom, scaleLinear, select, zoom as d3zoom, zoomIdentity, zoomTransform, type ZoomBehavior } from "d3";
 import type { Selection } from "d3";
 import {
   computeLayout,
@@ -36,6 +36,7 @@ import type {
   SpanMagnitudeDocument,
   TickerKind,
   TickerState,
+  MapZoom,
   ViewMode,
   VizHandle,
   VizOptions,
@@ -43,7 +44,9 @@ import type {
 import { parseDocument } from "../parse.js";
 import {
   applyMapFrame,
+  applyMapLabelZoom,
   computeMapLayout,
+  zoomedProjection,
   documentHasGeo,
   mapAnnotationTargets,
   mapLayerCss,
@@ -238,6 +241,17 @@ export function mountSvg(
   let mapLayout: MapLayout | null = null;
   let mapCtx: MapPaintContext | null = null;
   let viewMode: ViewMode = currentOpts.viewMode ?? "chart";
+  /** Map view zoom (view only, inner map coordinates) and its wiring; reset on every rebuild. */
+  let mapZoom: MapZoom = { k: 1, x: 0, y: 0 };
+  let mapZoomView: {
+    svg: Selection<SVGSVGElement, unknown, null, undefined>;
+    g: Selection<SVGGElement, unknown, null, undefined>;
+    gView: Selection<SVGGElement, unknown, null, undefined>;
+    gZoom: Selection<SVGGElement, unknown, null, undefined>;
+    clipId: string;
+    behavior: ZoomBehavior<SVGSVGElement, unknown> | null;
+  } | null = null;
+  let lastT = 1;
 
   const tooltip = document.createElement("div");
   tooltip.className = "smv-tooltip";
@@ -318,6 +332,7 @@ export function mountSvg(
     const slowFirst = currentOpts.slowFirst ?? 2;
     const persistence: PersistenceMode = currentOpts.persistence ?? "keep";
 
+    lastT = t;
     if (viewMode === "map" && mapCtx && mapLayout) {
       applyMapFrame(mapCtx, t, hoveredId);
       gMarks.selectAll(".smv-annotation").remove();
@@ -427,6 +442,58 @@ export function mountSvg(
     currentOpts.onTick?.(state);
   }
 
+  /** Applies `mapZoom` to the map: group transform, clip, dot / label sizes, scale bar. */
+  function applyMapZoom(): void {
+    const v = mapZoomView;
+    if (!v || !mapCtx || !mapLayout) return;
+    const z = mapZoom;
+    const identity = z.k === 1 && z.x === 0 && z.y === 0;
+    v.gZoom.attr("transform", identity ? null : `translate(${z.x},${z.y}) scale(${z.k})`);
+    v.gView.attr("clip-path", identity ? null : `url(#${v.clipId})`);
+    v.gView.attr("data-zoom", identity ? null : z.k.toFixed(3));
+    mapCtx.zoomK = z.k;
+    applyMapLabelZoom(mapCtx, z.k);
+    // the scale bar stays where it is and measures the zoomed map
+    const sb = paintScaleBar(v.g, { ...mapLayout, projection: zoomedProjection(mapLayout.projection, z) }, (currentOpts.theme ?? "dark") === "light");
+    void sb;
+    applyMapFrame(mapCtx, lastT, hoveredId);
+  }
+
+  /** d3.zoom on the map svg: wheel / trackpad, pinch, drag (once zoomed); never double-click. */
+  function bindMapZoom(): void {
+    const v = mapZoomView;
+    if (!v || !mapLayout) return;
+    const m = mapLayout.margin;
+    const ext: [[number, number], [number, number]] = [
+      [m.left, m.top],
+      [m.left + mapLayout.innerWidth, m.top + mapLayout.innerHeight],
+    ];
+    const node = v.svg.node()!;
+    const behavior = d3zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 8])
+      .extent(ext)
+      .translateExtent(ext)
+      .clickDistance(4)
+      .tapDistance(10)
+      .filter((event: Event) => {
+        const e = event as MouseEvent;
+        if (event.type === "wheel") return true;
+        if (event.type === "dblclick") return false;
+        // mouse: drag only pans a zoomed map (a click keeps selecting); touch: pinch and pan
+        if (event.type === "mousedown") return !e.button && zoomTransform(node).k > 1;
+        return !e.button;
+      })
+      .on("zoom", (event: { transform: { k: number; x: number; y: number } }) => {
+        const t = event.transform;
+        // svg coordinates → inner map coordinates (group translated by the margins)
+        mapZoom = { k: t.k, x: t.x + (t.k - 1) * m.left, y: t.y + (t.k - 1) * m.top };
+        applyMapZoom();
+        currentOpts.onMapZoom?.({ ...mapZoom });
+      });
+    v.svg.call(behavior).on("dblclick.zoom", null);
+    v.behavior = behavior;
+  }
+
   function rebuild(opts: { preserveProgress?: number; runEntrance?: boolean } = {}): void {
     anim?.destroy();
     anim = null;
@@ -437,6 +504,10 @@ export function mountSvg(
     facetSummaryEls = null;
     hoveredId = null;
     hideTooltip();
+    mapZoomView = null;
+    const zoomed = mapZoom.k !== 1 || mapZoom.x !== 0 || mapZoom.y !== 0;
+    mapZoom = { k: 1, x: 0, y: 0 };
+    if (zoomed) currentOpts.onMapZoom?.({ ...mapZoom });
 
     viewMode = currentOpts.viewMode ?? "chart";
     mapLayout = null;
@@ -492,7 +563,11 @@ export function mountSvg(
           `translate(${mapLayout.margin.left},${mapLayout.margin.top})`
         );
 
-      const gBasemap = g.append("g").attr("class", "smv-map-basemap");
+      // Zoom (view only): basemap, halos and dots live in one group, transformed as a whole; the frame is
+      // clipped only while zoomed (the unzoomed rendering is unchanged).
+      const gView = g.append("g").attr("class", "smv-map-viewport");
+      const gZoom = gView.append("g").attr("class", "smv-map-zoom");
+      const gBasemap = gZoom.append("g").attr("class", "smv-map-basemap");
       // Keep the soft heat halos inside the map frame (no bleed over caption / attribution)
       const clipId = `smv-map-clip-${Math.random().toString(36).slice(2, 9)}`;
       g.append("clipPath")
@@ -500,11 +575,11 @@ export function mountSvg(
         .append("rect")
         .attr("width", mapLayout.innerWidth)
         .attr("height", mapLayout.innerHeight);
-      const gHeat = g
+      const gHeat = gZoom
         .append("g")
         .attr("class", "smv-map-heat")
         .attr("clip-path", `url(#${clipId})`);
-      gMarks = g.append("g").attr("class", "smv-marks smv-marks-layer smv-map-dots");
+      gMarks = gZoom.append("g").attr("class", "smv-marks smv-marks-layer smv-map-dots");
       // annotations share gMarks parent; paintMapLayers uses separate gDots — reassign
       const gDots = gMarks;
 
@@ -528,6 +603,8 @@ export function mountSvg(
       paintMapLayers(mapCtx);
       // Every map carries a km scale bar matching the current projection / framing
       paintScaleBar(g, mapLayout, (currentOpts.theme ?? "dark") === "light");
+      mapZoomView = { svg: svg as unknown as Selection<SVGSVGElement, unknown, null, undefined>, g, gView, gZoom, clipId, behavior: null };
+      if (currentOpts.mapZoom) bindMapZoom();
 
       g.append("text")
         .attr("x", mapLayout.innerWidth / 2)
@@ -849,6 +926,30 @@ export function mountSvg(
     },
     getState() {
       return tickerAt(schedule, anim?.getProgress() ?? 1);
+    },
+    getMapZoom() {
+      return { ...mapZoom };
+    },
+    zoomMapBy(factor: number) {
+      const v = mapZoomView;
+      if (!v?.behavior || !(factor > 0)) return;
+      v.behavior.scaleBy(v.svg, factor);
+    },
+    setMapZoom(z: MapZoom) {
+      const v = mapZoomView;
+      if (!v?.behavior || !mapLayout) return;
+      const m = mapLayout.margin;
+      // inner map coordinates → svg coordinates (inverse of the zoom handler)
+      v.behavior.transform(v.svg, zoomIdentity.translate(z.x - (z.k - 1) * m.left, z.y - (z.k - 1) * m.top).scale(z.k));
+    },
+    resetMapZoom() {
+      const v = mapZoomView;
+      if (v?.behavior) v.behavior.transform(v.svg, zoomIdentity);
+      else if (mapZoom.k !== 1 || mapZoom.x !== 0 || mapZoom.y !== 0) {
+        mapZoom = { k: 1, x: 0, y: 0 };
+        applyMapZoom();
+        currentOpts.onMapZoom?.({ ...mapZoom });
+      }
     },
     destroy() {
       if (morphTimer) window.clearTimeout(morphTimer);

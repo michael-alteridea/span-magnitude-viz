@@ -203,6 +203,14 @@ export interface VizOptions {
   mapChoropleth?: boolean;
   /** Soft radial heatmap blobs under dots at finale. Default true. */
   mapHeatmap?: boolean;
+  /**
+   * Map view: interactive zoom (view only). Pinch (touch), wheel / trackpad over the map, drag to pan once
+   * zoomed; no double-click zoom (left to the host). Scale 1–8, strokes and labels keep their on-screen size,
+   * the km scale bar follows the zoom. Buttons: `zoomMapBy` / `resetMapZoom` on the handle. Default false.
+   */
+  mapZoom?: boolean;
+  /** Called whenever the map zoom changes (inner map coordinates; identity = `{ k: 1, x: 0, y: 0 }`). */
+  onMapZoom?: (z: MapZoom) => void;
   onHover?: (mark: NormalizedMark | null, event?: MouseEvent) => void;
   onSelect?: (mark: NormalizedMark | null) => void;
   onTick?: (state: TickerState) => void;
@@ -214,6 +222,13 @@ export interface TickerState {
   magnitudeSum: number;
   spanSum: number;
   progress: number;
+}
+
+/** Map view transform in inner map coordinates: screen = k · p + (x, y). */
+export interface MapZoom {
+  k: number;
+  x: number;
+  y: number;
 }
 
 export interface VizHandle {
@@ -230,6 +245,14 @@ export interface VizHandle {
   /** Switch basemap region / level / framing (map view). */
   setMap(opts: { region?: MapRegion; level?: MapLevel; fit?: "region" | "data" }): void;
   setProgress(t: number): void;
+  /** Map view: current zoom (identity when not zoomed or not a map). */
+  getMapZoom(): MapZoom;
+  /** Map view (`mapZoom: true`): zoom by `factor` around the map centre (clamped to 1–8). */
+  zoomMapBy(factor: number): void;
+  /** Map view: back to the whole frame (identity). */
+  resetMapZoom(): void;
+  /** Map view (`mapZoom: true`): set the zoom (inner map coordinates, clamped like the gestures). */
+  setMapZoom(z: MapZoom): void;
   getState(): TickerState;
   destroy(): void;
   update(doc: SpanMagnitudeDocument | NormalizedDocument, options?: Partial<VizOptions>): void;

@@ -11,9 +11,10 @@
 import { clearZoom, diveIn, dominantFill, easeOut, emergeMs, foldOut, markForStep, paintCollapse, paintVeil, pathDelta, reducedMotion, zoomEnabled } from "./drillZoom";
 import type { PlotRect } from "../charts/context";
 import { ChartTooltip } from "./tooltip";
-import { parseSpec, type ChartSpec, type DrillStep } from "../spec";
+import { isSpecial, parseSpec, type ChartSpec, type DrillStep } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
+import { SpecialLayer, loadSpecialModule, specialModule } from "../charts/specialFrame";
 import type { Snapshot } from "../story/snapshots";
 import { ROLE_LABELS } from "../story/snapshots";
 import { h, svgIcon, ICONS } from "./dom";
@@ -84,6 +85,8 @@ export class StoryFilm {
   /** Jeton d'annulation des transitions (fermeture, navigation rapide). */
   private seq = 0;
   private finishPending = false;
+  /** Carte / film de la bibliothèque (types spéciaux) : rendu hors champ recopié dans la zone du graphique. */
+  private special = new SpecialLayer();
 
   constructor(private datasetFor: (s: Snapshot) => Dataset | null, private o: FilmOptions = {}) {
     const tid = o.reading ? "reader" : "film";
@@ -185,6 +188,7 @@ export class StoryFilm {
     if (this.o.reading) document.body.classList.remove("reading-open");
     document.removeEventListener("keydown", this.onKey);
     window.removeEventListener("resize", this.onResize);
+    this.special.dispose();
     this.o.onClose?.();
   }
 
@@ -404,6 +408,14 @@ export class StoryFilm {
       this.schedule();
       return;
     }
+    // type spécial (carte, film) : la bibliothèque est chargée à la demande ; la diapositive est redessinée une fois prête
+    const special = isSpecial(parsed.spec.type);
+    if (special && !specialModule()) {
+      const seq = this.seq;
+      void loadSpecialModule().then(() => {
+        if (seq === this.seq && this.isOpen && this.snaps[this.i] === s) this.show(s, built, focusFx);
+      });
+    }
     let { spec, boost } = this.specOf(s, parsed.spec);
     // sortie de mise en avant : le graphique part de l'état mis en avant du snapshot précédent
     const outFocus = focusFx?.dir === "out" ? (focusFx.from as Partial<ChartSpec>)?.style?.focus : undefined;
@@ -425,6 +437,8 @@ export class StoryFilm {
       const sp = out ? withFocus(spec) : spec;
       const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
       const res = renderChart(this.svg, sp, ds, cache, { build, timePos: null, ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
+      // carte / film de la bibliothèque dans la zone du graphique (sinon cadre vide) ; carte datée : remplissage pendant la construction
+      if (special) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? build : 1);
       this.svg.setAttribute("data-bullets", `${shown}/${nBullets}`);
       this.svg.setAttribute("data-focus-progress", focusFx ? fp.toFixed(2) : "1");
       this.svg.removeAttribute("width");

@@ -12,6 +12,7 @@ import { effectiveDataset } from "../data/transform";
 import type { Frame, PlotRect } from "../charts/context";
 import { ensureFont, fontStack } from "../theme";
 import { composeSvg } from "../export";
+import { MapZoomBar, isIdentity } from "./mapZoomBar";
 import { h, svgIcon, ICONS } from "./dom";
 import { formatDate } from "../format";
 import type { SpecialMount } from "../charts/special";
@@ -32,6 +33,8 @@ export class Preview {
   readonly svg: SVGSVGElement;
   readonly specialHost: HTMLElement;
   private overlay: HTMLElement;
+  /** Carte : boutons de zoom (+, −, cadre entier), posés sur la carte, hors du graphique (jamais exportés). */
+  readonly mapZoomBar: MapZoomBar;
   private status: HTMLElement;
   private bar: HTMLElement;
   private playBtn: HTMLButtonElement;
@@ -72,7 +75,8 @@ export class Preview {
     this.specialHost = h("div", { class: "r4d-special-host", "data-testid": "special-host" });
     this.overlay = h("div", { class: "r4d-special-error" });
     this.stage = h("div", { class: "stage" }, this.svg, this.specialHost, this.overlay);
-    this.box = h("div", { class: "stage-box" }, this.stage);
+    this.mapZoomBar = new MapZoomBar(() => (this.store.state.spec.type === "map" && !this.special?.error ? this.special?.handle ?? null : null));
+    this.box = h("div", { class: "stage-box" }, this.stage, this.mapZoomBar.root);
     this.wrap = h("div", { class: "stage-wrap" }, this.box);
     this.playBtn = h("button", { class: "icon-btn play", title: "Lecture / pause (espace)", "data-testid": "play", html: svgIcon(ICONS.play, 18), onclick: () => this.toggle() });
     const restart = h("button", { class: "icon-btn", title: "Rejouer depuis le début", "data-testid": "restart", html: svgIcon(ICONS.restart, 18), onclick: () => this.restart(true) });
@@ -295,6 +299,7 @@ export class Preview {
     this.stage.style.transform = `scale(${k})`;
     this.box.style.width = `${W * k}px`;
     this.box.style.height = `${H * k}px`;
+    this.placeZoomBar();
     this.selection?.paint();
   }
 
@@ -311,6 +316,7 @@ export class Preview {
       }
       this.specialHost.style.display = "none";
       this.overlay.style.display = "none";
+      this.syncZoomBar();
       return;
     }
     const key = JSON.stringify([dsVersion, spec.type, spec.encoding, spec.transform, spec.dataset ?? null, spec.special, spec.mode.kind, spec.mode.fourD.durationMs, spec.style.palette, spec.style.background, spec.style.backgroundCustom, Math.round(plot.w), Math.round(plot.h)]);
@@ -325,6 +331,9 @@ export class Preview {
     const theme = this.last!.theme;
     const m = mod.mountSpecial(this.specialHost, spec, effectiveDataset(spec, ds), plot, theme, {
       animate,
+      // carte : zoom de la vue (pincer, molette / trackpad, boutons) ; jamais dans le spec ni les exports
+      zoom: true,
+      onMapZoom: () => this.syncZoomBar(),
       onTick: (st) => {
         if (!this.scrubbing) this.setScrub(st.progress);
         this.timeLabel.textContent = this.specialLabel(st.progress);
@@ -341,6 +350,39 @@ export class Preview {
     // Carte sans date : rendu statique, rien à lire
     this.playing = animate && !m.error && !m.timeless;
     this.syncPlayBtn();
+    this.syncZoomBar();
+  }
+
+  /** Boutons de zoom : visibles sur une carte dessinée, état (+ / − / cadre entier) selon le zoom courant. */
+  private syncZoomBar(): void {
+    this.mapZoomBar.sync(true);
+    this.placeZoomBar();
+  }
+
+  /** À droite de la zone de la carte, à mi-hauteur (les compteurs occupent le haut, l'échelle le bas), à taille constante. */
+  private placeZoomBar(): void {
+    const plot = this.last?.plot;
+    if (!plot || this.mapZoomBar.root.hidden) return;
+    const k = this.scale;
+    this.mapZoomBar.place((plot.x + plot.w) * k - 8, (plot.y + plot.h / 2) * k);
+  }
+
+  /** Zoom de la carte en cours (vue seulement), ou null. */
+  get mapZoom(): { k: number; x: number; y: number } | null {
+    return this.special?.handle?.getMapZoom() ?? null;
+  }
+
+  /** Exports, snapshots : toujours le cadre entier ; le zoom de la vue est rétabli aussitôt après la copie. */
+  private fullFrame<T>(fn: () => T): T {
+    const h = this.special?.handle;
+    const z = h?.getMapZoom();
+    if (!h || !z || isIdentity(z)) return fn();
+    h.resetMapZoom();
+    try {
+      return fn();
+    } finally {
+      h.setMapZoom(z);
+    }
   }
 
   private specialLabel(p: number): string {
@@ -454,7 +496,7 @@ export class Preview {
   async currentSvg(): Promise<string> {
     const { spec } = this.store.state;
     if (!this.last) this.draw();
-    return composeSvg({ svg: this.svg, spec, plot: this.last!.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null });
+    return this.fullFrame(() => composeSvg({ svg: this.svg, spec, plot: this.last!.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null }));
   }
 
   /**
@@ -466,7 +508,7 @@ export class Preview {
     if (!this.last) this.draw();
     const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const res = renderChart(tmp, spec, ds, this.cache!, { build: 1, timePos: this.mode === "4d" ? this.frameAt(1).timePos : null }, { bare: true });
-    return composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null, embedFonts: false });
+    return this.fullFrame(() => composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: isSpecial(spec.type) ? this.specialHost : null, embedFonts: false }));
   }
 
   /** Rendu complet en fin d'animation (vignettes de snapshot), sans toucher à la lecture en cours. */

@@ -37,6 +37,13 @@ Le test e2e utilise `puppeteer-core` (variable `PUPPETEER_DIR` si non installé 
   (toujours avec une **barre d'échelle en km** adaptée à la projection et au cadrage ; source et licence du fond dans le
   cartouche). Fonds IGN (Licence Ouverte), NGI-Statbel (CC BY 4.0) et Natural Earth (domaine public), geoBoundaries (CC0),
   tous réutilisables commercialement : [`docs/licence-cartes.md`](docs/licence-cartes.md).
+  **Zoom de la carte** (aperçu du Studio, vue seulement) : boutons **+ / − / cadre entier** à droite de la carte,
+  **pincer** (iPad, tactile), **molette ou trackpad** quand le pointeur est au-dessus de la carte, glisser pour se
+  déplacer une fois zoomé ; facteur 1 à 8, traits, points et noms de provinces à taille constante, barre d'échelle
+  recalculée à chaque zoom. Pas de zoom au double-clic (réservé à la sélection par touchers successifs). Le zoom ne
+  change ni le spec, ni les empreintes, ni les liens ; exports, snapshots, film et mode lecture gardent le cadre entier.
+  **Film / mode lecture** : la carte de la scène est recopiée depuis la bibliothèque (même rendu qu'en exploration ;
+  capture [`docs/shots/film-burundi.png`](docs/shots/film-burundi.png), zoom [`docs/shots/carte-zoom.png`](docs/shots/carte-zoom.png)).
 - **Encodages** : X, une ou plusieurs mesures Y, axe Y secondaire à droite (échelle indépendante), série / couleur,
   temps (4D), taille, étiquette, agrégat, pas temporel.
 - **Axes** : linéaire / log / temps, min-max auto ou manuels, unité (€, k€, M€, %, k, M, perso), format français,

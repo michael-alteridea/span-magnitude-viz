@@ -24,6 +24,9 @@ const STYLE_PROPS = [
   "stroke-dasharray",
   "stroke-linecap",
   "stroke-linejoin",
+  // étiquettes de carte (halo sous le texte) et traits des fonds de carte : comme dans l'aperçu
+  "paint-order",
+  "vector-effect",
   "opacity",
   "font-size",
   "font-weight",
@@ -39,6 +42,7 @@ function inlineComputedStyles(src: Element, dst: Element, font: string) {
   const parts: string[] = [];
   for (const p of STYLE_PROPS) {
     const v = cs.getPropertyValue(p);
+    if (p === "vector-effect" && v === "none") continue;
     if (v && v !== "normal" && v !== "auto") parts.push(`${p}:${v}`);
   }
   if (src.tagName.toLowerCase() === "text" || src.tagName.toLowerCase() === "tspan") parts.push(`font-family:${font}`);
@@ -80,6 +84,34 @@ function overlayHtmlText(host: HTMLElement, libSvg: SVGSVGElement, plot: PlotRec
   target.appendChild(g);
 }
 
+/** Dimensions d'un attribut viewBox (environnements sans `SVGAnimatedRect`). */
+function viewBoxOf(attr: string | null): { width: number; height: number } {
+  const a = (attr ?? "").trim().split(/[\s,]+/).map(Number);
+  return { width: a[2] || 0, height: a[3] || 0 };
+}
+
+/**
+ * Rendu de la bibliothèque (carte, film) recopié dans `target` à la place de la zone `plot` : SVG imbriqué aux
+ * styles calculés en ligne, compteurs HTML convertis en texte SVG. Utilisé par l'export, les snapshots et le
+ * film / mode lecture (types spéciaux). Retourne false si l'hôte ne contient aucun rendu.
+ */
+export function embedSpecial(target: SVGSVGElement, specialHost: HTMLElement, plot: PlotRect, font: string): boolean {
+  const libSvg = specialHost.querySelector<SVGSVGElement>(".smv-chart-area svg") ?? specialHost.querySelector<SVGSVGElement>("svg");
+  if (!libSvg) return false;
+  const nested = libSvg.cloneNode(true) as SVGSVGElement;
+  inlineComputedStyles(libSvg, nested, font);
+  nested.setAttribute("x", String(plot.x));
+  nested.setAttribute("y", String(plot.y));
+  nested.setAttribute("width", String(plot.w));
+  const vb = libSvg.viewBox?.baseVal ?? viewBoxOf(libSvg.getAttribute("viewBox"));
+  nested.setAttribute("height", String((plot.w / vb.width) * vb.height || plot.h));
+  nested.removeAttribute("style");
+  nested.setAttribute("overflow", "hidden");
+  target.appendChild(nested);
+  overlayHtmlText(specialHost, libSvg, plot, target, font);
+  return true;
+}
+
 export interface ComposeInput {
   svg: SVGSVGElement;
   spec: ChartSpec;
@@ -111,19 +143,7 @@ export async function composeSvg(input: ComposeInput): Promise<string> {
   clone.removeAttribute("style");
   clone.removeAttribute("class");
 
-  const libSvg = specialHost?.querySelector<SVGSVGElement>(".smv-chart-area svg") ?? specialHost?.querySelector<SVGSVGElement>("svg");
-  if (specialHost && libSvg) {
-    const nested = libSvg.cloneNode(true) as SVGSVGElement;
-    inlineComputedStyles(libSvg, nested, font);
-    nested.setAttribute("x", String(plot.x));
-    nested.setAttribute("y", String(plot.y));
-    nested.setAttribute("width", String(plot.w));
-    nested.setAttribute("height", String((plot.w / libSvg.viewBox.baseVal.width) * libSvg.viewBox.baseVal.height || plot.h));
-    nested.removeAttribute("style");
-    nested.setAttribute("overflow", "hidden");
-    clone.appendChild(nested);
-    overlayHtmlText(specialHost, libSvg, plot, clone, font);
-  }
+  if (specialHost) embedSpecial(clone, specialHost, plot, font);
 
   const defs = document.createElementNS(SVG_NS, "defs");
   const style = document.createElementNS(SVG_NS, "style");

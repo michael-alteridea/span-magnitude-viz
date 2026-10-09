@@ -12,6 +12,7 @@ import {
   type VizHandle,
   type ColumnMapping,
   type TickerState,
+  type MapZoom,
 } from "span-magnitude-viz";
 import type { ChartSpec } from "../spec";
 import type { Dataset } from "../data/table";
@@ -214,7 +215,14 @@ export function mountSpecial(
   ds: Dataset,
   plot: PlotRect,
   theme: Theme,
-  opts: { animate: boolean; onTick?: (s: TickerState) => void; onComplete?: () => void }
+  opts: {
+    animate: boolean;
+    onTick?: (s: TickerState) => void;
+    onComplete?: () => void;
+    /** Carte : zoom interactif (aperçu du Studio ; vue seulement, hors spec, exports en cadre entier). */
+    zoom?: boolean;
+    onMapZoom?: (z: MapZoom) => void;
+  }
 ): SpecialMount {
   const { doc, unit, error, timeless } = buildSpanDocument(spec, ds);
   const empty: SpecialMount = { handle: null, error, xDomain: null, unit, timeless, destroy: () => (host.innerHTML = "") };
@@ -255,6 +263,8 @@ export function mountSpecial(
     cascadeSpeed: "normal",
     onTick: opts.onTick,
     onComplete: opts.onComplete,
+    mapZoom: isMap && !!opts.zoom,
+    onMapZoom: opts.onMapZoom,
   });
   if (!opts.animate || timeless) handle.setProgress(1);
   return {
