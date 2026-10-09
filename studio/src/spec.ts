@@ -26,6 +26,7 @@ export const CHART_TYPES = [
   "donut",
   "radialBar",
   "variance",
+  "race",
   "film",
   "map",
   "drill",
@@ -45,6 +46,7 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
   donut: "Donut",
   radialBar: "Arcs radiaux",
   variance: "Écarts (IBCS)",
+  race: "Course de barres",
   film: "Film 4D (span × magnitude)",
   map: "Carte FR·BE / Europe",
   drill: "Exploration guidée (zoom temps · espace)",
@@ -52,7 +54,7 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
 
 export const CHART_FAMILIES: { label: string; types: ChartType[] }[] = [
   { label: "Exploration", types: ["drill"] },
-  { label: "Barres", types: ["bar", "barH", "groupedBar", "stackedBar"] },
+  { label: "Barres", types: ["bar", "barH", "groupedBar", "stackedBar", "race"] },
   { label: "Lignes & aires", types: ["line", "area", "stackedArea"] },
   { label: "Points", types: ["scatter"] },
   { label: "Circulaires", types: ["pie", "donut", "radialBar"] },
@@ -75,6 +77,7 @@ export const isRadial = (t: ChartType) => t === "pie" || t === "donut" || t === 
 export const isSpecial = (t: ChartType) => t === "film" || t === "map";
 export const isVariance = (t: ChartType) => t === "variance";
 export const isDrill = (t: ChartType) => t === "drill";
+export const isRace = (t: ChartType) => t === "race";
 
 export const AGGREGATES = ["sum", "mean", "count", "min", "max", "last"] as const;
 export const AGGREGATE_LABELS: Record<(typeof AGGREGATES)[number], string> = {

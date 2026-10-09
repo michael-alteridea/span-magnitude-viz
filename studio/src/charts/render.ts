@@ -8,7 +8,8 @@ import { groupIcons } from "./pointIcons";
 import { drawIcon } from "./icons";
 import { select } from "d3";
 import type { ChartSpec } from "../spec";
-import { isBarType, isCartesian, isDrill, isRadial, isSpecial, isVariance, chartSize } from "../spec";
+import { isBarType, isCartesian, isDrill, isRace, isRadial, isSpecial, isVariance, chartSize } from "../spec";
+import { buildRace, drawRace, raceFlatSpec, type RaceData } from "./race";
 import { buildDrillModel, type DrillCtx, type DrillModel } from "../data/drill";
 import { drawDrill, drillLegend } from "./drill";
 import type { Dataset } from "../data/table";
@@ -49,6 +50,8 @@ export interface PrepCache {
   frozen: Domains;
   error: string | null;
   warnings: string[];
+  /** Course de barres : valeurs et rangs par période. */
+  race?: RaceData | null;
 }
 
 function validate(spec: ChartSpec, ds: Dataset | null): { error: string | null; warnings: string[] } {
@@ -57,6 +60,12 @@ function validate(spec: ChartSpec, ds: Dataset | null): { error: string | null; 
   const enc = spec.encoding;
   const t = spec.type;
   if (isSpecial(t) || isDrill(t)) return { error: null, warnings };
+  if (isRace(t)) {
+    const tc = columnOf(ds, enc.time);
+    if (!tc) return { error: "La course de barres a besoin d'une colonne de temps (année, date ou période) : choisissez-la dans « Temps ».", warnings };
+    const xc = columnOf(ds, enc.x);
+    if (!xc || xc.name === tc.name) return { error: "La course de barres classe des catégories (pays, produits…) : choisissez une colonne de catégories pour l'axe X.", warnings };
+  }
   if (isVariance(t)) {
     const ys2 = enc.y.filter((f) => columnOf(ds, f)?.type === "number");
     if (ys2.length < 2) return { error: "Le graphique d'écarts compare deux mesures : choisissez le réel (Y1) puis la référence — budget, N-1 ou prévision (Y2).", warnings };
@@ -111,6 +120,7 @@ function unionDomain(a: [number, number] | undefined, b: [number, number] | unde
 }
 
 export function fourDActive(spec: ChartSpec, ds: Dataset | null): boolean {
+  if (isRace(spec.type)) return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time);
   return spec.mode.kind === "dynamic" && spec.mode.fourD.enabled && !!columnOf(ds, spec.encoding.time) && !isSpecial(spec.type) && !isVariance(spec.type) && !isDrill(spec.type);
 }
 
@@ -135,6 +145,13 @@ export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepC
     if (!vm || !vm.keys.length) return { key, full: null, time: null, frozen: {}, error: "Aucune ligne où le réel et la référence sont tous deux renseignés.", warnings, variance: null };
     if (vm.coverage < 0.999 && vm.coverage > 0) warnings.push(`Écarts calculés sur les lignes où les deux scénarios sont renseignés (${Math.round(vm.coverage * 100)} % des lignes avec réel).`);
     return { key, full: null, time: null, frozen: {}, error: null, warnings, variance: vm };
+  }
+  if (isRace(spec.type)) {
+    const full = buildModel(raceFlatSpec(spec), ds, allRows(ds));
+    const time = buildTimeModel(spec, ds);
+    if (full.kind !== "cat" || !full.keys.length || !time) return { key, full, time, frozen: {}, error: "Aucune valeur exploitable avec cet encodage.", warnings };
+    if (time.steps.length < 2) warnings.push("Le champ temporel n'a qu'une seule valeur : rien à animer.");
+    return { key, full, time, frozen: {}, error: null, warnings, race: buildRace(spec, ds, time, full) };
   }
   const full = buildModel(spec, ds, allRows(ds));
   const time = fourDActive(spec, ds) ? buildTimeModel(spec, ds) : null;
@@ -183,6 +200,12 @@ export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: Prep
   const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error, variance: cache.variance ?? null, drill: cache.drill ?? null };
   if (cache.error || !cache.full || !ds) return base;
   const tm = cache.time;
+  if (cache.race && tm) {
+    // course de barres : position fixe (dernière période) hors animation 4D
+    const n = tm.steps.length;
+    const pos = frame.timePos == null || !fourDActive(spec, ds) ? n - 1 : Math.max(0, Math.min(n - 1, frame.timePos));
+    return { ...base, race: { data: cache.race, time: tm, pos }, stamp: tm.label(pos), progress: frame.timePos == null || n < 2 ? null : pos / (n - 1) };
+  }
   if (!tm || frame.timePos == null || tm.steps.length < 2) return base;
   const n = tm.steps.length;
   const pos = Math.max(0, Math.min(n - 1, frame.timePos));
@@ -533,6 +556,10 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
   if (prep.drill) {
     drawDrill(gChart, plot, ctx, prep.drill.model, prep.drill.ctx);
+    return result();
+  }
+  if (prep.race) {
+    drawRace(gChart, plot, ctx, prep.race.data, prep.race.time, prep.race.pos);
     return result();
   }
 

@@ -6,13 +6,13 @@ const ALL = CHART_FAMILIES.flatMap((f) => f.types);
 const w = (cur: ChartType) => (t: ChartType) => (t === cur ? 90 : 34);
 
 describe("bande des types (variante B)", () => {
-  it("l'ordre de priorité couvre les 15 types une seule fois", () => {
+  it("l'ordre de priorité couvre les 16 types une seule fois", () => {
     expect([...STRIP_PRIORITY].sort()).toEqual([...ALL].sort());
   });
-  it("≥ 1200 px : 12 pictogrammes, « Plus » = Aires empilées, Arcs radiaux, Film 4D", () => {
+  it("≥ 1200 px : 12 pictogrammes, « Plus » = Aires empilées, Course de barres, Arcs radiaux, Film 4D", () => {
     const vis = stripVisible(2000, "bar", w("bar"), 84, stripMax(1366));
     expect(vis).toEqual(["drill", "bar", "barH", "groupedBar", "stackedBar", "line", "area", "scatter", "pie", "donut", "variance", "map"]);
-    expect(ALL.filter((t) => !vis.includes(t))).toEqual(["stackedArea", "radialBar", "film"]);
+    expect(ALL.filter((t) => !vis.includes(t))).toEqual(["race", "stackedArea", "radialBar", "film"]);
   });
   it("< 1200 px : 7 pictogrammes (Barres, Horizontales, Groupées | Lignes, Aires | Points | Camembert)", () => {
     expect(stripVisible(2000, "bar", w("bar"), 84, stripMax(1024))).toEqual(["bar", "barH", "groupedBar", "line", "area", "scatter", "pie"]);
