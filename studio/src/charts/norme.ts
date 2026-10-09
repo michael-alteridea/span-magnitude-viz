@@ -15,7 +15,7 @@ import { formatSignedPct } from "../story/fr";
 import { stagger, type DrawCtx, type G, type PlotRect } from "./context";
 import { ellipsize, measure } from "./text";
 import { rows as tipRows, tip, type TipRow } from "./tip";
-import { elemKey, selAttrs, seriesKey } from "./overrides";
+import { chosenColor, elemKey, labelLook, selAttrs, seriesKey } from "./overrides";
 
 let hatchSeq = 0;
 
@@ -123,18 +123,36 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     const col = varianceColor(d.delta, pol);
     return { k: `vs ${SCENARIO_NAMES[oc]} (${fmt(other)})`, v: `${fmtD(d.delta)}${Number.isFinite(d.rel) ? ` · ${formatSignedPct(d.rel)}` : ""}`, tone: d.delta === 0 ? "neutral" : col === VARIANCE_POS ? "pos" : "neg" };
   };
+  const ownHatch = new Map<string, string>();
   const mark = (sel: Selection<SVGRectElement, unknown, null, undefined>, code: ScenarioCode, r: Row, v: number) => {
-    const st = styleOf(code);
+    const sName = model.series[codes.indexOf(code)] ?? code;
+    const ek = elemKey(r.key, sName);
+    let st: { fill: string; stroke: string } = styleOf(code);
+    // couleur choisie (élément ou série) : elle remplace le gris de la notation, la forme du scénario reste
+    // (budget en contour, prévision hachurée, réel et N-1 pleins)
+    const own = chosenColor(spec, ek, seriesKey(sName));
+    if (own) {
+      if (code === "PL") st = { fill: "none", stroke: own };
+      else if (code === "FC") {
+        if (!ownHatch.has(own)) ownHatch.set(own, hatchPattern(g, own, s, "r4d-hatch r4d-hatch-own"));
+        st = { fill: ownHatch.get(own)!, stroke: own };
+      } else st = { fill: own, stroke: "none" };
+    }
     sel
       .attr("class", `r4d-scn r4d-scn-${code}`)
       .attr("data-scenario", code)
       .attr("fill", st.fill)
       .attr("stroke", st.stroke)
-      .attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s);
+      .attr("stroke-width", st.stroke === "none" ? 0 : 1.5 * s)
+      .attr("data-color", own);
     tip(sel, { t: r.label, sub: `${SCENARIO_NAMES[code]} (${code})`, v: fmt(v), rows: tipRows(vsRow(r, v, code, r.pl, "PL"), vsRow(r, v, code, r.py, "PY")) });
     // sélection par touchers successifs : une série par scénario, un élément par (scénario, catégorie)
-    const sName = model.series[codes.indexOf(code)] ?? code;
-    selAttrs(sel, "mark", elemKey(r.key, sName), seriesKey(sName), `${r.key} · ${sName}`, fmt(v));
+    selAttrs(sel, "mark", ek, seriesKey(sName), `${r.key} · ${sName}`, fmt(v));
+  };
+  /** Texte et couleur du libellé de valeur (réglages de la sélection : ce libellé ou toute la série). */
+  const lookOf = (r: Row) => {
+    const sName = r.mainCode ? model.series[codes.indexOf(r.mainCode)] ?? r.mainCode : "";
+    return labelLook(spec, fmt(r.main), sName ? elemKey(r.key, sName) : null, sName ? seriesKey(sName) : null);
   };
   /** Libellé de valeur rattaché à la marque principale (réel, ou prévision à défaut). */
   const valueSel = (t: Selection<SVGTextElement, unknown, null, undefined>, r: Row) => {
@@ -179,7 +197,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
       bar(r.pl, cx - w / 2 + off, "PL");
       if (r.mainCode) bar(r.main, cx - w / 2, r.mainCode);
       const top = Math.max(...[r.main, r.pl, r.py].filter(Number.isFinite));
-      if (showLabels && f >= 1 && Number.isFinite(r.main) && bw > 26 * s) g.append("text").attr("class", "r4d-value").attr("x", cx).attr("y", yV(top) - 6 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main)).call((t) => valueSel(t, r));
+      if (showLabels && f >= 1 && Number.isFinite(r.main) && bw > 26 * s && !lookOf(r).hidden) g.append("text").attr("class", "r4d-value").attr("x", cx).attr("y", yV(top) - 6 * s).attr("text-anchor", "middle").attr("font-size", 11 * s).attr("font-weight", 700).attr("fill", lookOf(r).color ?? theme.text).text(lookOf(r).text).call((t) => valueSel(t, r));
       // écart
       const d = dv[i];
       if (yD && d) {
@@ -242,7 +260,7 @@ export function drawScenarioBars(root: G, rect: PlotRect, ctx: DrawCtx, model: C
     bar(r.pl, cy - t / 2 + off, "PL");
     if (r.mainCode) bar(r.main, cy - t / 2, r.mainCode);
     const right = Math.max(...[r.main, r.pl, r.py].filter(Number.isFinite));
-    if (f >= 1 && Number.isFinite(r.main)) g.append("text").attr("class", "r4d-value").attr("x", xs(right) + 6 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", theme.text).text(fmt(r.main)).call((t) => valueSel(t, r));
+    if (f >= 1 && Number.isFinite(r.main) && !lookOf(r).hidden) g.append("text").attr("class", "r4d-value").attr("x", xs(right) + 6 * s).attr("y", cy).attr("dy", "0.35em").attr("font-size", 11.5 * s).attr("font-weight", 700).attr("fill", lookOf(r).color ?? theme.text).text(lookOf(r).text).call((t) => valueSel(t, r));
     const d = dv[i];
     if (!hasVar || !d) return;
     const v = rel ? d.rel * 100 : d.delta;

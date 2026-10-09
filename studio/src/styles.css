@@ -233,6 +233,7 @@ textarea.paste:focus { outline: none; border-color: var(--accent); }
 .field input.invalid { border-color: var(--warn); }
 .field input[type="color"] { width: 64px; height: 30px; border: 1px solid var(--line-2); border-radius: 7px; background: var(--panel); padding: 2px; }
 .hint { color: var(--faint); font-size: 10.5px; }
+.selp-note { display: block; margin-top: 6px; color: var(--muted); line-height: 1.35; }
 .muted { color: var(--faint); margin: 0; }
 .small { font-size: 11px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

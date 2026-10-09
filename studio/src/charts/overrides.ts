@@ -20,6 +20,19 @@ export function markColor(spec: SpecLike, base: string, ek: string | null, sk: s
   return (ek ? get(spec, ek)?.color : undefined) ?? (sk ? get(spec, sk)?.color : undefined) ?? base;
 }
 
+/**
+ * Couleur choisie pour CET élément (pas celle de sa série) : elle prime sur le gris de la mise en avant
+ * (l'élément coloré reste visible à côté de l'élément mis en avant) et sur le gris de la notation norme.
+ */
+export function ownColor(spec: SpecLike, ek: string | null): string | null {
+  return (ek ? get(spec, ek)?.color : undefined) ?? null;
+}
+
+/** Couleur choisie pour l'élément, sinon pour sa série ; null : pas de couleur choisie. */
+export function chosenColor(spec: SpecLike, ek: string | null, sk: string | null): string | null {
+  return (ek ? get(spec, ek)?.color : undefined) ?? (sk ? get(spec, sk)?.color : undefined) ?? null;
+}
+
 export interface LabelLook {
   text: string;
   color: string | null;

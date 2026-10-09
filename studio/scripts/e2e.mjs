@@ -2116,6 +2116,208 @@ async function e2eFilmPuces() {
   await ctx.close();
 }
 
+/*
+ * Couleur d'une barre (bogue « je la sélectionne, je change la couleur, elle ne change pas ») : souris à 1366 et
+ * toucher sur iPad, exemple par défaut, Revue mensuelle (norme), renouvelables (barres horizontales), barres groupées,
+ * empilées, camembert ; toutes les voies : pastille de la charte en ligne, Nuancier › Couleurs de base, Charte,
+ * grille, Récentes, « Plus de couleurs… ». Puis mise en avant d'un autre élément : la barre colorée garde sa couleur.
+ */
+async function e2eCouleurBarre() {
+  const SAMPLES = [["exemple par défaut", null], ["Revue mensuelle (norme)", "revue-mensuelle-norme"], ["renouvelables (barres horizontales)", "renouvelables"], ["barres groupées", "ventes:groupedBar"], ["barres empilées", "ventes:stackedBar"], ["camembert", "canaux:pie"]];
+  const PATHS = [["charte en ligne", null, "#08465A"], ["Couleurs de base", "nuancier-base", "#FF0000"], ["Charte du nuancier", "nuancier-charte", "#7FC8DC"], ["grille", "nuancier-grid", "#7C3AED"], ["Récentes", "nuancier-recentes", null], ["Plus de couleurs…", "more", "#123456"]];
+  const sleepP = (ms) => new Promise((r) => setTimeout(r, ms));
+  for (const touch of [false, true]) {
+    const dev = touch ? "iPad 1024, toucher" : "souris 1366";
+    const ctx = await browser.createBrowserContext();
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on("pageerror", (e) => errs.push(String(e)));
+    pg.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+    await pg.setViewport(touch ? { width: 1024, height: 768, hasTouch: true, isMobile: true } : { width: 1366, height: 900 });
+    for (const [name, sid] of SAMPLES) {
+      await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+      await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+      await pg.addStyleTag({ content: "[data-testid=toasts]{display:none!important}" });
+      await pg.evaluate(async (sid) => {
+        localStorage.setItem("datanime.couleursRecentes", JSON.stringify(["#14B8A6", "#F97316"]));
+        if (sid) {
+          const [s, t] = sid.split(":");
+          window.r4d.loadSample(s);
+          await new Promise((r) => setTimeout(r, 1200));
+          if (t) window.r4d.set("type", t);
+        }
+        window.r4d.set("mode.kind", "static");
+        window.r4d.set("style.focus.key", null);
+        await window.r4d.settle();
+      }, sid);
+      await sleepP(800);
+      const fails = [];
+      let keptOpen = true;
+      for (const [path, row, want0] of PATHS) {
+        const t = await pg.evaluate(() => {
+          const e = [...document.querySelectorAll('[data-testid=chart-svg] [data-sel="mark"]')][2];
+          e.scrollIntoView({ block: "center" });
+          const b = e.getBoundingClientRect();
+          return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        });
+        // sélection par le geste réel (clics ou touchers successifs jusqu'à la barre)
+        for (let i = 0; i < 5; i++) {
+          if ((await pg.evaluate(() => window.r4d.selection().sel?.level)) === "mark") break;
+          if (touch) await pg.touchscreen.tap(t.x, t.y);
+          else await pg.mouse.click(t.x, t.y);
+          await sleepP(450);
+        }
+        const ek = await pg.evaluate(() => window.r4d.selection().sel?.level === "mark" ? window.r4d.selection().sel.ek : null);
+        if (!ek) { fails.push(`${path} : barre non sélectionnée`); continue; }
+        const press = async (sel) => {
+          const hd = await pg.$(sel);
+          if (!hd) return false;
+          await hd.evaluate((e) => e.scrollIntoView({ block: "center" }));
+          await sleepP(120);
+          const b = await hd.boundingBox();
+          if (touch) await pg.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+          else await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+          return true;
+        };
+        let want = want0;
+        let ok;
+        if (!row) ok = await press(`[data-testid=sel-mark-color] button[data-color="${want}"]`);
+        else {
+          ok = await press("[data-testid=sel-mark-color-nuancier]");
+          await sleepP(350);
+          const st = await pg.evaluate(() => ({ open: !!document.querySelector("[data-testid=nuancier]"), lv: window.r4d.selection().sel?.level }));
+          if (!st.open || st.lv !== "mark") keptOpen = false;
+          if (row === "nuancier-recentes") want = await pg.evaluate(() => document.querySelector("[data-testid=nuancier-recentes] button[data-color]")?.getAttribute("data-color") ?? null);
+          if (row === "more") ok = await pg.evaluate((w) => { const i = document.querySelector("[data-testid=nuancier-more-input]"); if (!i) return false; i.value = w; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); return true; }, want);
+          else ok = !!want && (await press(`[data-testid=${row}] button[data-color="${want}"]`));
+        }
+        await sleepP(700);
+        const r = await pg.evaluate((ek) => ({ ovr: window.r4d.store.state.spec.style.overrides[ek]?.color ?? null, fill: document.querySelector(`[data-testid=chart-svg] [data-sel="mark"][data-sel-key="${CSS.escape(ek)}"]`)?.getAttribute("fill") ?? null, lv: window.r4d.selection().sel?.level }), ek);
+        const up = (x) => (x ?? "").toUpperCase();
+        if (!ok || up(r.ovr) !== up(want) || up(r.fill) !== up(want) || r.lv !== "mark") fails.push(`${path} : ${JSON.stringify({ ek, want, ...r })}`);
+        await pg.evaluate((ek) => { const o = { ...window.r4d.store.state.spec.style.overrides }; delete o[ek]; window.r4d.set("style.overrides", o); window.r4d.selection().clear(); }, ek);
+        await sleepP(350);
+      }
+      check(`couleur d'une barre (${dev}, ${name}) : appliquée et redessinée par les 6 voies (charte, couleurs de base, charte du nuancier, grille, récentes, plus de couleurs)`, fails.length === 0, fails.join(" | "));
+      // niveau 5 « libellé » (cas de Michaël) : « Couleur du texte du libellé » colore le texte ; « Couleur de la barre » colore la barre sans quitter le niveau
+      {
+        const t = await pg.evaluate(() => {
+          const e = [...document.querySelectorAll('[data-testid=chart-svg] [data-sel="mark"]')][2];
+          e.scrollIntoView({ block: "center" });
+          const b = e.getBoundingClientRect();
+          return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        });
+        for (let i = 0; i < 6; i++) {
+          if ((await pg.evaluate(() => window.r4d.selection().sel?.level)) === "label") break;
+          if (touch) await pg.touchscreen.tap(t.x, t.y);
+          else await pg.mouse.click(t.x, t.y);
+          await sleepP(450);
+        }
+        const lv = await pg.evaluate(() => ({ level: window.r4d.selection().sel?.level, ek: window.r4d.selection().sel?.ek, fields: [...document.querySelectorAll("[data-testid=sel-panel] .field-label, [data-testid=sel-panel] h4")].map((x) => x.textContent) }));
+        const ek = lv.ek;
+        const press = async (sel) => {
+          const hd = await pg.$(sel);
+          if (!hd) return false;
+          await hd.evaluate((e) => e.scrollIntoView({ block: "center" }));
+          await sleepP(120);
+          const b = await hd.boundingBox();
+          if (touch) await pg.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+          else await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+          return true;
+        };
+        const q = (ek) => pg.evaluate((ek) => {
+          const m = document.querySelector(`[data-testid=chart-svg] [data-sel="mark"][data-sel-key="${CSS.escape(ek)}"]`);
+          const l = document.querySelector(`[data-testid=chart-svg] [data-sel="label"][data-sel-key="${CSS.escape(ek)}"]`);
+          return { mark: m?.getAttribute("fill"), label: l?.getAttribute("fill") ?? null, level: window.r4d.selection().sel?.level };
+        }, ek);
+        const before = ek ? await q(ek) : null;
+        const p1 = (await press("[data-testid=sel-label-mark-color-nuancier]")) && (await sleepP(350), await press('[data-testid=nuancier-base] button[data-color="#7030A0"]'));
+        await sleepP(700);
+        const afterMark = ek ? await q(ek) : null;
+        const p2 = await press('[data-testid=sel-label-color] button[data-color="#3FA7C4"]');
+        await sleepP(700);
+        const afterLabel = ek ? await q(ek) : null;
+        check(`libellé (${dev}, ${name}) : champ « Couleur du texte du libellé » et carte « Couleur de la barre/part » au niveau libellé`, lv.level === "label" && lv.fields.includes("Couleur du texte du libellé") && lv.fields.some((x) => /^Couleur (de la barre|de la part|du point|de l'arc)$/.test(x)), JSON.stringify(lv));
+        check(`libellé (${dev}, ${name}) : « Couleur de la barre » colore la barre sans quitter le niveau libellé`, p1 && afterMark?.mark?.toUpperCase() === "#7030A0" && afterMark?.level === "label", JSON.stringify({ before, afterMark }));
+        check(`libellé (${dev}, ${name}) : la couleur du texte du libellé change visiblement le libellé (la barre garde sa couleur)`, p2 && afterLabel?.label?.toUpperCase() === "#3FA7C4" && before?.label?.toUpperCase() !== "#3FA7C4" && afterLabel?.mark?.toUpperCase() === "#7030A0", JSON.stringify({ before, afterLabel }));
+        if (SHOTS && !touch && name === "exemple par défaut") await pg.screenshot({ path: join(shotsDir, "175-couleur-libelle-et-barre-1366.png") });
+        const p3 = await press("[data-testid=sel-label-to-mark]");
+        await sleepP(500);
+        check(`libellé (${dev}, ${name}) : « Aller à la barre › » remonte au niveau élément en un geste`, p3 && (await pg.evaluate(() => window.r4d.selection().sel?.level)) === "mark");
+        await pg.evaluate(() => { window.r4d.set("style.overrides", {}); window.r4d.selection().clear(); });
+        await sleepP(300);
+      }
+      check(`couleur d'une barre (${dev}, ${name}) : le nuancier s'ouvre sans perdre la sélection`, keptOpen);
+    }
+    // mise en avant d'un autre élément : la barre colorée garde sa couleur ; message dans le panneau
+    await pg.goto(`${origin}${BASE}?reset=1`, { waitUntil: "networkidle0" });
+    await pg.waitForFunction(() => !!window.r4d?.store?.state?.ds, { timeout: 30000 });
+    const f = await pg.evaluate(async () => {
+      window.r4d.loadSample("renouvelables");
+      await new Promise((r) => setTimeout(r, 1200));
+      window.r4d.set("mode.kind", "static");
+      window.r4d.set("style.focus.key", "Suède");
+      await window.r4d.settle();
+      const e = document.querySelector('[data-testid=chart-svg] [data-sel="mark"][data-sel-key="e:Danemark"]');
+      window.r4d.selection().set({ level: "mark", ek: "e:Danemark", sk: e.getAttribute("data-sel-series"), name: "Danemark" });
+      await new Promise((r) => setTimeout(r, 400));
+      document.querySelector('[data-testid=sel-mark-color] button[data-color="#0E6E8C"]').click();
+      await window.r4d.settle();
+      await new Promise((r) => setTimeout(r, 1800));
+      const q = (k) => document.querySelector(`[data-testid=chart-svg] [data-sel="mark"][data-sel-key="${k}"]`)?.getAttribute("fill");
+      return { dk: q("e:Danemark"), fi: q("e:Finlande"), note: document.querySelector("[data-testid=sel-color-note]")?.textContent ?? "" };
+    });
+    check(`couleur d'une barre (${dev}) : avec une mise en avant d'un autre élément, la barre colorée garde sa couleur, les autres passent en gris, message dans le panneau`, f.dk === "#0E6E8C" && f.fi !== "#3FA7C4" && /Mise en avant de Suède/.test(f.note), JSON.stringify(f));
+    const hid = await pg.evaluate(async () => {
+      window.r4d.loadSample("ventes");
+      await new Promise((r) => setTimeout(r, 1200));
+      window.r4d.set("mode.kind", "static");
+      window.r4d.set("style.valueLabels", false);
+      await window.r4d.settle();
+      const e = [...document.querySelectorAll('[data-testid=chart-svg] [data-sel="mark"]')][1];
+      const ek = e.getAttribute("data-sel-key");
+      window.r4d.selection().set({ level: "label", ek, sk: e.getAttribute("data-sel-series"), name: e.getAttribute("data-sel-name") });
+      await new Promise((r) => setTimeout(r, 400));
+      document.querySelector('[data-testid=sel-label-color] button[data-color="#3FA7C4"]').click();
+      await window.r4d.settle();
+      await new Promise((r) => setTimeout(r, 900));
+      return { shown: window.r4d.store.state.spec.style.valueLabels, fill: document.querySelector(`[data-testid=chart-svg] [data-sel="label"][data-sel-key="${CSS.escape(ek)}"]`)?.getAttribute("fill") ?? null };
+    });
+    check(`libellé (${dev}) : étiquettes masquées — choisir la couleur du texte affiche les étiquettes, à cette couleur`, hid.shown === true && hid.fill?.toUpperCase() === "#3FA7C4", JSON.stringify(hid));
+    await pg.evaluate(() => window.r4d.selection().clear());
+    // mode norme : message clair, la couleur remplace le gris, le budget reste en contour
+    const nm = await pg.evaluate(async () => {
+      window.r4d.loadSample("revue-mensuelle-norme");
+      await new Promise((r) => setTimeout(r, 1200));
+      await window.r4d.settle();
+      const sk = (n) => document.querySelector(`[data-testid=chart-svg] [data-sel="mark"][data-sel-key="e:${n}|mars 2026"]`);
+      window.r4d.set("style.overrides", { "e:Budget (€)|mars 2026": { color: "#7C3AED" } });
+      window.r4d.selection().set({ level: "mark", ek: "e:Réel (€)|mars 2026", sk: "s:Réel (€)", name: "mars 2026 · Réel (€)" });
+      await window.r4d.settle();
+      await new Promise((r) => setTimeout(r, 600));
+      const b = sk("Budget (€)");
+      return { fill: b?.getAttribute("fill"), stroke: b?.getAttribute("stroke"), note: document.querySelector("[data-testid=sel-color-note]")?.textContent ?? "" };
+    });
+    check(`couleur d'une barre (${dev}, norme) : message « Mode norme » dans le panneau ; budget coloré en contour (pas de remplissage)`, /Mode norme/.test(nm.note) && nm.fill === "none" && nm.stroke === "#7C3AED", JSON.stringify(nm));
+    if (SHOTS && !touch) {
+      await pg.evaluate(async () => { window.r4d.set("style.overrides", { "e:Réel (€)|mars 2026": { color: "#FF0000" } }); await window.r4d.settle(); });
+      await sleepP(800);
+      await pg.screenshot({ path: join(shotsDir, "174-couleur-barre-norme-1366.png") });
+    }
+    check(`couleur d'une barre (${dev}) : pas d'erreur console`, errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx.close();
+  }
+}
+
+if (process.argv.includes("--couleur-barre")) {
+  try { await e2eCouleurBarre(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+
 if (process.argv.includes("--film-puces")) {
   try { await e2eFilmPuces(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
@@ -4877,6 +5079,8 @@ try {
   await e2ePuces();
   /* 28 quinquies. Film et mode lecture : 4, 5 et 10 puces arrivent une à une */
   await e2eFilmPuces();
+  /* 28 sexies. Couleur d'une barre : souris et toucher, 6 exemples, 6 voies, mise en avant, norme */
+  await e2eCouleurBarre();
 
   /* ------------------------------------------------ captures de documentation */
   if (SHOTS) {

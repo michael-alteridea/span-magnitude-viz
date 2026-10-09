@@ -2,7 +2,7 @@
  * Graphiques cartésiens en SVG pur (D3) : barres (verticales, horizontales, groupées, empilées),
  * lignes, aires (empilées ou non), nuage de points ; axe Y secondaire indépendant.
  */
-import { elemKey, labelLook, markColor, selAttrs, seriesKey } from "./overrides";
+import { elemKey, labelLook, markColor, ownColor, selAttrs, seriesKey } from "./overrides";
 import {
   area as d3area,
   axisBottom,
@@ -470,7 +470,7 @@ export function drawCategorical(root: G, rect: PlotRect, ctx: DrawCtx, model: Ca
       for (let k = 0; k < nK; k++) {
         const ek = elemKey(model.labels[k]!, nS > 1 ? sName : null);
         const baseColor = markColor(spec, colors[si % colors.length]!, ek, sk);
-        const color = focusK != null && k !== focusK ? mixHex(baseColor, greyFocus, bft) : baseColor;
+        const color = focusK != null && k !== focusK && !ownColor(spec, ek) ? mixHex(baseColor, greyFocus, bft) : baseColor;
         const raw = model.values[si]![k]!;
         if (!Number.isFinite(raw)) continue;
         const f = stagger(build, k, nK) * revealFactor(k);
@@ -861,7 +861,7 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
     const tipData: TipData = { t: p.label || p.series, sub: p.label && model.series.length > 1 ? p.series : undefined, v: fmtY(p.y), rows: tipRows(spec.encoding.x ? { k: spec.encoding.x, v: typeof p.x === "number" ? (model.xKind === "time" ? new Date(p.x).toLocaleDateString("fr-FR") : p.x.toLocaleString("fr-FR")) : p.x } : null, spec.encoding.y[0] ? { k: spec.encoding.y[0], v: fmtY(p.y) } : null, p.size != null && spec.encoding.size ? { k: spec.encoding.size, v: p.size.toLocaleString("fr-FR") } : null) };
     if (icon) {
       // icône : couleur du groupe ; mise en avant : les autres passent au gris
-      const col = fk != null && !isF ? mixHex(color, grey, ft) : color;
+      const col = fk != null && !isF && !ownColor(spec, pk) ? mixHex(color, grey, ft) : color;
       const ig = drawIcon(gm, icon, cx, cy, 2 * r, col, isF ? "r4d-point-icon r4d-focus-point" : "r4d-point-icon", true);
       if (ig) {
         selAttrs(ig as never, "mark", pk, psk, p.label || pointKey(p));

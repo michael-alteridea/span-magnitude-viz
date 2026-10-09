@@ -88,7 +88,7 @@ export class SelectionPanel {
       return;
     }
     const o = spec.style.overrides;
-    const key = JSON.stringify([s, this.scope, spec.type, spec.style.valueLabels, spec.style.focus.key, spec.style.focus.note, spec.style.sort, spec.style.legend, spec.axes.x.show, spec.axes.y.show, spec.style.barCap, spec.style.pointShape, spec.style.curve, s.ek ? o[s.ek] : null, s.sk ? o[s.sk] : null]);
+    const key = JSON.stringify([s, this.scope, spec.type, spec.style.valueLabels, spec.style.focus.key, spec.style.focus.note, spec.style.sort, spec.style.legend, spec.axes.x.show, spec.axes.y.show, spec.style.barCap, spec.style.pointShape, spec.style.curve, spec.norme?.enabled, s.ek ? o[s.ek] : null, s.sk ? o[s.sk] : null]);
     if (!force && key === this.key) return;
     // saisie en cours dans le panneau : on ne reconstruit pas (le texte suit déjà)
     const a = document.activeElement as HTMLElement | null;
@@ -114,6 +114,25 @@ export class SelectionPanel {
   /** Choix de couleur : charte en ligne + « Nuancier » (grille par teinte, récentes, plus de couleurs). */
   private swatches(cur: string | undefined, list: [string, string][], pick: (c: string | null) => void, testid: string, base?: string, title?: string): HTMLElement {
     return colorPicker({ value: cur ?? null, charter: list, onPick: (c) => pick(c), testid, base, title });
+  }
+
+  /**
+   * Pourquoi la couleur pourrait surprendre : mode norme (gris de la notation) ou mise en avant d'un autre élément.
+   * La couleur choisie s'applique dans les deux cas ; le message dit ce qui reste de la notation ou de la mise en avant.
+   */
+  private colorNote(spec: ChartSpec, ek: string | null): HTMLElement | null {
+    if (spec.norme?.enabled)
+      return h("small", { class: "hint selp-note", "data-testid": "sel-color-note" }, "Mode norme : les données sont en gris par convention. La couleur choisie remplace ce gris ; le budget reste en contour, la prévision hachurée, et le rouge et le vert restent réservés aux écarts.");
+    const fk = spec.style.focus.key;
+    if (ek && fk && ek.slice(2) !== fk)
+      return h("small", { class: "hint selp-note", "data-testid": "sel-color-note" }, `Mise en avant de ${fk === "@max" ? "la plus grande valeur" : fk} : les autres éléments passent en gris, sauf ceux auxquels vous donnez une couleur.`);
+    return null;
+  }
+
+  /** Couleur du texte d'un libellé : les étiquettes masquées s'affichent, pour que le choix se voie. */
+  private pickLabelColor(k: string, c: string | null): void {
+    if (c && !this.store.state.spec.style.valueLabels && !["pie", "donut", "radialBar", "scatter"].includes(this.store.state.spec.type)) this.store.set("style.valueLabels", true);
+    this.patch(k, { labelColor: c });
   }
 
   private seg(cur: string, opts: [string, string][], pick: (v: string) => void, testid: string): HTMLElement {
@@ -218,7 +237,8 @@ export class SelectionPanel {
         this.card(
           "Couleur de la série",
           this.swatches(o.color, MARK_COLORS, (c) => this.patch(sk, { color: c }), "sel-series-color", undefined, "Couleur de la série"),
-          o.color ? h("button", { type: "button", class: "selp-link", "data-testid": "sel-series-color-reset", onclick: () => this.patch(sk, { color: undefined }) }, "Couleur de la palette") : null
+          o.color ? h("button", { type: "button", class: "selp-link", "data-testid": "sel-series-color-reset", onclick: () => this.patch(sk, { color: undefined }) }, "Couleur de la palette") : null,
+          this.colorNote(spec, null)
         )
       );
     if (BARS.includes(spec.type) && (spec.type === "bar" || spec.type === "barH"))
@@ -277,7 +297,8 @@ export class SelectionPanel {
           `Remplace la couleur de la série pour ${s.name} seulement`,
           o.color ? " · " : "",
           o.color ? h("button", { type: "button", class: "selp-link", "data-testid": "sel-mark-color-reset", onclick: () => this.patch(ek, { color: undefined }) }, "revenir à la série") : ""
-        )
+        ),
+        this.colorNote(spec, ek)
       ),
     ];
     const fi = focusInfo(spec, this.store.state.ds);
@@ -313,11 +334,30 @@ export class SelectionPanel {
         "Police",
         this.field("Taille", size),
         this.field("Graisse", this.seg(o.labelBold === false ? "normal" : o.labelBold ? "bold" : "auto", [["auto", "Auto"], ["normal", "Normal"], ["bold", "Gras"]], (x) => this.patch(k, { labelBold: x === "auto" ? undefined : x === "bold" }), "sel-label-weight")),
-        this.field("Couleur", this.swatches(o.labelColor, LABEL_COLORS, (c) => this.patch(k, { labelColor: c }), "sel-label-color", undefined, "Couleur du libellé")),
+        this.field("Couleur du texte du libellé", this.swatches(o.labelColor, LABEL_COLORS, (c) => this.pickLabelColor(k, c), "sel-label-color", undefined, "Couleur du texte du libellé")),
         o.labelColor ? h("button", { type: "button", class: "selp-link", onclick: () => this.patch(k, { labelColor: undefined }) }, "Couleur automatique") : null,
         this.toggle(!!o.hideLabel, "Masquer ce libellé", (x) => this.patch(k, { hideLabel: x || undefined }), "sel-label-hide")
       )
     );
+    // la couleur de la barre (de la part, du point…) reste à portée sans quitter le niveau « libellé »
+    if (s.ek) {
+      const m = levelNames(spec.type).mark;
+      const word = ({ Barre: "barre", Part: "part", Point: "point", Arc: "arc" } as Record<string, string>)[m] ?? "élément";
+      const eo = this.ovr(s.ek);
+      out.unshift(
+        this.card(
+          ({ barre: "Couleur de la barre", part: "Couleur de la part", point: "Couleur du point", arc: "Couleur de l'arc" } as Record<string, string>)[word] ?? "Couleur de l'élément",
+          this.swatches(eo.color, MARK_COLORS, (c) => this.patch(s.ek!, { color: c }), "sel-label-mark-color", undefined, `Couleur de ${s.name}`),
+          h(
+            "small",
+            { class: "hint" },
+            `Colore ${s.name} lui-même, pas le texte · `,
+            h("button", { type: "button", class: "selp-link", "data-testid": "sel-label-to-mark", onclick: () => this.selection.set({ ...s, level: "mark" }) }, `Aller ${word === "barre" ? "à la barre" : word === "part" ? "à la part" : "à l'élément"} ›`)
+          ),
+          this.colorNote(spec, s.ek)
+        )
+      );
+    }
     if (s.sk)
       out.push(this.card("Appliquer à", this.seg(this.scope, [["one", "Ce libellé"], ["series", "Toute la série"]], (x) => {
         this.scope = x as "one" | "series";

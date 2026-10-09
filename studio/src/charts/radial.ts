@@ -1,5 +1,5 @@
 /** Camembert, donut (centre évidé) et arcs radiaux — SVG pur via d3.arc / d3.pie. */
-import { elemKey, labelLook, markColor, selAttrs, seriesKey } from "./overrides";
+import { elemKey, labelLook, markColor, ownColor, selAttrs, seriesKey } from "./overrides";
 import { arc as d3arc, pie as d3pie, type PieArcDatum } from "d3";
 import type { CatModel } from "../data/model";
 import { valueFormatter, formatPercent } from "../format";
@@ -113,7 +113,7 @@ export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, 
     const path = gm
       .append("path")
       .attr("d", arc(a))
-      .attr("fill", fk == null || isF(a) ? a.data.color : mixHex(a.data.color, grey, ft))
+      .attr("fill", fk == null || isF(a) || ownColor(spec, elemKey(a.data.label)) ? a.data.color : mixHex(a.data.color, grey, ft))
       .attr("stroke", theme.bg)
       .attr("stroke-width", (donut ? 1.5 : 1.5) * s)
       .attr("data-focus-key", a.data.label)
@@ -179,7 +179,7 @@ export function drawPie(root: G, rect: PlotRect, ctx: DrawCtx, model: CatModel, 
       const lek = elemKey(l.a.data.label);
       const look = labelLook(spec, fmt(l.a.data.value), lek, pieSk, `${fmt(l.a.data.value)} · ${formatPercent(l.a.data.value / total, 0)}`);
       const sub = look.hidden ? "" : look.text;
-      gl.append("text").attr("x", xt).attr("y", l.y - 2 * s).attr("text-anchor", anchor).attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", fk != null && !f && ft > 0.5 ? theme.muted : theme.text).text(name).call((c) => selAttrs(c, "label", lek, pieSk, l.a.data.label));
+      gl.append("text").attr("x", xt).attr("y", l.y - 2 * s).attr("text-anchor", anchor).attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).attr("fill", look.color ?? (fk != null && !f && ft > 0.5 ? theme.muted : theme.text)).text(name).call((c) => selAttrs(c, "label", lek, pieSk, l.a.data.label));
       gl.append("text").attr("x", xt).attr("y", l.y + 13 * s).attr("text-anchor", anchor).attr("font-size", (look.size ?? 12) * s).attr("font-weight", look.bold ? 700 : null).attr("font-family", font).attr("fill", look.color ?? theme.muted).text(sub).call((c) => selAttrs(c, "label", lek, pieSk, l.a.data.label, fmt(l.a.data.value)));
       const lw = Math.max(measure(name, 13 * s, font, 700), measure(sub, 12 * s, font));
       labelBoxes.push({ x: cx + (l.side > 0 ? xt : xt - lw), y: cy + l.y - 16 * s, w: lw, h: 34 * s });
@@ -257,7 +257,7 @@ export function drawRadialBars(root: G, rect: PlotRect, ctx: DrawCtx, model: Cat
     const rek = elemKey(d.label);
     const rsk = seriesKey(model.series[0] ?? model.yName ?? "");
     const base = markColor(spec, d.color, rek, null);
-    const color = fk == null || i === fk ? base : mixHex(base, grey, ft);
+    const color = fk == null || i === fk || ownColor(spec, rek) ? base : mixHex(base, grey, ft);
     const path = g
       .append("path")
       .attr("class", i === fk ? "r4d-mark r4d-focus-arc" : "r4d-mark")

@@ -730,8 +730,10 @@ la même façon.
     mise en avant d'une série (lignes) ;
   - **Élément** (barre, part, arc, point) : couleur propre (« revenir à la série »), « Mettre en avant » + note,
     « Modifier le libellé › » ;
-  - **Libellé** : texte avec jeton `{valeur}`, taille, graisse, couleur, « Masquer ce libellé », portée
-    **Ce libellé / Toute la série**, « Rétablir le libellé calculé ».
+  - **Libellé** : carte **Couleur de la barre** (de la part, du point, de l'arc) en tête — colore l'élément sans
+    quitter le niveau, lien « Aller à la barre › » —, texte avec jeton `{valeur}`, taille, graisse,
+    **Couleur du texte du libellé** (étiquettes masquées : ce choix les affiche ; camembert : nom et valeur ; norme :
+    valeur du réel), « Masquer ce libellé », portée **Ce libellé / Toute la série**, « Rétablir le libellé calculé ».
 - **Couleurs proposées** : bleu pétrole (#0E6E8C, #3FA7C4, #08465A), bleu glacier et gris, puis le bouton
   **Nuancier** (`ui/nuancier.ts`, composant commun à la couleur de série, d'élément, de libellé et de fond) :
   - rangée **Couleurs de base** tout en haut (12 couleurs franches, comme les couleurs standard d'un tableur : vrai
@@ -759,8 +761,15 @@ la même façon.
     la sélection s'arrête à Page › Graphique ; pas de couleur par région.
   - **Carte (points) et film 4D** (bibliothèque span-magnitude) : Page › Graphique seulement.
   - **Mode norme** (scénarios AC / PY / PL / FC, notation inspirée d'IBCS) : chaque scénario est une série, chaque
-    colonne (scénario, catégorie) un élément, la valeur affichée est le libellé du scénario principal. Le style de
-    scénario prime sur la couleur propre. Les barres et épingles d'écart (bandeau Δ) ne sont pas sélectionnables.
+    colonne (scénario, catégorie) un élément, la valeur affichée est le libellé du scénario principal. Une couleur
+    choisie (élément, sinon série) **remplace le gris de la notation** en gardant la forme du scénario : réel et N-1
+    pleins, budget en contour, prévision hachurée à cette couleur ; sans couleur choisie, la notation reste grise.
+    Le panneau l'explique (« Mode norme : les données sont en gris par convention… »). Les barres et épingles
+    d'écart (bandeau Δ) ne sont pas sélectionnables.
+  - **Mise en avant** : les éléments qui ont leur propre couleur la gardent quand un autre élément est mis en avant
+    (barres, parts, arcs, icônes de points) ; les autres passent en gris. Message dans le panneau.
+  - Tests : `test/couleurBarre.test.ts`, `node studio/scripts/e2e.mjs --couleur-barre --shots` (souris 1366 et
+    toucher iPad ; 6 exemples × 6 voies du nuancier, niveau libellé ; captures 174 et 175).
   - **Graphique d'écarts** (type « Écarts ») : sélection limitée à Page › Graphique.
   - Le « repère » (ligne de référence) de la maquette A3 n'est pas construit.
   - Hors du mode « Choisir sur le graphique », toucher une autre barre ne déplace plus la mise en avant : on la
