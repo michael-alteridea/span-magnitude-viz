@@ -338,7 +338,8 @@ export class Preview {
     this.overlay.textContent = m.error ?? "";
     this.overlay.style.display = m.error ? "flex" : "none";
     Object.assign(this.overlay.style, { left: `${plot.x}px`, top: `${plot.y}px`, width: `${plot.w}px`, height: `${plot.h}px` });
-    this.playing = animate && !m.error;
+    // Carte sans date : rendu statique, rien à lire
+    this.playing = animate && !m.error && !m.timeless;
     this.syncPlayBtn();
   }
 
@@ -378,6 +379,7 @@ export class Preview {
   play(): void {
     if (this.mode === "none") return;
     if (this.mode === "special") {
+      if (this.special?.timeless) return void this.special.handle?.setProgress(1);
       this.special?.handle?.play();
       this.playing = true;
       this.syncPlayBtn();
@@ -410,6 +412,7 @@ export class Preview {
 
   restart(play: boolean): void {
     if (this.mode === "special") {
+      if (this.special?.timeless) return void this.special.handle?.setProgress(1);
       this.special?.handle?.reset();
       if (play) this.play();
       return;
@@ -424,7 +427,7 @@ export class Preview {
   seek(p: number): void {
     this.pause();
     if (this.mode === "special") {
-      this.special?.handle?.setProgress(p);
+      this.special?.handle?.setProgress(this.special.timeless ? 1 : p);
       return;
     }
     this.t = p * this.duration();
@@ -578,7 +581,7 @@ export class Preview {
   async svgAt(p: number): Promise<string> {
     const { spec, ds } = this.store.state;
     if (this.mode === "special") {
-      this.special?.handle?.setProgress(p);
+      this.special?.handle?.setProgress(this.special.timeless ? 1 : p);
       return this.currentSvg();
     }
     const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg");

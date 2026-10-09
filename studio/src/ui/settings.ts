@@ -726,7 +726,7 @@ export class SettingsPanel {
       const xc = cols.find((c) => c.name === spec.encoding.x);
       if (xc?.type === "date") more.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "période mois trimestre année"));
     } else if (isSpecial(t)) {
-      main.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true)));
+      main.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), t === "map" ? "Facultatif sur une carte : sans date, carte statique" : undefined));
       main.push(this.row("Fin (optionnel)", this.select("encoding.end", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Sans fin : événements ponctuels"));
       main.push(this.row("Magnitude (épaisseur)", this.ySingle(cols), undefined, "mesure valeur"));
       main.push(this.row("Groupe / couleur", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 20), true), undefined, "série"));

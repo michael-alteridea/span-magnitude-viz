@@ -71,6 +71,7 @@ export function sectionSummaries(spec: ChartSpec, hasData: boolean): Record<Sect
   if (!hasData) donnees = "Aucune donnée chargée";
   else if (t === "drill") donnees = `${spec.drill.date ?? "date ?"} → ${spec.drill.label || spec.drill.measure || "nombre de lignes"}${spec.drill.by ? ` · par ${spec.drill.by}` : ""}`;
   else if (isVariance(t)) donnees = `${e.x ?? "catégories ?"} · ${e.y[0] ?? "réel ?"} vs ${e.y[1] ?? "référence ?"}`;
+  else if (t === "map" && !e.x) donnees = `${e.y[0] ?? "magnitude ?"} (sans date)${e.series ? ` · ${e.series}` : ""}`;
   else if (isSpecial(t)) donnees = `${e.x ?? "début ?"} → ${e.y[0] ?? "magnitude ?"}${e.series ? ` · ${e.series}` : ""}`;
   else {
     donnees = `${e.x ?? "axe X ?"} → ${e.y.length ? e.y.join(", ") : "mesure ?"}`;

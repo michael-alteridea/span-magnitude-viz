@@ -258,7 +258,8 @@ async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<vo
   let type: ChartType = spec.type;
   const hasDate = ds.columns.some((c) => c.type === "date");
   const hasNum = ds.columns.some((c) => c.type === "number");
-  if (isSpecial(type) && !(hasDate && hasNum)) type = "bar";
+  // Carte : la date est facultative (carte statique) ; film : date + nombre requis
+  if (isSpecial(type) && !(hasNum && (hasDate || type === "map"))) type = "bar";
   let encoding = autoEncode({ ...spec, type }, ds, type, true);
   if (isSpecial(type)) {
     const mod = await import("./charts/special");
