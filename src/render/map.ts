@@ -811,12 +811,12 @@ export function applyMapFrame(
     .attr("fill", function (d) {
       const base = this.getAttribute("data-base-fill") || MAP_FILL;
       if (!choroplethOn || intensity <= 0.01) return base;
-      const v = revealed.get(d.properties.id) ?? 0;
+      const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (v <= 0) return base;
       return choroplethColor(v / maxRegion, options.colorScheme);
     })
     .attr("fill-opacity", function (d) {
-      const v = revealed.get(d.properties.id) ?? 0;
+      const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (!choroplethOn || intensity <= 0.01 || v <= 0) return 1;
       return 0.35 + 0.55 * intensity;
     });
