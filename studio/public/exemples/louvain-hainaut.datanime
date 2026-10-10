@@ -1,0 +1,2786 @@
+{
+ "kind": "datanime-project",
+ "version": 1,
+ "exportedAt": "2026-10-10T09:55:31.022Z",
+ "withData": true,
+ "project": {
+  "id": "prj-louvain-hainaut-4d",
+  "name": "HE Louvain en Hainaut : le V et le rebond",
+  "createdAt": "2026-10-10T09:55:31.022Z",
+  "updatedAt": "2026-10-10T09:55:31.022Z",
+  "source": {
+   "name": "Louvain en Hainaut",
+   "sampleId": null,
+   "rows": [
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 442.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 492.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 1657.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 603.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 1342.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 122.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 1635.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 1512.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 1292,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": "RP2020 · 3e",
+     "Étudiants pondérés": 770.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 554.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 755.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 1761.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 638.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 1461.5,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 127.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 1823.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 1573.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 1357.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": "RP2021 · 3e",
+     "Étudiants pondérés": 755.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 549.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 593.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 1879.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 817.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 1517.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 149.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 1816.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 1689.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 1534.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": "RP2022 · 3e",
+     "Étudiants pondérés": 838.8,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 563.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 629.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 1777.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 715.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 1507.8,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 134.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 1706.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 1486,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 1426.8,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": "RP2023 · 4e",
+     "Étudiants pondérés": 708,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 480.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 593.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 1531.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 721.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 1455.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 141.5,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 1741.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 1406.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 1432.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": "RP2024 · 5e",
+     "Étudiants pondérés": 665,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 470.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 541.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 1975.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 762.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 1581,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 140.1,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 1881.8,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 1382.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 1352,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": "RP2025 · 4e",
+     "Étudiants pondérés": 683.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Bruxelles Brabant",
+     "Nom donné": "HE Bruxelles Brabant",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 478.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "HE en Hainaut",
+     "Nom donné": "HE en Hainaut",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 715,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Albert Jacquard",
+     "Nom donné": "HE Albert Jacquard",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 1983.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Condorcet",
+     "Nom donné": "HE provinciale de Hainaut-Condorcet",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 984.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Province de Liège",
+     "Nom donné": "HE de la Province de Liège",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 1564.5,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Lucia de Brouckère",
+     "Nom donné": "HE Lucia de Brouckère",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 149.9,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "ICHE C-ISC St-Louis",
+     "Nom donné": "HE Groupe ICHE C-ISC Saint-Louis",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 1966.4,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 1449.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "libre monsaise",
+     "Nom donné": "HE libre monsaise",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 1282.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Course",
+     "Établissement": "Namur-Liège-Lux.",
+     "Nom donné": "HE de Namur-Liège-Luxembourg",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": "RP2026 · 4e",
+     "Étudiants pondérés": 665.3,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1512.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1573.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1689.6,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1486,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1406.7,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1382.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Louvain",
+     "Établissement": "Louvain en Hainaut",
+     "Nom donné": "HE Louvain en Hainaut",
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1449.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": 4,
+     "Total général (%)": 9,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": 7.4,
+     "Total général (%)": 4,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": -12.1,
+     "Total général (%)": -5.1,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": -5.3,
+     "Total général (%)": -3.7,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": -1.7,
+     "Total général (%)": 4.9,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Variation",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": 4.8,
+     "Total général (%)": 3.6,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2020",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 12.73,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2021",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 12.15,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2022",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 12.55,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2023",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 11.63,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2024",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 11.43,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 10.71,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Part",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": 10.84,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2020",
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": 127,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2021",
+     "Charleroi (CIBI)": 22,
+     "Mons (MIBI)": 87,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2022",
+     "Charleroi (CIBI)": 24,
+     "Mons (MIBI)": 123,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2023",
+     "Charleroi (CIBI)": 34,
+     "Mons (MIBI)": 92,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2024",
+     "Charleroi (CIBI)": 33,
+     "Mons (MIBI)": 79,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2025",
+     "Charleroi (CIBI)": 44,
+     "Mons (MIBI)": 94,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Sites",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": null,
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": null,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": "2026",
+     "Charleroi (CIBI)": 42,
+     "Mons (MIBI)": 95,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Rebond",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2025",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1382.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    },
+    {
+     "Vue": "Rebond",
+     "Établissement": null,
+     "Nom donné": null,
+     "Année RP": "RP2026",
+     "RP · rang de Louvain en Hainaut": null,
+     "Étudiants pondérés": 1449.2,
+     "Louvain en Hainaut (%)": null,
+     "Total général (%)": null,
+     "Part du domaine (%)": null,
+     "Année": null,
+     "Charleroi (CIBI)": null,
+     "Mons (MIBI)": null,
+     "Source": "Tableaux fournis (données privées) : étudiants finançables pondérés, domaine 19, par HE ; dossiers acceptés par site (Orientation 2024)"
+    }
+   ],
+   "typeOverrides": {
+    "Vue": "category",
+    "Établissement": "category",
+    "Nom donné": "text",
+    "Année RP": "category",
+    "RP · rang de Louvain en Hainaut": "category",
+    "Étudiants pondérés": "number",
+    "Louvain en Hainaut (%)": "number",
+    "Total général (%)": "number",
+    "Part du domaine (%)": "number",
+    "Année": "category",
+    "Charleroi (CIBI)": "number",
+    "Mons (MIBI)": "number",
+    "Source": "text"
+   },
+   "provenance": null,
+   "note": "Données privées. Domaine 19, étudiants finançables pondérés. Pas de détail par site (Charleroi, Mons).",
+   "rowCount": 99,
+   "colCount": 13
+  },
+  "spec": {
+   "$schema": "reporting-4d-studio/spec-v1",
+   "version": 1,
+   "type": "barH",
+   "encoding": {
+    "x": "Établissement",
+    "y": [
+     "Étudiants pondérés"
+    ],
+    "y2": null,
+    "time": "RP · rang de Louvain en Hainaut",
+    "aggregate": "sum",
+    "y2Aggregate": "mean"
+   },
+   "axes": {
+    "x": {
+     "grid": false
+    },
+    "y": {
+     "decimals": 1,
+     "title": "",
+     "min": 0,
+     "max": 2100
+    },
+    "y2": {
+     "grid": false
+    }
+   },
+   "dataset": {
+    "id": "D1",
+    "version": 1,
+    "name": "Course RP2020-RP2026 (10 HE)",
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Course"
+      ],
+      "value": null,
+      "label": "Course RP2020-RP2026 (10 HE)"
+     }
+    ],
+    "columns": []
+   },
+   "transform": {
+    "calculate": [],
+    "filters": []
+   },
+   "mode": {
+    "kind": "dynamic",
+    "buildIn": true,
+    "buildInMs": 900,
+    "fourD": {
+     "enabled": true,
+     "mode": "snapshot",
+     "step": "raw",
+     "durationMs": 9000,
+     "loop": false,
+     "stamp": true,
+     "freezeScales": true
+    }
+   },
+   "style": {
+    "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
+    "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+    "source": "Source : tableaux fournis (données privées, non publiées)",
+    "valueLabels": true,
+    "legend": "none",
+    "sort": "desc",
+    "normalize": false,
+    "curve": "linear",
+    "palette": "custom",
+    "paletteCustom": [
+     "#5b6673",
+     "#5b6673",
+     "#5b6673",
+     "#5b6673",
+     "#5b6673",
+     "#5b6673",
+     "#5b6673",
+     "#ffffff",
+     "#5b6673",
+     "#5b6673"
+    ],
+    "size": {
+     "preset": "custom",
+     "width": 1600,
+     "height": 800
+    },
+    "overrides": {
+     "e:Bruxelles Brabant": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:HE en Hainaut": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Albert Jacquard": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Condorcet": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Province de Liège": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Lucia de Brouckère": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:ICHE C-ISC St-Louis": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Louvain en Hainaut": {
+      "color": "#ffffff",
+      "labelBold": true,
+      "comment": "Louvain en Hainaut : 1 512,6 en RP2020 (3e), 1 449,2 en RP2026 (4e) ; 5e en RP2024."
+     },
+     "e:libre monsaise": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     },
+     "e:Namur-Liège-Lux.": {
+      "color": "#5b6673",
+      "comment": "En gris : les 9 autres hautes écoles."
+     }
+    },
+    "focus": {
+     "key": null,
+     "title": "",
+     "note": "",
+     "average": false
+    }
+   },
+   "story": {
+    "auto": false,
+    "edited": {
+     "title": true,
+     "subtitle": true,
+     "comments": true
+    },
+    "comments": [
+     "Rang par RP : RP2020 3e, RP2021 3e, RP2022 3e, RP2023 4e, RP2024 5e, RP2025 4e, RP2026 4e."
+    ],
+    "showComments": true
+   },
+   "norme": {
+    "enabled": false,
+    "autoSwitch": false
+   }
+  },
+  "sequence": {
+   "title": "HE Louvain en Hainaut : le V et le rebond",
+   "snapshots": [
+    {
+     "id": "snap-louvain-4d-course",
+     "name": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "barH",
+      "encoding": {
+       "x": "Établissement",
+       "y": [
+        "Étudiants pondérés"
+       ],
+       "y2": null,
+       "time": "RP · rang de Louvain en Hainaut",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 1,
+        "title": "",
+        "min": 0,
+        "max": 2100
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Course RP2020-RP2026 (10 HE)",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Course"
+         ],
+         "value": null,
+         "label": "Course RP2020-RP2026 (10 HE)"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "snapshot",
+        "step": "raw",
+        "durationMs": 9000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
+       "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "none",
+       "sort": "desc",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#5b6673",
+        "#5b6673",
+        "#5b6673",
+        "#5b6673",
+        "#5b6673",
+        "#5b6673",
+        "#5b6673",
+        "#ffffff",
+        "#5b6673",
+        "#5b6673"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:Bruxelles Brabant": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:HE en Hainaut": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Albert Jacquard": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Condorcet": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Province de Liège": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Lucia de Brouckère": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:ICHE C-ISC St-Louis": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Louvain en Hainaut": {
+         "color": "#ffffff",
+         "labelBold": true,
+         "comment": "Louvain en Hainaut : 1 512,6 en RP2020 (3e), 1 449,2 en RP2026 (4e) ; 5e en RP2024."
+        },
+        "e:libre monsaise": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        },
+        "e:Namur-Liège-Lux.": {
+         "color": "#5b6673",
+         "comment": "En gris : les 9 autres hautes écoles."
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Rang par RP : RP2020 3e, RP2021 3e, RP2022 3e, RP2023 4e, RP2024 5e, RP2025 4e, RP2026 4e."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
+     "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+     "comments": [
+      "Rang par RP : RP2020 3e, RP2021 3e, RP2022 3e, RP2023 4e, RP2024 5e, RP2025 4e, RP2026 4e."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-v",
+     "name": "Le V : 1 689,6 en RP2022, 1 382,2 en RP2025, 1 449,2 en RP2026",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Année RP",
+       "y": [
+        "Étudiants pondérés"
+       ],
+       "y2": null,
+       "time": "Année RP",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 1,
+        "title": "",
+        "min": 0,
+        "max": 1800
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Louvain en Hainaut par RP",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Louvain"
+         ],
+         "value": null,
+         "label": "Louvain en Hainaut par RP"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "raw",
+        "durationMs": 7000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "Le V : 1 689,6 en RP2022, 1 382,2 en RP2025, 1 449,2 en RP2026",
+       "subtitle": "HE Louvain en Hainaut, étudiants finançables pondérés (domaine 19), une barre par RP. Sites de Charleroi et Mons : pas de détail par site.",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "none",
+       "sort": "none",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#ffffff"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:RP2022": {
+         "color": "#ffffff",
+         "label": "{valeur}",
+         "labelBold": true,
+         "labelSize": 20,
+         "comment": "Sommet : 1 689,6 en RP2022."
+        },
+        "e:RP2025": {
+         "color": "#e74c3c",
+         "labelBold": true,
+         "labelSize": 20,
+         "comment": "Creux : 1 382,2 en RP2025, après trois baisses."
+        },
+        "e:RP2026": {
+         "color": "#2ecc71",
+         "labelBold": true,
+         "labelSize": 20,
+         "comment": "Rebond : 1 449,2 en RP2026 (+67,0)."
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Hausse jusqu'à RP2022 (1 689,6), trois baisses, rebond en RP2026 (1 449,2)."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Le V : 1 689,6 en RP2022, 1 382,2 en RP2025, 1 449,2 en RP2026",
+     "subtitle": "HE Louvain en Hainaut, étudiants finançables pondérés (domaine 19), une barre par RP. Sites de Charleroi et Mons : pas de détail par site.",
+     "comments": [
+      "Hausse jusqu'à RP2022 (1 689,6), trois baisses, rebond en RP2026 (1 449,2)."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-sites",
+     "name": "Charleroi : de 22 à 42 dossiers depuis 2021, presque le double",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "stackedArea",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Charleroi (CIBI)",
+        "Mons (MIBI)"
+       ],
+       "y2": null,
+       "time": "Année",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "Dossiers acceptés",
+        "min": 0,
+        "max": 160
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D6",
+       "version": 1,
+       "name": "Dossiers acceptés Charleroi / Mons",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Sites"
+         ],
+         "value": null,
+         "label": "Dossiers acceptés Charleroi / Mons"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "raw",
+        "durationMs": 7000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "Charleroi : de 22 à 42 dossiers depuis 2021, presque le double",
+       "subtitle": "Dossiers acceptés par site, 2020-2026 (pas des étudiants finançables). Mons remonte : de 79 en 2024 à 95 en 2026. Charleroi 2020 : non ouvert.",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "top",
+       "sort": "none",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#f5a623",
+        "#4aa3df"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Mons remonte : de 79 en 2024 à 95 en 2026.",
+        "Total : 127, 109, 147, 126, 112, 138, 137 (2020 à 2026)."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Charleroi : de 22 à 42 dossiers depuis 2021, presque le double",
+     "subtitle": "Dossiers acceptés par site, 2020-2026 (pas des étudiants finançables). Mons remonte : de 79 en 2024 à 95 en 2026. Charleroi 2020 : non ouvert.",
+     "comments": [
+      "Mons remonte : de 79 en 2024 à 95 en 2026.",
+      "Total : 127, 109, 147, 126, 112, 138, 137 (2020 à 2026)."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-part-charleroi",
+     "name": "Part de Charleroi : 20,2 % en 2021 (ouverture), 30,7 % en 2026",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "stackedBar",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Charleroi (CIBI)",
+        "Mons (MIBI)"
+       ],
+       "y2": null,
+       "time": "Année",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "",
+        "min": 0
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D6",
+       "version": 1,
+       "name": "Dossiers acceptés Charleroi / Mons",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Sites"
+         ],
+         "value": null,
+         "label": "Dossiers acceptés Charleroi / Mons"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "raw",
+        "durationMs": 6000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "Part de Charleroi : 20,2 % en 2021 (ouverture), 30,7 % en 2026",
+       "subtitle": "Dossiers acceptés (pas des étudiants finançables), part de chaque site. Sommet en 2025 : 31,9 %.",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "top",
+       "sort": "none",
+       "normalize": true,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#f5a623",
+        "#4aa3df"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "2021 : 20,2 % ; 2026 : 30,7 %."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Part de Charleroi : 20,2 % en 2021 (ouverture), 30,7 % en 2026",
+     "subtitle": "Dossiers acceptés (pas des étudiants finançables), part de chaque site. Sommet en 2025 : 31,9 %.",
+     "comments": [
+      "2021 : 20,2 % ; 2026 : 30,7 %."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-variation",
+     "name": "RP2026 : Louvain en Hainaut +4,8 %, total +3,6 %",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "groupedBar",
+      "encoding": {
+       "x": "Année RP",
+       "y": [
+        "Louvain en Hainaut (%)",
+        "Total général (%)"
+       ],
+       "y2": null,
+       "time": "Année RP",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 1,
+        "title": "",
+        "min": -14,
+        "max": 10,
+        "unit": "pct"
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D3",
+       "version": 1,
+       "name": "Variation annuelle",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Variation"
+         ],
+         "value": null,
+         "label": "Variation annuelle"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "raw",
+        "durationMs": 6000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "RP2026 : Louvain en Hainaut +4,8 %, total +3,6 %",
+       "subtitle": "Variation sur un an des étudiants pondérés : Louvain en Hainaut (blanc) et total général du domaine 19 (gris).",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "top",
+       "sort": "none",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#ffffff",
+        "#5b6673"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:Louvain en Hainaut (%)|RP2026": {
+         "color": "#2ecc71",
+         "labelBold": true,
+         "labelSize": 20,
+         "comment": "RP2026 : +4,8 % pour Louvain en Hainaut, +3,6 % pour le total."
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Louvain en Hainaut : +4 % ; +7,4 % ; -12,1 % ; -5,3 % ; -1,7 % ; +4,8 %."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "RP2026 : Louvain en Hainaut +4,8 %, total +3,6 %",
+     "subtitle": "Variation sur un an des étudiants pondérés : Louvain en Hainaut (blanc) et total général du domaine 19 (gris).",
+     "comments": [
+      "Louvain en Hainaut : +4 % ; +7,4 % ; -12,1 % ; -5,3 % ; -1,7 % ; +4,8 %."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-part",
+     "name": "Part du domaine : 12,7 % en RP2020, 10,8 % en RP2026",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année RP",
+       "y": [
+        "Part du domaine (%)"
+       ],
+       "y2": null,
+       "time": "Année RP",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 1,
+        "title": "",
+        "min": 0,
+        "max": 15,
+        "unit": "pct"
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D4",
+       "version": 1,
+       "name": "Part du domaine",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Part"
+         ],
+         "value": null,
+         "label": "Part du domaine"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 900,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "raw",
+        "durationMs": 6000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "Part du domaine : 12,7 % en RP2020, 10,8 % en RP2026",
+       "subtitle": "Étudiants pondérés de Louvain en Hainaut / total général du domaine 19.",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "none",
+       "sort": "none",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#ffffff"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "RP2026 : 1 449,2 sur 13 365,2, environ 1 étudiant pondéré sur 9."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Part du domaine : 12,7 % en RP2020, 10,8 % en RP2026",
+     "subtitle": "Étudiants pondérés de Louvain en Hainaut / total général du domaine 19.",
+     "comments": [
+      "RP2026 : 1 449,2 sur 13 365,2, environ 1 étudiant pondéré sur 9."
+     ],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    },
+    {
+     "id": "snap-louvain-4d-rebond",
+     "name": "Après trois ans de baisse, +4,8 % : le rebond est là.",
+     "createdAt": "2026-10-10T09:55:31.022Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Année RP",
+       "y": [
+        "Étudiants pondérés"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 1,
+        "title": "",
+        "min": 0,
+        "max": 1600
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D5",
+       "version": 1,
+       "name": "Rebond RP2025-RP2026",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Rebond"
+         ],
+         "value": null,
+         "label": "Rebond RP2025-RP2026"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 1200
+      },
+      "style": {
+       "title": "Après trois ans de baisse, +4,8 % : le rebond est là.",
+       "subtitle": "HE Louvain en Hainaut : 1 382,2 en RP2025, 1 449,2 en RP2026 (+67,0). Encore sous RP2020 (1 512,6).",
+       "source": "Source : tableaux fournis (données privées, non publiées)",
+       "valueLabels": true,
+       "legend": "none",
+       "sort": "none",
+       "normalize": false,
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#ffffff"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:RP2025": {
+         "color": "#5b6673",
+         "labelSize": 32,
+         "labelBold": true,
+         "comment": "RP2025 : 1 382,2."
+        },
+        "e:RP2026": {
+         "color": "#2ecc71",
+         "labelSize": 32,
+         "labelBold": true,
+         "comment": "RP2026 : 1 449,2."
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [],
+       "showComments": false
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Après trois ans de baisse, +4,8 % : le rebond est là.",
+     "subtitle": "HE Louvain en Hainaut : 1 382,2 en RP2025, 1 449,2 en RP2026 (+67,0). Encore sous RP2020 (1 512,6).",
+     "comments": [],
+     "source": "Source : tableaux fournis (données privées, non publiées)",
+     "kind": null,
+     "role": "recommendation",
+     "sampleId": null,
+     "dataName": "Louvain en Hainaut",
+     "generatedAt": "2026-10-10T09:55:31.022Z"
+    }
+   ],
+   "sameScale": false,
+   "film": {
+    "morph": false
+   }
+  },
+  "datasets": [
+   {
+    "id": "D1",
+    "name": "Course RP2020-RP2026 (10 HE)",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Course"
+      ],
+      "value": null,
+      "label": "Course RP2020-RP2026 (10 HE)"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#3FA7C4",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   },
+   {
+    "id": "D2",
+    "name": "Louvain en Hainaut par RP",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Louvain"
+      ],
+      "value": null,
+      "label": "Louvain en Hainaut par RP"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#ffffff",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   },
+   {
+    "id": "D3",
+    "name": "Variation annuelle",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Variation"
+      ],
+      "value": null,
+      "label": "Variation annuelle"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#7FB069",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   },
+   {
+    "id": "D4",
+    "name": "Part du domaine",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Part"
+      ],
+      "value": null,
+      "label": "Part du domaine"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#a88beb",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   },
+   {
+    "id": "D5",
+    "name": "Rebond RP2025-RP2026",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Rebond"
+      ],
+      "value": null,
+      "label": "Rebond RP2025-RP2026"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#E3A33B",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   },
+   {
+    "id": "D6",
+    "name": "Dossiers acceptés Charleroi / Mons",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Sites"
+      ],
+      "value": null,
+      "label": "Dossiers acceptés Charleroi / Mons"
+     }
+    ],
+    "columns": [],
+    "source": "Louvain en Hainaut",
+    "color": "#2a9dc4",
+    "createdAt": "2026-10-10T09:55:31.022Z",
+    "updatedAt": "2026-10-10T09:55:31.022Z"
+   }
+  ],
+  "thumb": null
+ }
+}

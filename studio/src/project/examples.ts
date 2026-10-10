@@ -32,6 +32,12 @@ export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
     description: "Belgique 1995-2024 : 0-14 ans, 15-24 ans (course année par année) et étudiants du supérieur, 7 scènes",
     file: "exemples/jeunes-belgique.datanime",
   },
+  {
+    id: "louvain-hainaut",
+    name: "HE Louvain en Hainaut : le V et le rebond",
+    description: "Étudiants finançables pondérés (domaine 19, 10 HE, RP2020-RP2026) et dossiers acceptés Charleroi / Mons : course 4D, 7 scènes",
+    file: "exemples/louvain-hainaut.datanime",
+  },
 ];
 
 /** Projet d'exemple désigné par la valeur de `?projet=` (insensible à la casse et aux espaces), sinon null. */
