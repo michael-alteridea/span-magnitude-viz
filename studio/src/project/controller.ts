@@ -75,7 +75,7 @@ export class ProjectController {
 
   working(): WorkingState {
     const st = this.d.store.state;
-    return { source: this.workingSource(), spec: st.spec, sequence: { title: st.story.title, snapshots: st.story.snapshots, sameScale: !!st.story.sameScale, film: { morph: this.d.morph() } }, datasets: st.datasets };
+    return { source: this.workingSource(), spec: st.spec, sequence: { title: st.story.title, snapshots: st.story.snapshots, sameScale: !!st.story.sameScale, film: { morph: this.d.morph(), access: st.story.access ?? "mail" } }, datasets: st.datasets };
   }
 
   /** Signature courante (mémorisée tant que spec / données / séquence n'ont pas changé d'objet). */
@@ -152,7 +152,7 @@ export class ProjectController {
       updatedAt: now,
       source,
       spec: structuredClone(st.spec),
-      sequence: { title: st.story.title, snapshots: snaps, sameScale: !!st.story.sameScale, film: { morph: this.d.morph() } },
+      sequence: { title: st.story.title, snapshots: snaps, sameScale: !!st.story.sameScale, film: { morph: this.d.morph(), access: st.story.access ?? "mail" } },
       datasets: structuredClone(st.datasets),
       thumb,
       sig: this.sig(),

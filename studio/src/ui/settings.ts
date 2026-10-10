@@ -1155,7 +1155,7 @@ export class SettingsPanel {
         )
       );
     }
-    if (this.seqOptions) main.push(this.kw(h("div", { class: "field", "data-target": "sequence" }, h("span", { class: "field-label" }, "Séquence (film et PowerPoint)"), this.seqOptions), "séquence scènes même échelle transitions morph powerpoint film"));
+    if (this.seqOptions) main.push(this.kw(h("div", { class: "field", "data-target": "sequence" }, h("span", { class: "field-label" }, "Séquence (film et PowerPoint)"), this.seqOptions), "séquence scènes même échelle transitions morph powerpoint film accès entrée libre mail lien magique qr lecture"));
     // Animation : fixe, entrée animée, 4D (dans le temps)
     const cur = animKind(spec);
     const timeCol = this.timeCandidate(spec, cols);

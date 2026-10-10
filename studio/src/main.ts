@@ -39,7 +39,7 @@ import { elementNotes, mainColor, type ElementNote } from "./story/elementNotes"
 import { withOverride } from "./charts/overrides";
 import type { SlideBullets } from "./story/pptx";
 import { narrate, narrativeKey, applyNarrative, type Narrative } from "./story/narrate";
-import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type Snapshot, type StoryState } from "./story/snapshots";
+import { MAX_SNAPSHOTS, newSnapshotId, parseStory, roleForKind, type FilmAccess, type Snapshot, type StoryState } from "./story/snapshots";
 import type { SlideImage } from "./story/pptx";
 import { composeSvg } from "./export";
 import { prepareCache, renderChart, valueMaxOf } from "./charts/render";
@@ -2164,13 +2164,19 @@ function startReading(storyId: string, snapId: string | null): void {
   else location.hash = hash;
 }
 
+/** Accès au film d'une histoire lue : celle du projet ouvert suit son réglage ; démos et revues : mail demandé. */
+function filmAccessOf(storyId: string): FilmAccess {
+  return storyId === LOCAL_STORY_ID ? store.state.story.access ?? "mail" : "mail";
+}
+
 /** Routeur du fragment : mode lecture (#/lire/…), sinon espace Revues. */
 async function route(hash: string): Promise<void> {
   const rt = parseReadRoute(hash);
   if (rt) {
     const own = inAppRead !== null && inAppRead === hash;
     inAppRead = null;
-    if (!own && !(await ensureAccess(rt.storyId, rt.snapId))) return;
+    // « Accès au film » du projet : entrée libre = pas de lien magique (défaut : mail demandé)
+    if (!own && filmAccessOf(rt.storyId) !== "libre" && !(await ensureAccess(rt.storyId, rt.snapId))) return;
     return openReading(rt, !own);
   }
   if (reader.isOpen) {
@@ -2301,11 +2307,21 @@ void ensureFont(store.state.spec.style.font).finally(() => {
       // lien direct vers un projet d'exemple intégré (?projet=petrole-mazout) : jeu de données + scènes, sans import
       const id = params.get("projet");
       if (!id) return;
-      await openExampleProject(id);
-      try {
-        history.replaceState(history.state, "", withoutProjectParam(location.href));
-      } catch {
-        /* adresse non modifiable (file://) */
+      const opened = await openExampleProject(id);
+      // ?projet=<id>&lecture=1 : l'adresse est gardée (le lien magique du mail y ramène, projet compris)
+      const lecture = params.get("lecture") === "1";
+      if (!lecture)
+        try {
+          history.replaceState(history.state, "", withoutProjectParam(location.href));
+        } catch {
+          /* adresse non modifiable (file://) */
+        }
+      // ?projet=<id>&lecture=1 : mode lecture du projet, avec ou sans lien magique selon son « Accès au film »
+      if (opened && lecture && store.state.story.snapshots.length) {
+        const sid = demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID;
+        const hash = readHash(sid, null);
+        if (location.hash === hash) void route(hash);
+        else location.hash = hash;
       }
     });
 });

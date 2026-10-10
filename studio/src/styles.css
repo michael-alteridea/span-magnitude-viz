@@ -972,6 +972,8 @@ body.dw-open { overflow: hidden; }
 .story-reset:disabled { opacity: .3; cursor: default; }
 .story-reset:not(:disabled) { color: #fbbf24; }
 .seq-options { display: flex; flex-direction: column; gap: 6px; }
+.seq-access { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.seq-access .segmented { align-self: flex-start; }
 @media (pointer: coarse) { .story-reset { width: 30px; height: 30px; } }
 
 .cf-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; padding: 20px; background: rgba(2, 8, 10, .66); backdrop-filter: blur(3px); }

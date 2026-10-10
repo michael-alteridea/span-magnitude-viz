@@ -49,7 +49,14 @@ export const storyStateSchema = z.object({
   /** Même échelle pour les graphiques de même mesure (diapositives). */
   sameScale: z.boolean().default(false),
 });
-export type StoryState = Omit<z.infer<typeof storyStateSchema>, "sameScale"> & { sameScale?: boolean };
+/** « Accès au film » des liens de lecture et QR : « libre » = entrée libre ; « mail » (défaut) = lien magique demandé. */
+export const FILM_ACCESS = ["mail", "libre"] as const;
+export type FilmAccess = (typeof FILM_ACCESS)[number];
+export const FILM_ACCESS_LABELS: Record<FilmAccess, string> = { mail: "Mail demandé", libre: "Entrée libre" };
+export function parseFilmAccess(v: unknown): FilmAccess | undefined {
+  return v === "libre" || v === "mail" ? v : undefined;
+}
+export type StoryState = Omit<z.infer<typeof storyStateSchema>, "sameScale"> & { sameScale?: boolean; access?: FilmAccess };
 
 export function emptyStory(): StoryState {
   return { title: "Notre histoire en données", snapshots: [], sameScale: false };
@@ -59,9 +66,11 @@ export function emptyStory(): StoryState {
 export function parseStory(input: unknown): StoryState {
   const base = emptyStory();
   if (!input || typeof input !== "object") return base;
-  const o = input as { title?: unknown; snapshots?: unknown; sameScale?: unknown };
+  const o = input as { title?: unknown; snapshots?: unknown; sameScale?: unknown; access?: unknown };
   if (typeof o.title === "string" && o.title.trim()) base.title = o.title.slice(0, 200);
   if (typeof o.sameScale === "boolean") base.sameScale = o.sameScale;
+  const access = parseFilmAccess(o.access);
+  if (access) base.access = access;
   if (Array.isArray(o.snapshots))
     for (const s of o.snapshots.slice(0, MAX_SNAPSHOTS)) {
       const r = snapshotSchema.safeParse(s);

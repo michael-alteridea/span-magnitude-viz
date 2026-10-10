@@ -7,7 +7,7 @@
 import { datasetColor, isFrozenRef, sceneRef } from "../data/datasets";
 import type { Store } from "../state";
 import { NARRATIVE_ROLES, type NarrativeRole } from "../spec";
-import { assignNarrativeOrder, moveSnapshot, ROLE_LABELS, type Snapshot } from "../story/snapshots";
+import { assignNarrativeOrder, FILM_ACCESS, FILM_ACCESS_LABELS, moveSnapshot, ROLE_LABELS, type FilmAccess, type Snapshot } from "../story/snapshots";
 import type { SceneState } from "../project/project";
 import { h, svgIcon, ICONS } from "./dom";
 import { makeMenu, menuItem, type MenuHandle } from "./menu";
@@ -69,6 +69,9 @@ export class StoryStrip {
   private resetMenu: MenuHandle;
   private sameScale: HTMLInputElement;
   private sameScaleLabel: HTMLElement;
+  /** « Accès au film » : boutons Entrée libre / Mail demandé. */
+  private accessSeg: HTMLElement;
+  private accessHint: HTMLElement;
   private key = "";
   private dragFrom = -1;
 
@@ -107,7 +110,21 @@ export class StoryStrip {
     this.sameScale = h("input", { type: "checkbox", "data-testid": "story-same-scale" });
     this.sameScale.addEventListener("change", () => this.store.setStory({ ...this.store.state.story, sameScale: this.sameScale.checked }));
     this.sameScaleLabel = h("label", { class: "check story-same-scale", title: "Graphiques de même mesure : même échelle dans la séquence et le PowerPoint (lecture comparable)" }, this.sameScale, h("span", null, "Même échelle entre les scènes"));
-    this.sequenceOptions = h("div", { class: "seq-options", "data-testid": "seq-options" }, this.sameScaleLabel, morphLabel);
+    // Accès au film : liens de lecture et QR (#/lire/…, ?projet=…&lecture=1) en entrée libre ou avec lien magique par mail
+    const ACCESS_TITLES: Record<FilmAccess, string> = {
+      libre: "Entrée libre : le lien de lecture ou le QR ouvre le film directement, sans adresse mail",
+      mail: "Mail demandé : au premier passage, la personne reçoit un lien magique par mail (on note qui ouvre quelle scène)",
+    };
+    this.accessSeg = h(
+      "div",
+      { class: "segmented", role: "radiogroup", "aria-label": "Accès au film", "data-testid": "story-access" },
+      ...(["libre", "mail"] as const).map((v) =>
+        h("button", { type: "button", role: "radio", "data-value": v, title: ACCESS_TITLES[v], onclick: () => this.setAccess(v) }, FILM_ACCESS_LABELS[v])
+      )
+    );
+    this.accessHint = h("small", { class: "hint", "data-testid": "story-access-hint" });
+    const accessField = h("div", { class: "seq-access", "data-testid": "story-access-field" }, h("span", { class: "field-label" }, "Accès au film"), this.accessSeg, this.accessHint);
+    this.sequenceOptions = h("div", { class: "seq-options", "data-testid": "seq-options" }, this.sameScaleLabel, morphLabel, accessField);
     const toggle = h(
       "button",
       { class: "story-toggle", "data-testid": "story-toggle", title: "Afficher / masquer la séquence", onclick: () => this.store.setUi({ openSections: { ...this.store.state.ui.openSections, histoire: !this.isOpen() } }) },
@@ -143,6 +160,26 @@ export class StoryStrip {
     }
   }
 
+  /** Accès au film du projet (absent = « Mail demandé »). */
+  get access(): FilmAccess {
+    return this.store.state.story.access ?? "mail";
+  }
+
+  setAccess(v: FilmAccess): void {
+    if (!FILM_ACCESS.includes(v)) return;
+    this.store.setStory({ ...this.store.state.story, access: v });
+  }
+
+  private syncAccess(): void {
+    const cur = this.access;
+    for (const b of this.accessSeg.querySelectorAll<HTMLButtonElement>("button")) {
+      const on = b.dataset.value === cur;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    }
+    this.accessHint.textContent = cur === "libre" ? "Liens de lecture et QR : le film s'ouvre directement." : "Liens de lecture et QR : lien magique par mail au premier passage.";
+  }
+
   private isOpen(): boolean {
     return this.store.state.ui.openSections.histoire ?? true;
   }
@@ -166,6 +203,7 @@ export class StoryStrip {
     this.readBtn.disabled = !st.snapshots.length;
     this.cadBtn.disabled = !st.snapshots.length;
     this.sameScale.checked = !!st.sameScale;
+    this.syncAccess();
     const status = this.actions.status?.() ?? { name: null, savedAt: null, dirty: false, scenes: new Map<string, SceneState>() };
     this.statusEl.className = `seq-status${status.dirty ? " dirty" : status.savedAt ? " saved" : ""}`;
     this.statusEl.textContent = status.savedAt ? (status.dirty ? `Modifications non enregistrées · enregistrée à ${status.savedAt}` : `Enregistrée sur cet appareil · ${status.savedAt}`) : status.dirty ? "Non enregistrée" : "";

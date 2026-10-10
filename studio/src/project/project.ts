@@ -9,7 +9,7 @@
  */
 import type { ColumnType } from "../data/table";
 import type { Provenance } from "../provenance";
-import { parseStory, type Snapshot, type StoryState } from "../story/snapshots";
+import { parseFilmAccess, parseStory, type FilmAccess, type Snapshot, type StoryState } from "../story/snapshots";
 import { parseDatasets, type DatasetRecipe } from "../data/datasets";
 
 export const PROJECT_FILE_KIND = "datanime-project";
@@ -36,8 +36,8 @@ export interface Sequence {
   title: string;
   snapshots: Snapshot[];
   sameScale: boolean;
-  /** Réglages du film et du PowerPoint. */
-  film: { morph: boolean };
+  /** Réglages du film et du PowerPoint. `access` : « Accès au film » des liens de lecture (absent = « mail », lien magique). */
+  film: { morph: boolean; access?: FilmAccess };
 }
 
 export interface Project {
@@ -147,7 +147,7 @@ export interface WorkingState {
 
 /** Signature globale : différente ⇔ modifications non enregistrées. */
 export function projectSig(w: WorkingState): string {
-  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig), ...(w.datasets?.length ? [w.datasets.map((d) => [d.id, d.name, d.version, d.filters, d.columns, d.source])] : [])]);
+  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig), ...(w.datasets?.length ? [w.datasets.map((d) => [d.id, d.name, d.version, d.filters, d.columns, d.source])] : []), ...(w.sequence.film?.access === "libre" ? ["acces:libre"] : [])]);
 }
 
 export type SceneState = "saved" | "modified" | "new";
@@ -172,7 +172,8 @@ export function resetScene(current: readonly Snapshot[], saved: readonly Snapsho
 
 /** Séquence d'un projet → état d'histoire du Studio. */
 export function sequenceToStory(seq: Sequence): StoryState {
-  return { title: seq.title, snapshots: seq.snapshots.map((s) => structuredClone(s)), sameScale: !!seq.sameScale };
+  const access = parseFilmAccess(seq.film?.access);
+  return { title: seq.title, snapshots: seq.snapshots.map((s) => structuredClone(s)), sameScale: !!seq.sameScale, ...(access ? { access } : {}) };
 }
 
 /* ------------------------------------------------------------------ fichier .datanime */
@@ -230,7 +231,7 @@ export function parseProjectFile(input: unknown): { project: Project; withData: 
     updatedAt: str(p.updatedAt, now),
     source,
     spec: p.spec ?? null,
-    sequence: { title: story.title, snapshots: story.snapshots, sameScale: !!story.sameScale, film: { morph: film.morph === true } },
+    sequence: { title: story.title, snapshots: story.snapshots, sameScale: !!story.sameScale, film: { morph: film.morph === true, ...(parseFilmAccess(film.access) ? { access: parseFilmAccess(film.access) } : {}) } },
     datasets: parseDatasets(p.datasets),
     thumb: typeof p.thumb === "string" && p.thumb.startsWith("data:image/") ? p.thumb : null,
   };
