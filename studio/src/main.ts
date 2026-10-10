@@ -48,7 +48,7 @@ import { readWorkbookData, sheetMatrix, toWorkbookIn, type Matrix, type Workbook
 import { detectStructure } from "./data/structure";
 import { detectDelimiter, parseDelimitedMatrix } from "span-magnitude-viz/fileImport";
 import { DrillBar } from "./ui/drillBar";
-import { StoryFilm } from "./ui/storyFilm";
+import { StoryFilm, type FilmEnding } from "./ui/storyFilm";
 import { LOCAL_STORY_ID, READING_PUBLIC_BASE, demoStoryDef, demoStoryOf, parseReadRoute, readHash, readUrl, readingStoryIdFor, type ReadRoute } from "./story/reading";
 import { DEMO_FINANCE_ID, DEMO_ORG, DEMO_PIPELINE_ID, demoFinanceReview, demoPipelineReview, demoReadingStory } from "./review/demo";
 import { demoNotesFor } from "./publish/demoNotes";
@@ -1986,7 +1986,7 @@ let readerStory: string | null = null;
 let readerReturn = "";
 let readSeq = 0;
 let closingFromRoute = false;
-const reader = new StoryFilm((s) => datasetFor(s), {
+const reader: StoryFilm = new StoryFilm((s) => datasetFor(s), {
   reading: true,
   onSlide: (s) => {
     if (!readerStory) return;
@@ -2004,7 +2004,7 @@ const reader = new StoryFilm((s) => datasetFor(s), {
   linkFor: (s) => (readerStory ? snapReadUrl(s, readerStory, "partage") : null),
   copy: (u) => void copyText(u),
   // écran de fin « Fait avec Datanime · Créez le vôtre » ; « Partager » : lien universel (exemple, démo, revue publiée)
-  ending: () => {
+  ending: (): FilmEnding => {
     const first = reader.firstSnapshot;
     const st = readerStory;
     const universal = !!first && !!st && (!!demoStoryDef(readingStoryIdFor(first, st)) || !!exampleSceneOf(first.id) || isPublished(st));

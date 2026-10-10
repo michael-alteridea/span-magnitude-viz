@@ -65,7 +65,7 @@ describe("projets d'exemple : petrole-mazout", () => {
   });
 
   it("fichier absent → erreur lisible", async () => {
-    const e = { id: "x", name: "X", description: "", file: "exemples/absent.datanime" };
+    const e = { id: "x", name: "X", description: "", file: "exemples/absent.datanime", scenes: [] };
     await expect(loadExampleProject(e, BASE, fileFetcher)).rejects.toThrow(/introuvable \(HTTP 404\)/);
   });
 

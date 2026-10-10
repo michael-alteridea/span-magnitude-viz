@@ -5,10 +5,10 @@
  * identique dans l'aperçu et dans la vidéo).
  */
 import { stripLicence } from "../data/licence";
-import { PLATFORM_HOST, PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
+import { DISCOVER_URL, PLATFORM_HOST, PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
 import { qrMatrix, qrPath } from "../qr";
 import { measure, wrap, ellipsize } from "../charts/text";
-import { countUpText, locate, parseKeyNumber, REEL_FORMATS, sceneLayout, timingsFor, type KeyNumber, type ReelPlan, type SceneLayout } from "./plan";
+import { countUpText, locate, parseKeyNumber, REEL_FORMATS, sceneLayout, timingsFor, type KeyNumber, type ReelLinks, type ReelPlan, type SceneLayout } from "./plan";
 
 export const REEL_TITLE_FONT = "'R4D Poppins', 'R4D Inter', system-ui, sans-serif";
 export const REEL_TEXT_FONT = "'R4D Inter', system-ui, sans-serif";
@@ -24,6 +24,14 @@ const easeOut = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 const easeInOut = (t: number) => {
   const x = clamp01(t);
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+};
+/** Liens par défaut (sans projet d'exemple) : page du Studio, ligne de présentation de la plateforme. */
+export const DEFAULT_REEL_LINKS: ReelLinks = {
+  qr: PLATFORM_URL,
+  label: [PLATFORM_HOST],
+  cta: "Scannez pour essayer",
+  pitch: `Découvrir Datanime : ${DISCOVER_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")}`,
+  pitchUrl: DISCOVER_URL,
 };
 const f2 = (v: number) => (Math.round(v * 100) / 100).toString();
 
@@ -156,7 +164,7 @@ export class ReelComposer {
 
   private qr(): { d: string; n: number } {
     if (!this.qrD) {
-      const m = qrMatrix(PLATFORM_URL);
+      const m = qrMatrix(this.links.qr);
       this.qrD = { d: qrPath(m), n: m.size };
     }
     return this.qrD;
@@ -167,7 +175,7 @@ export class ReelComposer {
     const q = this.qr();
     const quiet = 2;
     const k = size / (q.n + quiet * 2);
-    return `<g class="${cls}" data-qr="${esc(PLATFORM_URL)}"><rect x="${f2(x)}" y="${f2(y)}" width="${f2(size)}" height="${f2(size)}" rx="${f2(size * 0.06)}" fill="#ffffff"/><path transform="translate(${f2(x + quiet * k)} ${f2(y + quiet * k)}) scale(${(k).toFixed(4)})" d="${q.d}" fill="#0b0b0c"/></g>`;
+    return `<g class="${cls}" data-qr="${esc(this.links.qr)}"><rect x="${f2(x)}" y="${f2(y)}" width="${f2(size)}" height="${f2(size)}" rx="${f2(size * 0.06)}" fill="#ffffff"/><path transform="translate(${f2(x + quiet * k)} ${f2(y + quiet * k)}) scale(${(k).toFixed(4)})" d="${q.d}" fill="#0b0b0c"/></g>`;
   }
 
   private cartouche(lay: SceneLayout, a: number): string {
@@ -201,6 +209,31 @@ export class ReelComposer {
     return out;
   }
 
+  /** Liens du QR et de la carte de fin (film du projet d'exemple, sinon Studio). */
+  private get links(): ReelLinks {
+    return this.plan.links ?? DEFAULT_REEL_LINKS;
+  }
+
+  /** Lien visible (une ou deux lignes) ajusté à la largeur `w` ; renvoie le balisage et la hauteur occupée. */
+  private linkLines(x: number, y: number, w: number, fs: number, anchor: "start" | "middle"): { svg: string; h: number } {
+    const L = this.links.label;
+    const one = L.join("");
+    // une seule ligne si elle tient, sinon les deux morceaux (adresse, puis paramètres), taille réduite au besoin
+    const lines = measure(one, fs, REEL_TEXT_FONT, 700) <= w ? [one] : L;
+    const widest = Math.max(...lines.map((l) => measure(l, fs, REEL_TEXT_FONT, 700)));
+    const k = Math.max(0.6, Math.min(1, w / widest));
+    const f = Math.round(fs * k);
+    let svg = "";
+    lines.forEach((l, i) => (svg += `<text class="reel-link" x="${f2(x)}" y="${f2(y + i * f * 1.2)}" text-anchor="${anchor}" font-size="${f}" font-weight="700" fill="${REEL_COLORS.accent}">${esc(l)}</text>`));
+    return { svg, h: (lines.length - 1) * f * 1.2 };
+  }
+
+  /** Ligne « commerciale » (présentation de la plateforme), discrète. */
+  private pitchLine(x: number, y: number, w: number, fs: number, anchor: "start" | "middle"): string {
+    const t = ellipsize(this.links.pitch, w, fs, REEL_TEXT_FONT);
+    return `<text class="reel-pitch" data-href="${esc(this.links.pitchUrl)}" x="${f2(x)}" y="${f2(y)}" text-anchor="${anchor}" font-size="${fs}" fill="${REEL_COLORS.muted}" opacity="0.9">${esc(t)}</text>`;
+  }
+
   private endCard(t: number): string {
     const f = REEL_FORMATS[this.plan.format];
     const s = f.safe;
@@ -226,29 +259,35 @@ export class ReelComposer {
       out += wordmarkMarkup("dark", wmH, "reel-end-wordmark").replace(/^<svg/, `<svg x="${f2(lx + icon + 26)}" y="${f2(by + (icon - wmH) / 2)}"`);
       out += `</g>`;
       out += `<text class="reel-tagline" x="${lx}" y="${f2(cy + 60)}" font-family="${REEL_TITLE_FONT}" font-size="${tagFs}" font-weight="800" fill="${REEL_COLORS.text}" opacity="${f2(a2)}">${esc(REEL_TAGLINE)}</text>`;
-      out += `<text class="reel-link" x="${lx}" y="${f2(cy + 140)}" font-size="34" font-weight="700" fill="${REEL_COLORS.accent}" opacity="${f2(a3)}">${esc(PLATFORM_HOST)}</text>`;
       const qx = s.x + s.w - 60 - qr;
       const qy = cy - qr / 2 - 20;
-      out += `<g opacity="${f2(a3)}">${this.qrMarkup(qx, qy, qr, "reel-end-qr")}<text x="${f2(qx + qr / 2)}" y="${f2(qy + qr + 48)}" text-anchor="middle" font-size="28" fill="${REEL_COLORS.muted}">Scannez pour essayer</text></g>`;
+      const ll = this.linkLines(lx, cy + 140, qx - lx - 60, 34, "start");
+      out += `<g opacity="${f2(a3)}">${ll.svg}${this.pitchLine(lx, cy + 140 + ll.h + 56, qx - lx - 60, 26, "start")}</g>`;
+      out += `<g opacity="${f2(a3)}">${this.qrMarkup(qx, qy, qr, "reel-end-qr")}<text class="reel-cta" x="${f2(qx + qr / 2)}" y="${f2(qy + qr + 48)}" text-anchor="middle" font-size="28" fill="${REEL_COLORS.muted}">${esc(this.links.cta)}</text></g>`;
       return out + `</g>`;
     }
-    let y = s.y + (sq ? 70 : 170);
+    let y = s.y + (sq ? 40 : 150);
     const rowW = icon + 26 + wmW;
     out += `<g opacity="${f2(a1)}" transform="translate(0 ${f2((1 - a1) * 24)})">`;
     out += tell4dIconMarkup("reel-end-ic", Math.round(icon), 'aria-hidden="true"').replace(/^<svg/, `<svg x="${f2(cx - rowW / 2)}" y="${f2(y)}"`);
     out += wordmarkMarkup("dark", wmH, "reel-end-wordmark").replace(/^<svg/, `<svg x="${f2(cx - rowW / 2 + icon + 26)}" y="${f2(y + (icon - wmH) / 2)}"`);
     out += `</g>`;
-    y += icon + (sq ? 100 : 170);
+    y += icon + (sq ? 80 : 150);
     const tag = wrap(REEL_TAGLINE, s.w, tagFs, REEL_TITLE_FONT, 800, 2);
     out += `<g opacity="${f2(a2)}">`;
     tag.forEach((l, k) => (out += `<text class="reel-tagline" x="${f2(cx)}" y="${f2(y + k * tagFs * 1.12)}" text-anchor="middle" font-family="${REEL_TITLE_FONT}" font-size="${tagFs}" font-weight="800" fill="${REEL_COLORS.text}">${esc(l)}</text>`));
     out += `</g>`;
-    y += (tag.length - 1) * tagFs * 1.12 + (sq ? 56 : 90);
+    y += (tag.length - 1) * tagFs * 1.12 + (sq ? 44 : 80);
     out += `<g opacity="${f2(a3)}">`;
-    out += this.qrMarkup(cx - qr / 2, y, qr, "reel-end-qr");
-    y += qr + (sq ? 50 : 70);
-    out += `<text class="reel-link" x="${f2(cx)}" y="${f2(y)}" text-anchor="middle" font-size="${sq ? 34 : 40}" font-weight="700" fill="${REEL_COLORS.accent}">${esc(PLATFORM_HOST)}</text>`;
-    out += `<text x="${f2(cx)}" y="${f2(y + (sq ? 44 : 56))}" text-anchor="middle" font-size="${sq ? 26 : 30}" fill="${REEL_COLORS.muted}">Scannez pour essayer</text>`;
+    const qs = sq ? qr - 40 : qr;
+    out += this.qrMarkup(cx - qs / 2, y, qs, "reel-end-qr");
+    y += qs + (sq ? 44 : 64);
+    const ll = this.linkLines(cx, y, s.w, sq ? 32 : 38, "middle");
+    out += ll.svg;
+    y += ll.h + (sq ? 40 : 52);
+    out += `<text class="reel-cta" x="${f2(cx)}" y="${f2(y)}" text-anchor="middle" font-size="${sq ? 24 : 30}" fill="${REEL_COLORS.muted}">${esc(this.links.cta)}</text>`;
+    y += sq ? 44 : 64;
+    out += this.pitchLine(cx, y, s.w, sq ? 22 : 26, "middle");
     out += `</g>`;
     void measure;
     void easeInOut;
