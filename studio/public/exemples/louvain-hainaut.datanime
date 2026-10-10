@@ -1,13 +1,13 @@
 {
  "kind": "datanime-project",
  "version": 1,
- "exportedAt": "2026-10-10T09:55:31.022Z",
+ "exportedAt": "2026-10-10T10:04:49.563Z",
  "withData": true,
  "project": {
   "id": "prj-louvain-hainaut-4d",
   "name": "HE Louvain en Hainaut : le V et le rebond",
-  "createdAt": "2026-10-10T09:55:31.022Z",
-  "updatedAt": "2026-10-10T09:55:31.022Z",
+  "createdAt": "2026-10-10T10:04:49.563Z",
+  "updatedAt": "2026-10-10T10:04:49.563Z",
   "source": {
    "name": "Louvain en Hainaut",
    "sampleId": null,
@@ -1578,12 +1578,13 @@
      "durationMs": 9000,
      "loop": false,
      "stamp": true,
+     "stampStyle": "odometer",
      "freezeScales": true
     }
    },
    "style": {
     "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
-    "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+    "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. Compteur : RP et rang de Louvain en Hainaut.",
     "source": "Source : tableaux fournis (données privées, non publiées)",
     "valueLabels": true,
     "legend": "none",
@@ -1681,7 +1682,7 @@
     {
      "id": "snap-louvain-4d-course",
      "name": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -1742,12 +1743,13 @@
         "durationMs": 9000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
       "style": {
        "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
-       "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+       "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. Compteur : RP et rang de Louvain en Hainaut.",
        "source": "Source : tableaux fournis (données privées, non publiées)",
        "valueLabels": true,
        "legend": "none",
@@ -1844,7 +1846,7 @@
      "width": 1600,
      "height": 800,
      "title": "Louvain en Hainaut : 3e en RP2020, 4e en RP2026",
-     "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. En filigrane : RP et rang de Louvain en Hainaut.",
+     "subtitle": "Étudiants finançables pondérés, domaine 19, 10 HE. Compteur : RP et rang de Louvain en Hainaut.",
      "comments": [
       "Rang par RP : RP2020 3e, RP2021 3e, RP2022 3e, RP2023 4e, RP2024 5e, RP2025 4e, RP2026 4e."
      ],
@@ -1853,12 +1855,12 @@
      "role": "context",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-v",
      "name": "Le V : 1 689,6 en RP2022, 1 382,2 en RP2025, 1 449,2 en RP2026",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -1919,6 +1921,7 @@
         "durationMs": 7000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
@@ -1999,12 +2002,12 @@
      "role": "tension",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-sites",
      "name": "Charleroi : de 22 à 42 dossiers depuis 2021, presque le double",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -2066,6 +2069,7 @@
         "durationMs": 7000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
@@ -2129,12 +2133,12 @@
      "role": "tension",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-part-charleroi",
      "name": "Part de Charleroi : 20,2 % en 2021 (ouverture), 30,7 % en 2026",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -2195,6 +2199,7 @@
         "durationMs": 6000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
@@ -2256,12 +2261,12 @@
      "role": "revelation",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-variation",
      "name": "RP2026 : Louvain en Hainaut +4,8 %, total +3,6 %",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -2324,6 +2329,7 @@
         "durationMs": 6000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
@@ -2392,12 +2398,12 @@
      "role": "tension",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-part",
      "name": "Part du domaine : 12,7 % en RP2020, 10,8 % en RP2026",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -2459,6 +2465,7 @@
         "durationMs": 6000,
         "loop": false,
         "stamp": true,
+        "stampStyle": "odometer",
         "freezeScales": true
        }
       },
@@ -2519,12 +2526,12 @@
      "role": "revelation",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     },
     {
      "id": "snap-louvain-4d-rebond",
      "name": "Après trois ans de baisse, +4,8 % : le rebond est là.",
-     "createdAt": "2026-10-10T09:55:31.022Z",
+     "createdAt": "2026-10-10T10:04:49.563Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -2645,7 +2652,7 @@
      "role": "recommendation",
      "sampleId": null,
      "dataName": "Louvain en Hainaut",
-     "generatedAt": "2026-10-10T09:55:31.022Z"
+     "generatedAt": "2026-10-10T10:04:49.563Z"
     }
    ],
    "sameScale": false,
@@ -2672,8 +2679,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#3FA7C4",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    },
    {
     "id": "D2",
@@ -2693,8 +2700,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#ffffff",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    },
    {
     "id": "D3",
@@ -2714,8 +2721,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#7FB069",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    },
    {
     "id": "D4",
@@ -2735,8 +2742,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#a88beb",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    },
    {
     "id": "D5",
@@ -2756,8 +2763,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#E3A33B",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    },
    {
     "id": "D6",
@@ -2777,8 +2784,8 @@
     "columns": [],
     "source": "Louvain en Hainaut",
     "color": "#2a9dc4",
-    "createdAt": "2026-10-10T09:55:31.022Z",
-    "updatedAt": "2026-10-10T09:55:31.022Z"
+    "createdAt": "2026-10-10T10:04:49.563Z",
+    "updatedAt": "2026-10-10T10:04:49.563Z"
    }
   ],
   "thumb": null

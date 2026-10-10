@@ -51,5 +51,7 @@ describe("projet d'exemple louvain-hainaut", () => {
     expect(sc.map((s) => (s.spec as { type: string }).type)).toEqual(["barH", "bar", "stackedArea", "stackedBar", "groupedBar", "line", "bar"]);
     expect(sc[0]!.title).toBe("Louvain en Hainaut : 3e en RP2020, 4e en RP2026");
     expect(sc[6]!.title).toBe("Après trois ans de baisse, +4,8 % : le rebond est là.");
+    // tampon 4D en compteur à rouleaux (scènes 1 à 6)
+    expect(sc.slice(0, 6).map((s) => (s.spec as { mode: { fourD: { stampStyle?: string } } }).mode.fourD.stampStyle)).toEqual(Array(6).fill("odometer"));
   });
 });
