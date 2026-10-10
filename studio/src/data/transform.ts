@@ -5,7 +5,7 @@
  */
 import { dayMonthYear } from "../story/fr";
 import type { CalcSpec, ChartSpec, DatasetRef, FilterSpec, TransformSpec } from "../spec";
-import type { Cell, Column, ColumnType, Dataset, Row } from "./table";
+import { buildDataset, type Cell, type Column, type ColumnType, type Dataset, type Row } from "./table";
 
 const DAY = 86400000;
 
@@ -209,19 +209,43 @@ const memo = new WeakMap<Dataset, Map<string, Dataset>>();
 const baseMemo = new WeakMap<Dataset, Map<string, Dataset>>();
 
 /** Recette d'un dataset dérivé (filtres permanents + colonnes gardées), sans version ni nom. */
-export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string };
+export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" }[] };
 
 /**
  * Applique la recette d'un dataset dérivé à la source : filtres permanents puis colonnes gardées.
  * Les filtres sur une colonne absente sont ignorés (source remplacée) ; le nom devient celui du dataset.
  */
+function grouped(src: Dataset, idx: number[], groupBy: string, aggs: { field: string; op: "sum" | "mean" }[], name: string): Dataset {
+  const groups = new Map<string, number[]>();
+  for (const i of idx) {
+    const key = String(src.rows[i]![groupBy] ?? "");
+    if (!key) continue;
+    const g = groups.get(key);
+    if (g) g.push(i);
+    else groups.set(key, [i]);
+  }
+  const raw = [...groups.entries()].map(([key, is]) => {
+    const row: Record<string, unknown> = { [groupBy]: key };
+    for (const a of aggs) {
+      const nums = is.map((i) => src.rows[i]![a.field]).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+      row[a.field] = a.op === "mean" ? (nums.length ? nums.reduce((s, n) => s + n, 0) / nums.length : null) : nums.reduce((s, n) => s + n, 0);
+    }
+    return row;
+  });
+  return buildDataset(name, raw);
+}
+
 export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
   const filters = r.filters.filter((f) => src.columns.some((c) => c.name === f.field));
-  const keepCols = r.columns.length ? src.columns.filter((c) => r.columns.includes(c.name)) : src.columns;
   const idx: number[] = [];
   src.rows.forEach((row, i) => {
     if (filters.every((f) => passesFilter(f, row[f.field]))) idx.push(i);
   });
+  const aggs = (r.aggs ?? []).filter((a) => src.columns.some((c) => c.name === a.field && c.type === "number"));
+  if (r.groupBy && src.columns.some((c) => c.name === r.groupBy) && aggs.length) {
+    return grouped(src, idx, r.groupBy, aggs, r.name?.trim() || src.name);
+  }
+  const keepCols = r.columns.length ? src.columns.filter((c) => r.columns.includes(c.name)) : src.columns;
   const names = keepCols.map((c) => c.name);
   const pick = <T,>(o: Record<string, T>): Record<string, T> => {
     if (keepCols.length === src.columns.length) return o;
@@ -238,7 +262,7 @@ export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
 export function datasetBase<T extends Dataset | null>(spec: { dataset?: DatasetRef | null }, ds: T): T {
   const ref = spec.dataset;
   if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name)) return ds;
-  const key = JSON.stringify([ref.name, ref.filters, ref.columns]);
+  const key = JSON.stringify([ref.name, ref.filters, ref.columns, ref.groupBy ?? "", ref.aggs ?? []]);
   let m = baseMemo.get(ds);
   if (!m) baseMemo.set(ds, (m = new Map()));
   let out = m.get(key);

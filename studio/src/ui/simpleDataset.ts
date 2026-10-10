@@ -16,6 +16,8 @@ export interface SimpleResult {
   columns: string[];
   filters: FilterSpec[];
   axes: SimpleAxes;
+  groupBy: string;
+  aggs: { field: string; op: "sum" | "mean" }[];
 }
 
 const roleOf = (ds: Dataset): { x: string | null; y: string | null; series: string | null } => {
@@ -77,6 +79,18 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
   });
   filterHost.append(h("div", null, "Lignes gardées : ", sel), vals);
 
+  const groupSel = h("select", { style: "padding:8px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "" }, "Pas de regroupement")) as HTMLSelectElement;
+  for (const c of ds.columns.filter((c) => c.type === "category" || c.type === "date")) groupSel.append(h("option", { value: c.name }, c.name));
+  const aggHost = h("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:8px" });
+  const aggOps = new Map<string, "sum" | "mean" | "">();
+  for (const c of ds.columns.filter((c) => c.type === "number" && !c.idLike)) {
+    aggOps.set(c.name, c.name === roles.y ? "sum" : "");
+    const s = h("select", { style: "padding:6px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "" }, "ignorer"), h("option", { value: "sum" }, "somme"), h("option", { value: "mean" }, "moyenne")) as HTMLSelectElement;
+    s.value = aggOps.get(c.name)!;
+    s.addEventListener("change", () => aggOps.set(c.name, s.value as "sum" | "mean" | ""));
+    aggHost.append(h("label", { style: "display:flex;gap:8px;align-items:center" }, c.name, s));
+  }
+  const groupBox = h("div", { style: "margin-bottom:14px" }, h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Regrouper"), groupSel, aggHost);
   const name = h("input", { value: ds.name, style: "width:100%;padding:10px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#fff" }) as HTMLInputElement;
   refresh();
 
@@ -88,6 +102,7 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
     cols,
     h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Filtre"),
     filterHost,
+    groupBox,
     name,
     h("div", { style: "display:flex;gap:8px;margin-top:14px;justify-content:flex-end" },
       h("button", { type: "button", style: "padding:10px 14px;border:0;background:transparent;color:#a1a1aa;cursor:pointer", onclick: () => root.remove() }, "Annuler"),
@@ -95,7 +110,9 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
       h("button", { type: "button", style: "padding:10px 14px;border:0;background:#0E6E8C;color:#fff;border-radius:8px;cursor:pointer", onclick: () => {
         const filters: FilterSpec[] = filterCol && filterVals.size ? [{ field: filterCol, op: "in", values: [...filterVals], value: null, label: "" }] : [];
         root.remove();
-        onCreate({ name: name.value.trim() || ds.name, columns: [...kept], filters, axes: { x: roles.x && kept.has(roles.x) ? roles.x : null, y: roles.y && kept.has(roles.y) ? [roles.y] : [], series: roles.series && kept.has(roles.series) ? roles.series : null } });
+        const groupBy = groupSel.value;
+        const aggs = [...aggOps.entries()].filter(([, op]) => op).map(([field, op]) => ({ field, op: op as "sum" | "mean" }));
+        onCreate({ name: name.value.trim() || ds.name, columns: [...kept], filters, axes: { x: groupBy || (roles.x && kept.has(roles.x) ? roles.x : null), y: aggs.length ? aggs.map((a) => a.field) : roles.y && kept.has(roles.y) ? [roles.y] : [], series: groupBy ? null : roles.series && kept.has(roles.series) ? roles.series : null }, groupBy, aggs });
       } }, "Créer le dataset")
     )
   );

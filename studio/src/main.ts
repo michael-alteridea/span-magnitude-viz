@@ -1693,7 +1693,7 @@ function openSimple(ds: Dataset): void {
   openSimpleDataset(ds, (r) => {
     const list = store.state.datasets;
     const src = ds.name;
-    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns });
+    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns, groupBy: r.groupBy, aggs: r.aggs });
     store.setDatasets([...list, nd]);
     store.set("dataset", toRef(nd));
     if (r.axes.x) store.set("encoding.x", r.axes.x);
