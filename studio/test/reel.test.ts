@@ -172,6 +172,24 @@ describe("Reel : image composée (SVG autonome, déterministe)", () => {
     expect(end).toContain("reel-end-qr");
     expect(end).not.toMatch(/certifi|conforme|authenticit|preuve/i);
   });
+
+  it("carte de fin d'un projet d'exemple : QR et lien visible vers le film, ligne de présentation, 3 formats", async () => {
+    const { reelLinks } = await import("../src/project/shareLinks");
+    const { exampleProjectById } = await import("../src/project/examples");
+    const links = reelLinks(exampleProjectById("mazout-decroche"));
+    for (const format of ["9x16", "1x1", "16x9"] as const) {
+      const p = { ...defaultPlan(snaps, { format, links: snaps.map(() => ({ linkIn: null, linkOut: null })), licence: "", generatedAt: "Généré le 8 oct. 2026" }), links };
+      const c = new ReelComposer(p, { fontCss: "", chart: () => "<svg/>" });
+      const end = c.frameSvg(totalDuration(p) - 0.1);
+      expect(end).toContain(`data-qr="${links.qr.replace(/&/g, "&amp;")}"`);
+      expect(end).toContain("?projet=mazout-decroche&amp;lecture=1");
+      expect(end).toContain("Scannez pour rejouer le film");
+      expect(end.match(/class="reel-pitch"[^>]*>([^<]*)/)?.[1], format).toBe("Découvrir Datanime : alteridea-dashboard.web.app/datanime-apercu");
+      expect(c.frameSvg(3)).toContain(`data-qr="${links.qr.replace(/&/g, "&amp;")}"`);
+    }
+    // sans liens : comportement d'avant (page du Studio), plus la ligne de présentation
+    expect(comp.frameSvg(totalDuration(plan) - 0.1)).toContain("Découvrir Datanime");
+  });
 });
 
 describe("annotation de barre mise en avant (Reel et Studio)", () => {

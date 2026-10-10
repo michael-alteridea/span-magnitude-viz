@@ -230,8 +230,9 @@ export class ReelComposer {
 
   /** Ligne « commerciale » (présentation de la plateforme), discrète. */
   private pitchLine(x: number, y: number, w: number, fs: number, anchor: "start" | "middle"): string {
-    const t = ellipsize(this.links.pitch, w, fs, REEL_TEXT_FONT);
-    return `<text class="reel-pitch" data-href="${esc(this.links.pitchUrl)}" x="${f2(x)}" y="${f2(y)}" text-anchor="${anchor}" font-size="${fs}" fill="${REEL_COLORS.muted}" opacity="0.9">${esc(t)}</text>`;
+    const f = Math.round(fs * Math.max(0.75, Math.min(1, w / measure(this.links.pitch, fs, REEL_TEXT_FONT))));
+    const t = ellipsize(this.links.pitch, w, f, REEL_TEXT_FONT);
+    return `<text class="reel-pitch" data-href="${esc(this.links.pitchUrl)}" x="${f2(x)}" y="${f2(y)}" text-anchor="${anchor}" font-size="${f}" fill="${REEL_COLORS.muted}" opacity="0.9">${esc(t)}</text>`;
   }
 
   private endCard(t: number): string {
