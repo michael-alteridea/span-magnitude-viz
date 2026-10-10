@@ -97,6 +97,19 @@ const THEME_CSS = `
   font-size: 11px;
   pointer-events: none;
 }
+.smv-annotation--name text {
+  fill: #f5f5f4;
+  font-size: 13px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgba(12, 10, 9, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.smv-root--light .smv-annotation--name text {
+  fill: #1c1917;
+  stroke: rgba(255, 255, 255, 0.9);
+}
 .smv-tooltip {
   position: absolute;
   z-index: 5;
@@ -410,7 +423,36 @@ export function mountSvg(
     gMarks.selectAll(".smv-annotation").remove();
     const annotateGeom =
       layout.geometry === "arc" || layout.geometry === "point";
-    if (t < 0.32 && annotateGeom) {
+    const labelMode = currentOpts.markLabels ?? "auto";
+    const labelAll =
+      labelMode === "all" || (labelMode === "auto" && layout.marks.length <= 12);
+    if (labelAll && annotateGeom) {
+      // libellés qui se chevauchent : le suivant monte d'une ligne (largeur estimée, police 13 px)
+      const placed: { x0: number; x1: number; y: number }[] = [];
+      for (const lm of layout.marks) {
+        const p = markProgress(schedule, lm.mark.id, t);
+        const persist = persistenceFactor(schedule, lm.mark.id, t, persistence);
+        if (p <= 0 || persist <= 0.05 || !lm.mark.label) continue;
+        const mx = layout.geometry === "point" ? lm.point.cx : (lm.x0 + lm.x1) / 2;
+        const my =
+          layout.geometry === "point"
+            ? lm.point.cy - lm.point.r - 8
+            : lm.yBase - (lm.bulge / 2) * lm.side - (lm.strokeWidth / 2 + 8) * lm.side;
+        const half = (lm.mark.label.length * 7.2) / 2 + 4;
+        let y = my;
+        for (let k = 0; k < 8 && placed.some((b) => mx - half < b.x1 && mx + half > b.x0 && Math.abs(b.y - y) < 15); k++) y -= 15;
+        placed.push({ x0: mx - half, x1: mx + half, y });
+        gMarks
+          .append("g")
+          .attr("class", "smv-annotation smv-annotation--name")
+          .attr("opacity", Math.min(1, p * 1.4) * persist)
+          .append("text")
+          .attr("x", mx)
+          .attr("y", y)
+          .attr("text-anchor", "middle")
+          .text(lm.mark.label);
+      }
+    } else if (t < 0.32 && annotateGeom) {
       schedule.entries.slice(0, slowFirst).forEach((e) => {
         const p = markProgress(schedule, e.id, t);
         const persist = persistenceFactor(schedule, e.id, t, persistence);

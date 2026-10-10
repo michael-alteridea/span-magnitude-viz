@@ -8,7 +8,8 @@ import { elementNotes } from "../story/elementNotes";
 import { h, svgIcon, ICONS } from "./dom";
 import { download, slug } from "../export";
 import { displayFontCss, embeddedFontCss, ensureDisplayFont, ensureFont } from "../theme";
-import { parseSpec, type FontKey } from "../spec";
+import { isSpecial, parseSpec, type ChartType, type FontKey } from "../spec";
+import { loadSpecialModule } from "../charts/specialFrame";
 import { clip, generatedOn } from "../story/fr";
 import { ReelCharts, drillLinks, type ReelItem } from "../reel/charts";
 import { ReelComposer } from "../reel/compose";
@@ -147,7 +148,9 @@ export class ReelDialog {
     this.licence = src.licence;
     this.source = "";
     this.lastResult = null;
-    await Promise.all([ensureDisplayFont().catch(() => undefined), ensureFont("inter").catch(() => undefined), ...this.fontsUsed().map((f) => ensureFont(f).catch(() => undefined))]);
+    // carte / film (span × magnitude) dans le Reel : bibliothèque chargée avant la première image
+    const needsSpecial = src.items.some((it) => isSpecial(((it.snap.spec as { type?: ChartType })?.type ?? "bar") as ChartType));
+    await Promise.all([ensureDisplayFont().catch(() => undefined), ensureFont("inter").catch(() => undefined), ...this.fontsUsed().map((f) => ensureFont(f).catch(() => undefined)), needsSpecial ? loadSpecialModule().catch(() => undefined) : undefined]);
     this.renderShell();
     this.root.hidden = false;
     document.addEventListener("keydown", this.onKey);

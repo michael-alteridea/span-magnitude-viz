@@ -122,6 +122,12 @@ export interface VizOptions {
    * and encodes magnitude in stroke width.
    */
   pointStyle?: "radius" | "stroke";
+  /**
+   * Names on the marks (arcs, points; chart view). `"auto"` (default): every revealed mark is named
+   * when there are 12 marks or fewer, otherwise only the first slow marks during the intro.
+   * `"all"`: always every revealed mark; `"intro"`: intro only.
+   */
+  markLabels?: "auto" | "all" | "intro";
   width?: number;
   height?: number;
   margin?: { top: number; right: number; bottom: number; left: number };

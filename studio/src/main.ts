@@ -2091,9 +2091,13 @@ async function openReading(rt: ReadRoute): Promise<void> {
 }
 
 /** Ouvre le mode lecture depuis le Studio ou une revue (retour à la page d'origine à la fermeture). */
+/** Lecture ouverte depuis le Studio (bouton « Mode lecture ») : pas de porte du QR, la séquence est sur cet appareil. */
+let inAppRead: string | null = null;
+
 function startReading(storyId: string, snapId: string | null): void {
   if (!parseReadRoute(location.hash)) readerReturn = location.hash;
   const hash = readHash(storyId, snapId);
+  inAppRead = hash;
   if (location.hash === hash) void openReading({ storyId, snapId });
   else location.hash = hash;
 }
@@ -2102,7 +2106,9 @@ function startReading(storyId: string, snapId: string | null): void {
 async function route(hash: string): Promise<void> {
   const rt = parseReadRoute(hash);
   if (rt) {
-    if (!(await ensureAccess(rt.storyId, rt.snapId))) return;
+    const own = inAppRead !== null && inAppRead === hash;
+    inAppRead = null;
+    if (!own && !(await ensureAccess(rt.storyId, rt.snapId))) return;
     return openReading(rt);
   }
   if (reader.isOpen) {

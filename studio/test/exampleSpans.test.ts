@@ -59,6 +59,9 @@ describe("projet d'exemple spans-exemple", () => {
     expect(spec.style.subtitle).toBe(SUB);
     expect(spec.style.source).toBe("Exemple inventé");
     expect(sc[0]!.subtitle).toBe(SUB);
+    // forme en arcs ; la scène désigne bien la source du projet (Film, mode lecture, Reel)
+    expect(spec.special.geometry).toBe("arc");
+    expect(sc[0]!.dataName).toBe(p.source!.name);
     const ds = buildDataset(p.source!.name, p.source!.rows as never, p.source!.typeOverrides as never);
     const { doc, error } = buildSpanDocument(spec, ds);
     expect(error).toBeNull();

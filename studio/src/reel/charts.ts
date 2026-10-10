@@ -13,6 +13,7 @@ import { clearZoom, dominantFill, easeOut, markFill, markForStep, markShape, pai
 import { T as T0, type DrillLink, type ReelScene, type Timings } from "./plan";
 import { focusDelta } from "../charts/focus";
 import { REEL_COLORS } from "./compose";
+import { SpecialLayer, specialModule } from "../charts/specialFrame";
 
 const SVGNS = "http://www.w3.org/2000/svg";
 
@@ -43,6 +44,8 @@ interface Prepared {
   boost: number;
   /** Cadrage serré sur le contenu (graphique construit) : les marges du rendu « page » ne servent pas dans le Reel. */
   vb: { x: number; y: number; w: number; h: number } | null;
+  /** Carte / film de la bibliothèque (span × magnitude) : copié dans la zone du graphique, révélé au fil de la scène. */
+  special?: boolean;
 }
 
 export class ReelCharts {
@@ -50,6 +53,7 @@ export class ReelCharts {
   private svg: SVGSVGElement;
   private prep = new Map<number, Prepared>();
   private fills = new Map<number, string>();
+  private special = new SpecialLayer();
 
   constructor(
     private items: ReelItem[],
@@ -66,6 +70,7 @@ export class ReelCharts {
   }
 
   dispose(): void {
+    this.special.dispose();
     this.host.remove();
   }
 
@@ -79,8 +84,21 @@ export class ReelCharts {
     const hit = this.prep.get(i);
     if (hit && hit.key === key) return hit;
     const parsed = parseSpec(it.snap.spec);
-    if (!parsed.ok || isSpecial(parsed.spec.type)) return null;
+    if (!parsed.ok) return null;
     const base = parsed.spec;
+    // carte / film : bibliothèque chargée à la demande (ReelDialog l'attend à l'ouverture), cadre entier
+    if (isSpecial(base.type)) {
+      if (!specialModule()) return null;
+      const spec: ChartSpec = {
+        ...base,
+        branding: "pro",
+        style: { ...base.style, title: "", subtitle: "", source: "", brandMark: false, authQr: false, background: "custom", backgroundCustom: REEL_COLORS.bg1, size: { ...base.style.size, preset: "custom", width: W, height: H } },
+        story: { ...base.story, comments: [], showComments: false },
+      };
+      const sp: Prepared = { key, spec, cache: prepareCache(spec, it.ds, null, -1), boost: (textPx / 13 / (Math.sqrt(W * H) / 900)), vb: { x: 0, y: 0, w: W, h: H }, special: true };
+      this.prep.set(i, sp);
+      return sp;
+    }
     const make = (h: number): Prepared => {
       const spec: ChartSpec = {
         ...base,
@@ -145,6 +163,15 @@ export class ReelCharts {
     const src = sc.linkOut === "focus" && sc.linkIn !== "focus" && this.items[i + 1]?.ds ? i + 1 : i;
     const p = this.prepared(src, box.w, box.h, box.textPx);
     if (!p) return this.fallback(it.snap, box);
+    if (p.special) {
+      // film / carte qui évolue : révélation entre l'entrée du graphique et la fin de la scène
+      const dyn = p.spec.mode.kind === "dynamic";
+      const prog = dyn ? Math.max(0, Math.min(1, (t - T.chartFrom) / Math.max(0.5, dur - T.chartFrom - 0.5))) : 1;
+      clearZoom(this.svg);
+      const res = renderChart(this.svg, p.spec, it.ds, p.cache, { build: 1, timePos: null }, { bare: true, textBoost: p.boost, now: it.snap.generatedAt ? new Date(it.snap.generatedAt) : new Date() });
+      this.special.paint(this.svg, p.spec, it.ds!, res.plot, res.theme, prog);
+      return this.serialize(p, box);
+    }
     // descente vers la scène suivante : la scène parente reste construite pendant le zoom
     const build = sc.linkIn === "out" || sc.linkIn === "focus" ? 1 : Math.max(0, Math.min(1, (t - (sc.linkIn === "in" ? 0 : T.chartFrom)) / (T.chartTo - T.chartFrom)));
     const focus = src !== i ? 0 : sc.linkIn === "focus" ? Math.max(0, Math.min(1, (t - T.focusFrom) / T.focus)) : undefined;

@@ -68,9 +68,11 @@ export function computeLayout(
   const xScale = scaleLinear().domain(xDomain).range([0, innerWidth]);
 
   const magMax = Math.max(...marks.map((m) => m.magnitude), doc.magnitudeMax, 1);
+  // Arcs : épaisseur lisible — jusqu'à ~10 % de la hauteur pour quelques marques, plus fine quand elles sont nombreuses
+  const arcMax = Math.max(2.1, Math.min(28, innerHeight * 0.1) / Math.sqrt(Math.max(1, marks.length / 6)));
   const strokeScale = scaleSqrt()
     .domain([0, magMax])
-    .range([0.45, geometry === "arc" ? 2.1 : geometry === "point" ? 2.4 : 1]);
+    .range(geometry === "arc" ? [Math.max(0.45, arcMax * 0.14), arcMax] : [0.45, geometry === "point" ? 2.4 : 1]);
   const barHeightScale = scaleLinear()
     .domain([0, magMax])
     .range([4, innerHeight * 0.42]);

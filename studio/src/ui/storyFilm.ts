@@ -494,8 +494,10 @@ export class StoryFilm {
     const nSteps = cache.time?.steps.length ?? 0;
     const d4 = nSteps >= 2 ? spec.mode.fourD.durationMs : 0;
     const timeAt = (t: number): number | null => (d4 ? Math.min(nSteps - 1, Math.max(0, t / d4) * (nSteps - 1)) : null);
-    const start = d4 ? d4 * 0.85 : BUILD_MS * 0.7 + fms * 0.6;
-    const total = Math.max(BUILD_MS + fms, d4 + 600, start + bulletsDuration(nBullets));
+    // carte / film qui évolue : la révélation dure le temps du film (durée 4D), pas seulement la construction
+    const sd = special && spec.mode.kind === "dynamic" && !reducedMotion() ? spec.mode.fourD.durationMs : 0;
+    const start = d4 ? d4 * 0.85 : sd ? sd * 0.85 : BUILD_MS * 0.7 + fms * 0.6;
+    const total = Math.max(BUILD_MS + fms, d4 + 600, sd + 600, start + bulletsDuration(nBullets));
     this.svg.toggleAttribute("data-focus-anim", !!focusFx);
     const now = s.generatedAt ? new Date(s.generatedAt) : new Date();
     const draw = (t: number) => {
@@ -508,7 +510,7 @@ export class StoryFilm {
       const res = renderChart(this.svg, sp, ds, cache, { build, timePos: timeAt(t), ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
       // carte / film : copie dans le cadre (tests, export). En lecture, un film qui évolue joue en vrai par-dessus.
       const live = special && !!this.o.reading && sp.mode.kind === "dynamic" && !reducedMotion();
-      if (special && !live) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? build : 1);
+      if (special && !live) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? (sd ? Math.min(1, t / sd) : build) : 1);
       if (live) this.placeLive(sp, ds, res.plot, res.theme);
       this.svg.setAttribute("data-bullets", `${shown}/${nBullets}`);
       if (d4) this.svg.setAttribute("data-time-step", `${timeAt(t)! + 1}/${nSteps}`);

@@ -1,13 +1,13 @@
 {
  "kind": "datanime-project",
  "version": 1,
- "exportedAt": "2026-10-10T13:48:05.298Z",
+ "exportedAt": "2026-10-10T14:14:33.074Z",
  "withData": true,
  "project": {
   "id": "prj-spans-exemple",
   "name": "Six chantiers, en spans",
-  "createdAt": "2026-10-10T13:48:05.298Z",
-  "updatedAt": "2026-10-10T13:48:05.298Z",
+  "createdAt": "2026-10-10T14:14:33.074Z",
+  "updatedAt": "2026-10-10T14:14:33.074Z",
   "source": {
    "name": "Six chantiers (exemple inventé)",
    "sampleId": null,
@@ -123,7 +123,7 @@
     }
    },
    "special": {
-    "geometry": "bar",
+    "geometry": "arc",
     "persistence": "keep",
     "tickers": false
    },
@@ -173,7 +173,7 @@
     {
      "id": "snap-spans-exemple-1",
      "name": "Six chantiers, en spans",
-     "createdAt": "2026-10-10T13:48:05.298Z",
+     "createdAt": "2026-10-10T14:14:33.074Z",
      "spec": {
       "$schema": "reporting-4d-studio/spec-v1",
       "version": 1,
@@ -230,7 +230,7 @@
        }
       },
       "special": {
-       "geometry": "bar",
+       "geometry": "arc",
        "persistence": "keep",
        "tickers": false
       },
@@ -289,8 +289,8 @@
      "kind": null,
      "role": "context",
      "sampleId": null,
-     "dataName": "Exemple inventé",
-     "generatedAt": "2026-10-10T13:48:05.298Z"
+     "dataName": "Six chantiers (exemple inventé)",
+     "generatedAt": "2026-10-10T14:14:33.074Z"
     }
    ],
    "sameScale": false,
@@ -307,8 +307,8 @@
     "columns": [],
     "source": "Exemple inventé",
     "color": "#3FA7C4",
-    "createdAt": "2026-10-10T13:48:05.298Z",
-    "updatedAt": "2026-10-10T13:48:05.298Z"
+    "createdAt": "2026-10-10T14:14:33.074Z",
+    "updatedAt": "2026-10-10T14:14:33.074Z"
    }
   ],
   "thumb": null
