@@ -3,6 +3,7 @@
  * Trois zones : Données | Aperçu | Réglages. Tout le rendu est en SVG (D3).
  */
 import { armDrillZoom, setZoomEnabled, setZoomSlowdown } from "./ui/drillZoom";
+import { ensureAccess } from "./ui/gate";
 import "./styles.css";
 import { Store } from "./state";
 import { chartSize, isSpecial, parseSpec, studioFileSchema, type ChartSpec, type ChartType } from "./spec";
@@ -2100,7 +2101,10 @@ function startReading(storyId: string, snapId: string | null): void {
 /** Routeur du fragment : mode lecture (#/lire/…), sinon espace Revues. */
 async function route(hash: string): Promise<void> {
   const rt = parseReadRoute(hash);
-  if (rt) return openReading(rt);
+  if (rt) {
+    if (!(await ensureAccess(rt.storyId, rt.snapId))) return;
+    return openReading(rt);
+  }
   if (reader.isOpen) {
     closingFromRoute = true;
     reader.close();

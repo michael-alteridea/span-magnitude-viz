@@ -54,6 +54,7 @@
   "dependencies": {
     "@formulajs/formulajs": "^4.6.1",
     "d3": "^7.9.0",
+    "firebase": "^13.0.0",
     "jszip": "^3.10.2",
     "mp4-muxer": "^5.2.2",
     "qrcode-generator": "^2.0.4",
