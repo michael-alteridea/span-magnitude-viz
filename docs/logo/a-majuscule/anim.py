@@ -16,12 +16,14 @@ DAT = [d for d, r in parts if r == "n"]; NIME = [d for d, r in parts if r == "p"
 A_ADV = B.gbounds("A", 700)[1] * s
 D = A_ADV + B.TRACK + 0.27 * B.SIZE       # décalage du 2e A dans « Data Anime » (A + espace)
 H = D / 2
+AW = (1451 - 9) * s + 2                  # largeur du A (balayage jaune)
 SOLID = C.to_d(C.solid_A(C.BAR[0]), lambda x, y: (XA + x * s, B.BASE - y * s))
 
 def tf(st):
     return (f"translate({XA + st['cx'] * s:.3f}px,{B.BASE - st['cy'] * s:.3f}px) rotate({st['th']:.3f}deg) "
             f"scale({st['bw'] * s:.4f},{st['ht'] * s:.4f})")
 pc = lambda t: f"{100 * t / T:.3f}%"
+WIPE = "cubic-bezier(.4,0,.2,1)"   # balayage jaune : démarre avec le glissement, fini avant que les A se recouvrent
 EASE_OUT, EASE_IO = "cubic-bezier(.22,1,.36,1)", "cubic-bezier(.65,0,.35,1)"
 def kf(name, frames):
     """frames : liste (t, déclarations, easing du segment suivant)."""
@@ -46,24 +48,35 @@ def svg(theme, yk):
         kf("animeX", [(0, f"transform:translateX({H + 80:.2f}px)", None), (0.65, f"transform:translateX({H + 80:.2f}px)", EASE_OUT),
                       (1.35, f"transform:translateX({H:.2f}px)", None), (1.55, f"transform:translateX({H:.2f}px)", EASE_IO),
                       (2.30, "transform:translateX(0)", None), (T, "transform:translateX(0)", None)]),
-        kf("a1", [(0, f"fill:{ink}", None), (1.40, f"fill:{ink}", EASE_IO), (1.75, f"fill:{Y}", None), (T, f"fill:{Y}", None)]),
-        kf("a2", [(0, f"fill:{pet};opacity:1", None), (1.40, f"fill:{pet};opacity:1", EASE_IO), (1.75, f"fill:{Y};opacity:1", None),
-                  (2.30, f"fill:{Y};opacity:1", "steps(1,end)"), (2.31, f"fill:{Y};opacity:0", None), (T, f"fill:{Y};opacity:0", None)]),
+        # couleur PENDANT la fusion (1,55–2,30 s, même courbe que le glissement) : balayage net par une copie jaune
+        # (pas de couleurs intermédiaires → aucun ton terne) ; chaque A jaunit depuis le côté tourné vers l'autre.
+        kf("a1", [(0, f"fill:{ink}", None), (2.02, f"fill:{ink}", "steps(1,end)"), (2.03, f"fill:{Y}", None), (T, f"fill:{Y}", None)]),
+        kf("a2", [(0, "opacity:1", None), (2.02, "opacity:1", "steps(1,end)"), (2.03, "opacity:0", None), (T, "opacity:0", None)]),
+        kf("ay1", [(0, "opacity:1", None), (2.02, "opacity:1", "steps(1,end)"), (2.03, "opacity:0", None), (T, "opacity:0", None)]),  # base sous-jacente masquée dès le balayage fini (pas de liseré sombre)
+        kf("ay", [(0, "opacity:1", None), (2.30, "opacity:1", "steps(1,end)"), (2.31, "opacity:0", None), (T, "opacity:0", None)]),
+        kf("w1", [(0, "transform:translateX(0)", None), (1.55, "transform:translateX(0)", WIPE), (2.02, f"transform:translateX({-AW:.2f}px)", None), (T, f"transform:translateX({-AW:.2f}px)", None)]),
+        kf("w2", [(0, "transform:translateX(0)", None), (1.55, "transform:translateX(0)", WIPE), (2.02, f"transform:translateX({AW:.2f}px)", None), (T, f"transform:translateX({AW:.2f}px)", None)]),
         kf("eye", rot_frames()),
     ])
     anim = lambda n: f"animation:{n} {T}s linear both"
     style = (f"<style>{css}"
              f".dataF{{{anim('dataF')}}}.dataX{{{anim('dataX')}}}.animeF{{{anim('animeF')}}}.animeX{{{anim('animeX')}}}"
-             f".a1{{fill:{Y};{anim('a1')}}}.a2{{fill:{Y};opacity:0;{anim('a2')}}}"
+             f".a1{{fill:{Y};{anim('a1')}}}.a2{{fill:{pet};opacity:0;{anim('a2')}}}.ay{{fill:{Y};opacity:0;{anim('ay')}}}.ay1{{fill:{Y};opacity:0;{anim('ay1')}}}"
+             f".w1{{transform:translateX({-AW:.2f}px);{anim('w1')}}}.w2{{transform:translateX({AW:.2f}px);{anim('w2')}}}"
              f".eye{{transform:{tf(c15.C15)};{anim('eye')}}}"   # sans animation → image finale = C15
-             f"@media (prefers-reduced-motion:reduce){{.dataF,.dataX,.animeF,.animeX,.a1,.a2,.eye{{animation:none}}}}</style>")
+             f"@media (prefers-reduced-motion:reduce){{.dataF,.dataX,.animeF,.animeX,.a1,.a2,.ay,.ay1,.w1,.w2,.eye{{animation:none}}}}</style>")
     mask = lambda i, extra: (f'<mask id="eye{i}{theme}" maskUnits="userSpaceOnUse" x="{vx - 200:.1f}" y="{vy:.1f}" width="{vw + 400:.1f}" height="{vh:.1f}">'
                              f'<rect x="{vx - 200:.1f}" y="{vy:.1f}" width="{vw + 400:.1f}" height="{vh:.1f}" fill="#fff"/>'
                              f'<path d="{c15.UNIT_D}" fill="#000" {extra}/></mask>')
-    defs = "<defs>" + mask(1, 'class="eye"') + mask(2, f'style="transform:{tf(c15.EYE)}"') + "</defs>"
+    ax0, ax1 = XA + 9 * s - 1, XA + 1451 * s + 1      # étendue du A (écran)
+    clip = lambda i, x: f'<clipPath id="w{i}{theme}"><rect class="w{i}" x="{x:.2f}" y="{vy:.1f}" width="{ax1 - ax0:.2f}" height="{vh:.1f}"/></clipPath>'
+    defs = ("<defs>" + mask(1, 'class="eye"') + mask(2, f'style="transform:{tf(c15.EYE)}"') +
+            clip(1, ax1) + clip(2, ax0 - (ax1 - ax0)) + "</defs>")
     data = (f'<g class="dataF"><g class="dataX">' + "".join(f'<path d="{d}" fill="{ink}"/>' for d in DAT) +
-            f'<path class="a1" d="{SOLID}" mask="url(#eye1{theme})"/></g></g>')
-    anime = (f'<g class="animeF"><g class="animeX"><path class="a2" d="{SOLID}" mask="url(#eye2{theme})"/>' +
+            f'<path class="a1" d="{SOLID}" mask="url(#eye1{theme})"/>'
+            f'<g clip-path="url(#w1{theme})"><path class="ay1" d="{SOLID}" mask="url(#eye1{theme})"/></g></g></g>')
+    anime = (f'<g class="animeF"><g class="animeX"><path class="a2" d="{SOLID}" mask="url(#eye2{theme})"/>'
+             f'<g clip-path="url(#w2{theme})"><path class="ay" d="{SOLID}" mask="url(#eye2{theme})"/></g>' +
              "".join(f'<path d="{d}" fill="{pet}"/>' for d in NIME) + "</g></g>")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.2f} {vy:.2f} {vw:.2f} {vh:.2f}" width="{vw:.0f}" height="{vh:.0f}" '
             f'role="img" aria-label="Datanime">{style}{defs}{data}{anime}</svg>')

@@ -42,7 +42,7 @@ triangle arrondi que l'œil du A de départ de l'animation, tourné de 90°). Gr
 ## Animation (`anim/`)
 
 Storyboard : « DatA » apparaît (0–0,7 s) → « Anime » arrive à droite (0,65–1,35 s) : on lit « DatA Anime » → les
-deux A passent au jaune (1,40–1,75 s) puis glissent et fusionnent (1,55–2,30 s) → l'œil du A pivote de 90° horaire
+deux A glissent et fusionnent (1,55–2,30 s) en jaunissant PENDANT le glissement (balayage net d’une copie jaune, 1,55–2,02 s, depuis le côté tourné vers l’autre A : aucune couleur intermédiaire terne) → l'œil du A pivote de 90° horaire
 et devient le ▶ C15 (2,40–3,30 s). Durée 3,4 s puis tenue. Courbes : ease-out à l'entrée, in-out (cubique) ensuite.
 - `logo-anim.svg` (clair, jaune or, fond transparent) · `logo-anim-dark.svg` (sombre, jaune vif) — CSS pur, sans script,
   respecte `prefers-reduced-motion` (affiche directement C15). État final = C15 au pixel près.
