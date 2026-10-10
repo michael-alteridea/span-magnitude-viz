@@ -490,10 +490,10 @@ export class StoryFilm {
     // toutes les puces arrivent une à une : générales (3 au plus) puis puces colorées par élément
     const nBullets = all.map((c) => c.trim()).filter(Boolean).slice(0, 3).length + elementNotes(spec, ds).length;
     const fms = focusFx ? FOCUS_MS : 0;
-    // 4D (animation dans le temps) : les pas défilent année par année (valeurs réelles de chaque pas, pas d'interpolation)
+    // 4D : même glissement que dans le studio (position continue entre deux années, pas un saut)
     const nSteps = cache.time?.steps.length ?? 0;
     const d4 = nSteps >= 2 ? spec.mode.fourD.durationMs : 0;
-    const timeAt = (t: number): number | null => (d4 ? Math.min(nSteps - 1, Math.floor(Math.max(0, t / d4) * (nSteps - 1) + 1e-6)) : null);
+    const timeAt = (t: number): number | null => (d4 ? Math.min(nSteps - 1, Math.max(0, t / d4) * (nSteps - 1)) : null);
     const start = d4 ? d4 * 0.85 : BUILD_MS * 0.7 + fms * 0.6;
     const total = Math.max(BUILD_MS + fms, d4 + 600, start + bulletsDuration(nBullets));
     this.svg.toggleAttribute("data-focus-anim", !!focusFx);
