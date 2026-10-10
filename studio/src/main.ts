@@ -70,6 +70,7 @@ import { sameExceptFocus } from "./charts/focus";
 import { ProjectController } from "./project/controller";
 import { EXAMPLE_PROJECTS, exampleProjectById, loadExampleProject, withoutProjectParam } from "./project/examples";
 import { openProjectRepo, storageUsage, type ProjectRepo } from "./project/repo";
+import { applyProjectFileAccept, parseDatanimeText } from "./project/fileImport";
 import { CURRENT_PROJECT_KEY, parseProjectFile, projectFileName, toProjectFile, type Project, type ProjectSource } from "./project/project";
 import { ProjectsDialog } from "./ui/projectsDialog";
 import { confirmDialog } from "./ui/confirm";
@@ -1391,9 +1392,9 @@ async function exportWebm(btn: HTMLButtonElement): Promise<void> {
 async function openFile(file: File): Promise<void> {
   let raw: unknown;
   try {
-    raw = JSON.parse(await file.text());
-  } catch {
-    toast(`Fichier illisible : ${file.name}`, "error", 6000);
+    raw = parseDatanimeText(await file.text(), file.name).raw;
+  } catch (e) {
+    toast(e instanceof Error ? e.message : `Fichier illisible : ${file.name}`, "error", 7000);
     return;
   }
   let parsed: ReturnType<typeof parseProjectFile>;
@@ -1474,7 +1475,8 @@ async function loadConfig(raw: any, fileName: string): Promise<void> {
 
 /* ------------------------------------------------------------------ layout */
 
-const cfgInput = h("input", { type: "file", accept: ".datanime,.json,application/json", class: "hidden", "data-testid": "config-input" });
+const cfgInput = h("input", { type: "file", class: "hidden", "data-testid": "config-input" }) as HTMLInputElement;
+applyProjectFileAccept(cfgInput);
 cfgInput.addEventListener("change", () => {
   const f = cfgInput.files?.[0];
   if (f) void openFile(f);
@@ -1891,7 +1893,11 @@ const projectsDialog = new ProjectsDialog({
   },
   importFile: async (file) => {
     try {
-      const parsed = parseProjectFile(JSON.parse(await file.text()));
+      const text = await file.text();
+      const { raw } = parseDatanimeText(text, file.name);
+      // ancienne configuration : renvoi vers « Ouvrir un fichier… » ; tout autre JSON : erreur claire
+      if ((raw as { kind?: unknown } | null)?.kind !== "reporting-4d-studio") parseDatanimeText(text, file.name, true);
+      const parsed = parseProjectFile(raw);
       if ("legacy" in parsed) {
         toast("Ancienne configuration (.r4d.json) : ouvrez-la avec « Projets ▾ › Ouvrir un fichier… ».", "info", 6000);
         return;

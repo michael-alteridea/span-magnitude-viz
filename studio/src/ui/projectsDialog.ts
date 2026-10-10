@@ -6,6 +6,7 @@
 import { formatBytes, savedLabel, type ProjectMeta } from "../project/project";
 import { confirmDialog, promptDialog } from "./confirm";
 import { h, svgIcon, ICONS } from "./dom";
+import { applyProjectFileAccept } from "../project/fileImport";
 
 export interface ProjectsActions {
   list(): Promise<ProjectMeta[]>;
@@ -39,7 +40,8 @@ export class ProjectsDialog {
     this.search.addEventListener("input", () => this.render());
     this.gauge = h("div", { class: "pj-gauge", "data-testid": "projects-usage" });
     this.countEl = h("span", { class: "pj-count" });
-    this.fileInput = h("input", { type: "file", accept: ".datanime,.json,application/json", hidden: true, "data-testid": "projects-import-input" }) as HTMLInputElement;
+    this.fileInput = h("input", { type: "file", hidden: true, "data-testid": "projects-import-input" }) as HTMLInputElement;
+    applyProjectFileAccept(this.fileInput);
     this.fileInput.addEventListener("change", () => {
       const f = this.fileInput.files?.[0];
       this.fileInput.value = "";

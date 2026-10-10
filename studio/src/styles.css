@@ -1309,3 +1309,18 @@ body.dw-open { overflow: hidden; }
 .map-zoom-btn:hover:not(:disabled) { background: rgba(14, 110, 140, .92); }
 .map-zoom-btn:focus-visible { outline: 2px solid #3FA7C4; outline-offset: 2px; }
 .map-zoom-btn:disabled { opacity: .38; cursor: default; }
+
+/* ---------------------------------------------------------------- téléphone (≤ 700 px) : la scène d'abord, en pleine largeur ; panneaux en dessous (défilement) */
+@media (max-width: 700px) {
+  .app { height: 100vh; height: 100dvh; }
+  .topbar { min-width: 0; overflow: hidden; }
+  .brand { overflow: hidden; }
+  .toolbar { overflow-x: auto; overflow-y: hidden; }
+  .workspace, .workspace.left-collapsed, .workspace.right-collapsed, .workspace.left-collapsed.right-collapsed { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  .workspace .center { grid-column: 1; grid-row: 1; min-height: auto; }
+  .workspace .center-stack, .workspace .preview { flex: none; }
+  .workspace .stage-wrap { flex: none; height: max(240px, 64vw); }
+  .workspace .panel-left, .workspace .panel-right, .workspace .rail-left, .workspace .rail-right { grid-column: 1; grid-row: auto; min-height: auto; border: 0; border-top: 1px solid var(--line); }
+  .workspace .panel-body { flex: none; overflow: visible; }
+  .gallery.strip { overflow-x: auto; overflow-y: hidden; }
+}
