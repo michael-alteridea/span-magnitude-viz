@@ -126,7 +126,7 @@ export const wordmarkWidth = (h: number): number => h * WORDMARK_RATIO;
 /* ------------------------------------------------------------------ animation du logo (CSS seul) */
 
 /** Durée de l'animation du logo C15 (s) : « Data » + « anime » se rejoignent, le a devient A, jaunit, puis l'œil ▶. */
-export const LOGO_ANIM_S = 2;
+export const LOGO_ANIM_S = 2.1;
 /** viewBox des SVG animés (même repère que le mot-symbole, avec marge pour les glissements). */
 export const LOGO_ANIM_VIEWBOX: [number, number, number, number] = [135.33, 13.26, 624.87, 133.48];
 const ANIM_NAMES = ["animeF", "animeX", "cap", "datS", "dataF", "dataX", "eye", "l2", "mCap", "mLow", "nimS"];

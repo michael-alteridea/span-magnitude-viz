@@ -193,7 +193,7 @@ export class StoryFilm {
     this.endIntro(false);
     this.introDone = done;
     this.svg.style.opacity = "0";
-    this.intro.innerHTML = `${logoAnimMarkup("dark", `fi${++introSeq}`, { cls: "film-intro-logo" })}<span class="film-intro-hint">Toucher pour passer</span>`;
+    this.intro.innerHTML = `${logoAnimMarkup("dark", `fi${++introSeq}`, { cls: "film-intro-logo", duration: LOGO_ANIM_S })}<span class="film-intro-hint">Toucher pour passer</span>`;
     this.intro.hidden = false;
     this.introTimer = window.setTimeout(() => this.endIntro(true), LOGO_ANIM_S * 1000 + 250);
   }
