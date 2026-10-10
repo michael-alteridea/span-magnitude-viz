@@ -1319,7 +1319,9 @@ body.dw-open { overflow: hidden; }
 @media (max-width: 700px) {
   .app { height: 100vh; height: 100dvh; }
   .topbar { min-width: 0; overflow: hidden; }
-  .brand { overflow: hidden; }
+  /* le logo C15 « DatAnime » reste entier : la barre d'outils défile, « · Studio » est masqué */
+  .brand { overflow: visible; flex: 0 0 auto; }
+  .brand h1 .dot, .brand h1 .studio { display: none; }
   .toolbar { overflow-x: auto; overflow-y: hidden; }
   .workspace, .workspace.left-collapsed, .workspace.right-collapsed, .workspace.left-collapsed.right-collapsed { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
   .workspace .center { grid-column: 1; grid-row: 1; min-height: auto; }
