@@ -75,3 +75,10 @@ le A grandit de 0,8 à 1 et apparaît, même axe et même ligne de base ; jaune 
 Durées : 3,75 s (sans accents) / 4,3 s (avec), puis tenue ; MP4/GIF 5,3 s / 5,9 s. Script : `anim_min.py`.
 Fichiers : `anim/logo-anim-minuscules(…)` et `anim/logo-anim-minuscules-accents(…)` (.svg, -dark.svg, -1080x1080-clair.mp4,
 -1920x1080-sombre.mp4, -800.gif). Image finale = C15 / C15accents au pixel près.
+
+## Réglages finaux, capitales (sans accents, sombre) — `anim_caps_final.py`
+
+« DATA » → « Anime » → les deux A fusionnent en gardant leurs couleurs (le A d'« Anime » passe sous celui de « DATA »)
+→ le A fusionné jaunit APRÈS la fusion (blanc → jaune vif, 2,38–2,78 s) → pivot de l'œil en ▶ (2,88–3,78 s). 3,85 s puis tenue.
+Fichiers : `anim/logo-anim-caps-final-dark.svg` (+ `logo-anim-caps-final.svg` clair), `anim/logo-anim-caps-final-1920x1080-sombre.mp4` (5,4 s),
+`anim/logo-anim-caps-final-800-sombre.gif` (800×300, fond sombre).
