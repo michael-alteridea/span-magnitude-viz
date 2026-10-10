@@ -608,17 +608,16 @@ export function paintScaleBar(
   return sb;
 }
 
+const SCALE_STOPS: Record<string, readonly string[]> = {
+  rouge: ["#fbd5d9", "#f0707c", "#e9374a", "#d62839", "#7a1520"],
+  bleu: ["#dbeafe", "#7dd3fc", "#0ea5e9", "#0369a1", "#0c4a6e"],
+  vert: ["#dcfce7", "#86efac", "#22c55e", "#15803d", "#14532d"],
+  "froid-chaud": ["#1d4ed8", "#38bdf8", "#fef3c7", "#f97316", "#b91c1c"],
+  "blanc-noir": ["#fafafa", "#d4d4d4", "#a3a3a3", "#525252", "#171717"],
+  petrole: ["#C3E4EE", "#8ECFE2", "#3FA7C4", "#0E6E8C", "#08465A"],
+};
 function choroplethColor(t: number, scheme?: string): string {
-  // Alteridea red ramp on dark basemap (petrol ramp for the "petrole" scheme)
-  const stops: readonly string[] = isPetroleScheme(scheme)
-    ? PETROLE_SEQUENTIAL
-    : [
-        ALTAIRADY_REDS[1]!,
-        ALTAIRADY_REDS[3]!,
-        ALTAIRADY_REDS[5]!,
-        ALTAIRADY_REDS[6]!,
-        "#f0707c",
-      ];
+  const stops = SCALE_STOPS[scheme ?? ""] ?? SCALE_STOPS["froid-chaud"]!;
   const u = Math.max(0, Math.min(1, t));
   const x = u * (stops.length - 1);
   const i = Math.floor(x);
@@ -812,7 +811,7 @@ export function applyMapFrame(
       if (!choroplethOn || intensity <= 0.01) return base;
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (v <= 0) return base;
-      return choroplethColor(v / maxRegion, options.colorScheme);
+      return choroplethColor(v / maxRegion, options.mapScale ?? "froid-chaud");
     })
     .style("fill-opacity", function (d) {
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
@@ -820,17 +819,20 @@ export function applyMapFrame(
       return String(0.35 + 0.55 * intensity);
     });
 
+  const scale = options.mapScale ?? "froid-chaud";
   const legend = gBasemap.selectAll<SVGGElement, number>("g.smv-map-choropleth-legend").data(choroplethOn && intensity > 0.2 && maxRegion > 0 ? [1] : []);
   legend.exit().remove();
   const lg = legend.enter().append("g").attr("class", "smv-map-choropleth-legend").merge(legend);
-  lg.attr("transform", `translate(12,${layout.height - 36})`);
-  const stops = 24;
+  lg.attr("transform", `translate(12,${layout.height - 44})`);
+  const stops = 40;
   lg.selectAll("rect").data(Array.from({ length: stops }, (_, i) => i)).join("rect")
-    .attr("x", (i) => i * 4).attr("y", 0).attr("width", 4).attr("height", 10)
-    .attr("fill", (i) => choroplethColor(i / (stops - 1), options.colorScheme));
-  lg.selectAll("text").data([0, maxRegion]).join("text")
-    .attr("x", (_, i) => i * 96).attr("y", 22).attr("font-size", 10).attr("fill", options.theme === "light" ? "#1c1917" : "#e7e5e4")
-    .text((v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 }));
+    .attr("x", (i) => i * 3).attr("y", 0).attr("width", 3).attr("height", 12)
+    .attr("fill", (i) => choroplethColor(i / (stops - 1), scale));
+  const fmt = (v: number) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  const ink = options.theme === "light" ? "#1c1917" : "#e7e5e4";
+  lg.selectAll("text").data([0, maxRegion / 2, maxRegion]).join("text")
+    .attr("x", (_, i) => i * 60).attr("y", 26).attr("font-size", 10).attr("fill", ink).attr("text-anchor", (_, i) => (i === 2 ? "end" : "start"))
+    .text((v) => fmt(v));
 
   if (heatmapOn) {
     gHeat.selectAll<SVGCircleElement, MapMark>("circle").each(function (d) {
