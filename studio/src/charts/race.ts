@@ -13,6 +13,7 @@ import { clamp01, easeOut, type DrawCtx, type G, type PlotRect } from "./context
 import { ellipsize, measure } from "./text";
 import { elemKey, labelLook, markColor, selAttrs } from "./overrides";
 import { tip } from "./tip";
+import { categoryIcon, drawIcon } from "./icons";
 
 export interface RaceData {
   keys: string[];
@@ -86,13 +87,28 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
   const fs = 13 * s;
   const gr = g.append("g").attr("class", "r4d-race");
 
-  // compteur de période (grand, bas droite) + avancement
+  // compteur de période à rouleaux (bas droite) + avancement
   const counter = tm.label(st.step);
-  const big = Math.min(plot.h * 0.2, 96 * s);
+  const next = tm.label(Math.min(tm.steps.length - 1, st.step + 1));
+  const frac = pos - Math.floor(pos);
+  const big = Math.min(plot.h * 0.16, 64 * s);
   const cw = measure(counter, big, font, 800);
   const cx = plot.x + plot.w - 6 * s;
   const cy = plot.y + plot.h - 14 * s;
-  gr.append("text").attr("class", "r4d-race-period").attr("data-testid", "race-period").attr("x", cx).attr("y", cy).attr("text-anchor", "end").attr("font-size", big).attr("font-weight", 800).attr("letter-spacing", -1.5 * s).attr("fill", theme.text).attr("fill-opacity", 0.22).text(counter);
+  const og = gr.append("g").attr("class", "r4d-race-period").attr("data-testid", "race-period");
+  const len = Math.max(counter.length, next.length);
+  const a = counter.padStart(len, " "), b = next.padStart(len, " ");
+  const cw0 = big * 0.62, gap = big * 0.04;
+  const total = len * cw0 + (len - 1) * gap;
+  let ox = cx - total;
+  for (let i = 0; i < len; i++) {
+    const ca = a[i]!, cb = b[i]!;
+    const cell = og.append("g").attr("transform", `translate(${ox},${cy - big})`);
+    cell.append("rect").attr("width", cw0).attr("height", big * 1.2).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.08);
+    if (ca === cb || frac < 0.6) cell.append("text").attr("x", cw0 / 2).attr("y", big * 0.9).attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.85).text(ca);
+    else cell.append("text").attr("x", cw0 / 2).attr("y", big * 0.9 - big * (frac - 0.6) / 0.4).attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.85).text(cb);
+    ox += cw0 + gap;
+  }
   const tw = Math.max(cw, 80 * s);
   gr.append("rect").attr("class", "r4d-race-track").attr("x", cx - tw).attr("y", cy + 7 * s).attr("width", tw).attr("height", 3 * s).attr("rx", 1.5 * s).attr("fill", theme.track);
   gr.append("rect").attr("class", "r4d-race-progress").attr("x", cx - tw).attr("y", cy + 7 * s).attr("width", tw * (S > 1 ? Math.max(0, Math.min(1, pos / (S - 1))) : 1)).attr("height", 3 * s).attr("rx", 1.5 * s).attr("fill", theme.accent);
@@ -134,6 +150,10 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
     const rect = row.append("rect").attr("class", "r4d-bar r4d-race-bar").attr("x", x0).attr("y", y).attr("width", w).attr("height", bh).attr("rx", Math.min(3 * s, bh / 4)).attr("fill", color);
     selAttrs(rect, "mark", ek, null, name, fmt(v));
     tip(rect, { t: name, sub: tm.label(st.step), v: fmt(v) });
+    if (spec.style.barCap === "icon" || spec.style.barCap === "picto") {
+      const ic = categoryIcon(name, spec.style.capIcons);
+      if (ic) drawIcon(row, ic, x0 + w + 14 * s, y + bh / 2, Math.min(bh * 0.9, 22 * s), color, "r4d-race-icon", true);
+    }
     row.append("text").attr("class", "r4d-race-name").attr("x", x0 - 8 * s).attr("y", y + bh / 2).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", nameFs).attr("font-weight", 600).attr("fill", theme.text).text(ellipsize(name, nameW - 12 * s, nameFs, font, 600));
     const look = labelLook(spec, fmt(v), ek, null);
     if (!look.hidden) {

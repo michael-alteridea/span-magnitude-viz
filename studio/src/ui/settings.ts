@@ -971,7 +971,7 @@ export class SettingsPanel {
     if (t === "groupedBar" || t === "stackedBar")
       main.push(this.kw(this.line("Orientation", this.segmented("style.horizontal", [["false", "Verticales"], ["true", "Horizontales"]], { parse: (v) => v === "true" })), "barres horizontales verticales"));
     if (isCartesian(t) && t !== "scatter") main.push(this.check("style.valueLabels", "Étiquettes de valeur", undefined, "valeurs libellés chiffres sur les barres"));
-    if ((t === "bar" || t === "barH") && !spec.norme.enabled) main.push(this.capTiles(spec));
+    if ((t === "bar" || t === "barH" || t === "race") && !spec.norme.enabled) main.push(this.capTiles(spec));
     if (t === "scatter") main.push(...this.pointShapeFields(spec));
     if (t === "line" || t === "area" || t === "stackedArea" || (isCartesian(t) && spec.encoding.y2)) main.push(this.kw(this.line("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])), "ligne lissage"));
     if (isCartesian(t) || isRadial(t)) {
