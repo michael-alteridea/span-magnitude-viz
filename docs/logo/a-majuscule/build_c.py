@@ -47,7 +47,15 @@ def fit_play(allowed, ratio=0.88):
 def rounded(p, r):
     return p.buffer(-r, join_style=1).buffer(r, join_style=1)
 
+def c15_state():
+    import c15
+    if c15.C15["cx"] is None: c15.C15.update(c15.fit_c15(solid_A(BAR[0]))[1])
+    return c15
+
 def design(code):
+    if code == "C15":  # ▶ intermédiaire (~19 px à 112 px), barre intacte ; même triangle que l'œil de départ de l'animation
+        c15 = c15_state(); hole = c15.hole_font(c15.C15); h = c15.C15["bw"]
+        return solid_A(BAR[0]).difference(hole), dict(trou_hauteur_unites=round(h), trou_px_favicon=round(h * 20 / 1490, 1), trou_px_mot_112=round(h * B.SIZE / B.UPEM, 1))
     if code == "C1":   # ▶ de taille voisine de l'œil, marge conservée, barre intacte
         allowed = INNER.buffer(-12, join_style=2).intersection(box(0, BAR[1] + 22, 1500, 1500)); notch = BAR[0]
     elif code == "C2": # plus grand : mord sur la barre (reste ≈ 110) et amincit les jambages
@@ -95,6 +103,7 @@ def favicon(code, yk):
 CODES_C = {
     "C1": "A capital droit en jaune ; l’œil est remplacé par un ▶ évidé de taille voisine, barre conservée.",
     "C2": "A droit ; ▶ évidé plus grand, lisible à 32 px : il mord sur la barre et affine un peu les jambages.",
+    "C15": "A droit ; ▶ évidé intermédiaire entre C1 et C2 (≈ 19 px à 112 px), barre conservée.",
     "C3": "A droit sans barre : l’œil devient un ▶ franc au milieu du A, posé sur un pont plein.",
 }
 if __name__ == "__main__":

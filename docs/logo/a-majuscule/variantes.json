@@ -108,6 +108,20 @@
     "trou_px_favicon": 7.2,
     "trou_px_mot_112": 29.5
    }
+  },
+  "C15": {
+   "description": "A droit ; ▶ évidé intermédiaire entre C1 et C2 (≈ 19 px à 112 px), barre conservée.",
+   "fichiers": {
+    "C15-light-jaune-or": "C15-light-jaune-or.svg",
+    "C15-dark-jaune-or": "C15-dark-jaune-or.svg",
+    "C15-light-jaune-vif": "C15-light-jaune-vif.svg",
+    "C15-dark-jaune-vif": "C15-dark-jaune-vif.svg"
+   },
+   "info": {
+    "trou_hauteur_unites": 347,
+    "trou_px_favicon": 4.7,
+    "trou_px_mot_112": 19.0
+   }
   }
  }
 }
