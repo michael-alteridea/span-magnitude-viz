@@ -590,8 +590,26 @@ body.reading-open .app > :not(.reader) { display: none !important; }
 .film-msg-acts .btn { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
 .film.has-msg .film-bottom, .film.has-msg [data-testid=reader-link] { visibility: hidden; }
 @media (max-width: 1100px) { .film-help { display: none; } }
+/* mode lecture : lien « Fait avec Datanime » et écran de fin (partager, créer le vôtre) */
+.film-made { margin-left: 14px; font-size: 12px; color: #8fb3bf; white-space: nowrap; text-decoration: none; }
+.film-made:hover { color: #e6f2f5; text-decoration: underline; }
+.film-stage { position: relative; }
+.film-end { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(4, 20, 26, .82); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: default; }
+.film-end[hidden] { display: none; }
+.film-end-card { width: min(460px, 100%); padding: 28px 24px 22px; border-radius: 16px; background: #0a2a35; border: 1px solid #1d5466; text-align: center; color: #e6f2f5; box-shadow: 0 16px 50px rgba(0, 0, 0, .45); }
+.film-end-brand { display: flex; justify-content: center; margin-bottom: 14px; }
+.film-end-tag { margin: 0 0 6px; font-size: 24px; font-weight: 800; line-height: 1.2; }
+.film-end-made { margin: 0 0 18px; color: #8fb3bf; font-size: 14px; }
+.film-end-acts { display: flex; flex-direction: column; gap: 10px; }
+.film-end-acts .btn { min-height: 46px; width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-size: 16px; }
+.film-end-create { background: #e6f2f5; color: #062430; border-color: #e6f2f5; font-weight: 700; }
+.film-end-discover { display: inline-block; margin-top: 14px; color: #3FA7C4; font-size: 14px; text-decoration: none; }
+.film-end-discover:hover { text-decoration: underline; }
+.film.at-end .film-role, .film.at-end .film-crumbs { visibility: hidden; }
 @media (max-width: 700px) {
   .film-top, .film-bottom { padding: 8px 10px; gap: 8px; }
+  .film-made { display: none; }
+  .film-end-tag { font-size: 21px; }
   .film-story, .film-crumbs { display: none; }
   .film-btn { width: 44px; height: 44px; }
   .film-dots { margin-left: 4px; gap: 5px; }

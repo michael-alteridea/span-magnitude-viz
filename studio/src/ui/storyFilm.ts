@@ -21,6 +21,8 @@ import { h, svgIcon, ICONS } from "./dom";
 import { focusDelta } from "../charts/focus";
 import { elementNotes } from "../story/elementNotes";
 import { bulletsDuration, bulletsShownAt } from "../story/bulletReveal";
+import { REEL_TAGLINE } from "../reel/compose";
+import { wordmarkMarkup } from "../brand";
 
 const BUILD_MS = 1300;
 /** Transition « mise en avant » (étape L) : grisé, part tirée, halo et bulle. */
@@ -29,6 +31,7 @@ const HOLD_MS = 2600;
 const SWIPE_PX = 50;
 
 const REPLAY_ICON = `<path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+const SHARE_ICON = `<path d="M12 15V3.5M7.5 8 12 3.5 16.5 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11H6a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 18 11h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`;
 const LINK_ICON = `<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`;
 
 export interface FilmOptions {
@@ -40,6 +43,19 @@ export interface FilmOptions {
   /** Lien profond de la diapositive (bouton « Copier le lien »). */
   linkFor?: (s: Snapshot) => string | null;
   copy?: (url: string) => void;
+  /**
+   * Mode lecture : écran de fin (après la dernière diapositive) « Fait avec Datanime · Créez le vôtre », bouton
+   * « Partager » (lien universel de l'histoire, null pour une histoire de cet appareil seulement).
+   */
+  ending?: () => FilmEnding;
+  /** Partage d'un lien (feuille de partage du système, sinon copie). */
+  share?: (url: string, title: string) => void;
+}
+
+export interface FilmEnding {
+  shareUrl: string | null;
+  studioUrl: string;
+  discoverUrl: string;
 }
 
 /** Format de rendu adapté à la scène (mode lecture) : 16:9 d'origine en paysage, portrait sur téléphone / tablette. */
@@ -58,6 +74,10 @@ export class StoryFilm {
   private stage: HTMLElement;
   private svg: SVGSVGElement;
   private msg: HTMLElement;
+  private endEl: HTMLElement;
+  private shareBtn: HTMLButtonElement | null = null;
+  private madeEl: HTMLAnchorElement | null = null;
+  private atEnd = false;
   private crumbs: HTMLElement;
   private storyTitle: HTMLElement;
   private counter: HTMLElement;
@@ -94,7 +114,8 @@ export class StoryFilm {
     this.svg.setAttribute("class", "film-svg");
     this.svg.setAttribute("data-testid", `${tid}-svg`);
     this.msg = h("div", { class: "film-msg", hidden: true, "data-testid": `${tid}-msg` });
-    this.stage = h("div", { class: "film-stage", "data-testid": `${tid}-stage` }, this.svg, this.msg);
+    this.endEl = h("div", { class: "film-end", hidden: true, "data-testid": `${tid}-end` });
+    this.stage = h("div", { class: "film-stage", "data-testid": `${tid}-stage` }, this.svg, this.msg, this.endEl);
     this.stage.addEventListener("pointerdown", (e) => (this.p0 = { x: e.clientX, y: e.clientY }));
     this.stage.addEventListener("pointercancel", () => (this.p0 = null));
     this.stage.addEventListener("pointerup", (e) => this.pointerUp(e));
@@ -109,12 +130,20 @@ export class StoryFilm {
       h("button", { class: "film-btn", type: "button", title, "aria-label": title, "data-testid": testid, html: raw ? `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${icon}</svg>` : svgIcon(icon, 22), onclick: (e: Event) => (e.stopPropagation(), fn()) });
     this.playBtn = btn(ICONS.pause, o.reading ? "Pause / reprise de l'animation (espace)" : "Lecture / pause (espace)", () => this.toggle(), `${tid}-play`) as HTMLButtonElement;
     const top = h("header", { class: "film-top" }, this.role, o.reading ? this.storyTitle : null, this.crumbs, h("span", { class: "spacer" }), this.counter);
+    if (o.reading && o.ending && o.share) {
+      this.shareBtn = btn(SHARE_ICON, "Partager cette histoire", () => this.shareStory(), `${tid}-share`, true) as HTMLButtonElement;
+      top.append(this.shareBtn);
+    }
     if (o.reading && o.linkFor) top.append(btn(LINK_ICON, "Copier le lien de cette diapositive", () => this.copyLink(), `${tid}-link`, true));
     top.append(btn(ICONS.close, "Fermer (Échap)", () => this.close(), `${tid}-close`));
     const bottom = h("footer", { class: "film-bottom" }, btn(ICONS.prev, "Diapositive précédente (←)", () => this.prev(), `${tid}-prev`), this.playBtn);
     if (o.reading) bottom.append(btn(REPLAY_ICON, "Rejouer l'animation (R)", () => this.replay(), `${tid}-replay`, true));
     bottom.append(btn(ICONS.next, "Diapositive suivante (→)", () => this.next(), `${tid}-next`), this.dots);
     if (o.reading) bottom.append(h("span", { class: "film-help", "data-testid": `${tid}-help` }, "← → naviguer · Espace pause · R rejouer · Début / Fin · Échap fermer"));
+    if (o.reading && o.ending) {
+      this.madeEl = h("a", { class: "film-made", href: "./", "data-testid": `${tid}-made` }, "Fait avec Datanime · Créez le vôtre") as HTMLAnchorElement;
+      bottom.append(this.madeEl);
+    }
     this.root = h(
       "div",
       { class: `film${o.reading ? " reader" : ""}`, hidden: true, role: "dialog", "aria-label": o.reading ? "Mode lecture" : "Film de la séquence", "data-testid": tid },
@@ -141,14 +170,78 @@ export class StoryFilm {
     return this.playing;
   }
 
+  /** Première diapositive de l'histoire ouverte (lien « Partager » : le film depuis le début). */
+  get firstSnapshot(): Snapshot | null {
+    return this.snaps[0] ?? null;
+  }
+
+  /** Écran de fin affiché. */
+  get isAtEnd(): boolean {
+    return this.atEnd;
+  }
+
+  /** Écran de fin (mode lecture) : partager, « Fait avec Datanime · Créez le vôtre », revoir, présentation. */
+  showEnd(): void {
+    if (!this.o.ending || !this.snaps.length) return;
+    this.stop();
+    const e = this.o.ending();
+    this.atEnd = true;
+    this.root.classList.add("at-end");
+    this.counter.textContent = "Fin";
+    [...this.dots.children].forEach((d) => d.classList.remove("on"));
+    const title = this.storyTitle.textContent ?? "";
+    const a = (cls: string, href: string, label: string, testid: string, blank = false) =>
+      h("a", { class: cls, href, "data-testid": testid, ...(blank ? { target: "_blank", rel: "noopener" } : {}) }, label);
+    const b = (cls: string, label: string, fn: () => void, testid: string, icon = "") =>
+      h("button", { class: cls, type: "button", "data-testid": testid, html: `${icon ? `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">${icon}</svg>` : ""}<span>${label}</span>`, onclick: (ev: Event) => (ev.stopPropagation(), fn()) });
+    this.endEl.replaceChildren(
+      h(
+        "div",
+        { class: "film-end-card" },
+        h("div", { class: "film-end-brand", html: wordmarkMarkup("dark", 30, "film-end-wordmark") }),
+        h("p", { class: "film-end-tag" }, REEL_TAGLINE),
+        h("p", { class: "film-end-made" }, "Fait avec Datanime"),
+        h(
+          "div",
+          { class: "film-end-acts" },
+          e.shareUrl && this.o.share ? b("btn btn-accent film-end-share", "Partager", () => this.o.share!(e.shareUrl!, title), "reader-end-share", SHARE_ICON) : null,
+          a("btn film-end-create", e.studioUrl, "Créez le vôtre", "reader-end-create"),
+          b("btn btn-ghost film-end-replay", "Revoir depuis le début", () => this.goTo(0), "reader-end-replay", REPLAY_ICON)
+        ),
+        a("film-end-discover", e.discoverUrl, "Découvrir la plateforme ›", "reader-end-discover", true)
+      )
+    );
+    this.endEl.hidden = false;
+  }
+
+  private hideEnd(): void {
+    if (!this.atEnd) return;
+    this.atEnd = false;
+    this.root.classList.remove("at-end");
+    this.endEl.hidden = true;
+    this.endEl.replaceChildren();
+  }
+
+  private shareStory(): void {
+    const e = this.o.ending?.();
+    const s = this.snaps[this.i];
+    const url = e?.shareUrl ?? (s ? this.o.linkFor?.(s) : null);
+    if (url) this.o.share?.(url, this.storyTitle.textContent ?? "");
+  }
+
   open(snaps: Snapshot[], start = 0, title = ""): void {
     if (!snaps.length) return;
     this.snaps = snaps;
     this.i = Math.max(0, Math.min(snaps.length - 1, start));
     this.root.hidden = false;
     if (this.o.reading) document.body.classList.add("reading-open");
+    this.hideEnd();
     this.root.classList.remove("has-msg");
     this.msg.hidden = true;
+    // « Partager » : seulement pour un lien qui s'ouvre partout (exemple intégré, démo, revue publiée)
+    const ending = this.o.ending?.();
+    if (this.shareBtn) this.shareBtn.hidden = !ending?.shareUrl;
+    if (this.madeEl && ending) this.madeEl.href = ending.studioUrl;
     this.svg.style.display = "";
     this.storyTitle.textContent = title;
     this.storyTitle.title = title;
@@ -162,6 +255,7 @@ export class StoryFilm {
   /** Message plein écran (histoire introuvable sur cet appareil…). */
   showMessage(title: string, body: string, actions: { label: string; href?: string; onclick?: () => void }[] = []): void {
     this.stop();
+    this.hideEnd();
     this.snaps = [];
     this.root.hidden = false;
     if (this.o.reading) document.body.classList.add("reading-open");
@@ -184,6 +278,7 @@ export class StoryFilm {
   close(): void {
     if (this.root.hidden) return;
     this.stop();
+    this.hideEnd();
     this.root.hidden = true;
     if (this.o.reading) document.body.classList.remove("reading-open");
     document.removeEventListener("keydown", this.onKey);
@@ -209,9 +304,14 @@ export class StoryFilm {
     const p0 = this.p0;
     this.p0 = null;
     if (!p0 || !this.snaps.length) return;
-    if ((e.target as Element | null)?.closest?.("a")) return;
+    if ((e.target as Element | null)?.closest?.("a, button")) return;
     const dx = e.clientX - p0.x;
     const dy = e.clientY - p0.y;
+    // écran de fin : seul un balayage vers la droite revient à la dernière diapositive
+    if (this.atEnd) {
+      if (dx >= SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.2) this.prev();
+      return;
+    }
     if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.2) {
       if (dx < 0) this.next();
       else this.prev();
@@ -231,7 +331,7 @@ export class StoryFilm {
 
   /** Pause : fige l'animation (et l'avance automatique du film) ; reprise là où elle s'était arrêtée. */
   toggle(): void {
-    if (!this.snaps.length) return;
+    if (!this.snaps.length || this.atEnd) return;
     if (this.playing) {
       this.setPlaying(false);
       // pause pendant une transition « zoom dans la marque » : la diapositive suivante s'affichera complète, figée
@@ -254,6 +354,7 @@ export class StoryFilm {
   replay(): void {
     const s = this.snaps[this.i];
     if (!s || this.busy) return;
+    if (this.atEnd) return this.goTo(0);
     this.stop();
     this.setPlaying(true);
     this.show(s);
@@ -262,16 +363,27 @@ export class StoryFilm {
   goTo(k: number): void {
     if (this.busy || !this.snaps.length) return;
     const n = Math.max(0, Math.min(this.snaps.length - 1, k));
-    if (n !== this.i) this.go(n, n === this.i + 1);
+    if (this.atEnd) {
+      this.hideEnd();
+      this.go(n, false, true);
+    } else if (n !== this.i) this.go(n, n === this.i + 1);
   }
 
   next(): void {
-    if (this.busy || !this.snaps.length) return;
+    if (this.busy || !this.snaps.length || this.atEnd) return;
     if (this.i < this.snaps.length - 1) this.go(this.i + 1, true);
     else if (!this.o.reading) this.close();
+    else this.showEnd();
   }
 
   prev(): void {
+    if (this.atEnd) {
+      // retour à la dernière diapositive, complète
+      this.hideEnd();
+      this.finishPending = true;
+      this.go(this.i, false, true);
+      return;
+    }
     if (this.busy || this.i === 0) return;
     this.go(this.i - 1, false);
   }
@@ -294,6 +406,7 @@ export class StoryFilm {
 
   private go(k: number, forward: boolean, first = false): void {
     this.stop();
+    this.hideEnd();
     const from = first ? undefined : this.snaps[this.i];
     const to = this.snaps[k]!;
     const delta = from && from !== to ? this.drillDelta(from, to) : null;

@@ -68,7 +68,8 @@ import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenanc
 import { focusInfo } from "./ui/focusUi";
 import { sameExceptFocus } from "./charts/focus";
 import { ProjectController } from "./project/controller";
-import { EXAMPLE_PROJECTS, exampleProjectById, loadExampleProject, withoutProjectParam } from "./project/examples";
+import { EXAMPLE_PROJECTS, exampleProjectById, loadExampleProject } from "./project/examples";
+import { discoverUrl, exampleOfScenes, exampleSceneOf, exampleSnapshotUrl, parseLectureParams, reelLinks, studioUrl, withoutShareParams, type LinkSrc } from "./project/shareLinks";
 import { openProjectRepo, storageUsage, type ProjectRepo } from "./project/repo";
 import { applyProjectFileAccept, parseDatanimeText } from "./project/fileImport";
 import { CURRENT_PROJECT_KEY, parseProjectFile, projectFileName, toProjectFile, type Project, type ProjectSource } from "./project/project";
@@ -852,10 +853,14 @@ function linkBase(): string {
   return /^https?:$/.test(location.protocol) ? location.href.split("#")[0]!.split("?")[0]! : READING_PUBLIC_BASE;
 }
 
-/** Lien de lecture d'un snapshot : démo intégrée → adresse publique (tout appareil) ; sinon histoire / revue locale. */
-function snapReadUrl(s: Snapshot, storyId: string): string {
+/**
+ * Lien de lecture d'un snapshot : démo intégrée → adresse publique (tout appareil) ; scène d'un projet d'exemple
+ * intégré → `?projet=<id>&lecture=1&scene=N` (tout appareil, `src` = origine) ; sinon histoire / revue de cet appareil.
+ */
+function snapReadUrl(s: Snapshot, storyId: string, src: LinkSrc | null = "qr"): string {
   const id = readingStoryIdFor(s, storyId);
-  return readUrl(demoStoryDef(id) ? READING_PUBLIC_BASE : linkBase(), id, s.id);
+  if (demoStoryDef(id)) return readUrl(READING_PUBLIC_BASE, id, s.id);
+  return exampleSnapshotUrl(s.id, src) ?? readUrl(linkBase(), id, s.id);
 }
 
 export interface PptxBuildOptions {
@@ -1144,7 +1149,9 @@ async function openReel(storyId: string = LOCAL_STORY_ID): Promise<void> {
   // Licence : celle de l'exemple, sinon celle écrite dans la source (données publiques modifiées : « … · Licence : … »)
   const lic = [...new Set(snaps.map((s) => sampleLicence(s.sampleId) || licenceFromSource(s.source)).filter(Boolean))];
   if (reelEdit) endReelEdit();
-  await reelDialog.open({ title, items: snaps.map((snap) => ({ snap, ds: datasetFor(snap) })), licence: lic.length === 1 ? lic[0]! : "", editChart: editReelScene });
+  // QR de la carte de fin : le film du projet quand ses scènes viennent d'un exemple intégré, sinon le Studio
+  const links = reelLinks(exampleOfScenes(snaps.map((x) => x.id)));
+  await reelDialog.open({ title, items: snaps.map((snap) => ({ snap, ds: datasetFor(snap) })), licence: lic.length === 1 ? lic[0]! : "", editChart: editReelScene, links });
 }
 
 async function openCadencer(storyId: string): Promise<void> {
@@ -1994,9 +2001,32 @@ const reader = new StoryFilm((s) => datasetFor(s), {
     history.replaceState(null, "", location.pathname + location.search + back);
     void reviewSpace.handleHash(back);
   },
-  linkFor: (s) => (readerStory ? snapReadUrl(s, readerStory) : null),
+  linkFor: (s) => (readerStory ? snapReadUrl(s, readerStory, "partage") : null),
   copy: (u) => void copyText(u),
+  // écran de fin « Fait avec Datanime · Créez le vôtre » ; « Partager » : lien universel (exemple, démo, revue publiée)
+  ending: () => {
+    const first = reader.firstSnapshot;
+    const st = readerStory;
+    const universal = !!first && !!st && (!!demoStoryDef(readingStoryIdFor(first, st)) || !!exampleSceneOf(first.id) || isPublished(st));
+    return { shareUrl: universal ? snapReadUrl(first!, st!, "partage") : null, studioUrl: studioUrl("partage"), discoverUrl: discoverUrl("partage") };
+  },
+  share: (url, title) => void shareLink(url, title),
 });
+
+/** « Partager » : feuille de partage du système (iPhone, Android, Safari), sinon copie du lien. */
+async function shareLink(url: string, title: string): Promise<void> {
+  const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void>; canShare?: (d: ShareData) => boolean };
+  const data: ShareData = { title: title || "Datanime", text: title ? `${title} — fait avec Datanime` : "Fait avec Datanime", url };
+  if (typeof nav.share === "function" && (!nav.canShare || nav.canShare(data))) {
+    try {
+      await nav.share(data);
+      return;
+    } catch (e) {
+      if ((e as { name?: string } | null)?.name === "AbortError") return;
+    }
+  }
+  await copyText(url, "Lien copié : collez-le pour partager");
+}
 
 /** Histoire d'un lien de lecture : démo intégrée (recalculée, tout appareil), histoire courante ou revue (cet appareil). */
 async function resolveReading(storyId: string): Promise<{ title: string; snapshots: Snapshot[] } | null> {
@@ -2178,14 +2208,21 @@ void ensureFont(store.state.spec.style.font).finally(() => {
   void settle()
     .then(() => projects.init())
     .then(async () => {
-      // lien direct vers un projet d'exemple intégré (?projet=petrole-mazout) : jeu de données + scènes, sans import
-      const id = params.get("projet");
+      // lien direct vers un projet d'exemple intégré (?projet=petrole-mazout) : jeu de données + scènes, sans import ;
+      // &lecture=1[&scene=N] : puis mode lecture plein écran (lien « Rejouer » des QR, du Reel et du bouton Partager)
+      const req = parseLectureParams(location.search);
+      const id = req.projet;
       if (!id) return;
-      await openExampleProject(id);
+      const ok = await openExampleProject(id);
       try {
-        history.replaceState(history.state, "", withoutProjectParam(location.href));
+        history.replaceState(history.state, "", withoutShareParams(location.href));
       } catch {
         /* adresse non modifiable (file://) */
+      }
+      if (ok && req.lecture && !parseReadRoute(location.hash)) {
+        const snaps = store.state.story.snapshots;
+        const k = req.scene ? Math.min(snaps.length, req.scene) - 1 : 0;
+        if (snaps.length) startReading(LOCAL_STORY_ID, snaps[k]!.id);
       }
     });
 });
