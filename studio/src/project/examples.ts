@@ -11,6 +11,11 @@ export interface ExampleProject {
   description: string;
   /** Fichier sous `exemples/` (chemin relatif au Studio). */
   file: string;
+  /**
+   * Identifiants des scènes livrées, dans l'ordre (vérifiés contre le fichier par les tests) : une scène de cet exemple
+   * a un lien de lecture universel `?projet=<id>&lecture=1&scene=N` (s'ouvre sur n'importe quel appareil).
+   */
+  scenes: readonly string[];
 }
 
 export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
@@ -19,12 +24,22 @@ export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
     name: "Pétrole et mazout, en euros",
     description: "Brent (€/baril) et mazout belge (€/litre), 2019-2026 : deux axes, une scène prête",
     file: "exemples/petrole-mazout.datanime",
+    scenes: ["snap-petrole-mazout"],
   },
   {
     id: "mazout-decroche",
     name: "Le mazout décroche du pétrole",
     description: "Mazout belge et Brent en euros, annuel 2019-2025 et mensuel nov. 2025 - août 2026 : 7 scènes, rapport mazout / brut",
     file: "exemples/mazout-decroche.datanime",
+    scenes: [
+      "snap-mazout-decroche-titre",
+      "snap-mazout-decroche-annuel",
+      "snap-mazout-decroche-pic-2022",
+      "snap-mazout-decroche-mensuel",
+      "snap-mazout-decroche-rapport-annuel",
+      "snap-mazout-decroche-rapport-mensuel",
+      "snap-mazout-decroche-conclusion",
+    ],
   },
 ];
 

@@ -13,7 +13,7 @@ import { clip, generatedOn } from "../story/fr";
 import { ReelCharts, drillLinks, type ReelItem } from "../reel/charts";
 import { ReelComposer } from "../reel/compose";
 import { encodeReel, reelCapabilities, type EncodeResult } from "../reel/encode";
-import { autoSceneDuration, DEFAULT_RHYTHM, fitDurations, fmtS, frameCount, REEL_FORMATS, sceneStarts, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, REEL_RHYTHMS, reelProblems, SCENE_MAX_S, SCENE_MIN_S, timingsFor, totalDuration, type ReelFormatKey, type ReelPlan, type ReelRhythm, type ReelScene } from "../reel/plan";
+import { autoSceneDuration, DEFAULT_RHYTHM, fitDurations, fmtS, frameCount, REEL_FORMATS, sceneStarts, REEL_MAX_S, REEL_MAX_SCENES, REEL_MIN_S, REEL_RHYTHMS, reelProblems, SCENE_MAX_S, SCENE_MIN_S, timingsFor, totalDuration, type ReelFormatKey, type ReelLinks, type ReelPlan, type ReelRhythm, type ReelScene } from "../reel/plan";
 import { defaultPlan } from "../reel/scenes";
 
 export interface ReelSource {
@@ -28,6 +28,8 @@ export interface ReelSource {
    * l'appelant revient ensuite par `resume()` (Valider : snapshot mis à jour, même id ; Annuler : sans changement).
    */
   editChart?: (item: ReelItem, sceneNo: number) => void;
+  /** QR et liens de la carte de fin (film du projet d'exemple, présentation) ; défaut : page du Studio. */
+  links?: ReelLinks;
 }
 
 export const LICENCE_CHIPS = ["CC BY 4.0", "Licence Ouverte 2.0", "Données internes", "Données fictives (démonstration)"];
@@ -227,6 +229,7 @@ export class ReelDialog {
       const note = r?.ok && r.spec.story.showComments ? elementNotes(r.spec, it!.ds).find((n) => !n.focus || n.edited) : undefined;
       if (note) sc.caption = clip(note.text.replace(/\s+/g, " ").trim(), 110);
     });
+    if (src.links) base.links = src.links;
     if (!this.source) this.source = base.source;
     base.source = this.source;
     base.licence = this.licence;

@@ -229,6 +229,19 @@ export interface ReelScene {
   linkOut: DrillLink;
 }
 
+/** Liens de la carte de fin du Reel (voir `project/shareLinks.ts`, `reelLinks`). */
+export interface ReelLinks {
+  /** Cible du QR (carte de fin et cartouche). */
+  qr: string;
+  /** Lien visible sous le QR (une ou deux lignes, sans https://, sans `src`). */
+  label: string[];
+  /** Invitation sous le lien. */
+  cta: string;
+  /** Ligne « commerciale » : présentation de la plateforme. */
+  pitch: string;
+  pitchUrl: string;
+}
+
 export interface ReelPlan {
   format: ReelFormatKey;
   fps: number;
@@ -241,6 +254,8 @@ export interface ReelPlan {
   generatedAt: string;
   /** Rythme (durées, comptage, transitions) ; « nerveux » par défaut. */
   rhythm?: ReelRhythm;
+  /** Liens de la carte de fin et du QR (film du projet d'exemple, sinon Studio) ; défaut : page du Studio. */
+  links?: ReelLinks;
 }
 
 export function totalDuration(p: Pick<ReelPlan, "scenes" | "endDuration">): number {

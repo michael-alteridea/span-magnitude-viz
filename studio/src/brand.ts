@@ -11,6 +11,11 @@ export { WORDMARK_PNG, WORDMARK_RATIO };
 
 export const PRODUCT_LABEL = "Datanime";
 export const PLATFORM_URL = "https://alteridea-dashboard.web.app/reporting/";
+/**
+ * Page de présentation de la plateforme (lien « commercial » : carte de fin du Reel, écran de fin du mode lecture).
+ * Aujourd'hui l'aperçu de la landing déjà en ligne (non indexé) ; à remplacer par l'adresse définitive (datanime.io).
+ */
+export const DISCOVER_URL = new URL("/datanime-apercu/", PLATFORM_URL).href;
 /** Libellé court du lien affiché dans les exports (PowerPoint…). */
 export const PLATFORM_HOST = PLATFORM_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
 /** Couleurs du logo (bleu pétrole). */
