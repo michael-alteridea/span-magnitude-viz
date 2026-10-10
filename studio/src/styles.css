@@ -319,7 +319,7 @@ textarea.paste:focus { outline: none; border-color: var(--accent); }
 .story-role.role-tension { color: #fca5a5; }
 .story-role.role-revelation { color: var(--accent-soft); }
 .story-role.role-recommendation { color: #fde68a; }
-.story-del { width: 22px; height: 22px; }
+.story-del { width: 100%; justify-content: center; }
 .story-focus { width: 22px; height: 22px; color: var(--accent, #0E6E8C); }
 .focus-pick-hint { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 7px 8px 7px 14px; border-radius: 999px; background: #08465A; color: #fff; font-size: 13px; box-shadow: 0 6px 18px rgba(8, 70, 90, 0.28); }
 .focus-pick-hint span { white-space: normal; line-height: 1.3; }

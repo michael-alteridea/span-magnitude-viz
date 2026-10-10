@@ -227,7 +227,7 @@ export class StoryStrip {
     name.addEventListener("keydown", (e) => e.key === "Enter" && name.blur());
     const role = h("select", { class: `story-role role-${s.role}`, title: "Rôle dans le récit", "data-testid": "story-card-role" }, ...NARRATIVE_ROLES.map((r) => h("option", { value: r, selected: r === s.role }, ROLE_LABELS[r])));
     role.addEventListener("change", () => this.patch(s.id, { role: role.value as NarrativeRole }));
-    const del = h("button", { class: "icon-btn story-del", title: "Supprimer la scène", "aria-label": "Supprimer la scène", "data-testid": "story-card-delete", html: svgIcon(ICONS.trash, 15), onclick: () => this.store.setStory({ ...this.store.state.story, snapshots: this.store.state.story.snapshots.filter((x) => x.id !== s.id) }) });
+    const del = h("button", { class: "btn btn-small story-del", title: "Retirer cette scène de la séquence", "aria-label": "Supprimer la scène", "data-testid": "story-card-delete", onclick: () => this.store.setStory({ ...this.store.state.story, snapshots: this.store.state.story.snapshots.filter((x) => x.id !== s.id) }) }, "Supprimer");
     const dup = this.actions.duplicateFocus
       ? h("button", { class: "icon-btn story-focus", title: "Dupliquer et mettre en avant : copie juste après cette scène, un élément en avant et son commentaire (transition animée)", "aria-label": "Dupliquer et mettre en avant", "data-testid": "story-card-focus", html: svgIcon(ICONS.focus, 15), onclick: () => this.actions.duplicateFocus?.(s) })
       : null;
@@ -253,7 +253,8 @@ export class StoryStrip {
       thumb,
       scale ? this.scaleBadge(scale, same) : null,
       this.datasetChip(s),
-      h("div", { class: "story-card-foot" }, role, dup, reset, del),
+      h("div", { class: "story-card-foot" }, role, dup, reset),
+      del,
       name
     );
     card.addEventListener("dragstart", (e) => {
