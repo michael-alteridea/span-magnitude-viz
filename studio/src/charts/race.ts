@@ -88,8 +88,10 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
   const gr = g.append("g").attr("class", "r4d-race");
 
   // compteur de période à rouleaux (bas droite) + avancement
-  const counter = tm.label(st.step);
-  const next = tm.label(Math.min(tm.steps.length - 1, st.step + 1));
+  // année affichée = pas en cours (pas l'arrondi : l'arrondi sautait à l'année suivante trop tôt, puis revenait)
+  const i0 = Math.max(0, Math.min(tm.steps.length - 1, Math.floor(pos)));
+  const counter = tm.label(i0);
+  const next = tm.label(Math.min(tm.steps.length - 1, i0 + 1));
   const frac = pos - Math.floor(pos);
   const big = Math.min(plot.h * 0.16, 64 * s);
   const cw = measure(counter, big, font, 800);
@@ -107,7 +109,7 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
     const cell = og.append("g").attr("transform", `translate(${ox},${cy - ch})`);
     cell.append("rect").attr("width", cw0).attr("height", ch).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.08);
     const box = cell.append("svg").attr("x", 0).attr("y", 0).attr("width", cw0).attr("height", ch).attr("overflow", "hidden");
-    const digit = (c: string, dy: number) => box.append("text").attr("x", cw0 / 2).attr("y", ch / 2 + dy).attr("dy", "0.36em").attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.9).text(c);
+    const digit = (c: string, dy: number) => box.append("text").attr("x", cw0 / 2).attr("y", ch / 2 + dy).attr("dy", "0.35em").attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("font-variant-numeric", "tabular-nums").attr("fill", theme.text).attr("fill-opacity", 0.9).text(c);
     if (ca === cb || roll <= 0) digit(ca, 0);
     else { digit(ca, -roll * ch); digit(cb, (1 - roll) * ch); }
     ox += cw0 + gap;
