@@ -805,17 +805,36 @@ export function applyMapFrame(
     }
   }
 
+  const sequence = options.mapReveal === "sequence" && provincesOnly;
+  const order = sequence
+    ? [...layout.regionTotals.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([id]) => id)
+    : [];
+  const slot = order.length ? 1 / order.length : 1;
   gBasemap.selectAll<SVGPathElement, BasemapFeature>("path.smv-map-region")
     .style("fill", function (d) {
       const base = this.getAttribute("data-base-fill") || MAP_FILL;
       if (!choroplethOn || intensity <= 0.01) return base;
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (v <= 0) return base;
+      if (sequence) {
+        const i = order.indexOf(d.properties.id);
+        if (i < 0) return base;
+        const local = (t - i * slot) / slot;
+        if (local <= 0) return base;
+        const color = choroplethColor(v / maxRegion, options.mapScale ?? "froid-chaud");
+        return local >= 1 ? color : color;
+      }
       return choroplethColor(v / maxRegion, options.mapScale ?? "froid-chaud");
     })
     .style("fill-opacity", function (d) {
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (!choroplethOn || intensity <= 0.01 || v <= 0) return null;
+      if (sequence) {
+        const i = order.indexOf(d.properties.id);
+        const local = i < 0 ? 0 : (t - i * slot) / slot;
+        if (local <= 0) return null;
+        return String((0.35 + 0.55 * intensity) * Math.min(1, local));
+      }
       return String(0.35 + 0.55 * intensity);
     });
 

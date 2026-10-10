@@ -295,6 +295,8 @@ export const specialSchema = z.object({
   mapMark: z.enum(["point", "region"]).default("point"),
   /** Dégradé des provinces : du clair au foncé, ou d'une couleur à l'autre. */
   mapScale: z.enum(["rouge", "bleu", "vert", "froid-chaud", "blanc-noir", "petrole"]).default("froid-chaud"),
+  /** Apparition des provinces : toutes ensemble, ou une par une. */
+  mapReveal: z.enum(["all", "sequence"]).default("all"),
   // Maille Europe : « country » uniquement ; les anciennes valeurs restent lisibles (affichées en pays).
   mapLevel: z.enum(["country", "nuts1", "nuts2", "nuts3"]).default("country"),
   tickers: z.boolean().default(true),

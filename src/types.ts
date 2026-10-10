@@ -202,6 +202,8 @@ export interface VizOptions {
   mapMark?: "point" | "region";
   /** Dégradé des provinces. */
   mapScale?: "rouge" | "bleu" | "vert" | "froid-chaud" | "blanc-noir" | "petrole";
+  /** "sequence" : les provinces se colorient l'une après l'autre. */
+  mapReveal?: "all" | "sequence";
   /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */
   mapLevel?: MapLevel;
   /**

@@ -245,13 +245,14 @@ export function mountSpecial(
     mapRegion: spec.special.mapRegion,
     mapMark: spec.special.mapMark,
     mapScale: spec.special.mapScale,
+    mapReveal: spec.special.mapReveal,
     mapLevel: spec.special.mapLevel,
     // Monde et Burundi : toujours le fond entier (Europe : cadrage sur les pays présents)
     mapFit: spec.special.mapRegion === "europe" ? "data" : "region",
     width: Math.round(plot.w),
     height: Math.round(plot.h),
-    animate: opts.animate && !timeless,
-    autoplay: opts.animate && !timeless,
+    animate: opts.animate && (!timeless || spec.special.mapReveal === "sequence"),
+    autoplay: opts.animate && (!timeless || spec.special.mapReveal === "sequence"),
     durationMs: spec.mode.fourD.durationMs,
     theme: theme.dark ? "dark" : "light",
     // Compteur « somme » sans objet pour un taux ou une part (%) : masqué sur la carte
@@ -268,7 +269,7 @@ export function mountSpecial(
     mapZoom: isMap && !!opts.zoom,
     onMapZoom: opts.onMapZoom,
   });
-  if (!opts.animate || timeless) handle.setProgress(1);
+  if (!opts.animate || (timeless && spec.special.mapReveal !== "sequence")) handle.setProgress(1);
   return {
     handle,
     error: null,
