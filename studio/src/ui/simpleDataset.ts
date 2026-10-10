@@ -36,7 +36,9 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
   const root = h("div", { style: "position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center" });
   const box = h("div", { style: "background:#111;color:#f4f4f5;width:min(640px,94vw);max-height:88vh;overflow:auto;border-radius:12px;padding:20px;font:15px system-ui" });
   const propose = h("p", { style: "margin:8px 0 14px;color:#a1a1aa" });
-  const cols = h("div", { style: "display:flex;flex-direction:column;gap:6px;margin-bottom:14px" });
+  const cols = h("div", { style: "display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:240px;overflow:auto" });
+  const colSearch = h("input", { type: "search", placeholder: "Chercher un champ…", style: "padding:8px 10px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#fff;width:100%;margin-bottom:8px" }) as HTMLInputElement;
+  const boxes: { name: string; cb: HTMLInputElement; row: HTMLElement }[] = [];
   const filterHost = h("div", { style: "margin-bottom:14px" });
 
   const refresh = () => {
@@ -55,7 +57,9 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
       else kept.delete(c.name);
       refresh();
     });
-    cols.append(h("label", { style: "display:flex;gap:8px;align-items:center" }, cb, c.name, h("span", { style: "color:#71717a;font-size:13px" }, `${c.type}${tag ? " · " + tag : ""}`)));
+    const row = h("label", { style: "display:flex;gap:8px;align-items:center" }, cb, c.name, h("span", { style: "color:#71717a;font-size:13px" }, `${c.type}${tag ? " · " + tag : ""}`));
+    boxes.push({ name: c.name, cb, row });
+    cols.append(row);
   }
 
   const sel = h("select", { style: "padding:8px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "" }, "Aucun filtre")) as HTMLSelectElement;
@@ -94,11 +98,24 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
   const name = h("input", { value: ds.name, style: "width:100%;padding:10px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#fff" }) as HTMLInputElement;
   refresh();
 
+  const setAll = (on: boolean) => {
+    for (const b of boxes) if (b.row.style.display !== "none") { b.cb.checked = on; if (on) kept.add(b.name); else kept.delete(b.name); }
+    refresh();
+  };
+  colSearch.addEventListener("input", () => {
+    const q = colSearch.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    for (const b of boxes) b.row.style.display = !q || b.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q) ? "" : "none";
+  });
   box.append(
     h("h2", { style: "margin:0 0 4px;font-size:20px" }, "Créer un dataset"),
     h("p", { style: "margin:0;color:#a1a1aa" }, `${ds.rows.length} lignes · cochez les colonnes, filtrez si besoin.`),
     propose,
     h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Colonnes"),
+    colSearch,
+    h("div", { style: "display:flex;gap:8px;margin-bottom:8px" },
+      h("button", { type: "button", style: "padding:6px 10px;border-radius:8px;border:1px solid #3f3f46;background:transparent;color:#fff;cursor:pointer", onclick: () => setAll(true) }, "Tout sélectionner"),
+      h("button", { type: "button", style: "padding:6px 10px;border-radius:8px;border:1px solid #3f3f46;background:transparent;color:#fff;cursor:pointer", onclick: () => setAll(false) }, "Ne rien sélectionner")
+    ),
     cols,
     h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Filtre"),
     filterHost,
