@@ -14,6 +14,7 @@ import { formatCell } from "../format";
 import { datasetBase } from "../data/transform";
 import { chipGroups, chipText, datasetsOf, findDataset, isFrozenRef, rowsLabel, sceneRef, scenesLabel, toRef } from "../data/datasets";
 import { h, svgIcon, ICONS } from "./dom";
+import { openBrowse } from "./browse";
 
 export interface DataActions {
   loadSample(id: string): void;
@@ -98,7 +99,7 @@ export class DataPanel {
             "div",
             { class: "ds-src-btns" },
             h("button", { type: "button", class: "btn ds-change", "data-testid": "data-open", title: "Remplacer la source : importer un fichier, coller un tableau, rouvrir un jeu récent, choisir un exemple ou des données publiques", onclick: () => actions.openData?.() }, h("span", { html: svgIcon(ICONS.folder, 15) }), "Remplacer"),
-            h("button", { type: "button", class: "btn", "data-testid": "ds-preview", title: "Aperçu des lignes de la source (types détectés, cellules modifiables)", onclick: () => this.previewBlock.scrollIntoView({ block: "start", behavior: "smooth" }) }, h("span", { html: svgIcon(ICONS.table, 15) }), "Aperçu")
+            h("button", { type: "button", class: "btn", "data-testid": "ds-preview", title: "Aperçu des lignes de la source (types détectés, cellules modifiables)", onclick: () => { const ds = this.store.state.ds; if (ds) openBrowse(ds); } }, h("span", { html: svgIcon(ICONS.table, 15) }), "Aperçu")
           )
         ),
         // Datasets dérivés (arbre) : l'actif est celui du graphique
