@@ -56,6 +56,7 @@ describe("lecture des paramètres d'un lien partagé", () => {
     expect(parseLectureParams("?scene=").scene).toBeNull();
     expect(parseLectureParams("?scene=abc").scene).toBeNull();
     expect(parseLectureParams("?src=pub").src).toBeNull();
+    expect(parseLectureParams("?src=site").src).toBe("site");
     expect(parseLectureParams("").projet).toBeNull();
   });
 

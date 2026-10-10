@@ -2,7 +2,7 @@
  * Liens « Rejouer » : liens de lecture universels des projets d'exemple intégrés, cible du QR du Reel, lien
  * « commercial » vers la présentation de la plateforme, paramètre d'origine `src`.
  *
- * - `?projet=<id>&lecture=1[&scene=N][&src=qr|reel|partage]` : ouvre l'exemple livré avec le Studio puis le mode
+ * - `?projet=<id>&lecture=1[&scene=N][&src=qr|reel|partage|site]` : ouvre l'exemple livré avec le Studio puis le mode
  *   lecture plein écran à la scène N (1 par défaut) — fonctionne sur n'importe quel appareil (le fichier est servi
  *   avec le site). Sans `lecture`, `?projet=<id>` garde son comportement : l'exemple s'ouvre dans le Studio.
  * - `src` dit seulement d'où vient le visiteur (lisible dans les journaux du serveur) : aucun script de mesure.
@@ -17,9 +17,9 @@ import { EXAMPLE_PROJECTS, exampleProjectById, type ExampleProject } from "./exa
 
 export type { ReelLinks };
 
-/** Origine d'un lien partagé (QR des images / diapositives, QR du Reel, bouton « Partager »). */
-export type LinkSrc = "qr" | "reel" | "partage";
-export const LINK_SOURCES: readonly LinkSrc[] = ["qr", "reel", "partage"];
+/** Origine d'un lien partagé (QR des images / diapositives, QR du Reel, bouton « Partager », page de présentation). */
+export type LinkSrc = "qr" | "reel" | "partage" | "site";
+export const LINK_SOURCES: readonly LinkSrc[] = ["qr", "reel", "partage", "site"];
 
 /** Lien de lecture universel d'un projet d'exemple (scène N, 1-indexée ; la scène 1 est implicite). */
 export function exampleReadUrl(id: string, o: { scene?: number | null; src?: LinkSrc | null; base?: string } = {}): string {
