@@ -14,6 +14,7 @@ import { ChartTooltip } from "./tooltip";
 import { isSpecial, parseSpec, type ChartSpec, type DrillStep } from "../spec";
 import type { Dataset } from "../data/table";
 import { prepareCache, renderChart } from "../charts/render";
+import { LOCAL_STORY_ID, READING_PUBLIC_BASE, readUrl } from "../story/reading";
 import { SpecialLayer, loadSpecialModule, specialModule } from "../charts/specialFrame";
 import type { Snapshot } from "../story/snapshots";
 import { ROLE_LABELS } from "../story/snapshots";
@@ -505,10 +506,10 @@ export class StoryFilm {
       const shown = bulletsShownAt(t, nBullets, start);
       const fp = focusFx ? Math.max(0, Math.min(1, (t - BUILD_MS) / FOCUS_MS)) : 1;
       const out = focusFx?.dir === "out" && fp < 1;
-      const base = this.o.reading ? { ...spec, style: { ...spec.style, authQr: false } } : spec;
-      const sp = out ? withFocus(base) : base;
+      const sp = out ? withFocus(spec) : spec;
       const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
-      const res = renderChart(this.svg, sp, ds, cache, { build, timePos: timeAt(t), ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
+      const qr = this.o.reading ? readUrl(READING_PUBLIC_BASE, LOCAL_STORY_ID, s.id) : null;
+      const res = renderChart(this.svg, sp, ds, cache, { build, timePos: timeAt(t), ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown, ...(qr ? { qrUrl: qr } : {}) });
       // carte / film : copie dans le cadre (tests, export). En lecture, un film qui évolue joue en vrai par-dessus.
       const live = special && !!this.o.reading && sp.mode.kind === "dynamic" && !reducedMotion();
       if (special && !live) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? (sd ? Math.min(1, t / sd) : build) : 1);
