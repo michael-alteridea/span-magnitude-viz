@@ -682,43 +682,44 @@ export class SettingsPanel {
   }
 
 
-  /** Navigation par dimension : une carte par colonne, le nombre de valeurs, trois exemples. Un clic change l'axe. */
+  /** Navigation par dimension : une carte par colonne. Axe ou couleur. Dit ce que ça fait. */
   private dimensionNav(spec: ChartSpec, cols: Column[]): HTMLElement {
     const dims = cols.filter((c) => c.type !== "number" && c.cardinality > 1 && c.cardinality <= 40);
     if (!dims.length) return h("div");
     const ds = this.store.state.ds;
-    const sample = (name: string) => {
-      if (!ds) return [];
-      const seen: string[] = [];
+    const measure = spec.encoding.y[0] ?? null;
+    const top = (name: string): string => {
+      if (!ds || !measure) return "";
+      const acc = new Map<string, number>();
       for (const r of ds.rows) {
-        const v = r[name];
-        if (v == null || v === "") continue;
-        const s = String(v);
-        if (!seen.includes(s)) seen.push(s);
-        if (seen.length >= 3) break;
+        const k = r[name];
+        const v = r[measure];
+        if (k == null || k === "" || typeof v !== "number") continue;
+        acc.set(String(k), (acc.get(String(k)) ?? 0) + v);
       }
-      return seen;
+      let best = "", max = -Infinity;
+      for (const [k, v] of acc) if (v > max) { max = v; best = k; }
+      return best ? `Plus haut : ${best}` : "";
     };
     const cards = dims.map((c) => {
-      const on = c.name === spec.encoding.x;
-      const ex = sample(c.name).join(" · ");
+      const axe = c.name === spec.encoding.x;
+      const couleur = c.name === spec.encoding.series;
+      const hi = top(c.name);
+      const role = axe ? "Axe" : couleur ? "Couleur" : "";
       return h(
-        "button",
-        {
-          type: "button",
-          class: `dim-card${on ? " is-on" : ""}`,
-          "data-dim": c.name,
-          "aria-pressed": on ? "true" : "false",
-          onclick: () => this.store.set("encoding.x", c.name),
-        },
-        h("span", { class: "dim-name" }, c.name),
-        h("span", { class: "dim-meta" }, `${c.cardinality} valeurs`),
-        h("span", { class: "dim-ex" }, ex)
+        "div",
+        { class: `dim-card${axe ? " is-on" : ""}${couleur ? " is-color" : ""}`, "data-dim": c.name },
+        h("span", { class: "dim-name" }, c.name, role ? h("span", { class: "dim-role" }, role) : null),
+        h("span", { class: "dim-meta" }, `${c.cardinality} valeurs${hi ? " · " + hi : ""}`),
+        h("span", { class: "dim-actions" },
+          h("button", { type: "button", class: axe ? "active" : "", onclick: () => this.store.set("encoding.x", c.name) }, "Axe"),
+          h("button", { type: "button", class: couleur ? "active" : "", onclick: () => this.store.set("encoding.series", couleur ? null : c.name) }, "Couleur")
+        )
       );
     });
     return this.kw(
       h("div", { class: "field dim-nav", "data-testid": "dim-nav" }, h("span", { class: "field-label" }, "Naviguer par dimension"), h("div", { class: "dim-cards" }, ...cards)),
-      "dimension naviguer axe catégorie"
+      "dimension naviguer axe catégorie couleur"
     );
   }
 
