@@ -50,3 +50,10 @@ et devient le ▶ C15 (2,40–3,30 s). Durée 3,4 s puis tenue. Courbes : ease-o
   (5 s à 30 i/s, dont 1,6 s de tenue) · `logo-anim-800.gif` (800×300, clair, 25 i/s, en boucle).
 - Regénérer : `.venv/bin/python anim.py`, puis `node anim/capture.js <svg> <L> <H> <fond> <largeur_logo> <dossier> 30 5`
   et ffmpeg (voir l'historique du commit).
+
+## Variante capitales « DATAnime » (C15caps)
+
+Statique : `variantes/C15caps-<light|dark>-<jaune-or|jaune-vif>.svg` (+ `-transparent.svg`, `-800.png`, favicon = C15).
+« DAT » en Inter Bold capitales (encre de « Dat »), crénage HarfBuzz (le A se glisse sous le bras du T), « nime » studio.
+Animation : `anim_caps.py` → `anim/logo-anim-caps.svg`, `logo-anim-caps-dark.svg`, `apercu-caps.html`,
+`logo-anim-caps-1080x1080-clair.mp4`, `logo-anim-caps-1920x1080-sombre.mp4`, `logo-anim-caps-800.gif` (même minutage, 3,4 s + tenue).
