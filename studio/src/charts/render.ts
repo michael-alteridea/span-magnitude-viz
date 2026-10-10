@@ -629,7 +629,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
 
   // ---- tampon 4D (filigrane) sous les marques : en haut à droite (zone la plus libre, tri décroissant), en bas pour les circulaires
-  if (prep.stamp && !prep.stampRoll) {
+  if (prep.stamp && !prep.stampRoll && spec.type !== "race") {
     const big = Math.min(plot.h * 0.26, 110 * s);
     gChart
       .append("text")

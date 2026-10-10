@@ -737,7 +737,11 @@ export class SettingsPanel {
       const xFilter = t === "scatter" ? (c: Column) => c.type !== "text" || c.cardinality <= 60 : undefined;
       main.push(this.row(t === "race" ? "Dimension (qui court)" : isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Dimension (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x dimension"));
       main.push(this.row(t === "scatter" ? "Axe Y" : isRadial(t) ? "Valeur(s)" : "Mesure(s) — axe Y", t === "scatter" ? this.ySingle(cols) : this.yMulti(cols), undefined, "mesure valeur"));
-      if (t === "race") main.push(this.row("Période (temps)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Le champ qui fait avancer la course"));
+      if (t === "race") {
+        main.push(this.row("Période (temps)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Le champ qui fait avancer la course"));
+        main.push(this.row("Compteur", this.segmented("special.raceCounter", [["bas-droite", "Bas droite"], ["haut-droite", "Haut droite"], ["centre", "Centre"]])));
+        main.push(this.row("Couleur du compteur", this.select("special.raceCounterColor", [["", "Texte"], ["#ffffff", "Blanc"], ["#f5c16c", "Or"], ["#7eb6ff", "Bleu"], ["#ff8a7a", "Rouge"]])));
+      }
       if (t !== "scatter") main.push(this.row("Calcul", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat somme moyenne nombre"));
       main.push(...this.topNRows(spec, cols));
       if (!isRadial(t)) {

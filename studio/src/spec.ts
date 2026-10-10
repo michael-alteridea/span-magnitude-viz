@@ -302,6 +302,10 @@ export const specialSchema = z.object({
   /** Bornes de l'échelle. Vide = minimum et maximum des données. */
   mapScaleMin: z.number().nullable().default(null),
   mapScaleMax: z.number().nullable().default(null),
+  /** Course : place du compteur. */
+  raceCounter: z.enum(["bas-droite", "haut-droite", "centre"]).default("bas-droite"),
+  /** Course : couleur du compteur (vide = texte). */
+  raceCounterColor: z.string().max(20).default(""),
   // Maille Europe : « country » uniquement ; les anciennes valeurs restent lisibles (affichées en pays).
   mapLevel: z.enum(["country", "nuts1", "nuts2", "nuts3"]).default("country"),
   tickers: z.boolean().default(true),

@@ -95,8 +95,10 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
   const frac = pos - Math.floor(pos);
   const big = Math.min(plot.h * 0.16, 64 * s);
   const cw = measure(counter, big, font, 800);
-  const cx = plot.x + plot.w - 6 * s;
-  const cy = plot.y + plot.h - 14 * s;
+  const place = spec.special.raceCounter ?? "bas-droite";
+  const cx = place === "centre" ? plot.x + plot.w * 0.72 : plot.x + plot.w - 6 * s;
+  const cy = place === "haut-droite" ? plot.y + big * 1.4 : place === "centre" ? plot.y + plot.h / 2 : plot.y + plot.h - 14 * s;
+  const ink = spec.special.raceCounterColor || theme.text;
   const og = gr.append("g").attr("class", "r4d-race-period").attr("data-testid", "race-period");
   const len = Math.max(counter.length, next.length);
   const a = counter.padStart(len, " "), b = next.padStart(len, " ");
@@ -109,7 +111,7 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
     const cell = og.append("g").attr("transform", `translate(${ox},${cy - ch})`);
     cell.append("rect").attr("width", cw0).attr("height", ch).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.08);
     const box = cell.append("svg").attr("x", 0).attr("y", 0).attr("width", cw0).attr("height", ch).attr("overflow", "hidden");
-    const digit = (c: string, dy: number) => box.append("text").attr("x", cw0 / 2).attr("y", ch / 2 + dy).attr("dy", "0.35em").attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("font-variant-numeric", "tabular-nums").attr("fill", theme.text).attr("fill-opacity", 0.9).text(c);
+    const digit = (c: string, dy: number) => box.append("text").attr("x", cw0 / 2).attr("y", ch / 2 + dy).attr("dy", "0.35em").attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("font-variant-numeric", "tabular-nums").attr("fill", ink).attr("fill-opacity", 0.9).text(c);
     if (ca === cb || roll <= 0) digit(ca, 0);
     else { digit(ca, -roll * ch); digit(cb, (1 - roll) * ch); }
     ox += cw0 + gap;
@@ -157,7 +159,7 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
     tip(rect, { t: name, sub: tm.label(st.step), v: fmt(v) });
     if (spec.style.barCap === "icon" || spec.style.barCap === "picto") {
       const ic = categoryIcon(name, spec.style.capIcons);
-      if (ic) drawIcon(row, ic, x0 + w + 14 * s, y + bh / 2, Math.min(bh * 0.9, 22 * s), color, "r4d-race-icon", true);
+      if (ic && w > 18 * s) drawIcon(row, ic, x0 + w - Math.min(bh * 0.55, 16 * s), y + bh / 2, Math.min(bh * 0.7, 20 * s), "#ffffff", "r4d-race-icon", true);
     }
     row.append("text").attr("class", "r4d-race-name").attr("x", x0 - 8 * s).attr("y", y + bh / 2).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", nameFs).attr("font-weight", 600).attr("fill", theme.text).text(ellipsize(name, nameW - 12 * s, nameFs, font, 600));
     const look = labelLook(spec, fmt(v), ek, null);
