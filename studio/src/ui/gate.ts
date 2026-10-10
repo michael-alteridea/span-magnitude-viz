@@ -100,7 +100,14 @@ function askEmail(storyId: string, snapId: string | null): Promise<boolean> {
       btn.setAttribute("disabled", "true");
       msg.textContent = "Envoi…";
       try {
-        await sendSignInLinkToEmail(auth, email, { url: location.href, handleCodeInApp: true });
+        const sent = await fetch("https://europe-west1-alteridea-dashboard.cloudfunctions.net/envoyerLien", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, url: location.href }),
+        }).catch(() => null);
+        if (!sent || !sent.ok) {
+          await sendSignInLinkToEmail(auth, email, { url: location.href, handleCodeInApp: true });
+        }
         localStorage.setItem(EMAIL_KEY, email);
         root.replaceWith(screen("Lien envoyé", `Ouvrez le mail envoyé à ${email}, puis clique le lien. Vous arrivez directement sur cette scène.`));
         resolve(false);
