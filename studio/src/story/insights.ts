@@ -1126,10 +1126,26 @@ const analyzeTotal: Analyzer = (spec, eff, ctx) => {
   const n = eff.rows.length;
   if (!n) return null;
   const u = measureUnit(spec, y, ctx);
-  const tot = y ? S.sum(rowsOf(eff).map((r) => numAt(r, y) ?? 0)) : n;
+  const vals = y ? rowsOf(eff).map((r) => numAt(r, y)).filter((v): v is number => v != null) : [];
+  const tot = vals.length ? S.sum(vals) : n;
   const label = y ? measureLabel(y) : "lignes";
   const film = spec.type === "film";
   const lab = spec.encoding.label ? nounOf(spec.encoding.label) : ctx.roles.isPipeline ? { sg: "affaire", pl: "affaires" } : { sg: "ligne", pl: "lignes" };
+  // Une moyenne ne s'additionne pas : le titre dit la moyenne, pas un total
+  const isMean = spec.encoding.aggregate === "mean" || /moyenne/i.test(label) || (spec.dataset?.aggs ?? []).some((a) => a.field === y && a.op === "mean");
+  if (isMean && !film) {
+    const mean = vals.length ? tot / vals.length : 0;
+    return {
+      kind: "total",
+      title: `${capitalize(label)} : ${fm(mean, u)} en moyenne`,
+      comments: [`${count(n, lab.sg, lab.pl)} ; on ne somme pas des moyennes.`],
+      why: "Les valeurs sont déjà des moyennes : on compare les niveaux, on ne les additionne pas.",
+      role: "context",
+      effect: 0.2,
+      coverage: 1,
+      facts: { mean, rows: n } as Record<string, number>,
+    };
+  }
   return {
     kind: film ? "film" : "total",
     title: film ? `${count(n, lab.sg, lab.pl)} pour ${fm(tot, u)} : chaque arc est une ${lab.sg === "affaire" ? "affaire" : "ligne"}` : `${capitalize(label)} : ${fm(tot, u)} au total`,
