@@ -79,7 +79,7 @@ import { confirmDialog } from "./ui/confirm";
 import { DatasetEditor, type DatasetDraft } from "./ui/datasetEditor";
 import { datasetChangeDialog } from "./ui/datasetDialog";
 import { createDataset, describeRecipe, findDataset, nextDatasetId, sameRecipe, sceneRef, scenesLabel, scenesUsing, toRef, uniqueDatasetName, updateDataset, chipGroups, chipText } from "./data/datasets";
-import { applyRecipe } from "./data/transform";
+import { applyRecipe, datasetBase } from "./data/transform";
 import { REVIEWS_KEY } from "./review/storage";
 import type { DatasetRef } from "./spec";
 
@@ -442,6 +442,13 @@ const actions = {
   },
   deleteRow: dropRow,
   deleteColumn: dropColumn,
+  subDataset(id: string) {
+    const src = store.state.ds;
+    const d = store.state.datasets.find((x) => x.id === id);
+    if (!src || !d) return;
+    const base = datasetBase({ dataset: toRef(d) }, src);
+    openSimple(base, { filters: d.filters, columns: d.columns, groupBy: d.groupBy, aggs: d.aggs, base: d.base });
+  },
 };
 
 /** Ouvre une piste de l'Explorer dans l'éditeur (style courant conservé). */
@@ -1707,11 +1714,11 @@ const datasetEditor = new DatasetEditor(store, {
 dataWindow.attachEditor(datasetEditor.root, () => !!store.state.ds, (id) => openDatasetEditor(id));
 
 
-function openSimple(ds: Dataset): void {
+function openSimple(ds: Dataset, base: { filters: Dataset["columns"] extends never ? never : import("./spec").FilterSpec[]; columns: string[]; groupBy: string; aggs: { field: string; op: "sum" | "mean" | "count" }[]; base?: unknown } | null = null): void {
   openSimpleDataset(ds, (r) => {
     const list = store.state.datasets;
-    const src = ds.name;
-    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns, groupBy: r.groupBy, aggs: r.aggs });
+    const src = store.state.ds?.name ?? ds.name;
+    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns, groupBy: r.groupBy, aggs: r.aggs, base });
     store.setDatasets([...list, nd]);
     store.set("dataset", toRef(nd));
     if (r.axes.x) store.set("encoding.x", r.axes.x);

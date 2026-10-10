@@ -262,13 +262,17 @@ export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
 /** Données du dataset dérivé d'un spec (la source si aucun), mémorisées par source + recette. */
 export function datasetBase<T extends Dataset | null>(spec: { dataset?: DatasetRef | null }, ds: T): T {
   const ref = spec.dataset;
-  if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name)) return ds;
-  const key = JSON.stringify([ref.name, ref.filters, ref.columns, ref.groupBy ?? "", ref.aggs ?? []]);
+  if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name && !ref.base && !ref.groupBy)) return ds;
+  const key = JSON.stringify([ref.name, ref.filters, ref.columns, ref.groupBy ?? "", ref.aggs ?? [], ref.base ?? null]);
   let m = baseMemo.get(ds);
   if (!m) baseMemo.set(ds, (m = new Map()));
   let out = m.get(key);
   if (!out) {
-    out = applyRecipe(ds, ref);
+    const chain = (src: Dataset, r: { filters?: FilterSpec[]; columns?: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; base?: unknown; name?: string }): Dataset => {
+      const parent = r.base && typeof r.base === "object" ? chain(src, r.base as typeof r) : src;
+      return applyRecipe(parent, { name: r.name, filters: r.filters ?? [], columns: r.columns ?? [], groupBy: r.groupBy, aggs: r.aggs });
+    };
+    out = chain(ds, ref);
     if (m.size > 40) m.clear();
     m.set(key, out);
   }

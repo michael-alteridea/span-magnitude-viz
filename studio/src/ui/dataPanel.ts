@@ -36,6 +36,8 @@ export interface DataActions {
   editDataset?(id: string | null): void;
   deleteRow?(index: number): void;
   deleteColumn?(name: string): void;
+  /** Sous-dataset à partir d'un dataset existant. */
+  subDataset?(id: string): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -169,6 +171,7 @@ export class DataPanel {
           h("span", { class: "ds-dot", style: `background:${d.color}`, "aria-hidden": "true" }),
           h("span", { class: "ds-node-t" }, h("b", null, d.name), h("small", null, `${d.id}${d.version > 1 ? ` v${d.version}` : ""} · ${rowsLabel(n)}${u ? ` · ${scenesLabel(u)}` : ""}${frozen ? ` · graphique sur v${ref!.version}` : ""}`), chips.length ? h("span", { class: "ds-chips" }, ...chips) : h("span", { class: "ds-chips" }, h("span", { class: "ds-chip ds-chip-none" }, d.columns.length ? `${d.columns.length} colonnes` : "Sans filtre")))
         ),
+        h("button", { type: "button", class: "icon-btn ds-node-edit", title: `Sous-dataset de ${d.id}`, "aria-label": `Sous-dataset de ${d.id}`, onclick: () => this.actions.subDataset?.(d.id) }, "+"),
         h("button", { type: "button", class: "icon-btn ds-node-edit", title: `Modifier ${d.id} (filtres, colonnes, nom)`, "aria-label": `Modifier le dataset ${d.id}`, "data-testid": "ds-tree-edit", html: svgIcon(ICONS.edit, 14), onclick: () => this.actions.editDataset?.(d.id) })
       );
     });

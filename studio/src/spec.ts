@@ -349,6 +349,8 @@ export const datasetRefSchema = z.object({
   groupBy: z.string().max(120).default(""),
   /** Indicateurs agrégés sur le regroupement. */
   aggs: z.array(z.object({ field: z.string().min(1), op: z.enum(["sum", "mean", "count"]) })).max(30).default([]),
+  /** Recette du dataset parent, qui peut elle-même en avoir un. */
+  base: z.any().nullable().default(null),
 });
 export type DatasetRef = z.infer<typeof datasetRefSchema>;
 
