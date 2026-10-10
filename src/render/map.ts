@@ -141,7 +141,6 @@ const MAP_CSS = `
 .smv-map-region {
   stroke: #3f3a36;
   stroke-width: 0.6;
-  fill: #1c1917;
   vector-effect: non-scaling-stroke;
 }
 .smv-root--light .smv-map-region {
@@ -808,17 +807,17 @@ export function applyMapFrame(
   }
 
   gBasemap.selectAll<SVGPathElement, BasemapFeature>("path.smv-map-region")
-    .attr("fill", function (d) {
+    .style("fill", function (d) {
       const base = this.getAttribute("data-base-fill") || MAP_FILL;
       if (!choroplethOn || intensity <= 0.01) return base;
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
       if (v <= 0) return base;
       return choroplethColor(v / maxRegion, options.colorScheme);
     })
-    .attr("fill-opacity", function (d) {
+    .style("fill-opacity", function (d) {
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
-      if (!choroplethOn || intensity <= 0.01 || v <= 0) return 1;
-      return 0.35 + 0.55 * intensity;
+      if (!choroplethOn || intensity <= 0.01 || v <= 0) return null;
+      return String(0.35 + 0.55 * intensity);
     });
 
   const legend = gBasemap.selectAll<SVGGElement, number>("g.smv-map-choropleth-legend").data(choroplethOn && intensity > 0.2 && maxRegion > 0 ? [1] : []);
