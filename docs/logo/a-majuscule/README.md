@@ -57,3 +57,11 @@ Statique : `variantes/C15caps-<light|dark>-<jaune-or|jaune-vif>.svg` (+ `-transp
 « DAT » en Inter Bold capitales (encre de « Dat »), crénage HarfBuzz (le A se glisse sous le bras du T), « nime » studio.
 Animation : `anim_caps.py` → `anim/logo-anim-caps.svg`, `logo-anim-caps-dark.svg`, `apercu-caps.html`,
 `logo-anim-caps-1080x1080-clair.mp4`, `logo-anim-caps-1920x1080-sombre.mp4`, `logo-anim-caps-800.gif` (même minutage, 3,4 s + tenue).
+
+## Variante « accents » (DatÀnimé / DATÀnimé)
+
+Après le pivot du ▶, paraphe jaune : grave sur le A (À, tracé 3,35–3,70 s) puis aigu sur le e (é, 3,50–3,85 s), miroir
+exact l'un de l'autre (même longueur 30 px à 112 px, même angle 36°, effilés « swoosh »). Durée 4,0 s puis tenue.
+- Statiques : `variantes/C15accents-<light|dark>-<jaune-or|jaune-vif>.svg` et `variantes/C15accents-caps-…` (+ `-transparent.svg`, `-800.png`).
+- Animations : `anim/logo-anim-accents(.svg|-dark.svg|-1080x1080-clair.mp4|-1920x1080-sombre.mp4|-800.gif)` et
+  `anim/logo-anim-caps-accents(…)` — MP4/GIF de 5,6 s (dont 1,6 s de tenue). Scripts : `accents.py`, `anim_accents.py`, `anim/render.sh`.
