@@ -723,6 +723,47 @@ export class SettingsPanel {
     );
   }
 
+
+  /** Chartes enregistrées : palette, police, fond, logo. Stockées sur l'appareil. */
+  private charterRow(spec: ChartSpec): HTMLElement {
+    const KEY = "datanime-charters";
+    type C = { id: string; name: string; palette: string; font: string; background: string; backgroundCustom: string; logo: string };
+    const load = (): C[] => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
+    const save = (list: C[]) => localStorage.setItem(KEY, JSON.stringify(list));
+    const list = load();
+    const sel = h("select", { "data-testid": "charter-select" }, h("option", { value: "" }, "— aucune —"), ...list.map((c) => h("option", { value: c.id, selected: c.id === spec.style.charterId }, c.name))) as HTMLSelectElement;
+    sel.addEventListener("change", () => {
+      const c = load().find((x) => x.id === sel.value);
+      if (!c) { this.store.set("style.charterId", null); return; }
+      this.store.set("style.palette", c.palette);
+      this.store.set("style.font", c.font);
+      this.store.set("style.background", c.background);
+      this.store.set("style.backgroundCustom", c.backgroundCustom);
+      this.store.set("style.logo", c.logo);
+      this.store.set("style.charterId", c.id);
+    });
+    const nameIn = h("input", { type: "text", placeholder: "Nom de la charte", style: "padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;color:inherit;width:140px" }) as HTMLInputElement;
+    const saveBtn = h("button", { type: "button", class: "btn btn-mini" }, "Enregistrer");
+    saveBtn.addEventListener("click", () => {
+      const name = nameIn.value.trim();
+      if (!name) return;
+      const all = load();
+      const c: C = { id: "c" + Date.now(), name, palette: spec.style.palette, font: spec.style.font, background: spec.style.background, backgroundCustom: spec.style.backgroundCustom, logo: spec.style.logo };
+      all.push(c);
+      save(all);
+      this.store.set("style.charterId", c.id);
+    });
+    const file = h("input", { type: "file", accept: "image/*", style: "font-size:12px" }) as HTMLInputElement;
+    file.addEventListener("change", () => {
+      const f = file.files?.[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => this.store.set("style.logo", String(r.result || ""));
+      r.readAsDataURL(f);
+    });
+    return this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Charte"), sel, h("div", { style: "display:flex;gap:6px;margin-top:6px;align-items:center" }, nameIn, saveBtn), h("div", { style: "margin-top:6px" }, h("span", { class: "field-label" }, "Logo"), file, spec.style.logo ? h("img", { src: spec.style.logo, style: "height:28px;margin-top:4px" }) : null)), "charte palette police fond logo");
+  }
+
   /* ① Graphique, partie données (ancienne carte « Données ») : dataset, axes, mesure, filtre de vue, nombre d'éléments */
   private dataFields(spec: ChartSpec, cols: Column[]): { main: Kid[]; more: Kid[] } {
     const t = spec.type;
@@ -1125,6 +1166,7 @@ export class SettingsPanel {
       )
     );
     main.push(this.kw(this.line("Fond", this.segmented("style.background", [["dark", "Sombre"], ["light", "Clair"], ["custom", "Perso"]])), "fond thème sombre clair arrière-plan"));
+    main.push(this.charterRow(spec));
     if (spec.style.background === "custom") {
       const c = this.colorField("style.backgroundCustom", BACKGROUND_COLORS, "bg-color", "Couleur de fond");
       main.push(this.row("Couleur de fond", c, undefined, "fond perso pipette nuancier"));

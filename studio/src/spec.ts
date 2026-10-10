@@ -287,6 +287,8 @@ export const styleSchema = z.object({
     .default({}),
   /** Réservé V2 : identifiant de charte de marque. */
   charterId: z.string().nullable().default(null),
+  /** Logo de la charte (data URI), affiché en signature. */
+  logo: z.string().max(400000).default(""),
 });
 
 export const specialSchema = z.object({
