@@ -817,6 +817,18 @@ export function applyMapFrame(
       return 0.35 + 0.55 * intensity;
     });
 
+  const legend = gBasemap.selectAll<SVGGElement, number>("g.smv-map-choropleth-legend").data(choroplethOn && intensity > 0.2 && maxRegion > 0 ? [1] : []);
+  legend.exit().remove();
+  const lg = legend.enter().append("g").attr("class", "smv-map-choropleth-legend").merge(legend);
+  lg.attr("transform", `translate(12,${layout.height - 36})`);
+  const stops = 24;
+  lg.selectAll("rect").data(Array.from({ length: stops }, (_, i) => i)).join("rect")
+    .attr("x", (i) => i * 4).attr("y", 0).attr("width", 4).attr("height", 10)
+    .attr("fill", (i) => choroplethColor(i / (stops - 1), options.colorScheme));
+  lg.selectAll("text").data([0, maxRegion]).join("text")
+    .attr("x", (_, i) => i * 96).attr("y", 22).attr("font-size", 10).attr("fill", options.theme === "light" ? "#1c1917" : "#e7e5e4")
+    .text((v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 }));
+
   if (heatmapOn) {
     gHeat.selectAll<SVGCircleElement, MapMark>("circle").each(function (d) {
       const p = effectiveDrawProgress(schedule, d.mark.id, t, persistence);
