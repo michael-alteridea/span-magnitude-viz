@@ -243,6 +243,7 @@ export function mountSpecial(
     persistence: spec.special.persistence,
     viewMode: isMap ? "map" : "chart",
     mapRegion: spec.special.mapRegion,
+    mapMark: spec.special.mapMark,
     mapLevel: spec.special.mapLevel,
     // Monde et Burundi : toujours le fond entier (Europe : cadrage sur les pays présents)
     mapFit: spec.special.mapRegion === "europe" ? "data" : "region",

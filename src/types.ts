@@ -198,6 +198,8 @@ export interface VizOptions {
    * matched by province name (`meta.place`, a place-like meta column, label or group).
    */
   mapRegion?: MapRegion;
+  /** "region" : colore la province entière. "point" : un rond dont la taille suit la magnitude. */
+  mapMark?: "point" | "region";
   /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */
   mapLevel?: MapLevel;
   /**

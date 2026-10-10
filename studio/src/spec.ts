@@ -291,6 +291,8 @@ export const specialSchema = z.object({
   geometry: z.enum(["arc", "bar", "point"]).default("arc"),
   persistence: z.enum(["keep", "ephemeral", "finale"]).default("keep"),
   mapRegion: z.enum(["fr-be", "europe", "world", "burundi"]).default("fr-be"),
+  /** Point (taille = magnitude) ou province entière colorée. */
+  mapMark: z.enum(["point", "region"]).default("point"),
   // Maille Europe : « country » uniquement ; les anciennes valeurs restent lisibles (affichées en pays).
   mapLevel: z.enum(["country", "nuts1", "nuts2", "nuts3"]).default("country"),
   tickers: z.boolean().default(true),

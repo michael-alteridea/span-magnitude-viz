@@ -722,8 +722,9 @@ export function paintMapLayers(ctx: MapPaintContext): void {
       .text((d) => d.properties.label!);
   }
 
-  // Provinces colorées selon le nombre : pas de ronds, pas de halo
-  if (false && options.mapHeatmap !== false) {
+  const regionMode = options.mapMark === "region";
+  // Province entière : pas de ronds. Point : ronds dont la taille suit la magnitude.
+  if (!regionMode && options.mapHeatmap !== false) {
     gHeat
       .attr("class", "smv-map-heat")
       .selectAll("circle")
@@ -737,7 +738,7 @@ export function paintMapLayers(ctx: MapPaintContext): void {
       .attr("data-id", (d) => d.mark.id);
   }
 
-  if (false) {
+  if (!regionMode) {
   const dots = gDots
     .attr("class", "smv-map-dots")
     .selectAll<SVGCircleElement, MapMark>("circle.smv-mark")
@@ -772,7 +773,7 @@ export function applyMapFrame(
   const zk = ctx.zoomK ?? 1;
   const persistence: PersistenceMode = options.persistence ?? "keep";
   const choroplethOn = options.mapChoropleth !== false;
-  const provincesOnly = true;
+  const provincesOnly = options.mapMark === "region";
   const heatmapOn = options.mapHeatmap !== false;
 
   // Per-region revealed magnitude for choropleth
