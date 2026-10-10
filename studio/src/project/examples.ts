@@ -15,6 +15,12 @@ export interface ExampleProject {
 
 export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
   {
+    id: "navigation-dimensions",
+    name: "Navigation par dimension",
+    description: "Province, secteur, année, type : un clic change l'axe et montre ce que chaque dimension fait",
+    file: "exemples/navigation-dimensions.datanime",
+  },
+  {
     id: "petrole-mazout",
     name: "Pétrole et mazout, en euros",
     description: "Brent (€/baril) et mazout belge (€/litre), 2019-2026 : deux axes, une scène prête",

@@ -681,6 +681,47 @@ export class SettingsPanel {
     );
   }
 
+
+  /** Navigation par dimension : une carte par colonne, le nombre de valeurs, trois exemples. Un clic change l'axe. */
+  private dimensionNav(spec: ChartSpec, cols: Column[]): HTMLElement {
+    const dims = cols.filter((c) => c.type !== "number" && c.cardinality > 1 && c.cardinality <= 40);
+    if (!dims.length) return h("div");
+    const ds = this.store.state.ds;
+    const sample = (name: string) => {
+      if (!ds) return [];
+      const seen: string[] = [];
+      for (const r of ds.rows) {
+        const v = r[name];
+        if (v == null || v === "") continue;
+        const s = String(v);
+        if (!seen.includes(s)) seen.push(s);
+        if (seen.length >= 3) break;
+      }
+      return seen;
+    };
+    const cards = dims.map((c) => {
+      const on = c.name === spec.encoding.x;
+      const ex = sample(c.name).join(" · ");
+      return h(
+        "button",
+        {
+          type: "button",
+          class: `dim-card${on ? " is-on" : ""}`,
+          "data-dim": c.name,
+          "aria-pressed": on ? "true" : "false",
+          onclick: () => this.store.set("encoding.x", c.name),
+        },
+        h("span", { class: "dim-name" }, c.name),
+        h("span", { class: "dim-meta" }, `${c.cardinality} valeurs`),
+        h("span", { class: "dim-ex" }, ex)
+      );
+    });
+    return this.kw(
+      h("div", { class: "field dim-nav", "data-testid": "dim-nav" }, h("span", { class: "field-label" }, "Naviguer par dimension"), h("div", { class: "dim-cards" }, ...cards)),
+      "dimension naviguer axe catégorie"
+    );
+  }
+
   /* ① Graphique, partie données (ancienne carte « Données ») : dataset, axes, mesure, filtre de vue, nombre d'éléments */
   private dataFields(spec: ChartSpec, cols: Column[]): { main: Kid[]; more: Kid[] } {
     const t = spec.type;
@@ -708,7 +749,8 @@ export class SettingsPanel {
       main.push(this.kw(h("div", { class: "field", "data-testid": "transform-chips" }, h("span", { class: "field-label" }, tr.calculate.length ? "Filtres et calculs actifs" : "Filtres actifs"), h("div", { class: "chips" }, ...chips)), "filtre filtrer calcul colonne calculée"));
     }
     if (!cols.length) main.push(h("p", { class: "muted" }, "Chargez des données (panneau de gauche) pour choisir les colonnes."));
-    else if (t === "drill") {
+    else main.push(this.dimensionNav(spec, cols));
+    if (t === "drill") {
       main.push(this.row("Date (axe du temps)", this.select("drill.date", this.colOpts(cols, (c) => c.type === "date"), true), "Date de création, de commande…"));
       main.push(this.row("Mesure", this.select("drill.measure", this.colOpts(cols, num), true), "Vide : nombre de lignes"));
       main.push(this.row("Répartir / détailler par", this.select("drill.by", this.colOpts(cols, (c) => c.type === "category" || (c.type === "text" && c.cardinality <= 60)), true), "Région → carte ; commercial, produit… → barres"));
