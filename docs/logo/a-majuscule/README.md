@@ -65,3 +65,13 @@ exact l'un de l'autre (même longueur 30 px à 112 px, même angle 36°, effilé
 - Statiques : `variantes/C15accents-<light|dark>-<jaune-or|jaune-vif>.svg` et `variantes/C15accents-caps-…` (+ `-transparent.svg`, `-800.png`).
 - Animations : `anim/logo-anim-accents(.svg|-dark.svg|-1080x1080-clair.mp4|-1920x1080-sombre.mp4|-800.gif)` et
   `anim/logo-anim-caps-accents(…)` — MP4/GIF de 5,6 s (dont 1,6 s de tenue). Scripts : `accents.py`, `anim_accents.py`, `anim/render.sh`.
+
+## Variante « minuscules » (Data + anime → DatAnime)
+
+« Data » puis « anime » (deux a minuscules) → les deux a glissent l'un vers l'autre en jaunissant (balayage net,
+1,55–2,02 s), se superposent (« Datanime » avec a jaune) → métamorphose a → A (2,22–2,62 s : le a grandit et s'efface,
+le A grandit de 0,8 à 1 et apparaît, même axe et même ligne de base ; jaune sur jaune, aucun ton terne ; « Dat » et
+« nime » passent de l'approche du a à celle du A) → pivot de l'œil en ▶ (2,72–3,62 s) → [accents 3,67–4,17 s].
+Durées : 3,75 s (sans accents) / 4,3 s (avec), puis tenue ; MP4/GIF 5,3 s / 5,9 s. Script : `anim_min.py`.
+Fichiers : `anim/logo-anim-minuscules(…)` et `anim/logo-anim-minuscules-accents(…)` (.svg, -dark.svg, -1080x1080-clair.mp4,
+-1920x1080-sombre.mp4, -800.gif). Image finale = C15 / C15accents au pixel près.
