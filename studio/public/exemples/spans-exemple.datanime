@@ -1,0 +1,316 @@
+{
+ "kind": "datanime-project",
+ "version": 1,
+ "exportedAt": "2026-10-10T13:48:05.298Z",
+ "withData": true,
+ "project": {
+  "id": "prj-spans-exemple",
+  "name": "Six chantiers, en spans",
+  "createdAt": "2026-10-10T13:48:05.298Z",
+  "updatedAt": "2026-10-10T13:48:05.298Z",
+  "source": {
+   "name": "Six chantiers (exemple inventé)",
+   "sampleId": null,
+   "rows": [
+    {
+     "Nom": "Pont de Nivelles",
+     "Début": "2019-03",
+     "Fin": "2021-11",
+     "Grandeur (millions €)": 42,
+     "Source": "Exemple inventé"
+    },
+    {
+     "Nom": "Ligne de bus 4",
+     "Début": "2020-01",
+     "Fin": "2020-09",
+     "Grandeur (millions €)": 8,
+     "Source": "Exemple inventé"
+    },
+    {
+     "Nom": "Rénovation école",
+     "Début": "2021-06",
+     "Fin": "2023-02",
+     "Grandeur (millions €)": 27,
+     "Source": "Exemple inventé"
+    },
+    {
+     "Nom": "Piste cyclable",
+     "Début": "2022-04",
+     "Fin": "2024-08",
+     "Grandeur (millions €)": 15,
+     "Source": "Exemple inventé"
+    },
+    {
+     "Nom": "Médiathèque",
+     "Début": "2023-01",
+     "Fin": "2025-06",
+     "Grandeur (millions €)": 33,
+     "Source": "Exemple inventé"
+    },
+    {
+     "Nom": "Éclairage communal",
+     "Début": "2024-02",
+     "Fin": "2024-12",
+     "Grandeur (millions €)": 6,
+     "Source": "Exemple inventé"
+    }
+   ],
+   "typeOverrides": {
+    "Nom": "category",
+    "Début": "date",
+    "Fin": "date",
+    "Grandeur (millions €)": "number",
+    "Source": "text"
+   },
+   "provenance": null,
+   "note": "Exemple inventé : chantiers et montants fictifs.",
+   "rowCount": 6,
+   "colCount": 5
+  },
+  "spec": {
+   "$schema": "reporting-4d-studio/spec-v1",
+   "version": 1,
+   "type": "film",
+   "encoding": {
+    "x": "Début",
+    "end": "Fin",
+    "y": [
+     "Grandeur (millions €)"
+    ],
+    "y2": null,
+    "series": "Nom",
+    "label": "Nom",
+    "time": "Début",
+    "aggregate": "sum",
+    "y2Aggregate": "mean"
+   },
+   "axes": {
+    "x": {
+     "grid": false
+    },
+    "y": {
+     "unit": "none",
+     "decimals": 0,
+     "title": ""
+    },
+    "y2": {
+     "grid": false
+    }
+   },
+   "dataset": {
+    "id": "D1",
+    "version": 1,
+    "name": "Six chantiers (exemple inventé)",
+    "filters": [],
+    "columns": []
+   },
+   "transform": {
+    "calculate": [],
+    "filters": []
+   },
+   "mode": {
+    "kind": "dynamic",
+    "buildIn": true,
+    "buildInMs": 1200,
+    "fourD": {
+     "enabled": true,
+     "mode": "cumulative",
+     "step": "auto",
+     "durationMs": 9000,
+     "loop": false,
+     "stamp": true,
+     "freezeScales": true
+    }
+   },
+   "special": {
+    "geometry": "bar",
+    "persistence": "keep",
+    "tickers": false
+   },
+   "style": {
+    "title": "Six chantiers, en spans",
+    "subtitle": "Chaque barre va du début à la fin. L’épaisseur est le coût, en millions. Exemple inventé.",
+    "source": "Exemple inventé",
+    "valueLabels": true,
+    "legend": "none",
+    "sort": "none",
+    "palette": "vives",
+    "paletteCustom": [],
+    "size": {
+     "preset": "custom",
+     "width": 1600,
+     "height": 800
+    },
+    "focus": {
+     "key": null,
+     "title": "",
+     "note": "",
+     "average": false
+    }
+   },
+   "story": {
+    "auto": false,
+    "edited": {
+     "title": true,
+     "subtitle": true,
+     "comments": true
+    },
+    "comments": [
+     "Pont de Nivelles : mars 2019 → nov. 2021, 42 M€. Ligne de bus 4 : janv. 2020 → sept. 2020, 8 M€.",
+     "Rénovation école : juin 2021 → févr. 2023, 27 M€. Piste cyclable : avr. 2022 → août 2024, 15 M€.",
+     "Médiathèque : janv. 2023 → juin 2025, 33 M€. Éclairage communal : févr. 2024 → déc. 2024, 6 M€."
+    ],
+    "showComments": true
+   },
+   "norme": {
+    "enabled": false,
+    "autoSwitch": false
+   }
+  },
+  "sequence": {
+   "title": "Six chantiers, en spans",
+   "snapshots": [
+    {
+     "id": "snap-spans-exemple-1",
+     "name": "Six chantiers, en spans",
+     "createdAt": "2026-10-10T13:48:05.298Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "film",
+      "encoding": {
+       "x": "Début",
+       "end": "Fin",
+       "y": [
+        "Grandeur (millions €)"
+       ],
+       "y2": null,
+       "series": "Nom",
+       "label": "Nom",
+       "time": "Début",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "unit": "none",
+        "decimals": 0,
+        "title": ""
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Six chantiers (exemple inventé)",
+       "filters": [],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 1200,
+       "fourD": {
+        "enabled": true,
+        "mode": "cumulative",
+        "step": "auto",
+        "durationMs": 9000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "special": {
+       "geometry": "bar",
+       "persistence": "keep",
+       "tickers": false
+      },
+      "style": {
+       "title": "Six chantiers, en spans",
+       "subtitle": "Chaque barre va du début à la fin. L’épaisseur est le coût, en millions. Exemple inventé.",
+       "source": "Exemple inventé",
+       "valueLabels": true,
+       "legend": "none",
+       "sort": "none",
+       "palette": "vives",
+       "paletteCustom": [],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Pont de Nivelles : mars 2019 → nov. 2021, 42 M€. Ligne de bus 4 : janv. 2020 → sept. 2020, 8 M€.",
+        "Rénovation école : juin 2021 → févr. 2023, 27 M€. Piste cyclable : avr. 2022 → août 2024, 15 M€.",
+        "Médiathèque : janv. 2023 → juin 2025, 33 M€. Éclairage communal : févr. 2024 → déc. 2024, 6 M€."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Six chantiers, en spans",
+     "subtitle": "Chaque barre va du début à la fin. L’épaisseur est le coût, en millions. Exemple inventé.",
+     "comments": [
+      "Pont de Nivelles : mars 2019 → nov. 2021, 42 M€. Ligne de bus 4 : janv. 2020 → sept. 2020, 8 M€.",
+      "Rénovation école : juin 2021 → févr. 2023, 27 M€. Piste cyclable : avr. 2022 → août 2024, 15 M€.",
+      "Médiathèque : janv. 2023 → juin 2025, 33 M€. Éclairage communal : févr. 2024 → déc. 2024, 6 M€."
+     ],
+     "source": "Exemple inventé",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Exemple inventé",
+     "generatedAt": "2026-10-10T13:48:05.298Z"
+    }
+   ],
+   "sameScale": false,
+   "film": {
+    "morph": false
+   }
+  },
+  "datasets": [
+   {
+    "id": "D1",
+    "name": "Six chantiers (exemple inventé)",
+    "version": 1,
+    "filters": [],
+    "columns": [],
+    "source": "Exemple inventé",
+    "color": "#3FA7C4",
+    "createdAt": "2026-10-10T13:48:05.298Z",
+    "updatedAt": "2026-10-10T13:48:05.298Z"
+   }
+  ],
+  "thumb": null
+ }
+}

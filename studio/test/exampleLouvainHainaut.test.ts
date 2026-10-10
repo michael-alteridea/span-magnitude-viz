@@ -20,7 +20,7 @@ const BASE = "https://alteridea-dashboard.web.app/reporting/?projet=louvain-hain
 
 describe("projet d'exemple louvain-hainaut", () => {
   it("listé après les exemples existants, adresse du fichier livré sous exemples/", () => {
-    expect(EXAMPLE_PROJECTS.map((e) => e.id)).toEqual(["petrole-mazout", "mazout-decroche", "jeunes-belgique", "louvain-hainaut"]);
+    expect(EXAMPLE_PROJECTS.map((e) => e.id).slice(0, 4)).toEqual(["petrole-mazout", "mazout-decroche", "jeunes-belgique", "louvain-hainaut"]);
     const e = exampleProjectById("louvain-hainaut")!;
     expect(e.name).toBe("HE Louvain en Hainaut : le V et le rebond");
     expect(exampleProjectById(" Louvain-Hainaut ")?.id).toBe("louvain-hainaut");

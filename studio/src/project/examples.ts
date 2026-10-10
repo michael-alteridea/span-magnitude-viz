@@ -38,6 +38,12 @@ export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
     description: "Étudiants finançables pondérés (domaine 19, 10 HE, RP2020-RP2026) et dossiers acceptés Charleroi / Mons : course 4D, 7 scènes",
     file: "exemples/louvain-hainaut.datanime",
   },
+  {
+    id: "spans-exemple",
+    name: "Six chantiers, en spans",
+    description: "Exemple inventé : six chantiers, chaque barre du début à la fin, épaisseur = coût (millions €), révélés dans le temps (film 4D)",
+    file: "exemples/spans-exemple.datanime",
+  },
 ];
 
 /** Projet d'exemple désigné par la valeur de `?projet=` (insensible à la casse et aux espaces), sinon null. */
