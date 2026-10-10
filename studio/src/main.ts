@@ -1755,7 +1755,7 @@ function openSimple(ds: Dataset, base: { filters: Dataset["columns"] extends nev
   openSimpleDataset(ds, (r) => {
     const list = store.state.datasets;
     const src = store.state.ds?.name ?? ds.name;
-    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns, groupBy: r.groupBy, aggs: r.aggs, base });
+    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns, groupBy: r.groupBy, aggs: r.aggs, formulas: r.formulas, base });
     store.setDatasets([...list, nd]);
     store.set("dataset", toRef(nd));
     if (r.axes.x) store.set("encoding.x", r.axes.x);

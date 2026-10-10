@@ -13,6 +13,14 @@ import type { DatasetRef, FilterSpec } from "../spec";
 import type { Dataset } from "./table";
 import { applyRecipe, passesFilter } from "./transform";
 
+export interface FormulaCol {
+  as: string;
+  op: "add" | "sub" | "mul" | "div" | "max" | "min";
+  a: string;
+  b: string;
+  bKind: "col" | "sum" | "max" | "mean";
+}
+
 export interface DatasetRecipe {
   /** « D1 », « D2 »… (unique pour une source). */
   id: string;
@@ -25,8 +33,10 @@ export interface DatasetRecipe {
   groupBy: string;
   /** Indicateurs agrégés (somme ou moyenne). */
   aggs: { field: string; op: "sum" | "mean" | "count" }[];
+  /** Colonnes calculées. */
+  formulas: FormulaCol[];
   /** Recette du dataset parent (sous-dataset d'un dataset). */
-  base: { filters: FilterSpec[]; columns: string[]; groupBy: string; aggs: { field: string; op: "sum" | "mean" | "count" }[] } | null;
+  base: { filters: FilterSpec[]; columns: string[]; groupBy: string; aggs: { field: string; op: "sum" | "mean" | "count" }[]; formulas?: FormulaCol[] } | null;
   /** Nom de la source dont il dérive. */
   source: string;
   /** Couleur du repère (point de couleur dans l'arbre et sur les scènes). */
@@ -60,7 +70,7 @@ export function datasetColor(id: string): string {
 
 /** Recette recopiée dans le spec du graphique. */
 export function toRef(d: DatasetRecipe): DatasetRef {
-  return { id: d.id, version: d.version, name: d.name, filters: structuredClone(d.filters), columns: [...d.columns], groupBy: d.groupBy ?? "", aggs: structuredClone(d.aggs ?? []), base: d.base ? structuredClone(d.base) : null };
+  return { id: d.id, version: d.version, name: d.name, filters: structuredClone(d.filters), columns: [...d.columns], groupBy: d.groupBy ?? "", aggs: structuredClone(d.aggs ?? []), formulas: structuredClone(d.formulas ?? []), base: d.base ? structuredClone(d.base) : null };
 }
 
 /** Le spec utilise-t-il une version antérieure du dataset (scène figée) ? */
@@ -69,29 +79,29 @@ export function isFrozenRef(ref: DatasetRef | null | undefined, d: DatasetRecipe
 }
 
 /** Nouveau dataset (version 1). */
-export function createDataset(list: readonly DatasetRecipe[], source: string, init: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; base?: DatasetRecipe["base"] }, now = new Date()): DatasetRecipe {
+export function createDataset(list: readonly DatasetRecipe[], source: string, init: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; formulas?: FormulaCol[]; base?: DatasetRecipe["base"] }, now = new Date()): DatasetRecipe {
   const id = nextDatasetId(list, source);
   const at = now.toISOString();
-  return { id, name: init.name.trim() || id, version: 1, filters: structuredClone(init.filters), columns: [...init.columns], groupBy: init.groupBy ?? "", aggs: structuredClone(init.aggs ?? []), base: init.base ? structuredClone(init.base) : null, source, color: datasetColor(id), createdAt: at, updatedAt: at };
+  return { id, name: init.name.trim() || id, version: 1, filters: structuredClone(init.filters), columns: [...init.columns], groupBy: init.groupBy ?? "", aggs: structuredClone(init.aggs ?? []), formulas: structuredClone(init.formulas ?? []), base: init.base ? structuredClone(init.base) : null, source, color: datasetColor(id), createdAt: at, updatedAt: at };
 }
 
 /** Mêmes filtres et mêmes colonnes ? */
 export function sameRecipe(a: Pick<DatasetRef, "filters" | "columns"> & { groupBy?: string; aggs?: { field: string; op: string }[] }, b: Pick<DatasetRef, "filters" | "columns"> & { groupBy?: string; aggs?: { field: string; op: string }[] }): boolean {
   const norm = (f: FilterSpec[]) => JSON.stringify(f.map((x) => [x.field, x.op, [...x.values].sort(), x.value]));
-  return norm(a.filters) === norm(b.filters) && JSON.stringify([...a.columns].sort()) === JSON.stringify([...b.columns].sort()) && (a.groupBy ?? "") === (b.groupBy ?? "") && JSON.stringify(a.aggs ?? []) === JSON.stringify(b.aggs ?? []);
+  return norm(a.filters) === norm(b.filters) && JSON.stringify([...a.columns].sort()) === JSON.stringify([...b.columns].sort()) && (a.groupBy ?? "") === (b.groupBy ?? "") && JSON.stringify(a.aggs ?? []) === JSON.stringify(b.aggs ?? []) && JSON.stringify(("formulas" in a ? a.formulas : []) ?? []) === JSON.stringify(("formulas" in b ? b.formulas : []) ?? []);
 }
 
 /** Modification d'un dataset : nouvelle version si la recette change (le nom seul ne change pas la version). */
-export function updateDataset(d: DatasetRecipe, next: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[] }, now = new Date()): DatasetRecipe {
+export function updateDataset(d: DatasetRecipe, next: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; formulas?: FormulaCol[] }, now = new Date()): DatasetRecipe {
   const changed = !sameRecipe(d, next);
-  return { ...d, name: next.name.trim() || d.name, filters: structuredClone(next.filters), columns: [...next.columns], groupBy: next.groupBy ?? d.groupBy ?? "", aggs: structuredClone(next.aggs ?? d.aggs ?? []), version: changed ? d.version + 1 : d.version, updatedAt: now.toISOString() };
+  return { ...d, name: next.name.trim() || d.name, filters: structuredClone(next.filters), columns: [...next.columns], groupBy: next.groupBy ?? d.groupBy ?? "", aggs: structuredClone(next.aggs ?? d.aggs ?? []), formulas: structuredClone(next.formulas ?? d.formulas ?? []), version: changed ? d.version + 1 : d.version, updatedAt: now.toISOString() };
 }
 
 /** Le catalogue connaît-il la recette d'un spec ? Sinon on l'adopte (projets, fichiers et scènes migrés). */
 export function adoptRef(list: readonly DatasetRecipe[], ref: DatasetRef | null | undefined, source: string | null | undefined, now = new Date()): DatasetRecipe[] | null {
   if (!ref || !source || findDataset(list, source, ref.id)) return null;
   const at = now.toISOString();
-  return [...list, { id: ref.id, name: ref.name || ref.id, version: ref.version, filters: structuredClone(ref.filters), columns: [...ref.columns], groupBy: ref.groupBy ?? "", aggs: structuredClone(ref.aggs ?? []), base: ref.base ? structuredClone(ref.base) : null, source, color: datasetColor(ref.id), createdAt: at, updatedAt: at }];
+  return [...list, { id: ref.id, name: ref.name || ref.id, version: ref.version, filters: structuredClone(ref.filters), columns: [...ref.columns], groupBy: ref.groupBy ?? "", aggs: structuredClone(ref.aggs ?? []), formulas: structuredClone(ref.formulas ?? []), base: ref.base ? structuredClone(ref.base) : null, source, color: datasetColor(ref.id), createdAt: at, updatedAt: at }];
 }
 
 /** Les filtres et colonnes de la recette existent-ils dans ces données ? */
@@ -243,6 +253,7 @@ export function parseDatasets(input: unknown): DatasetRecipe[] {
       columns: Array.isArray(o.columns) ? o.columns.filter((c): c is string => typeof c === "string") : [],
       groupBy: typeof o.groupBy === "string" ? o.groupBy : "",
       aggs: Array.isArray(o.aggs) ? o.aggs.filter((a) => a && typeof a === "object" && typeof (a as { field?: unknown }).field === "string").map((a) => ({ field: String((a as { field: string }).field), op: (a as { op?: string }).op === "mean" ? "mean" as const : (a as { op?: string }).op === "count" ? "count" as const : "sum" as const })) : [],
+      formulas: Array.isArray(o.formulas) ? o.formulas.filter((f) => f && typeof f === "object" && typeof (f as { as?: unknown }).as === "string").map((f) => { const x = f as { as: string; op?: string; a?: string; b?: string; bKind?: string }; return { as: String(x.as), op: (["add","sub","mul","div","max","min"].includes(x.op ?? "") ? x.op : "div") as FormulaCol["op"], a: String(x.a ?? ""), b: String(x.b ?? ""), bKind: (["col","sum","max","mean"].includes(x.bKind ?? "") ? x.bKind : "col") as FormulaCol["bKind"] }; }) : [],
       base: o.base && typeof o.base === "object" ? { filters: [], columns: [], groupBy: "", aggs: [], ...(o.base as object) } as DatasetRecipe["base"] : null,
       source: o.source,
       color: typeof o.color === "string" && /^#[0-9a-fA-F]{6}$/.test(o.color) ? o.color : datasetColor(o.id),

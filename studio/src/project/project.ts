@@ -147,7 +147,7 @@ export interface WorkingState {
 
 /** Signature globale : différente ⇔ modifications non enregistrées. */
 export function projectSig(w: WorkingState): string {
-  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig), ...(w.datasets?.length ? [w.datasets.map((d) => [d.id, d.name, d.version, d.filters, d.columns, d.source])] : [])]);
+  return JSON.stringify([sourceKey(w.source), stripProvenance(w.spec), w.sequence.title, !!w.sequence.sameScale, !!w.sequence.film?.morph, w.sequence.snapshots.map(sceneSig), ...(w.datasets?.length ? [w.datasets.map((d) => [d.id, d.name, d.version, d.filters, d.columns, d.formulas, d.source])] : [])]);
 }
 
 export type SceneState = "saved" | "modified" | "new";

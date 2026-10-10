@@ -366,6 +366,14 @@ export const datasetRefSchema = z.object({
   groupBy: z.string().max(120).default(""),
   /** Indicateurs agrégés sur le regroupement. */
   aggs: z.array(z.object({ field: z.string().min(1), op: z.enum(["sum", "mean", "count"]) })).max(30).default([]),
+  /** Colonnes calculées (formule de deux colonnes, ou colonne et total / max / moyenne). */
+  formulas: z.array(z.object({
+    as: z.string().min(1).max(80),
+    op: z.enum(["add", "sub", "mul", "div", "max", "min"]),
+    a: z.string().min(1),
+    b: z.string().default(""),
+    bKind: z.enum(["col", "sum", "max", "mean"]).default("col"),
+  })).max(20).default([]),
   /** Recette du dataset parent, qui peut elle-même en avoir un. */
   base: z.any().nullable().default(null),
 });

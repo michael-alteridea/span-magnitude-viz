@@ -209,7 +209,7 @@ const memo = new WeakMap<Dataset, Map<string, Dataset>>();
 const baseMemo = new WeakMap<Dataset, Map<string, Dataset>>();
 
 /** Recette d'un dataset dérivé (filtres permanents + colonnes gardées), sans version ni nom. */
-export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[] };
+export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; formulas?: { as: string; op: "add" | "sub" | "mul" | "div" | "max" | "min"; a: string; b: string; bKind: "col" | "sum" | "max" | "mean" }[] };
 
 /**
  * Applique la recette d'un dataset dérivé à la source : filtres permanents puis colonnes gardées.
@@ -236,6 +236,41 @@ function grouped(src: Dataset, idx: number[], groupBy: string, aggs: { field: st
   return buildDataset(name, raw);
 }
 
+
+function aggOf(rows: Row[], field: string): { sum: number; max: number; mean: number } {
+  const nums = rows.map((r) => r[field]).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  const sum = nums.reduce((s, n) => s + n, 0);
+  return { sum, max: nums.length ? Math.max(...nums) : 0, mean: nums.length ? sum / nums.length : 0 };
+}
+
+function applyFormulas(ds: Dataset, formulas: NonNullable<DatasetRecipeLike["formulas"]>): Dataset {
+  const usable = formulas.filter((f) => f.as && f.a && ds.columns.some((c) => c.name === f.a));
+  if (!usable.length) return ds;
+  const stats = new Map<string, { sum: number; max: number; mean: number }>();
+  const need = (name: string) => stats.get(name) ?? (stats.set(name, aggOf(ds.rows, name)), stats.get(name)!);
+  const right = (f: (typeof usable)[number], row: Row): number | null => {
+    if (f.bKind === "col") {
+      const v = row[f.b];
+      return typeof v === "number" && Number.isFinite(v) ? v : null;
+    }
+    const s = need(f.b || f.a);
+    return f.bKind === "max" ? s.max : f.bKind === "mean" ? s.mean : s.sum;
+  };
+  const rows = ds.rows.map((row) => {
+    const out = { ...row };
+    for (const f of usable) {
+      const x = row[f.a];
+      const y = right(f, row);
+      if (typeof x !== "number" || !Number.isFinite(x) || y == null) { out[f.as] = null; continue; }
+      const r = f.op === "add" ? x + y : f.op === "sub" ? x - y : f.op === "mul" ? x * y : f.op === "div" ? (y === 0 ? null : x / y) : f.op === "max" ? Math.max(x, y) : Math.min(x, y);
+      out[f.as] = r == null || !Number.isFinite(r) ? null : r;
+    }
+    return out;
+  });
+  const extra = usable.map((f) => ({ name: f.as, type: "number" as const, detected: "number" as const, cardinality: new Set(rows.map((r) => r[f.as]).filter((v) => v != null).map(String)).size, decimal: "," as const, idLike: false }));
+  return { ...ds, columns: [...ds.columns.filter((c) => !usable.some((f) => f.as === c.name)), ...extra], rows, raw: rows.map((r) => ({ ...r })) };
+}
+
 export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
   const filters = r.filters.filter((f) => src.columns.some((c) => c.name === f.field));
   const idx: number[] = [];
@@ -244,7 +279,8 @@ export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
   });
   const aggs = (r.aggs ?? []).filter((a) => a.op === "count" || src.columns.some((c) => c.name === a.field && c.type === "number"));
   if (r.groupBy && src.columns.some((c) => c.name === r.groupBy) && aggs.length) {
-    return grouped(src, idx, r.groupBy, aggs, r.name?.trim() || src.name);
+    const g = grouped(src, idx, r.groupBy, aggs, r.name?.trim() || src.name);
+    return r.formulas?.length ? applyFormulas(g, r.formulas) : g;
   }
   const keepCols = r.columns.length ? src.columns.filter((c) => r.columns.includes(c.name)) : src.columns;
   const names = keepCols.map((c) => c.name);
@@ -256,21 +292,22 @@ export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
   };
   const rows = idx.map((i) => pick(src.rows[i]!) as Row);
   const columns = keepCols.map((c) => ({ ...c, cardinality: new Set(rows.map((x) => x[c.name]).filter((v) => v != null && v !== "").map(String)).size }));
-  return { name: r.name?.trim() || src.name, columns, rows, raw: idx.map((i) => pick(src.raw[i] as Record<string, unknown>)), typeOverrides: src.typeOverrides };
+  const base = { name: r.name?.trim() || src.name, columns, rows, raw: idx.map((i) => pick(src.raw[i] as Record<string, unknown>)), typeOverrides: src.typeOverrides };
+  return r.formulas?.length ? applyFormulas(base, r.formulas) : base;
 }
 
 /** Données du dataset dérivé d'un spec (la source si aucun), mémorisées par source + recette. */
 export function datasetBase<T extends Dataset | null>(spec: { dataset?: DatasetRef | null }, ds: T): T {
   const ref = spec.dataset;
-  if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name && !ref.base && !ref.groupBy)) return ds;
-  const key = JSON.stringify([ref.name, ref.filters, ref.columns, ref.groupBy ?? "", ref.aggs ?? [], ref.base ?? null]);
+  if (!ds || !ref || (!ref.filters.length && !ref.columns.length && !ref.name && !ref.base && !ref.groupBy && !(ref.formulas?.length))) return ds;
+  const key = JSON.stringify([ref.name, ref.filters, ref.columns, ref.groupBy ?? "", ref.aggs ?? [], ref.formulas ?? [], ref.base ?? null]);
   let m = baseMemo.get(ds);
   if (!m) baseMemo.set(ds, (m = new Map()));
   let out = m.get(key);
   if (!out) {
-    const chain = (src: Dataset, r: { filters?: FilterSpec[]; columns?: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; base?: unknown; name?: string }): Dataset => {
+    const chain = (src: Dataset, r: { filters?: FilterSpec[]; columns?: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[]; formulas?: DatasetRecipeLike["formulas"]; base?: unknown; name?: string }): Dataset => {
       const parent = r.base && typeof r.base === "object" ? chain(src, r.base as typeof r) : src;
-      return applyRecipe(parent, { name: r.name, filters: r.filters ?? [], columns: r.columns ?? [], groupBy: r.groupBy, aggs: r.aggs });
+      return applyRecipe(parent, { name: r.name, filters: r.filters ?? [], columns: r.columns ?? [], groupBy: r.groupBy, aggs: r.aggs, formulas: r.formulas });
     };
     out = chain(ds, ref);
     if (m.size > 40) m.clear();
