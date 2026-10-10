@@ -3,6 +3,7 @@
  * lignes, aires (empilées ou non), nuage de points ; axe Y secondaire indépendant.
  */
 import { elemKey, labelLook, markColor, ownColor, selAttrs, seriesKey } from "./overrides";
+import { linreg, pearson } from "../story/stats";
 import {
   area as d3area,
   axisBottom,
@@ -893,6 +894,22 @@ export function drawScatter(root: G, rect: PlotRect, ctx: DrawCtx, model: PointM
       if (fk != null) boxes.push({ x: cx + r + 4 * s, y: cy - 8 * s, w: measure(p.label, 11.5 * s, font), h: 16 * s });
     }
   });
+  if (model.xKind === "linear" && pts.length >= 3) {
+    const pairs = pts.filter((p) => typeof p.x === "number" && Number.isFinite(p.x) && Number.isFinite(p.y) && !(Y.log && p.y <= 0));
+    if (pairs.length >= 3) {
+      const xs = pairs.map((p) => p.x as number);
+      const ys2 = pairs.map((p) => p.y);
+      const r = pearson(xs, ys2);
+      const reg = linreg(xs, ys2);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      const y0 = reg.intercept + reg.slope * x0;
+      const y1 = reg.intercept + reg.slope * x1;
+      g.append("line").attr("x1", xpos({ x: x0 })).attr("y1", Y.scale(y0) as number).attr("x2", xpos({ x: x1 })).attr("y2", Y.scale(y1) as number).attr("stroke", theme.muted).attr("stroke-width", 1.5 * s).attr("stroke-dasharray", `${5 * s} ${4 * s}`).attr("pointer-events", "none");
+      const pct = Math.round(Math.abs(r) * 100);
+      const sens = r >= 0 ? "ensemble" : "en sens inverse";
+      g.append("text").attr("x", 8 * s).attr("y", 16 * s).attr("fill", theme.text).attr("font-size", 13 * s).attr("font-weight", 700).attr("font-family", font).text(`Corrélation ${pct} % · les deux vont ${sens}`);
+    }
+  }
   const fpt = fp as { cx: number; cy: number; r: number; color: string; f: number } | null;
   if (fk != null && fpt && ft > 0) {
     const p = pts[fk]!;
