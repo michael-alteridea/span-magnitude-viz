@@ -805,6 +805,9 @@ export function applyMapFrame(
     }
   }
 
+  const scaleVals = [...layout.regionTotals.values()].filter((v) => v > 0);
+  const scaleMin = scaleVals.length ? Math.min(...scaleVals) : 0;
+  const scaleSpan = Math.max(1e-9, maxRegion - scaleMin);
   const sequence = options.mapReveal === "sequence" && provincesOnly;
   const order = sequence
     ? [...layout.regionTotals.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([id]) => id)
@@ -821,10 +824,10 @@ export function applyMapFrame(
         if (i < 0) return base;
         const local = (t - i * slot) / slot;
         if (local <= 0) return base;
-        const color = choroplethColor(v / maxRegion, options.mapScale ?? "froid-chaud");
+        const color = choroplethColor((v - scaleMin) / scaleSpan, options.mapScale ?? "froid-chaud");
         return local >= 1 ? color : color;
       }
-      return choroplethColor(v / maxRegion, options.mapScale ?? "froid-chaud");
+      return choroplethColor((v - scaleMin) / scaleSpan, options.mapScale ?? "froid-chaud");
     })
     .style("fill-opacity", function (d) {
       const v = (provincesOnly ? layout.regionTotals : revealed).get(d.properties.id) ?? 0;
@@ -839,19 +842,27 @@ export function applyMapFrame(
     });
 
   const scale = options.mapScale ?? "froid-chaud";
-  const legend = gBasemap.selectAll<SVGGElement, number>("g.smv-map-choropleth-legend").data(choroplethOn && intensity > 0.2 && maxRegion > 0 ? [1] : []);
+  const vals = [...layout.regionTotals.values()].filter((v) => v > 0);
+  const vmin = scaleMin;
+  const legend = gBasemap.selectAll<SVGGElement, number>("g.smv-map-choropleth-legend").data(choroplethOn && provincesOnly && maxRegion > 0 ? [1] : []);
   legend.exit().remove();
   const lg = legend.enter().append("g").attr("class", "smv-map-choropleth-legend").merge(legend);
-  lg.attr("transform", `translate(12,${layout.height - 44})`);
-  const stops = 40;
-  lg.selectAll("rect").data(Array.from({ length: stops }, (_, i) => i)).join("rect")
-    .attr("x", (i) => i * 3).attr("y", 0).attr("width", 3).attr("height", 12)
+  const barW = Math.min(220, layout.innerWidth - 24);
+  lg.attr("transform", `translate(12,${layout.height - 58})`);
+  const stops = 48;
+  lg.selectAll("rect.ramp").data(Array.from({ length: stops }, (_, i) => i)).join("rect").attr("class", "ramp")
+    .attr("x", (i) => (i * barW) / stops).attr("y", 16).attr("width", barW / stops + 0.5).attr("height", 14)
     .attr("fill", (i) => choroplethColor(i / (stops - 1), scale));
   const fmt = (v: number) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-  const ink = options.theme === "light" ? "#1c1917" : "#e7e5e4";
-  lg.selectAll("text").data([0, maxRegion / 2, maxRegion]).join("text")
-    .attr("x", (_, i) => i * 60).attr("y", 26).attr("font-size", 10).attr("fill", ink).attr("text-anchor", (_, i) => (i === 2 ? "end" : "start"))
-    .text((v) => fmt(v));
+  const ink = options.theme === "light" ? "#1c1917" : "#f4f4f5";
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => ({ p, v: vmin + (maxRegion - vmin) * p }));
+  lg.selectAll("text.tick").data(ticks).join("text").attr("class", "tick")
+    .attr("x", (d) => d.p * barW).attr("y", 44).attr("font-size", 11).attr("font-weight", 600).attr("fill", ink)
+    .attr("text-anchor", (d) => (d.p === 0 ? "start" : d.p === 1 ? "end" : "middle"))
+    .text((d) => fmt(d.v));
+  lg.selectAll("text.caption").data([options.magnitudeUnit ? `Échelle · ${options.magnitudeUnit}` : "Échelle"]).join("text").attr("class", "caption")
+    .attr("x", 0).attr("y", 10).attr("font-size", 11).attr("font-weight", 700).attr("fill", ink)
+    .text((s) => s);
 
   if (heatmapOn) {
     gHeat.selectAll<SVGCircleElement, MapMark>("circle").each(function (d) {
