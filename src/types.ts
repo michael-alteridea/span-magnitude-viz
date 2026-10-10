@@ -204,6 +204,9 @@ export interface VizOptions {
   mapScale?: "rouge" | "bleu" | "vert" | "froid-chaud" | "blanc-noir" | "petrole";
   /** "sequence" : les provinces se colorient l'une après l'autre. */
   mapReveal?: "all" | "sequence";
+  /** Bornes choisies de l'échelle (sinon min/max des données). */
+  mapScaleMin?: number | null;
+  mapScaleMax?: number | null;
   /** Europe only: basemap level. Only `"country"` is drawn; legacy `"nuts*"` values are read as `"country"`. */
   mapLevel?: MapLevel;
   /**

@@ -989,6 +989,14 @@ export class SettingsPanel {
     if (t === "map") main.push(this.kw(this.line("Affichage", this.segmented("special.mapMark", [["point", "Point"], ["region", "Province entière"]])), "point rond province colorier région"));
     if (t === "map") main.push(this.kw(this.line("Dégradé", this.segmented("special.mapScale", [["froid-chaud", "Bleu → rouge"], ["rouge", "Rouge"], ["bleu", "Bleu"], ["vert", "Vert"], ["blanc-noir", "Blanc → noir"], ["petrole", "Pétrole"]], { cls: "segmented--grid2" })), "dégradé couleur échelle chaud froid"));
     if (t === "map") main.push(this.kw(this.line("Apparition", this.segmented("special.mapReveal", [["all", "Toutes ensemble"], ["sequence", "Une par une"]])), "apparition séquence une par une temps"));
+    if (t === "map") {
+      const minIn = h("input", { type: "number", step: "any", placeholder: "auto", value: spec.special.mapScaleMin ?? "", style: "width:90px" }) as HTMLInputElement;
+      const maxIn = h("input", { type: "number", step: "any", placeholder: "auto", value: spec.special.mapScaleMax ?? "", style: "width:90px" }) as HTMLInputElement;
+      const read = (el: HTMLInputElement, path: string) => { const n = el.value.trim() === "" ? null : Number(el.value); this.store.set(path, n != null && Number.isFinite(n) ? n : null); };
+      minIn.addEventListener("change", () => read(minIn, "special.mapScaleMin"));
+      maxIn.addEventListener("change", () => read(maxIn, "special.mapScaleMax"));
+      main.push(this.kw(h("div", { class: "field" }, h("span", { class: "field-label" }, "Minimum et maximum de l'échelle"), h("div", { style: "display:flex;gap:8px;align-items:center" }, minIn, h("span", null, "→"), maxIn)), "échelle minimum maximum bornes comparer"));
+    }
     if (isSpecial(t)) {
       main.push(this.row("Persistance", this.select("special.persistence", [["keep", "Garder (keep)"], ["ephemeral", "Éphémère"], ["finale", "Final en nuage"]])));
       main.push(this.check("special.tickers", "Compteurs (nombre, somme)"));

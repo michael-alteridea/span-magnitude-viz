@@ -806,8 +806,11 @@ export function applyMapFrame(
   }
 
   const scaleVals = [...layout.regionTotals.values()].filter((v) => v > 0);
-  const scaleMin = scaleVals.length ? Math.min(...scaleVals) : 0;
-  const scaleSpan = Math.max(1e-9, maxRegion - scaleMin);
+  const dataMin = scaleVals.length ? Math.min(...scaleVals) : 0;
+  const dataMax = maxRegion;
+  const scaleMin = options.mapScaleMin != null && Number.isFinite(options.mapScaleMin) ? options.mapScaleMin : dataMin;
+  const scaleMax = options.mapScaleMax != null && Number.isFinite(options.mapScaleMax) ? options.mapScaleMax : dataMax;
+  const scaleSpan = Math.max(1e-9, scaleMax - scaleMin);
   const sequence = options.mapReveal === "sequence" && provincesOnly;
   const order = sequence
     ? [...layout.regionTotals.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([id]) => id)
@@ -855,7 +858,7 @@ export function applyMapFrame(
     .attr("fill", (i) => choroplethColor(i / (stops - 1), scale));
   const fmt = (v: number) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
   const ink = options.theme === "light" ? "#1c1917" : "#f4f4f5";
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => ({ p, v: vmin + (maxRegion - vmin) * p }));
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => ({ p, v: scaleMin + (scaleMax - scaleMin) * p }));
   lg.selectAll("text.tick").data(ticks).join("text").attr("class", "tick")
     .attr("x", (d) => d.p * barW).attr("y", 44).attr("font-size", 11).attr("font-weight", 600).attr("fill", ink)
     .attr("text-anchor", (d) => (d.p === 0 ? "start" : d.p === 1 ? "end" : "middle"))

@@ -2227,7 +2227,12 @@ function applyUi() {
   workspace.classList.toggle("right-collapsed", rightCollapsed);
 }
 
+let autoTimer = 0;
 store.subscribe((kinds) => {
+  if (kinds.has("spec") || kinds.has("story") || kinds.has("data")) {
+    window.clearTimeout(autoTimer);
+    autoTimer = window.setTimeout(() => { void projects.save({ quiet: true }).catch(() => {}); }, 1500);
+  }
   applyUi();
   storyStrip.update();
   if (kinds.has("story")) syncSceneMode();
