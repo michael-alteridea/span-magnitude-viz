@@ -85,17 +85,25 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
 
   const groupSel = h("select", { style: "padding:8px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "" }, "Pas de regroupement")) as HTMLSelectElement;
   for (const c of ds.columns.filter((c) => c.type === "category" || c.type === "date")) groupSel.append(h("option", { value: c.name }, c.name));
-  const aggHost = h("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:8px" });
+  const aggHost = h("div", { style: "display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:220px;overflow:auto" });
   const aggOps = new Map<string, "sum" | "mean" | "">();
+  const aggRows: { name: string; cb: HTMLInputElement; sel: HTMLSelectElement }[] = [];
   for (const c of ds.columns.filter((c) => c.type === "number" && !c.idLike)) {
     aggOps.set(c.name, c.name === roles.y ? "sum" : "");
-    const s = h("select", { style: "padding:6px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "" }, "ignorer"), h("option", { value: "sum" }, "somme"), h("option", { value: "mean" }, "moyenne")) as HTMLSelectElement;
+    const cb = h("input", { type: "checkbox" }) as HTMLInputElement;
+    const s = h("select", { style: "padding:6px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46;min-width:110px" }, h("option", { value: "" }, "ignorer"), h("option", { value: "sum" }, "somme"), h("option", { value: "mean" }, "moyenne")) as HTMLSelectElement;
     s.value = aggOps.get(c.name)!;
     s.addEventListener("change", () => aggOps.set(c.name, s.value as "sum" | "mean" | ""));
-    aggHost.append(h("label", { style: "display:flex;gap:8px;align-items:center" }, c.name, s));
+    aggRows.push({ name: c.name, cb, sel: s });
+    aggHost.append(h("div", { style: "display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0" }, h("label", { style: "display:flex;gap:8px;align-items:center" }, cb, c.name), s));
   }
+  const bulk = h("select", { style: "padding:6px;border-radius:8px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, h("option", { value: "mean" }, "moyenne"), h("option", { value: "sum" }, "somme"), h("option", { value: "" }, "ignorer")) as HTMLSelectElement;
+  const applyBulk = () => {
+    const op = bulk.value as "sum" | "mean" | "";
+    for (const r of aggRows) if (r.cb.checked) { r.sel.value = op; aggOps.set(r.name, op); }
+  };
   const countCb = h("input", { type: "checkbox" }) as HTMLInputElement;
-  const groupBox = h("div", { style: "margin-bottom:14px" }, h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Regrouper"), groupSel, h("label", { style: "display:flex;gap:8px;align-items:center;margin-top:8px" }, countCb, "Compter les lignes"), aggHost);
+  const groupBox = h("div", { style: "margin-bottom:14px" }, h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Regrouper"), groupSel, h("label", { style: "display:flex;gap:8px;align-items:center;margin-top:8px" }, countCb, "Compter les lignes"), h("div", { style: "display:flex;gap:8px;align-items:center;margin-top:8px" }, h("span", { style: "color:#a1a1aa" }, "Cochez, puis :"), bulk, h("button", { type: "button", style: "padding:6px 10px;border-radius:8px;border:1px solid #3f3f46;background:transparent;color:#fff;cursor:pointer", onclick: applyBulk }, "Appliquer aux cochés")), aggHost);
   const name = h("input", { value: ds.name, style: "width:100%;padding:10px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#fff" }) as HTMLInputElement;
   refresh();
 
