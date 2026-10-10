@@ -3,6 +3,7 @@
  * Trois zones : Données | Aperçu | Réglages. Tout le rendu est en SVG (D3).
  */
 import { armDrillZoom, setZoomEnabled, setZoomSlowdown } from "./ui/drillZoom";
+import { openSimpleDataset } from "./ui/simpleDataset";
 import { ensureAccess } from "./ui/gate";
 import "./styles.css";
 import { Store } from "./state";
@@ -277,6 +278,7 @@ async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<vo
   rememberDataset({ kind: origin?.kind === "file" ? "file" : "paste", fileName: origin?.fileName || undefined, hash: origin?.hash ?? null });
   const types = ds.columns.map((c) => c.type);
   toast(`${ds.rows.length} lignes importées · ${types.filter((t) => t === "number").length} mesure(s), ${types.filter((t) => t === "date").length} date(s)`, "ok");
+  openSimple(ds);
 }
 
 /* ------------------------------------------------------------------ import intelligent (fenêtre « Mise en forme ») */
@@ -338,6 +340,10 @@ const TEXT_EXT = /\.(csv|tsv|txt)$/i;
 
 /** Fichier déposé / choisi : empreinte des octets bruts du fichier. */
 async function importFromFile(file: File, sheet?: string): Promise<void> {
+  if (/\.(png|jpe?g|webp|gif|heic)$/i.test(file.name) || file.type.startsWith("image/")) {
+    toast("Je ne lis pas encore une photo de tableau. Envoyez un CSV ou un Excel.", "info", 5000);
+    return;
+  }
   const buf = await file.arrayBuffer();
   const hashP = safeHash(async () => hashFileBytes(buf));
   const base = file.name.replace(/\.[^.]+$/, "");
@@ -409,6 +415,7 @@ const actions = {
     scenarioDialog.open();
   },
   editDataset(id: string | null) {
+    if (id === null && store.state.ds) return openSimple(store.state.ds);
     openDatasetEditor(id);
   },
   openData() {
@@ -1680,6 +1687,21 @@ const datasetEditor = new DatasetEditor(store, {
   close: () => dataWindow.close(),
 });
 dataWindow.attachEditor(datasetEditor.root, () => !!store.state.ds, (id) => openDatasetEditor(id));
+
+
+function openSimple(ds: Dataset): void {
+  openSimpleDataset(ds, (r) => {
+    const list = store.state.datasets;
+    const src = ds.name;
+    const nd = createDataset(list, src, { name: r.name, filters: r.filters, columns: r.columns });
+    store.setDatasets([...list, nd]);
+    store.set("dataset", toRef(nd));
+    if (r.axes.x) store.set("encoding.x", r.axes.x);
+    if (r.axes.y.length) store.set("encoding.y", r.axes.y);
+    store.set("encoding.series", r.axes.series);
+    toast(`Dataset « ${nd.name} » créé.`, "ok", 2500);
+  }, () => openDatasetEditor(null));
+}
 
 function openDatasetEditor(id: string | null): void {
   if (!store.state.ds) {
