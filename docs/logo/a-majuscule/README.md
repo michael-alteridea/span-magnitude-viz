@@ -21,3 +21,14 @@ Planche : `planche.html` → `planche.png` (Chrome headless, 2×).
 Regénérer : `python3 -m venv .venv && .venv/bin/pip install fonttools uharfbuzz cairosvg pillow`,
 puis `.venv/bin/python build.py && .venv/bin/python planche.py && node render.js`
 (polices Inter statiques : `/workspace/tell4d-logo/src/Inter-700.ttf`, `Inter-800.ttf`).
+
+## Variantes C (B rejetées) — A droit, œil en ▶
+
+A capital normal en jaune (comme A1) ; seul l'œil du A devient un ▶ évidé. Script : `build_c.py` (shapely).
+Planche : `planche-c.html` → `planche-c.png` (lignes A1 + C1..C3) — `.venv/bin/python planche.py A1,C1,C2,C3 planche-c.html "…"` puis `node render.js planche-c.html planche-c.png`.
+
+| Code | Description | ▶ (haut. à 112 px / favicon 32 px) |
+|---|---|---|
+| C1 | œil remplacé par un ▶ de taille voisine, barre conservée | 13,7 px / 3,4 px |
+| C2 | ▶ plus grand, mord sur la barre, jambages un peu affinés | 25,2 px / 6,2 px |
+| C3 | barre supprimée, ▶ franc au milieu du A sur un pont plein | 29,5 px / 7,2 px |

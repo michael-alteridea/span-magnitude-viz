@@ -66,6 +66,48 @@
      24.2
     ]
    }
+  },
+  "C1": {
+   "description": "A capital droit en jaune ; l’œil est remplacé par un ▶ évidé de taille voisine, barre conservée.",
+   "fichiers": {
+    "C1-light-jaune-or": "C1-light-jaune-or.svg",
+    "C1-dark-jaune-or": "C1-dark-jaune-or.svg",
+    "C1-light-jaune-vif": "C1-light-jaune-vif.svg",
+    "C1-dark-jaune-vif": "C1-dark-jaune-vif.svg"
+   },
+   "info": {
+    "trou_hauteur_unites": 250,
+    "trou_px_favicon": 3.4,
+    "trou_px_mot_112": 13.7
+   }
+  },
+  "C2": {
+   "description": "A droit ; ▶ évidé plus grand, lisible à 32 px : il mord sur la barre et affine un peu les jambages.",
+   "fichiers": {
+    "C2-light-jaune-or": "C2-light-jaune-or.svg",
+    "C2-dark-jaune-or": "C2-dark-jaune-or.svg",
+    "C2-light-jaune-vif": "C2-light-jaune-vif.svg",
+    "C2-dark-jaune-vif": "C2-dark-jaune-vif.svg"
+   },
+   "info": {
+    "trou_hauteur_unites": 460,
+    "trou_px_favicon": 6.2,
+    "trou_px_mot_112": 25.2
+   }
+  },
+  "C3": {
+   "description": "A droit sans barre : l’œil devient un ▶ franc au milieu du A, posé sur un pont plein.",
+   "fichiers": {
+    "C3-light-jaune-or": "C3-light-jaune-or.svg",
+    "C3-dark-jaune-or": "C3-dark-jaune-or.svg",
+    "C3-light-jaune-vif": "C3-light-jaune-vif.svg",
+    "C3-dark-jaune-vif": "C3-dark-jaune-vif.svg"
+   },
+   "info": {
+    "trou_hauteur_unites": 540,
+    "trou_px_favicon": 7.2,
+    "trou_px_mot_112": 29.5
+   }
   }
  }
 }
