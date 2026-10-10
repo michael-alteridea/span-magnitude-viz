@@ -174,7 +174,7 @@ export class MappingWindow {
             { class: "mw-right" },
             h("div", { class: "mw-prev-wrap" }, h("span", { class: "mw-label" }, "Aperçu en direct"), this.elPreview, this.elPrevMsg),
             this.elRoles,
-            h("div", { class: "mw-actions" }, h("button", { class: "btn", "data-testid": "mw-cancel", onclick: () => this.close() }, "Annuler"), this.applyBtn)
+            h("div", { class: "mw-actions" }, h("button", { class: "btn", "data-testid": "mw-cancel", onclick: () => this.close() }, "Annuler"), h("button", { class: "btn", "data-testid": "mw-raw", title: "Charge toutes les lignes et toutes les colonnes de l'onglet, sans mise en forme", onclick: () => this.applyRaw() }, "Tableau entier"), this.applyBtn)
           )
         ),
         this.menu
@@ -756,6 +756,28 @@ export class MappingWindow {
   }
 
   /* ------------------------------------------------------------ appliquer */
+
+  applyRaw(): void {
+    const name = this.sheet && this.src?.workbook ? this.sheet : this.src?.name ?? "Tableau";
+    const m = this.matrices.get(name) ?? this.matrices.get(this.src?.name ?? "");
+    if (!m || m.length < 2) {
+      toast("Pas de tableau à charger.", "info");
+      return;
+    }
+    const headers = m[0]!.map((c, i) => String(c ?? "").trim() || `Colonne ${i + 1}`);
+    const rows = m.slice(1).filter((r) => r.some((c) => c != null && String(c).trim() !== "")).map((r) => {
+      const o: Record<string, string | number | null> = {};
+      headers.forEach((h, i) => { o[h] = (r[i] ?? null) as string | number | null; });
+      return o;
+    });
+    if (!rows.length) {
+      toast("Aucune ligne exploitable.", "info");
+      return;
+    }
+    const spec = this.baseSpec();
+    this.onApply({ name, rows, spec, pivot: { rows, x: headers[0]!, y: [], y2: null, series: null, facet: null, facetValues: [], xIsDate: false, xGrain: "none", unit: "none", empty: null }, state: this.st!, sheet: this.src?.workbook ? this.sheet : null, note: `Onglet « ${name} » · tableau entier · ${rows.length} lignes` });
+    this.close();
+  }
 
   apply(): void {
     const lt = this.lt;
