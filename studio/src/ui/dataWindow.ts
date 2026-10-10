@@ -32,6 +32,9 @@ export interface DataWindowActions {
   reelSample(id: string): void;
   scenarios?(): void;
   reopenRecent(e: RecentEntry): void;
+  /** Projets d'exemple intégrés (jeu de données + scènes), ouverts sans import. */
+  exampleProjects?(): readonly { id: string; name: string; description: string }[];
+  openExampleProject?(id: string): void;
 }
 
 const TAB_META: Record<DataTab, { label: string; icon: string; hint: string }> = {
@@ -174,7 +177,19 @@ export class DataWindow {
           ? h("button", { type: "button", class: "btn btn-scenario btn-scenario-sm", "data-testid": "scenario-open", title: "Scénarios de réunion (Directeur commercial…) : exploration guidée, snapshots, film et PowerPoint", onclick: done(() => actions.scenarios?.()) }, h("span", { html: svgIcon(ICONS.clapper, 14) }), "Scénarios")
           : null
       ),
-      h("div", { class: "dw-grid" }, ...SAMPLES.filter((s) => !s.publicData).map(sampleCard))
+      h("div", { class: "dw-grid" }, ...SAMPLES.filter((s) => !s.publicData).map(sampleCard)),
+      ...(() => {
+        const list = actions.exampleProjects?.() ?? [];
+        if (!list.length || !actions.openExampleProject) return [];
+        return [
+          h("p", { class: "dw-intro", style: "margin-top:14px" }, "Projets d'exemple : données et scènes prêtes, ouverts directement (aussi par le lien ?projet=<nom>)."),
+          h(
+            "div",
+            { class: "dw-grid", "data-testid": "example-projects" },
+            ...list.map((e) => h("button", { type: "button", class: "sample dw-project", "data-project": e.id, "data-testid": `example-project-${e.id}`, onclick: done(() => actions.openExampleProject?.(e.id)) }, h("strong", null, e.name), h("small", null, e.description)))
+          ),
+        ];
+      })()
     );
 
     /* 5. Données publiques */

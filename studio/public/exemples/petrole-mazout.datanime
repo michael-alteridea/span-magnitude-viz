@@ -1,0 +1,252 @@
+{
+ "kind": "datanime-project",
+ "version": 1,
+ "exportedAt": "2026-10-10T05:20:02.088Z",
+ "withData": true,
+ "project": {
+  "id": "prj-petrole-mazout",
+  "name": "Pétrole et mazout, en euros",
+  "createdAt": "2026-10-10T05:20:02.088Z",
+  "updatedAt": "2026-10-10T05:20:02.088Z",
+  "source": {
+   "name": "Pétrole et mazout",
+   "sampleId": null,
+   "rows": [
+    {
+     "Année": "2019",
+     "Mazout Belgique (€/litre)": 0.7,
+     "Brent (€/baril)": 57.5,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2020",
+     "Mazout Belgique (€/litre)": 0.49,
+     "Brent (€/baril)": 36.6,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2021",
+     "Mazout Belgique (€/litre)": 0.68,
+     "Brent (€/baril)": 59.9,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2022",
+     "Mazout Belgique (€/litre)": 1.23,
+     "Brent (€/baril)": 95.7,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2023",
+     "Mazout Belgique (€/litre)": 1,
+     "Brent (€/baril)": 76.3,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2024",
+     "Mazout Belgique (€/litre)": 0.93,
+     "Brent (€/baril)": 74.4,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2025",
+     "Mazout Belgique (€/litre)": 0.84,
+     "Brent (€/baril)": 61.3,
+     "Note": "",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    },
+    {
+     "Année": "2026",
+     "Mazout Belgique (€/litre)": 1.22,
+     "Brent (€/baril)": null,
+     "Note": "2026 jusqu'ici, incomplet (mazout) ; pas de valeur Brent",
+     "Source": "Brent : Insee, série 010002078, relevé au 9 oct. 2026 ; Mazout : SPF Économie via CallMePower, page mise à jour le 6 oct. 2026 (prix officiel max., moins de 2 000 L, moyenne annuelle)"
+    }
+   ],
+   "typeOverrides": {
+    "Année": "category",
+    "Mazout Belgique (€/litre)": "number",
+    "Brent (€/baril)": "number",
+    "Note": "text",
+    "Source": "text"
+   },
+   "provenance": null,
+   "note": "Moyennes annuelles. Brent 2019-2025 (Insee). Mazout 2019-2026, 2026 incomplet (SPF Économie via CallMePower).",
+   "rowCount": 8,
+   "colCount": 5
+  },
+  "spec": {
+   "$schema": "reporting-4d-studio/spec-v1",
+   "version": 1,
+   "type": "line",
+   "encoding": {
+    "x": "Année",
+    "y": [
+     "Mazout Belgique (€/litre)"
+    ],
+    "y2": "Brent (€/baril)",
+    "aggregate": "sum",
+    "y2Aggregate": "mean"
+   },
+   "axes": {
+    "x": {
+     "grid": false
+    },
+    "y": {
+     "decimals": 2,
+     "title": "Mazout, € par litre",
+     "min": 0,
+     "max": 2
+    },
+    "y2": {
+     "decimals": 0,
+     "title": "Brent, € par baril",
+     "min": 0,
+     "max": 100,
+     "grid": false
+    }
+   },
+   "style": {
+    "title": "Pétrole et mazout, en euros",
+    "subtitle": "Brent en € par baril. Mazout belge, prix officiel, € par litre, moins de 2 000 L. 2026 incomplet.",
+    "source": "Sources : Insee, SPF Éco",
+    "valueLabels": true,
+    "legend": "top",
+    "curve": "linear",
+    "palette": "custom",
+    "paletteCustom": [
+     "#2a9dc4",
+     "#e07a1f"
+    ],
+    "size": {
+     "preset": "custom",
+     "width": 1600,
+     "height": 800
+    },
+    "overrides": {
+     "e:2026": {
+      "label": "{valeur} (incomplet)"
+     }
+    }
+   },
+   "story": {
+    "auto": false,
+    "edited": {
+     "title": true,
+     "subtitle": true,
+     "comments": true
+    },
+    "comments": [],
+    "showComments": false
+   },
+   "norme": {
+    "enabled": false,
+    "autoSwitch": false
+   }
+  },
+  "sequence": {
+   "title": "Pétrole et mazout, en euros",
+   "snapshots": [
+    {
+     "id": "snap-petrole-mazout",
+     "name": "Pétrole et mazout, en euros",
+     "createdAt": "2026-10-10T05:20:02.088Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Mazout Belgique (€/litre)"
+       ],
+       "y2": "Brent (€/baril)",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Mazout, € par litre",
+        "min": 0,
+        "max": 2
+       },
+       "y2": {
+        "decimals": 0,
+        "title": "Brent, € par baril",
+        "min": 0,
+        "max": 100,
+        "grid": false
+       }
+      },
+      "style": {
+       "title": "Pétrole et mazout, en euros",
+       "subtitle": "Brent en € par baril. Mazout belge, prix officiel, € par litre, moins de 2 000 L. 2026 incomplet.",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:2026": {
+         "label": "{valeur} (incomplet)"
+        }
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [],
+       "showComments": false
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Pétrole et mazout, en euros",
+     "subtitle": "Brent en € par baril. Mazout belge, prix officiel, € par litre, moins de 2 000 L. 2026 incomplet.",
+     "comments": [],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Pétrole et mazout",
+     "generatedAt": "2026-10-10T05:20:02.088Z"
+    }
+   ],
+   "sameScale": false,
+   "film": {
+    "morph": false
+   }
+  },
+  "datasets": [],
+  "thumb": null
+ }
+}

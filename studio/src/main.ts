@@ -68,6 +68,7 @@ import { cryptoAvailable, hashFileBytes, hashPastedText, hashRows, makeProvenanc
 import { focusInfo } from "./ui/focusUi";
 import { sameExceptFocus } from "./charts/focus";
 import { ProjectController } from "./project/controller";
+import { EXAMPLE_PROJECTS, exampleProjectById, loadExampleProject, withoutProjectParam } from "./project/examples";
 import { openProjectRepo, storageUsage, type ProjectRepo } from "./project/repo";
 import { CURRENT_PROJECT_KEY, parseProjectFile, projectFileName, toProjectFile, type Project, type ProjectSource } from "./project/project";
 import { ProjectsDialog } from "./ui/projectsDialog";
@@ -1413,6 +1414,25 @@ async function openFile(file: File): Promise<void> {
   }
 }
 
+/** Projet d'exemple intégré (`?projet=<id>`, « Ouvrir des données » › Exemples) : même ouverture qu'un `.datanime` importé. */
+async function openExampleProject(id: string): Promise<boolean> {
+  const e = exampleProjectById(id);
+  if (!e) {
+    toast(`Projet d'exemple inconnu : « ${id} »`, "error", 6000);
+    return false;
+  }
+  try {
+    const p = await loadExampleProject(e, document.baseURI, (u) => fetch(u, { cache: "no-cache" }));
+    if (projects.dirty && !(await confirmDialog({ title: `Ouvrir « ${p.name} »`, message: "Le projet ouvert a des modifications non enregistrées : elles seront perdues.", confirm: "Ouvrir sans enregistrer", danger: true, testid: "confirm-open" }))) return false;
+    const q = await projects.openExample(p);
+    toast(`Projet d'exemple « ${q.name} » ouvert`, "ok", 2600);
+    return true;
+  } catch (err) {
+    toast("Ouverture de l'exemple impossible : " + (err instanceof Error ? err.message : String(err)), "error", 7000);
+    return false;
+  }
+}
+
 async function loadConfig(raw: any, fileName: string): Promise<void> {
   try {
     // Accepte aussi un spec « nu »
@@ -1599,6 +1619,8 @@ const dataWindow = new DataWindow({
   reelSample: (id) => actions.reelSample(id),
   scenarios: () => scenarioDialog.open(),
   reopenRecent: (e) => reopenRecent(e),
+  exampleProjects: () => EXAMPLE_PROJECTS,
+  openExampleProject: (id) => void openExampleProject(id),
 });
 dataWindowReady = true;
 
@@ -2147,7 +2169,19 @@ void ensureFont(store.state.spec.style.font).finally(() => {
   else if (store.state.sampleId) attachProvenance(sampleProvenance(store.state.sampleId));
   applyUi();
   storyStrip.update();
-  void settle().then(() => projects.init());
+  void settle()
+    .then(() => projects.init())
+    .then(async () => {
+      // lien direct vers un projet d'exemple intégré (?projet=petrole-mazout) : jeu de données + scènes, sans import
+      const id = params.get("projet");
+      if (!id) return;
+      await openExampleProject(id);
+      try {
+        history.replaceState(history.state, "", withoutProjectParam(location.href));
+      } catch {
+        /* adresse non modifiable (file://) */
+      }
+    });
 });
 
 // routes de l'espace Revues (#/revues…, #/r/…) : liens et QR de partage
@@ -2209,6 +2243,8 @@ const api = {
   /** Projets (sur cet appareil). */
   projects: () => projects,
   projectRepo: () => projectRepo,
+  /** Projets d'exemple intégrés (?projet=<id>). */
+  openExampleProject: (id: string) => openExampleProject(id),
   /** Datasets dérivés (déploiement 2) : catalogue, étape Filtrer de la fenêtre Données. */
   datasets: () => store.state.datasets,
   datasetEditor: () => datasetEditor,

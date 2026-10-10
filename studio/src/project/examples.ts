@@ -1,0 +1,51 @@
+/**
+ * Projets d'exemple intégrés : fichiers `.datanime` livrés avec le Studio (dossier `exemples/` du site),
+ * ouverts sans import par le lien direct `?projet=<id>` ou depuis « Ouvrir des données » › Exemples.
+ * Module pur (aucun accès DOM ni stockage) : testé par vitest.
+ */
+import { parseProjectFile, type Project } from "./project";
+
+export interface ExampleProject {
+  id: string;
+  name: string;
+  description: string;
+  /** Fichier sous `exemples/` (chemin relatif au Studio). */
+  file: string;
+}
+
+export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
+  {
+    id: "petrole-mazout",
+    name: "Pétrole et mazout, en euros",
+    description: "Brent (€/baril) et mazout belge (€/litre), 2019-2026 : deux axes, une scène prête",
+    file: "exemples/petrole-mazout.datanime",
+  },
+];
+
+/** Projet d'exemple désigné par la valeur de `?projet=` (insensible à la casse et aux espaces), sinon null. */
+export function exampleProjectById(id: string | null | undefined): ExampleProject | null {
+  if (!id) return null;
+  const k = id.trim().toLowerCase();
+  return EXAMPLE_PROJECTS.find((e) => e.id === k) ?? null;
+}
+
+/** Adresse du fichier d'un exemple, relative à la page du Studio (fonctionne sous n'importe quel sous-chemin). */
+export function exampleProjectUrl(e: ExampleProject, base: string): string {
+  return new URL(e.file, base).href;
+}
+
+/** Charge et lit un projet d'exemple (même lecture qu'un fichier `.datanime` importé). */
+export async function loadExampleProject(e: ExampleProject, base: string, fetcher: (url: string) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>): Promise<Project> {
+  const res = await fetcher(exampleProjectUrl(e, base));
+  if (!res.ok) throw new Error(`Exemple « ${e.name} » introuvable (HTTP ${res.status})`);
+  const parsed = parseProjectFile(await res.json());
+  if ("legacy" in parsed) throw new Error(`Exemple « ${e.name} » : fichier de projet attendu`);
+  return parsed.project;
+}
+
+/** Adresse de la page sans le paramètre `projet` (les autres paramètres et le fragment sont gardés). */
+export function withoutProjectParam(href: string): string {
+  const u = new URL(href);
+  u.searchParams.delete("projet");
+  return u.pathname + u.search + u.hash;
+}

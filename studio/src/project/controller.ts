@@ -263,6 +263,19 @@ export class ProjectController {
     this.d.onChange();
   }
 
+  /**
+   * Ouvre un projet d'exemple intégré : rouvre la copie déjà enregistrée si elle est restée identique à l'exemple
+   * (pas de doublon à chaque visite du lien), sinon l'importe comme un fichier `.datanime` (les modifications
+   * enregistrées d'une copie précédente sont gardées, sous leur propre nom).
+   */
+  async openExample(p: Project): Promise<Project> {
+    const ref = (x: Project) => projectSig({ source: x.source, spec: x.spec, sequence: x.sequence, datasets: x.datasets ?? [] });
+    const existing = await this.d.repo.get(p.id).catch(() => null);
+    const q = existing && ref(existing) === ref(p) ? existing : await this.importProject(p);
+    await this.open(q);
+    return q;
+  }
+
   /** Importe un projet (.datanime) : nouvel identifiant si déjà présent, nom unique. */
   async importProject(p: Project): Promise<Project> {
     const list = await this.d.repo.list();
