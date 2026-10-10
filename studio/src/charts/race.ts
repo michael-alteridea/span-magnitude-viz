@@ -98,15 +98,18 @@ export function drawRace(g: G, plot: PlotRect, ctx: DrawCtx, rd: RaceData, tm: T
   const og = gr.append("g").attr("class", "r4d-race-period").attr("data-testid", "race-period");
   const len = Math.max(counter.length, next.length);
   const a = counter.padStart(len, " "), b = next.padStart(len, " ");
-  const cw0 = big * 0.62, gap = big * 0.04;
+  const cw0 = big * 0.62, ch = big * 1.2, gap = big * 0.04;
   const total = len * cw0 + (len - 1) * gap;
   let ox = cx - total;
+  const roll = Math.max(0, Math.min(1, (frac - 0.55) / 0.45));
   for (let i = 0; i < len; i++) {
     const ca = a[i]!, cb = b[i]!;
-    const cell = og.append("g").attr("transform", `translate(${ox},${cy - big})`);
-    cell.append("rect").attr("width", cw0).attr("height", big * 1.2).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.08);
-    if (ca === cb || frac < 0.6) cell.append("text").attr("x", cw0 / 2).attr("y", big * 0.9).attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.85).text(ca);
-    else cell.append("text").attr("x", cw0 / 2).attr("y", big * 0.9 - big * (frac - 0.6) / 0.4).attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.85).text(cb);
+    const cell = og.append("g").attr("transform", `translate(${ox},${cy - ch})`);
+    cell.append("rect").attr("width", cw0).attr("height", ch).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.08);
+    const box = cell.append("svg").attr("x", 0).attr("y", 0).attr("width", cw0).attr("height", ch).attr("overflow", "hidden");
+    const digit = (c: string, dy: number) => box.append("text").attr("x", cw0 / 2).attr("y", ch / 2 + dy).attr("dy", "0.36em").attr("text-anchor", "middle").attr("font-size", big).attr("font-weight", 800).attr("fill", theme.text).attr("fill-opacity", 0.9).text(c);
+    if (ca === cb || roll <= 0) digit(ca, 0);
+    else { digit(ca, -roll * ch); digit(cb, (1 - roll) * ch); }
     ox += cw0 + gap;
   }
   const tw = Math.max(cw, 80 * s);
