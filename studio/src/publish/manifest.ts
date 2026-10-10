@@ -296,6 +296,13 @@ function dataHashOf(spec: unknown): string | null {
  * (étape I : extrémité des barres, icônes par catégorie, mise en avant).
  */
 export function fingerprintSpec(spec: unknown): unknown {
+  const fd0 = (spec as { mode?: { fourD?: Record<string, unknown> } } | null)?.mode?.fourD;
+  if (fd0 && typeof fd0 === "object" && fd0.stampStyle === "watermark") {
+    // Forme du tampon 4D : filigrane par défaut absent de l'empreinte (empreintes publiées inchangées)
+    const fourD = { ...fd0 };
+    delete fourD.stampStyle;
+    spec = { ...(spec as object), mode: { ...(spec as { mode: object }).mode, fourD } };
+  }
   const enc0 = (spec as { encoding?: Record<string, unknown> } | null)?.encoding;
   if (enc0 && typeof enc0 === "object" && enc0.topOrder === "top") {
     // « Nombre d'éléments » (étape filtres) : classement par défaut absent de l'empreinte (empreintes publiées inchangées)

@@ -15,6 +15,8 @@ export interface Frame {
   timePos: number | null;
   /** Mise en avant (étape L) : 0 = graphique simple, 1 = mis en avant (défaut). Animée entre deux snapshots. */
   focus?: number;
+  /** Position 4D continue pour le compteur à rouleaux (Reel : données par pas entiers, rouleaux continus) ; absent = timePos. */
+  stampPos?: number | null;
 }
 
 export interface PlotRect {
@@ -37,6 +39,8 @@ export interface Prepared {
   /** Révélation le long de l'axe X (index de clé continu) quand X = champ temporel. */
   reveal: number | null;
   stamp: string | null;
+  /** Compteur à rouleaux : libellé du pas courant, du suivant, avancement 0..1 du roulement. */
+  stampRoll?: { from: string; to: string; f: number } | null;
   /** Progression 4D 0..1 (barre de film). */
   progress: number | null;
   warnings: string[];

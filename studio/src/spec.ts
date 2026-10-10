@@ -192,6 +192,8 @@ export const modeSchema = z.object({
       loop: z.boolean().default(false),
       /** Grand tampon de date façon film. */
       stamp: z.boolean().default(true),
+      /** Forme du tampon : « watermark » = grand filigrane derrière les marques ; « odometer » = compteur à rouleaux au-dessus du graphique. */
+      stampStyle: z.enum(["watermark", "odometer"]).default("watermark"),
       /** Échelles figées sur l'étendue complète (évite les sauts). */
       freezeScales: z.boolean().default(true),
     })

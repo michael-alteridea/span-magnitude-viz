@@ -188,9 +188,11 @@ export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: Prep
   const n = tm.steps.length;
   // 4D « instantané » sans position (vignette, rendu figé) : dernier pas plutôt que la somme de tous les pas
   const tp = frame.timePos ?? (spec.mode.fourD.mode === "snapshot" && !xIsTimeField(spec) && spec.type !== "scatter" ? n - 1 : null);
-  if (tp == null) return base;
+  const odo = spec.mode.fourD.stamp && spec.mode.fourD.stampStyle === "odometer";
+  if (tp == null) return odo ? { ...base, stampRoll: { from: tm.label(n - 1), to: tm.label(n - 1), f: 0 } } : base;
   const pos = Math.max(0, Math.min(n - 1, tp));
   const out: Prepared = { ...base, domains: cache.frozen, stamp: tm.label(pos), progress: pos / (n - 1) };
+  if (odo) out.stampRoll = odometerRoll(tm, n, frame.stampPos ?? pos);
   if (xIsTimeField(spec) && cache.full.kind === "cat") {
     out.reveal = pos;
     return out;
@@ -203,6 +205,54 @@ export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: Prep
   const full = cache.full;
   out.model = buildModel(spec, ds, rows, full.kind === "cat" ? { fixedKeys: full.keys, fixedSeries: full.series } : undefined);
   return out;
+}
+
+/**
+ * Compteur à rouleaux : le pas k reste affiché, puis roule vers k + 1 pendant le dernier tiers de l'intervalle
+ * (les chiffres arrivent quand les données changent de pas).
+ */
+function odometerRoll(tm: { label(i: number): string }, n: number, sp: number): { from: string; to: string; f: number } {
+  const p = Math.max(0, Math.min(n - 1, sp));
+  const k = Math.min(n - 1, Math.floor(p + 1e-9));
+  if (k >= n - 1) return { from: tm.label(n - 1), to: tm.label(n - 1), f: 0 };
+  const w = Math.max(0, Math.min(1, (p - k - 0.68) / 0.32));
+  const f = w < 0.5 ? 4 * w * w * w : 1 - Math.pow(-2 * w + 2, 3) / 2;
+  return { from: tm.label(k), to: tm.label(k + 1), f };
+}
+
+/** Dessine le compteur (cases à chiffres, seuls les caractères qui changent roulent), coin haut droit à (right, top). */
+function drawOdometer(root: G, roll: { from: string; to: string; f: number }, right: number, top: number, fs: number, s: number, theme: Theme, font: string): void {
+  const len = Math.max(roll.from.length, roll.to.length);
+  const from = roll.from.padStart(len, " "), to = roll.to.padStart(len, " ");
+  const narrow = (c: string) => c === " " || c === "·" || c === "." || c === "," || c === "-" || c === "–";
+  const cw = fs * 0.74, nw = fs * 0.42, ch = fs * 1.36, gap = fs * 0.08, padX = fs * 0.26, padY = fs * 0.2;
+  const widths = [...to].map((c, i) => (narrow(c) && narrow(from[i]!) ? nw : cw));
+  const inner = widths.reduce((a, b) => a + b, 0) + gap * (len - 1);
+  const bw = inner + padX * 2, bh = ch + padY * 2;
+  const g = root.append("g").attr("class", "r4d-odometer").attr("data-r4d", "stamp").attr("data-odometer", roll.f > 0 && roll.f < 1 ? `${roll.from}→${roll.to}` : roll.f >= 1 ? roll.to : roll.from);
+  g.append("rect").attr("x", right - bw).attr("y", top).attr("width", bw).attr("height", bh).attr("rx", 8 * s).attr("fill", theme.text).attr("fill-opacity", 0.06).attr("stroke", theme.accent).attr("stroke-width", 1.6 * s);
+  let x = right - bw + padX;
+  const y = top + padY;
+  for (let i = 0; i < len; i++) {
+    const a = from[i]!, b = to[i]!, w = widths[i]!;
+    const cell = !(narrow(a) && narrow(b));
+    if (cell) g.append("rect").attr("x", x).attr("y", y).attr("width", w).attr("height", ch).attr("rx", 4 * s).attr("fill", theme.text).attr("fill-opacity", 0.12);
+    const box = g.append("svg").attr("x", x).attr("y", y).attr("width", w).attr("height", ch).attr("overflow", "hidden");
+    const txt = (c: string, dy: number) =>
+      box.append("text").attr("x", w / 2).attr("y", ch / 2 + dy).attr("dy", "0.36em").attr("text-anchor", "middle").attr("font-family", font).attr("font-size", fs).attr("font-weight", 800).attr("font-variant-numeric", "tabular-nums").attr("fill", theme.text).text(c);
+    if (a === b || roll.f <= 0) txt(a, 0);
+    else if (roll.f >= 1) txt(b, 0);
+    else {
+      txt(a, -roll.f * ch);
+      txt(b, (1 - roll.f) * ch);
+    }
+    if (cell) {
+      // reflets du tambour : ombre en haut et en bas de la case
+      box.append("rect").attr("x", 0).attr("y", 0).attr("width", w).attr("height", ch * 0.16).attr("fill", theme.bg).attr("fill-opacity", 0.35);
+      box.append("rect").attr("x", 0).attr("y", ch * 0.84).attr("width", w).attr("height", ch * 0.16).attr("fill", theme.bg).attr("fill-opacity", 0.35);
+    }
+    x += w + gap;
+  }
 }
 
 /* ------------------------------------------------------------ légende */
@@ -536,6 +586,15 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
     plot = { x: pad, y: y + 6 * s, w: contentW, h: H - pad - footH - y - 6 * s };
   }
   plot.h = Math.max(40, plot.h);
+  // ---- compteur 4D à rouleaux : bandeau réservé au-dessus du graphique (lisible, rien derrière les marques)
+  if (prep.stampRoll && !isSpecial(spec.type)) {
+    const fs = Math.max(18 * s, Math.min(40 * s, plot.h * 0.12));
+    const bh = fs * 1.36 + fs * 0.4;
+    drawOdometer(root as unknown as G, prep.stampRoll, plot.x + plot.w - 4 * s, plot.y, fs, s, theme, font);
+    const used = bh + 10 * s;
+    plot.y += used;
+    plot.h = Math.max(40, plot.h - used);
+  }
 
   const ctx: DrawCtx = { spec, ds: ds!, theme, colors, font, s, W, H, frame, prep, sharedMax: opts.sharedMax ?? null };
   if (opts.scaleNote && chrome) {
@@ -569,7 +628,7 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
 
   // ---- tampon 4D (filigrane) sous les marques : en haut à droite (zone la plus libre, tri décroissant), en bas pour les circulaires
-  if (prep.stamp) {
+  if (prep.stamp && !prep.stampRoll) {
     const big = Math.min(plot.h * 0.26, 110 * s);
     gChart
       .append("text")

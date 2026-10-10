@@ -1189,6 +1189,7 @@ export class SettingsPanel {
           more.push(this.row("Durée de la 4D (s)", this.number("mode.fourD.durationMs", { min: 1, max: 120, step: 0.5, scale: 1000 }), undefined, "durée secondes"));
           more.push(this.check("mode.fourD.loop", "Lecture en boucle", undefined, "4d"));
           more.push(this.check("mode.fourD.stamp", "Tampon de date (filigrane)", undefined, "4d"));
+          if (spec.mode.fourD.stamp) more.push(this.row("Forme du tampon", this.segmented("mode.fourD.stampStyle", [["watermark", "Filigrane"], ["odometer", "Compteur"]]), "Compteur : chiffres qui roulent, au-dessus du graphique", "4d tampon compteur odomètre"));
           more.push(this.check("mode.fourD.freezeScales", "Échelles figées (pas de sauts)", undefined, "4d axes"));
         }
       }
