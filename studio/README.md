@@ -327,6 +327,26 @@ Captures : `22-choix-onglet.png`, `23-mapping-live.png`, `24-commerciaux-en-post
 - **Contrôle** : `node studio/scripts/check-pptx.mjs Fichier.pptx` (transitions, repli, noms « !! » uniques, QR décodé de
   chaque graphique) ; démos : `node studio/scripts/demo-scenario.mjs --scenario dircom --morph Datanime-demo-pipeline-morph.pptx`.
 
+## Liens « Rejouer », écran de fin et partage
+
+- **Projets d'exemple intégrés** (`petrole-mazout`, `mazout-decroche`) : lien universel, valable sur tout appareil
+  (le fichier `exemples/<id>.datanime` est servi avec le site) :
+  `https://alteridea-dashboard.web.app/reporting/?projet=<id>&lecture=1[&scene=N][&src=qr|reel|partage|site]`.
+  L'exemple s'ouvre, puis le mode lecture plein écran à la scène N (1 par défaut). `?projet=<id>` seul ouvre
+  toujours l'exemple dans le Studio, sans lecture. Pendant la lecture, l'adresse affichée reste partageable
+  (`?projet=…&lecture=1&scene=N#/lire/histoire/<snapshot>`) ; à la fermeture, elle redevient celle du Studio.
+- **QR des diapositives / images** (PowerPoint, PNG de la séquence) : scène d'un exemple → lien universel ci-dessus
+  (`src=qr`) ; démos intégrées → `#/lire/demo-…` (inchangé) ; séquences locales → lien de cet appareil (inchangé).
+  Catalogue des scènes : `EXAMPLE_PROJECTS[].scenes` (`project/examples.ts`, vérifié contre les fichiers).
+- **Reel** : si toutes ses scènes viennent d'un exemple, le QR (carte de fin et cartouche) et le lien visible ouvrent
+  le film (`?projet=<id>&lecture=1&src=reel`) ; sinon la page du Studio (`?src=reel`). Petite ligne
+  « Découvrir Datanime » vers la présentation (`DISCOVER_URL`, `brand.ts`).
+- **Écran de fin du mode lecture** (après la dernière diapositive) : « Fait avec Datanime », **Partager**
+  (`navigator.share`, feuille de partage de l'iPhone ; sinon copie du lien), **Créez le vôtre** (Studio),
+  « Revoir depuis le début », « Découvrir la plateforme ». Partager n'apparaît que pour un lien qui s'ouvre partout
+  (exemple, démo, revue publiée).
+- `src` indique seulement l'origine (journaux du serveur) : aucun script de mesure. Module pur : `project/shareLinks.ts`.
+
 ## Pont Cadencer : manifeste de revue (étape Cadencer)
 
 Cadencer anime la réunion (salle en direct, QR `/join/<code>`, accusés de lecture, tâches, PV) ; Datanime fournit les
