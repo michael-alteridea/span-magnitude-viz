@@ -172,6 +172,20 @@ describe("Reel : image composée (SVG autonome, déterministe)", () => {
     expect(end).toContain("reel-end-qr");
     expect(end).not.toMatch(/certifi|conforme|authenticit|preuve/i);
   });
+
+  it("carte de fin : logo C15 animé, figé image par image (déterministe), image finale tenue", () => {
+    const T = totalDuration(plan);
+    const start = T - plan.endDuration;
+    const a = comp.frameSvg(start + 0.5);
+    const b = comp.frameSvg(start + 1.5);
+    expect(a).toContain("@keyframes reel-end-anim-dataF");
+    expect(a).toContain("animation-play-state:paused!important");
+    expect(a).toContain("animation-delay:-0.500s!important");
+    expect(b).toContain("animation-delay:-1.500s!important");
+    expect(comp.frameSvg(start + 0.5)).toBe(a);
+    const d = plan.endDuration - 0.4;
+    expect(comp.frameSvg(T - 0.01)).toContain(`animation-delay:-${(d - 0.001).toFixed(3)}s!important`);
+  });
 });
 
 describe("annotation de barre mise en avant (Reel et Studio)", () => {

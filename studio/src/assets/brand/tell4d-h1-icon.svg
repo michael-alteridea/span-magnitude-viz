@@ -1,33 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="i-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0E6E8C"/><stop offset="1" stop-color="#08465A"/>
-    </linearGradient>
-    <radialGradient id="i-glow" cx="96" cy="64" r="420" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3FA7C4" stop-opacity="0.45"/><stop offset="1" stop-color="#3FA7C4" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="i-tint" x1="0" y1="36" x2="0" y2="400" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3FA7C4" stop-opacity="0"/><stop offset="1" stop-color="#3FA7C4" stop-opacity="0.13"/></linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#i-bg)"/>
-  <rect width="512" height="512" rx="112" fill="url(#i-glow)"/>
-  <rect x="3" y="3" width="506" height="506" rx="109" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="6"/>
-  <path d="M112 36 H400 A76 76 0 0 1 476 112 V356 A44 44 0 0 1 432 400 H200 C166 430 128 458 84 488 C94 442 88 420 60.2 391.2 A44 44 0 0 1 36 356 V112 A76 76 0 0 1 112 36 Z" fill="#FFFFFF"/>
-  <path d="M112 36 H400 A76 76 0 0 1 476 112 V356 A44 44 0 0 1 432 400 H200 C166 430 128 458 84 488 C94 442 88 420 60.2 391.2 A44 44 0 0 1 36 356 V112 A76 76 0 0 1 112 36 Z" fill="url(#i-tint)"/>
-  <rect x="114" y="290.4" width="64" height="31.599999999999994" rx="15" fill="#E63946" fill-opacity="0.22"/>
-  <rect x="126" y="268.4" width="64" height="53.599999999999994" rx="15" fill="#E63946" fill-opacity="0.45"/>
-  <rect x="138" y="246.4" width="64" height="75.6" rx="15" fill="#E63946"/>
-  <rect x="194" y="245.04000000000002" width="64" height="76.95999999999998" rx="15" fill="#FF9F1C" fill-opacity="0.22"/>
-  <rect x="206" y="223.04000000000002" width="64" height="98.95999999999998" rx="15" fill="#FF9F1C" fill-opacity="0.45"/>
-  <rect x="218" y="201.04000000000002" width="64" height="120.95999999999998" rx="15" fill="#FF9F1C"/>
-  <rect x="274" y="194.64" width="64" height="127.36000000000001" rx="15" fill="#8AC926" fill-opacity="0.22"/>
-  <rect x="286" y="172.64" width="64" height="149.36" rx="15" fill="#8AC926" fill-opacity="0.45"/>
-  <rect x="298" y="150.64" width="64" height="171.36" rx="15" fill="#8AC926"/>
-  <rect x="354" y="134.16" width="64" height="187.84" rx="15" fill="#00B4D8" fill-opacity="0.22"/>
-  <rect x="366" y="112.16" width="64" height="209.84" rx="15" fill="#00B4D8" fill-opacity="0.45"/>
-  <rect x="378" y="90.16" width="64" height="231.84" rx="15" fill="#00B4D8"/>
-  <rect x="76" y="357" width="360" height="10" rx="5" fill="#08465A" fill-opacity="0.14"/>
-  <rect x="76" y="357" width="304" height="10" rx="5" fill="#3FA7C4"/>
-  <circle cx="380" cy="362" r="15" fill="#08465A"/>
-  <circle cx="380" cy="362" r="6" fill="#FFFFFF"/>
-  <path d="M95.15 132.24H77.37V118.76H94.35Q100.5 118.76 104.48 116.52Q108.45 114.27 110.38 109.8Q112.31 105.33 112.31 98.77Q112.31 92.17 110.36 87.72Q108.41 83.28 104.39 81.03Q100.37 78.78 94.17 78.78H77.1V65.31H95.15Q105.35 65.31 112.88 69.42Q120.4 73.53 124.49 81.03Q128.58 88.53 128.58 98.77Q128.58 109.02 124.51 116.52Q120.45 124.02 112.97 128.13Q105.49 132.24 95.15 132.24ZM86.48 65.31V132.24H70.31V65.31ZM125.25 132.24 148.25 65.31H169.55L192.68 132.24H174.62L165.55 102.82Q163.35 95.45 161.19 87.95Q159.03 80.45 156.79 71.69H161.15Q158.81 80.45 156.63 87.95Q154.45 95.45 152.16 102.82L142.82 132.24ZM141.02 119.35V106.72H176.91V119.35Z" fill="#08465A"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512">
+  <rect width="32" height="32" rx="7" fill="#08465A"/><path d="M13.34 6L18.66 6L25.68 26L21.1 26L19.69 21.64L12.23 21.64L10.78 26L6.32 26ZM14.39 17.86L14.39 17.92L14.4 17.97L14.41 18.01L14.43 18.04L14.45 18.07L14.48 18.08L14.52 18.08L14.55 18.08L14.6 18.06L14.65 18.04L18.24 16L18.28 15.97L18.32 15.94L18.35 15.91L18.36 15.88L18.37 15.85L18.36 15.82L18.35 15.79L18.32 15.76L18.28 15.74L18.24 15.71L14.65 13.67L14.6 13.64L14.55 13.63L14.52 13.62L14.48 13.63L14.45 13.64L14.43 13.66L14.41 13.69L14.4 13.74L14.39 13.79L14.39 13.85Z" fill="#FFD000" fill-rule="evenodd"/>
 </svg>

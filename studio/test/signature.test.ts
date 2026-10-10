@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { parseHTML } from "linkedom";
 import JSZip from "jszip";
 import { geoAzimuthalEqualArea, geoMercator } from "d3";
-import { ICON_PNG_2X, PLATFORM_URL, PRODUCT_LABEL, showSignature, tell4dIconMarkup } from "../src/brand";
+import { ICON_PNG_2X, LOGO_ANIM_S, PLATFORM_URL, PRODUCT_LABEL, logoAnimMarkup, showSignature, tell4dIconMarkup, wordmarkMarkup } from "../src/brand";
 import { parseSpec } from "../src/spec";
 import { sampleById } from "../src/data/samples";
 import { buildDataset } from "../src/data/table";
@@ -35,23 +35,47 @@ function draw(specInput: unknown, sampleId = "business-review", opts = {}) {
 }
 
 describe("identité Datanime", () => {
-  it("nom du produit et icône « Bulle + barres »", () => {
+  it("nom du produit et icône C15 (A capitale jaune à œil ▶ sur pétrole)", () => {
     expect(PRODUCT_LABEL).toBe("Datanime");
     expect(ICON_PNG_2X).toMatch(/^data:image\/png;base64,/);
     const file = readFileSync(fileURLToPath(new URL("../src/assets/brand/tell4d-h1-icon-64.png", import.meta.url)));
     expect(ICON_PNG_2X.slice("data:image/png;base64,".length)).toBe(file.toString("base64"));
     const a = tell4dIconMarkup("hdr", 30);
     expect(a).toMatch(/^<svg[^>]* width="30" height="30"/);
-    expect(a).toContain('id="hdr-bg"');
-    expect(a).toContain("url(#hdr-bg)");
-    expect(a).not.toMatch(/id="i-|url\(#i-/);
+    expect(a).toContain('viewBox="0 0 32 32"');
+    expect(a).toContain('fill="#08465A"');
+    expect(a).toContain('fill="#FFD000"');
+    expect(a).toContain('fill-rule="evenodd"');
   });
-  it("identifiants de dégradés uniques d'un graphique à l'autre", () => {
-    const ids = (html: string) => [...html.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]!).filter((i) => /^t4d-/.test(i));
-    const a = ids(draw({ type: "bar", encoding: { x: "Région", y: ["Réel (€)"] } }).html);
-    const b = ids(draw({ type: "bar", encoding: { x: "Région", y: ["Réel (€)"] } }).html);
-    expect(a.length).toBeGreaterThan(0);
-    expect(a.filter((i) => b.includes(i))).toEqual([]);
+  it("mot-symbole C15 « DatAnime » : jaune or sur fond clair, jaune vif sur fond sombre, œil ▶ évidé", () => {
+    const l = wordmarkMarkup("light", 20);
+    const d = wordmarkMarkup("dark", 20);
+    expect(l).toContain('fill="#E3A600" fill-rule="evenodd"');
+    expect(d).toContain('fill="#FFD000" fill-rule="evenodd"');
+    expect(l).toContain('fill="#16232A"');
+    expect(l).toContain('fill="#0E6E8C"');
+    expect(d).toContain('fill="#FFFFFF"');
+    expect(d).toContain('fill="#3FA7C4"');
+    expect(l).not.toMatch(/#E8870E|#FF9F1C/);
+    expect(l).toMatch(/aria-label="Datanime"/);
+  });
+  it("logo animé : CSS seul, préfixé, réduit les animations, figeable à l'instant t", () => {
+    const a = logoAnimMarkup("dark", "x1");
+    const b = logoAnimMarkup("light", "x2");
+    expect(a).toContain("@keyframes x1-dataF");
+    expect(a).toContain("prefers-reduced-motion");
+    expect(a).toContain('class="x1-cap"');
+    expect(a).toContain('id="x1-eye1dark"');
+    expect(a).toContain("url(#x1-eye1dark)");
+    expect(a).not.toMatch(/[.\s"]dataF\b/);
+    expect(b).toContain("@keyframes x2-dataF");
+    expect(a).not.toContain("<script");
+    const f = logoAnimMarkup("dark", "r", { seek: 1.3, duration: 2.6, x: 10, y: 20, width: 300 });
+    expect(f).toContain("animation-delay:-1.300s!important");
+    expect(f).toContain("animation-play-state:paused!important");
+    expect(f).toContain("animation-duration:2.6s!important");
+    expect(f).toMatch(/^<svg[^>]* x="10" y="20" width="300"/);
+    expect(LOGO_ANIM_S).toBeCloseTo(4.2);
   });
 });
 
@@ -62,10 +86,10 @@ describe("signature « label qualité »", () => {
       expect(html, type).toContain('class="r4d-cartouche"');
       const logo = svg.querySelector(".r4d-logo");
       expect(logo, type).toBeTruthy();
-      // icône Datanime inline (SVG imbriqué « Bulle + barres »), pas une image ni un carré
+      // icône Datanime C15 inline (SVG imbriqué : carré pétrole, A jaune à œil ▶), pas une image
       expect(logo!.tagName.toLowerCase()).toBe("svg");
-      expect(logo!.getAttribute("viewBox")).toBe("0 0 512 512");
-      expect(logo!.querySelectorAll("rect").length).toBeGreaterThanOrEqual(12);
+      expect(logo!.getAttribute("viewBox")).toBe("0 0 32 32");
+      expect(logo!.querySelector("path")?.getAttribute("fill-rule")).toBe("evenodd");
       expect(svg.querySelector(".r4d-brand")?.textContent).toBe(PRODUCT_LABEL);
       expect(svg.querySelector("a.r4d-cartouche-link")?.getAttribute("href")).toBe(PLATFORM_URL);
       expect(norm(svg.querySelector(".r4d-cartouche-date")?.textContent ?? "")).toBe("Généré le 8 oct. 2026");

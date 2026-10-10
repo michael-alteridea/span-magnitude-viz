@@ -5,7 +5,7 @@
  * identique dans l'aperçu et dans la vidéo).
  */
 import { stripLicence } from "../data/licence";
-import { PLATFORM_HOST, PLATFORM_URL, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
+import { PLATFORM_HOST, PLATFORM_URL, logoAnimBoxForWordmark, logoAnimMarkup, tell4dIconMarkup, wordmarkMarkup, WORDMARK_RATIO } from "../brand";
 import { qrMatrix, qrPath } from "../qr";
 import { measure, wrap, ellipsize } from "../charts/text";
 import { countUpText, locate, parseKeyNumber, REEL_FORMATS, sceneLayout, timingsFor, type KeyNumber, type ReelPlan, type SceneLayout } from "./plan";
@@ -201,6 +201,16 @@ export class ReelComposer {
     return out;
   }
 
+  /**
+   * Mot-symbole de la carte de fin : logo C15 animé (CSS figé à l'instant t → rendu image par image déterministe,
+   * même image dans l'aperçu et la vidéo), joué sur la carte de fin moins 0,4 s puis tenu sur l'image finale C15.
+   */
+  private endWordmark(t: number, x: number, y: number, wmH: number): string {
+    const dur = Math.max(1, this.plan.endDuration - 0.4);
+    const b = logoAnimBoxForWordmark(x, y, wmH);
+    return logoAnimMarkup("dark", "reel-end-anim", { seek: t, duration: dur, x: b.x, y: b.y, width: b.width, height: b.height, cls: "reel-end-wordmark" });
+  }
+
   private endCard(t: number): string {
     const f = REEL_FORMATS[this.plan.format];
     const s = f.safe;
@@ -223,7 +233,7 @@ export class ReelComposer {
       const by = cy - 150;
       out += `<g opacity="${f2(a1)}" transform="translate(0 ${f2((1 - a1) * 20)})">`;
       out += tell4dIconMarkup("reel-end-ic", Math.round(icon), 'aria-hidden="true"').replace(/^<svg/, `<svg x="${f2(lx)}" y="${f2(by)}"`);
-      out += wordmarkMarkup("dark", wmH, "reel-end-wordmark").replace(/^<svg/, `<svg x="${f2(lx + icon + 26)}" y="${f2(by + (icon - wmH) / 2)}"`);
+      out += this.endWordmark(t, lx + icon + 26, by + (icon - wmH) / 2, wmH);
       out += `</g>`;
       out += `<text class="reel-tagline" x="${lx}" y="${f2(cy + 60)}" font-family="${REEL_TITLE_FONT}" font-size="${tagFs}" font-weight="800" fill="${REEL_COLORS.text}" opacity="${f2(a2)}">${esc(REEL_TAGLINE)}</text>`;
       out += `<text class="reel-link" x="${lx}" y="${f2(cy + 140)}" font-size="34" font-weight="700" fill="${REEL_COLORS.accent}" opacity="${f2(a3)}">${esc(PLATFORM_HOST)}</text>`;
@@ -236,7 +246,7 @@ export class ReelComposer {
     const rowW = icon + 26 + wmW;
     out += `<g opacity="${f2(a1)}" transform="translate(0 ${f2((1 - a1) * 24)})">`;
     out += tell4dIconMarkup("reel-end-ic", Math.round(icon), 'aria-hidden="true"').replace(/^<svg/, `<svg x="${f2(cx - rowW / 2)}" y="${f2(y)}"`);
-    out += wordmarkMarkup("dark", wmH, "reel-end-wordmark").replace(/^<svg/, `<svg x="${f2(cx - rowW / 2 + icon + 26)}" y="${f2(y + (icon - wmH) / 2)}"`);
+    out += this.endWordmark(t, cx - rowW / 2 + icon + 26, y + (icon - wmH) / 2, wmH);
     out += `</g>`;
     y += icon + (sq ? 100 : 170);
     const tag = wrap(REEL_TAGLINE, s.w, tagFs, REEL_TITLE_FONT, 800, 2);

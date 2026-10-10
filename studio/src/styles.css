@@ -561,6 +561,11 @@ tr.in-series .mw-row-btn { color: #fff; font-weight: 700; }
 .film-svg { max-width: 100%; max-height: 100%; width: 100%; height: 100%; border-radius: 10px; will-change: transform, opacity; }
 .film-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #3f3f46; background: #16161a; color: #f4f4f5; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .film-btn:hover { border-color: var(--accent); }
+/* Introduction du film / mode lecture : logo C15 animé (CSS seul), toucher pour passer */
+.film-intro { position: absolute; inset: 0; z-index: 5; background: #050607; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.film-intro[hidden] { display: none; }
+.film-intro-logo { width: min(78vw, 560px); height: auto; display: block; }
+.film-intro-hint { font-size: 13px; color: #71717a; letter-spacing: .04em; }
 .film-bottom { justify-content: center; }
 .film-dots { display: flex; gap: 6px; margin-left: 12px; }
 .film-dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: none; background: #3f3f46; cursor: pointer; position: relative; }

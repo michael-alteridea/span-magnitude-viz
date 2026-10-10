@@ -1,10 +1,12 @@
 /**
- * Identité Datanime (logo « Bulle + barres », bleu pétrole) et signature « label qualité » :
+ * Identité Datanime (logo C15 « DatAnime » : A capitale jaune à œil ▶, bleu pétrole) et signature « label qualité » :
  * nom du produit, lien vers la plateforme, date de génération et source.
  * Le nom du produit n'existe qu'ici (les noms techniques — dépôt, paquet, clés — restent « reporting-4d »).
  */
 import iconSvgRaw from "./assets/brand/tell4d-h1-icon.svg?raw";
 import { TELL4D_ICON_PNG_64 } from "./assets/brand/icon-png";
+import logoAnimLightRaw from "./assets/brand/logo-anim-light.svg?raw";
+import logoAnimDarkRaw from "./assets/brand/logo-anim-dark.svg?raw";
 import { WORDMARK_COLORS, WORDMARK_PATHS, WORDMARK_PNG, WORDMARK_RATIO, WORDMARK_VIEWBOX } from "./assets/brand/wordmark";
 
 export { WORDMARK_PNG, WORDMARK_RATIO };
@@ -90,13 +92,13 @@ export function appendTell4dIcon(parent: Appendable, prefix: string): Appendable
 export type WordmarkTheme = "light" | "dark";
 
 /**
- * Mot-symbole « Datanime » (« Dat » neutre, « a » orange, « nime » pétrole) en SVG inline, `height` = hauteur des
+ * Mot-symbole C15 « DatAnime » (« Dat » neutre, A jaune à œil ▶, « nime » pétrole) en SVG inline, `height` = hauteur des
  * capitales en px. Accessible : role="img", aria-label et <title> « Datanime ».
  */
 export function wordmarkMarkup(theme: WordmarkTheme, height: number, cls = "wordmark"): string {
   const c = WORDMARK_COLORS[theme];
   const w = Math.round(height * WORDMARK_RATIO * 10) / 10;
-  const paths = WORDMARK_PATHS.map((p) => `<path d="${p.d}" fill="${c[p.part]}"/>`).join("");
+  const paths = WORDMARK_PATHS.map((p) => `<path d="${p.d}" fill="${c[p.part]}"${p.rule ? ` fill-rule="${p.rule}"` : ""}/>`).join("");
   return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" viewBox="${WORDMARK_VIEWBOX.join(" ")}" width="${w}" height="${height}" role="img" aria-label="${PRODUCT_LABEL}"><title>${PRODUCT_LABEL}</title>${paths}</svg>`;
 }
 
@@ -111,9 +113,57 @@ export function appendWordmark(parent: Appendable, theme: WordmarkTheme, x: numb
     .attr("aria-label", PRODUCT_LABEL)
     .attr("transform", `translate(${(x - vx * k).toFixed(2)} ${(y - vy * k).toFixed(2)}) scale(${k.toFixed(5)})`);
   const c = WORDMARK_COLORS[theme];
-  for (const p of WORDMARK_PATHS) g.append("path").attr("d", p.d).attr("fill", c[p.part]);
+  for (const p of WORDMARK_PATHS) {
+    const el = g.append("path").attr("d", p.d).attr("fill", c[p.part]);
+    if (p.rule) el.attr("fill-rule", p.rule);
+  }
   return g;
 }
 
 /** Largeur du mot-symbole pour une hauteur de capitales `h`. */
 export const wordmarkWidth = (h: number): number => h * WORDMARK_RATIO;
+
+/* ------------------------------------------------------------------ animation du logo (CSS seul) */
+
+/** Durée de l'animation du logo C15 (s) : « Data » + « anime » se rejoignent, le a devient A, jaunit, puis l'œil ▶. */
+export const LOGO_ANIM_S = 4.2;
+/** viewBox des SVG animés (même repère que le mot-symbole, avec marge pour les glissements). */
+export const LOGO_ANIM_VIEWBOX: [number, number, number, number] = [135.33, 13.26, 624.87, 133.48];
+const ANIM_NAMES = ["animeF", "animeX", "cap", "datS", "dataF", "dataX", "eye", "l2", "mCap", "mLow", "nimS"];
+const ANIM_RE = new RegExp(`\\b(${ANIM_NAMES.join("|")})\\b`, "g");
+
+/**
+ * Logo animé (CSS seul, `prefers-reduced-motion` : image finale fixe). Classes, keyframes et masques préfixés par
+ * `prefix` (plusieurs instances par page sans collision). `seek` (s) fige l'animation à cet instant (rendu image par
+ * image du Reel) ; `duration` (s) la joue plus vite ou plus lentement. `width`/`height` : taille affichée.
+ */
+export function logoAnimMarkup(theme: WordmarkTheme, prefix: string, o: { seek?: number; duration?: number; width?: number; height?: number; x?: number; y?: number; cls?: string } = {}): string {
+  const raw = (theme === "dark" ? logoAnimDarkRaw : logoAnimLightRaw).trim();
+  const [, , vw, vh] = LOGO_ANIM_VIEWBOX;
+  const h = o.height ?? (o.width ? (o.width * vh) / vw : vh);
+  const w = o.width ?? (h * vw) / vh;
+  let s = raw
+    .replace(/<style>([\s\S]*?)<\/style>/, (_m, css: string) => `<style>${css.replace(ANIM_RE, `${prefix}-$1`)}</style>`)
+    .replace(/class="([^"]+)"/g, (_m, c: string) => `class="${c.replace(ANIM_RE, `${prefix}-$1`)}"`)
+    .replace(/id="([^"]+)"/g, `id="${prefix}-$1"`)
+    .replace(/url\(#([^)]+)\)/g, `url(#${prefix}-$1)`);
+  const extra: string[] = [];
+  const dur = o.duration ?? LOGO_ANIM_S;
+  if (o.duration !== undefined) extra.push(`animation-duration:${dur}s!important`);
+  if (o.seek !== undefined) {
+    const t = Math.max(0, Math.min(dur - 0.001, o.seek));
+    extra.push(`animation-delay:-${t.toFixed(3)}s!important`, "animation-play-state:paused!important");
+  }
+  if (extra.length) s = s.replace("</style>", `${ANIM_NAMES.map((n) => `.${prefix}-${n}`).join(",")}{${extra.join(";")}}</style>`);
+  const pos = `${o.x !== undefined ? ` x="${o.x}"` : ""}${o.y !== undefined ? ` y="${o.y}"` : ""}`;
+  return s.replace(/^<svg([^>]*?)\swidth="\d+"\sheight="\d+"/, `<svg$1${pos} width="${Math.round(w * 100) / 100}" height="${Math.round(h * 100) / 100}" class="${o.cls ?? "logo-anim"}"`);
+}
+
+/** Position du logo animé qui recouvre exactement le mot-symbole statique placé en (x, y) avec `h` = hauteur des capitales. */
+export function logoAnimBoxForWordmark(x: number, y: number, h: number): { x: number; y: number; width: number; height: number } {
+  const [wx, wy, , wh] = WORDMARK_VIEWBOX;
+  const [ax, ay, aw, ah] = LOGO_ANIM_VIEWBOX;
+  const k = h / wh;
+  const r = (v: number) => Math.round(v * 100) / 100;
+  return { x: r(x - (wx - ax) * k), y: r(y - (wy - ay) * k), width: r(aw * k), height: r(ah * k) };
+}

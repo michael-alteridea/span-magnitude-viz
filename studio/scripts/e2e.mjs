@@ -725,6 +725,32 @@ async function e2ePublic() {
   check("Données publiques : aucune erreur console", errs.length === 0, errs.slice(0, 3).join(" | "));
   const words = await pg.evaluate(() => document.body.innerText);
   check("Données publiques : aucun mot interdit", !/certifi|conforme|authenticit|preuve/i.test(words));
+  // Logo C15 : en-tête (jaune vif sur fond sombre), favicon, introduction animée du mode lecture (toucher pour passer)
+  {
+    const hdr = await pg.evaluate(() => ({
+      wm: [...document.querySelectorAll("header svg.wordmark path")].map((p) => p.getAttribute("fill")),
+      icon: document.querySelector("link[rel=icon]")?.getAttribute("href"),
+    }));
+    const fav = await pg.evaluate(async () => (await (await fetch(document.querySelector("link[rel=icon]").href)).text()));
+    check("logo C15 : en-tête « DatAnime » (A jaune vif), favicon C15", hdr.wm.includes("#FFD000") && !hdr.wm.includes("#FF9F1C") && /#FFD000/.test(fav) && /#08465A/.test(fav), JSON.stringify(hdr));
+    const ip = await ctx.newPage();
+    await ip.evaluateOnNewDocument(() => localStorage.setItem("datanime:intro", "1"));
+    await ip.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await ip.goto(`${origin}${BASE}#/lire/demo-dircom`, { waitUntil: "domcontentloaded" });
+    await ip.waitForSelector("[data-testid=reader-intro]:not([hidden]) .film-intro-logo", { timeout: 20000 });
+    const i0 = await ip.evaluate(() => ({ anim: /@keyframes fi\d+-dataF/.test(document.querySelector("[data-testid=reader-intro]").innerHTML), counter: document.querySelector("[data-testid=reader-counter]")?.textContent }));
+    await shot("logo-intro-lecture-iphone.png");
+    await ip.tap("[data-testid=reader-intro]");
+    await sleep(400);
+    const i1 = await ip.evaluate(() => ({ hidden: document.querySelector("[data-testid=reader-intro]").hidden, marks: document.querySelector("[data-testid=reader-svg]")?.childElementCount ?? 0, hash: location.hash }));
+    check("mode lecture : introduction logo C15 animée (CSS), passée d'un toucher, lien profond inchangé", i0.anim && i1.hidden && i1.marks > 0 && i1.hash.startsWith("#/lire/demo-dircom"), JSON.stringify({ i0, i1 }));
+    await ip.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    await ip.goto(`${origin}${BASE}?r=2#/lire/demo-dircom`, { waitUntil: "networkidle0" });
+    await ip.waitForSelector("[data-testid=reader-svg] .r4d-cartouche", { timeout: 20000 });
+    const i2 = await ip.evaluate(() => document.querySelector("[data-testid=reader-intro]").hidden);
+    check("mode lecture : pas d'introduction avec « réduire les animations »", i2 === true, String(i2));
+    await ip.close();
+  }
   await ctx.close();
 }
 
@@ -3125,19 +3151,19 @@ try {
   await page.waitForSelector("[data-testid=chart-svg] .r4d-marks");
   const header = await page.$eval("header", (e) => e.textContent ?? "");
   check("en-tête « Datanime · Studio »", /Datanime\s*·\s*Studio/.test(header) && !/Reporting 4D/.test(header));
-  // Identité Datanime bleu pétrole : bouton principal, logo « Bulle + barres », palette par défaut, titre, favicon
+  // Identité Datanime bleu pétrole : bouton principal, logo C15 (A jaune à œil ▶), palette par défaut, titre, favicon
   const brand = await page.evaluate(() => ({
     btn: getComputedStyle(document.querySelector("[data-testid=export-menu]")).backgroundColor,
-    logo: document.querySelector(".brand .logo stop")?.getAttribute("stop-color"),
-    bars: document.querySelectorAll(".brand .logo svg rect").length,
+    logo: document.querySelector(".brand .logo svg rect")?.getAttribute("fill"),
+    eye: document.querySelector(".brand .logo svg path")?.getAttribute("fill"),
     palette: window.r4d.getSpec().style.palette,
     title: document.title,
     icon: document.querySelector("link[rel=icon]")?.getAttribute("href"),
     touch: document.querySelector("link[rel=apple-touch-icon]")?.getAttribute("href"),
   }));
   check(
-    "identité Datanime (bouton, logo Bulle + barres, palette, titre, favicon)",
-    brand.btn === "rgb(63, 167, 196)" && brand.logo === "#0E6E8C" && brand.bars >= 12 && brand.palette === "petrole" && /^Datanime · Studio/.test(brand.title) && /favicon\.svg$/.test(brand.icon ?? "") && /apple-touch-icon\.png$/.test(brand.touch ?? ""),
+    "identité Datanime (bouton, logo C15, palette, titre, favicon)",
+    brand.btn === "rgb(63, 167, 196)" && brand.logo === "#08465A" && brand.eye === "#FFD000" && brand.palette === "petrole" && /^Datanime · Studio/.test(brand.title) && /favicon\.svg$/.test(brand.icon ?? "") && /apple-touch-icon\.png$/.test(brand.touch ?? ""),
     JSON.stringify(brand)
   );
   {

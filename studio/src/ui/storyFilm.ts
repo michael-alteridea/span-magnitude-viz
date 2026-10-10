@@ -21,6 +21,21 @@ import { h, svgIcon, ICONS } from "./dom";
 import { focusDelta } from "../charts/focus";
 import { elementNotes } from "../story/elementNotes";
 import { bulletsDuration, bulletsShownAt } from "../story/bulletReveal";
+import { LOGO_ANIM_S, logoAnimMarkup } from "../brand";
+
+let introSeq = 0;
+/** Introduction du logo animé : jamais avec « réduire les animations », ni sous automate (tests), sauf demande explicite. */
+export function introEnabled(): boolean {
+  // DOM de test sans matchMedia (rendu en Node) : pas d'introduction
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function" || reducedMotion()) return false;
+  let forced = false;
+  try {
+    forced = localStorage.getItem("datanime:intro") === "1";
+  } catch {
+    /* stockage indisponible */
+  }
+  return forced || !(typeof navigator !== "undefined" && navigator.webdriver);
+}
 
 const BUILD_MS = 1300;
 /** Transition « mise en avant » (étape L) : grisé, part tirée, halo et bulle. */
@@ -76,6 +91,10 @@ export class StoryFilm {
   private busy = false;
   private p0: { x: number; y: number } | null = null;
   private onKey = (e: KeyboardEvent) => this.key(e);
+  /** Introduction (logo C15 animé, ~4 s, passée d'un toucher) avant la première diapositive. */
+  private intro: HTMLElement;
+  private introTimer = 0;
+  private introDone: (() => void) | null = null;
   private onResize = () => this.resized();
   private resizeTimer = 0;
   private lastSize = "";
@@ -115,12 +134,16 @@ export class StoryFilm {
     if (o.reading) bottom.append(btn(REPLAY_ICON, "Rejouer l'animation (R)", () => this.replay(), `${tid}-replay`, true));
     bottom.append(btn(ICONS.next, "Diapositive suivante (→)", () => this.next(), `${tid}-next`), this.dots);
     if (o.reading) bottom.append(h("span", { class: "film-help", "data-testid": `${tid}-help` }, "← → naviguer · Espace pause · R rejouer · Début / Fin · Échap fermer"));
+    this.intro = h("div", { class: "film-intro", hidden: true, role: "button", tabindex: "0", "aria-label": "Passer l'introduction", title: "Toucher pour passer", "data-testid": `${tid}-intro` });
+    this.intro.addEventListener("pointerdown", (e) => (e.stopPropagation(), e.preventDefault(), this.endIntro(true)));
+    this.intro.addEventListener("click", (e) => e.stopPropagation());
     this.root = h(
       "div",
       { class: `film${o.reading ? " reader" : ""}`, hidden: true, role: "dialog", "aria-label": o.reading ? "Mode lecture" : "Film de la séquence", "data-testid": tid },
       top,
       this.stage,
-      bottom
+      bottom,
+      this.intro
     );
   }
 
@@ -156,11 +179,39 @@ export class StoryFilm {
     document.addEventListener("keydown", this.onKey);
     window.addEventListener("resize", this.onResize);
     this.dots.replaceChildren(...snaps.map((s, k) => h("button", { class: "film-dot", type: "button", title: s.title || s.name, "aria-label": `Diapositive ${k + 1}`, onclick: (e: Event) => (e.stopPropagation(), this.go(k, false)) })));
-    this.go(this.i, false, true);
+    if (introEnabled()) this.startIntro(() => this.go(this.i, false, true));
+    else this.go(this.i, false, true);
+  }
+
+  /** L'introduction est-elle à l'écran ? */
+  get introShown(): boolean {
+    return !this.intro.hidden;
+  }
+
+  private startIntro(done: () => void): void {
+    this.endIntro(false);
+    this.introDone = done;
+    this.svg.style.opacity = "0";
+    this.intro.innerHTML = `${logoAnimMarkup("dark", `fi${++introSeq}`, { cls: "film-intro-logo" })}<span class="film-intro-hint">Toucher pour passer</span>`;
+    this.intro.hidden = false;
+    this.introTimer = window.setTimeout(() => this.endIntro(true), LOGO_ANIM_S * 1000 + 250);
+  }
+
+  /** Termine l'introduction ; `run` : enchaîne sur la première diapositive. */
+  private endIntro(run: boolean): void {
+    clearTimeout(this.introTimer);
+    const done = this.introDone;
+    this.introDone = null;
+    if (this.intro.hidden) return;
+    this.intro.hidden = true;
+    this.intro.replaceChildren();
+    this.svg.style.opacity = "1";
+    if (run && done) done();
   }
 
   /** Message plein écran (histoire introuvable sur cet appareil…). */
   showMessage(title: string, body: string, actions: { label: string; href?: string; onclick?: () => void }[] = []): void {
+    this.endIntro(false);
     this.stop();
     this.snaps = [];
     this.root.hidden = false;
@@ -183,6 +234,7 @@ export class StoryFilm {
 
   close(): void {
     if (this.root.hidden) return;
+    this.endIntro(false);
     this.stop();
     this.root.hidden = true;
     if (this.o.reading) document.body.classList.remove("reading-open");
@@ -194,6 +246,12 @@ export class StoryFilm {
 
   private key(e: KeyboardEvent): void {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key !== "Escape" && this.introShown) {
+      // pendant l'introduction, toute touche la passe (sans autre effet)
+      e.preventDefault();
+      this.endIntro(true);
+      return;
+    }
     if (e.key === "Escape") this.close();
     else if (e.key === "ArrowRight" || e.key === "PageDown" || (this.o.reading && e.key === "ArrowDown")) this.next();
     else if (e.key === "ArrowLeft" || e.key === "PageUp" || (this.o.reading && e.key === "ArrowUp")) this.prev();
@@ -293,6 +351,11 @@ export class StoryFilm {
   }
 
   private go(k: number, forward: boolean, first = false): void {
+    if (this.introShown) {
+      // navigation (point, lien profond) pendant l'introduction : on la coupe et on montre directement la diapositive
+      this.endIntro(false);
+      first = true;
+    }
     this.stop();
     const from = first ? undefined : this.snaps[this.i];
     const to = this.snaps[k]!;

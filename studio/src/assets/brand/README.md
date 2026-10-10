@@ -32,3 +32,18 @@ nom « Data » + « nime » vectorisé en Inter 700). Les fichiers techniques `t
 Utilisé dans l'en-tête du Studio, l'espace Revues, la page de vérification, le compte rendu, le cartouche
 (aperçu, exports, film, mode lecture, images publiées) et les PowerPoint. Nom accessible : « Datanime ».
 L'icône carrée et le favicon ne changent pas.
+
+## Logo C15 « DatAnime » (10 oct. 2026) — remplace le mot-symbole et l'icône ci-dessus
+
+Choisi par Michaël le 10 oct. 2026 : Inter Bold, « Dat » encre / blanc, **A capitale droite jaune dont l'œil est un ▶**
+(pointe vers la droite), « nime » pétrole. **Jaune or `#E3A600` sur fonds clairs, jaune vif `#FFD000` sur fonds sombres.**
+Sources : `docs/logo/a-majuscule/variantes/C15-*` (branche `wip/logo-a-majuscule`).
+
+- `wordmark.ts`, `datanime-wordmark-{light,dark}.svg` : mot-symbole C15 (chemins vectorisés, œil évidé `fill-rule="evenodd"`),
+  même échelle verticale que l'ancien (viewBox `205 37.5 491.5 86`), PNG 96 px pour PowerPoint.
+- `tell4d-h1-icon.svg` (+ PNG 512/64/32/24, `icon-png.ts`), `public/favicon.svg`, `public/apple-touch-icon.png` (180 px, plein cadre) :
+  icône carrée C15 (A jaune vif à œil ▶ sur pétrole profond `#08465A`). Noms de fichiers conservés (imports inchangés).
+- `datanime-lockup*.svg` : icône C15 + mot-symbole C15.
+- `logo-anim-{light,dark}.svg` : animation CSS seule (4,2 s, `prefers-reduced-motion` → image finale fixe), via
+  `logoAnimMarkup()` (classes, keyframes et masques préfixés). Jouée en introduction du Film et du mode lecture (toucher
+  pour passer) et sur la carte de fin du Reel (figée image par image : `seek` = instant t, rendu déterministe).
