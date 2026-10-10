@@ -86,5 +86,5 @@ Fichiers : `anim/logo-anim-caps-final-dark.svg` (+ `logo-anim-caps-final.svg` cl
 ## Réglages finaux, minuscules (sans accents, sombre) — `anim_min_final.py`
 
 « Data » + « anime » → les deux a glissent sans changer de couleur (le a d'« anime » passe sous celui de « Data »)
-→ métamorphose a → A en blanc (2,40–2,80 s) → le A jaunit (blanc → jaune vif, 2,90–3,30 s) → pivot en ▶ (3,35–4,15 s). 4,2 s puis tenue.
-Fichiers : `anim/logo-anim-minuscules-final-dark.svg`, `anim/logo-anim-minuscules-final-1920x1080-sombre.mp4` (5,8 s), `anim/logo-anim-minuscules-final-800-sombre.gif`.
+→ métamorphose a → A en blanc (2,40–2,80 s ; tout opaque, sans fantôme : le A grandit depuis l’intérieur du a, le a n’est visible qu’hors de la silhouette du A puis entièrement recouvert) → le A jaunit (2,90–3,30 s, interpolation OKLCH : pas d’olive sur fond clair) → pivot en ▶ (3,35–4,15 s). 4,2 s puis tenue.
+Fichiers : `anim/logo-anim-minuscules-final-dark.svg`, `anim/logo-anim-minuscules-final.svg` (clair, jaune or), `anim/logo-anim-minuscules-final-1920x1080-sombre.mp4` (5,8 s), `anim/logo-anim-minuscules-final-800-sombre.gif`.
