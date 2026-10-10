@@ -1,0 +1,71 @@
+{
+ "jaunes": {
+  "jaune-or": "jaune or",
+  "jaune-vif": "jaune vif"
+ },
+ "variantes": {
+  "V0": {
+   "description": "Référence actuelle (studio) : « a » orange simple. Pour comparaison.",
+   "fichiers": {
+    "V0-light": "V0-light.svg",
+    "V0-dark": "V0-dark.svg"
+   },
+   "info": {}
+  },
+  "A1": {
+   "description": "« DatAnime » : un A capital normal en jaune, pleine hauteur de capitale.",
+   "fichiers": {
+    "A1-light-jaune-or": "A1-light-jaune-or.svg",
+    "A1-dark-jaune-or": "A1-dark-jaune-or.svg",
+    "A1-light-jaune-vif": "A1-light-jaune-vif.svg",
+    "A1-dark-jaune-vif": "A1-dark-jaune-vif.svg"
+   },
+   "info": {}
+  },
+  "A2": {
+   "description": "A capital réduit à la hauteur d’x de « nime » (Inter ExtraBold pour garder la graisse), en jaune.",
+   "fichiers": {
+    "A2-light-jaune-or": "A2-light-jaune-or.svg",
+    "A2-dark-jaune-or": "A2-dark-jaune-or.svg",
+    "A2-light-jaune-vif": "A2-light-jaune-vif.svg",
+    "A2-dark-jaune-vif": "A2-dark-jaune-vif.svg"
+   },
+   "info": {}
+  },
+  "B1": {
+   "description": "▶ plein = A tourné d’un quart de tour horaire ; la barre du A devient une fente verticale (deux pièces).",
+   "fichiers": {
+    "B1-light-jaune-or": "B1-light-jaune-or.svg",
+    "B1-dark-jaune-or": "B1-dark-jaune-or.svg",
+    "B1-light-jaune-vif": "B1-light-jaune-vif.svg",
+    "B1-dark-jaune-vif": "B1-dark-jaune-vif.svg"
+   },
+   "info": {}
+  },
+  "B2": {
+   "description": "Le vrai A d’Inter Bold tourné de 90° horaire : la pointe regarde à droite (▶), l’œil reste visible.",
+   "fichiers": {
+    "B2-light-jaune-or": "B2-light-jaune-or.svg",
+    "B2-dark-jaune-or": "B2-dark-jaune-or.svg",
+    "B2-light-jaune-vif": "B2-light-jaune-vif.svg",
+    "B2-dark-jaune-vif": "B2-dark-jaune-vif.svg"
+   },
+   "info": {}
+  },
+  "B3": {
+   "description": "▶ arrondi évidé : l’œil du A devient un trou triangulaire près de la pointe (fût 0,15 × hauteur).",
+   "fichiers": {
+    "B3-light-jaune-or": "B3-light-jaune-or.svg",
+    "B3-dark-jaune-or": "B3-dark-jaune-or.svg",
+    "B3-light-jaune-vif": "B3-light-jaune-vif.svg",
+    "B3-dark-jaune-vif": "B3-dark-jaune-vif.svg"
+   },
+   "info": {
+    "trou_px_a_112": [
+     21.8,
+     24.2
+    ]
+   }
+  }
+ }
+}
