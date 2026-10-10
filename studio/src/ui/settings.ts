@@ -971,7 +971,13 @@ export class SettingsPanel {
     if (t === "groupedBar" || t === "stackedBar")
       main.push(this.kw(this.line("Orientation", this.segmented("style.horizontal", [["false", "Verticales"], ["true", "Horizontales"]], { parse: (v) => v === "true" })), "barres horizontales verticales"));
     if (isCartesian(t) && t !== "scatter") main.push(this.check("style.valueLabels", "Étiquettes de valeur", undefined, "valeurs libellés chiffres sur les barres"));
-    if ((t === "bar" || t === "barH" || t === "race") && !spec.norme.enabled) main.push(this.capTiles(spec));
+    if ((t === "bar" || t === "barH" || t === "race") && !spec.norme.enabled) {
+      main.push(this.capTiles(spec));
+      if (spec.style.barCap === "icon" || spec.style.barCap === "picto") {
+        const g = this.iconRows(spec, cols);
+        if (g) main.push(g);
+      }
+    }
     if (t === "scatter") main.push(...this.pointShapeFields(spec));
     if (t === "line" || t === "area" || t === "stackedArea" || (isCartesian(t) && spec.encoding.y2)) main.push(this.kw(this.line("Courbe", this.segmented("style.curve", [["monotone", "Lissée"], ["linear", "Droite"], ["step", "Marches"]])), "ligne lissage"));
     if (isCartesian(t) || isRadial(t)) {
@@ -1003,10 +1009,6 @@ export class SettingsPanel {
     }
     if (t === "drill") main.push(h("p", { class: "muted small" }, "Cliquez une barre pour zoomer (trimestre → mois → jour), une région ou une ligne pour la focaliser. Le fil d'Ariane au-dessus de l'aperçu permet de revenir en arrière."));
 
-    if ((t === "bar" || t === "barH") && !spec.norme.enabled && (spec.style.barCap === "icon" || spec.style.barCap === "picto")) {
-      const g = this.iconRows(spec, cols);
-      if (g) more.push(g);
-    }
     if (!isSpecial(t)) more.push(this.row("Légende", this.select("style.legend", [["auto", "Auto"], ["top", "En haut"], ["bottom", "En bas"], ["right", "À droite"], ["none", "Aucune"]]), undefined, "légende position"));
     if (t === "stackedBar" || t === "stackedArea") more.push(this.check("style.normalize", "Empilement 100 %", undefined, "pourcentage part"));
     if (isCartesian(t)) {
