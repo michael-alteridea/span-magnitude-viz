@@ -38,6 +38,8 @@ export interface DataActions {
   deleteColumn?(name: string): void;
   /** Sous-dataset à partir d'un dataset existant. */
   subDataset?(id: string): void;
+  /** Croiser deux datasets par une clé commune. */
+  crossDatasets?(): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -112,7 +114,8 @@ export class DataPanel {
           { class: "block ds-derived", "data-testid": "ds-derived" },
           h("h3", { class: "ds-sec-h" }, "Datasets dérivés", this.treeCount),
           this.tree,
-          h("button", { type: "button", class: "btn ds-new", "data-testid": "ds-new", title: "Filtres permanents et colonnes gardées, enregistrés comme un dataset réutilisable par plusieurs graphiques", onclick: () => actions.editDataset?.(null) }, h("span", { html: svgIcon(ICONS.add, 14) }), "Nouveau dataset depuis la source")
+          h("button", { type: "button", class: "btn ds-new", "data-testid": "ds-new", title: "Filtres permanents et colonnes gardées, enregistrés comme un dataset réutilisable par plusieurs graphiques", onclick: () => actions.editDataset?.(null) }, h("span", { html: svgIcon(ICONS.add, 14) }), "Nouveau dataset depuis la source"),
+          h("button", { type: "button", class: "btn", "data-testid": "ds-cross", title: "Croiser deux datasets par une colonne commune", onclick: () => actions.crossDatasets?.() }, "Croiser deux datasets")
         ),
         // Colonnes du dataset actif + Explorer ce dataset
         h(

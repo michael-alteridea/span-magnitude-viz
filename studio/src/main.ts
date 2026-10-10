@@ -78,7 +78,7 @@ import { ProjectsDialog } from "./ui/projectsDialog";
 import { confirmDialog } from "./ui/confirm";
 import { DatasetEditor, type DatasetDraft } from "./ui/datasetEditor";
 import { datasetChangeDialog } from "./ui/datasetDialog";
-import { createDataset, describeRecipe, findDataset, nextDatasetId, sameRecipe, sceneRef, scenesLabel, scenesUsing, toRef, uniqueDatasetName, updateDataset, chipGroups, chipText } from "./data/datasets";
+import { createDataset, describeRecipe, findDataset, nextDatasetId, sameRecipe, sceneRef, scenesLabel, scenesUsing, toRef, uniqueDatasetName, updateDataset, chipGroups, chipText, joinOn } from "./data/datasets";
 import { applyRecipe, datasetBase } from "./data/transform";
 import { REVIEWS_KEY } from "./review/storage";
 import type { DatasetRef } from "./spec";
@@ -446,7 +446,40 @@ const actions = {
   },
   deleteRow: dropRow,
   deleteColumn: dropColumn,
-  subDataset(id: string) {
+  crossDatasets() {
+    const src = store.state.ds;
+    const list = store.state.datasets;
+    if (!src || list.length < 2) { toast("Il faut au moins deux datasets.", "error"); return; }
+    const root = h("div", { style: "position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center" });
+    const box = h("div", { style: "background:#111;color:#f4f4f5;width:min(460px,94vw);border-radius:12px;padding:18px;font:14px system-ui;display:flex;flex-direction:column;gap:10px" });
+    const sel = (id: string) => h("select", { id, style: "padding:6px;border-radius:6px;background:#18181b;color:#fff;border:1px solid #3f3f46" }, ...list.map((d) => h("option", { value: d.id }, `${d.id} · ${d.name}`))) as HTMLSelectElement;
+    const a = sel("xa"), b = sel("xb");
+    b.selectedIndex = Math.min(1, list.length - 1);
+    const keySel = h("select", { style: "padding:6px;border-radius:6px;background:#18181b;color:#fff;border:1px solid #3f3f46" }) as HTMLSelectElement;
+    const refresh = () => {
+      const da = list.find((d) => d.id === a.value), db = list.find((d) => d.id === b.value);
+      if (!da || !db) return;
+      const ca = new Set(applyRecipe(src, da).columns.map((c) => c.name));
+      const common = applyRecipe(src, db).columns.map((c) => c.name).filter((n) => ca.has(n));
+      keySel.replaceChildren(...(common.length ? common : ["— aucune commune —"]).map((n) => h("option", { value: n }, n)));
+    };
+    a.addEventListener("change", refresh); b.addEventListener("change", refresh); refresh();
+    const go = h("button", { type: "button", style: "padding:8px 14px;border-radius:8px;border:0;background:#3FA7C4;color:#04222b;font-weight:650;cursor:pointer" }, "Croiser");
+    go.addEventListener("click", () => {
+      const da = list.find((d) => d.id === a.value), db = list.find((d) => d.id === b.value);
+      if (!da || !db || !keySel.value || keySel.value.startsWith("—")) { toast("Choisissez une clé commune.", "error"); return; }
+      const rows = joinOn(applyRecipe(src, da), applyRecipe(src, db), keySel.value);
+      if (!rows.length) { toast("Aucune ligne en commun sur cette clé.", "error"); return; }
+      store.setDataset(buildDataset(`${da.name} × ${db.name}`, rows));
+      toast(`${rows.length.toLocaleString("fr-FR")} lignes croisées.`, "ok");
+      root.remove();
+    });
+    box.append(h("strong", null, "Croiser deux datasets"), h("label", null, "Premier"), a, h("label", null, "Second"), b, h("label", null, "Clé commune"), keySel, h("div", { style: "display:flex;gap:8px;justify-content:flex-end" }, h("button", { type: "button", style: "padding:8px 14px;border-radius:8px;border:1px solid #3f3f46;background:transparent;color:#fff;cursor:pointer", onclick: () => root.remove() }, "Annuler"), go));
+    root.append(box);
+    root.addEventListener("click", (e) => { if (e.target === root) root.remove(); });
+    document.body.append(root);
+  },
+    subDataset(id: string) {
     const src = store.state.ds;
     const d = store.state.datasets.find((x) => x.id === id);
     if (!src || !d) return;

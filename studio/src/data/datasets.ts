@@ -252,3 +252,33 @@ export function parseDatasets(input: unknown): DatasetRecipe[] {
   }
   return out;
 }
+
+/** Croise deux datasets sur une clé commune : pour chaque valeur, produit cartésien des lignes. Les colonnes du second sont préfixées. */
+export function joinOn(a: Dataset, b: Dataset, key: string): Record<string, unknown>[] {
+  const groups = (ds: Dataset) => {
+    const m = new Map<string, Record<string, unknown>[]>();
+    for (const r of ds.rows) {
+      const k = r[key];
+      if (k == null || k === "") continue;
+      const s = String(k);
+      const arr = m.get(s) ?? [];
+      arr.push(r);
+      m.set(s, arr);
+    }
+    return m;
+  };
+  const ga = groups(a), gb = groups(b);
+  const bCols = b.columns.filter((c) => c.name !== key).map((c) => c.name);
+  const rows: Record<string, unknown>[] = [];
+  for (const [k, ra] of ga) {
+    const rb = gb.get(k);
+    if (!rb) continue;
+    for (const x of ra) for (const y of rb) {
+      const row: Record<string, unknown> = { ...x };
+      for (const c of bCols) row[`${b.name} · ${c}`] = y[c];
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
