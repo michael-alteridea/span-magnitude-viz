@@ -12,7 +12,7 @@ import { WORDMARK_COLORS, WORDMARK_PATHS, WORDMARK_PNG, WORDMARK_RATIO, WORDMARK
 export { WORDMARK_PNG, WORDMARK_RATIO };
 
 export const PRODUCT_LABEL = "Datanime";
-export const PLATFORM_URL = "https://alteridea-dashboard.web.app/reporting/";
+export const PLATFORM_URL = "https://datanime.io/reporting/";
 /** Libellé court du lien affiché dans les exports (PowerPoint…). */
 export const PLATFORM_HOST = PLATFORM_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
 /** Couleurs du logo (bleu pétrole). */

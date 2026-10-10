@@ -2102,7 +2102,7 @@ async function resolveReading(storyId: string): Promise<{ title: string; snapsho
   return r ? { title: r.title, snapshots: r.snapshots } : null;
 }
 
-async function openReading(rt: ReadRoute): Promise<void> {
+async function openReading(rt: ReadRoute, fromQr = false): Promise<void> {
   const seq = ++readSeq;
   const story = await resolveReading(rt.storyId);
   if (seq !== readSeq) return;
@@ -2136,6 +2136,17 @@ async function openReading(rt: ReadRoute): Promise<void> {
   }
   const same = reader.isOpen && readerStory === rt.storyId;
   readerStory = rt.storyId;
+  if (fromQr && rt.snapId) {
+    reader.showMessage(
+      "Que voulez-vous rejouer ?",
+      `« ${story.title || "Cette présentation"} » · scène ${k + 1}.`,
+      [
+        { label: "Ce graphique", onclick: () => reader.open(story.snapshots, k, story.title) },
+        { label: "Toute la présentation", onclick: () => reader.open(story.snapshots, 0, story.title) },
+      ]
+    );
+    return;
+  }
   if (same) {
     if (reader.index !== k) reader.goTo(k);
   } else reader.open(story.snapshots, k, story.title);
@@ -2160,7 +2171,7 @@ async function route(hash: string): Promise<void> {
     const own = inAppRead !== null && inAppRead === hash;
     inAppRead = null;
     if (!own && !(await ensureAccess(rt.storyId, rt.snapId))) return;
-    return openReading(rt);
+    return openReading(rt, !own);
   }
   if (reader.isOpen) {
     closingFromRoute = true;

@@ -8,6 +8,7 @@ import type { Store, ChangeKind } from "../state";
 import { chartSize, isSpecial, type DrillStep } from "../spec";
 import { clearZoom, consumeDrillZoom, diveIn, dominantFill, easeOut, emergeMs, foldOut, markForStep, paintCollapse, paintVeil, pathDelta, zoomEnabled } from "./drillZoom";
 import { fourDActive, prepareCache, renderChart, type PrepCache, type RenderResult } from "../charts/render";
+import { LOCAL_STORY_ID, READING_PUBLIC_BASE, readUrl } from "../story/reading";
 import { effectiveDataset } from "../data/transform";
 import type { Frame, PlotRect } from "../charts/context";
 import { ensureFont, fontStack } from "../theme";
@@ -220,7 +221,9 @@ export class Preview {
     const { spec, ds } = this.store.state;
     const p = this.mode === "none" ? 1 : Math.min(1, this.t / this.duration());
     const frame = this.frameAt(this.mode === "special" ? 1 : p);
-    this.last = renderChart(this.svg, spec, ds, this.cache!, frame);
+    const snaps = this.store.state.story.snapshots;
+    const qr = snaps.length ? readUrl(READING_PUBLIC_BASE, LOCAL_STORY_ID, snaps[0]!.id) : null;
+    this.last = renderChart(this.svg, spec, ds, this.cache!, frame, { qrUrl: qr });
     this.paintZoomFx();
     this.fit();
     this.selection.paint();
