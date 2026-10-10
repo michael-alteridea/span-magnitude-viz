@@ -255,6 +255,22 @@ function editCell(row: number, column: string, text: string): void {
   attachProvenance(safeHash(() => hashRows(raw)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: name, rows: nds.rows.length, cols: nds.columns.length }) : null)));
 }
 
+function dropRow(index: number): void {
+  const ds = store.state.ds;
+  if (!ds || index < 0 || index >= ds.raw.length) return;
+  const raw = ds.raw.filter((_, i) => i !== index);
+  store.setDataset(buildDataset(ds.name, raw, ds.typeOverrides), { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+}
+
+function dropColumn(name: string): void {
+  const ds = store.state.ds;
+  if (!ds || !ds.columns.some((c) => c.name === name)) return;
+  const raw = ds.raw.map((r) => { const o = { ...r }; delete o[name]; return o; });
+  const overrides = { ...ds.typeOverrides };
+  delete overrides[name];
+  store.setDataset(buildDataset(ds.name, raw, overrides), { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+}
+
 async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<void> {
   const ds = buildDataset(res.name, res.rows);
   if (!ds.columns.length || !ds.rows.length) throw new Error("Aucune ligne exploitable.");
@@ -424,6 +440,8 @@ const actions = {
   reshape() {
     reopenMapping();
   },
+  deleteRow: dropRow,
+  deleteColumn: dropColumn,
 };
 
 /** Ouvre une piste de l'Explorer dans l'éditeur (style courant conservé). */

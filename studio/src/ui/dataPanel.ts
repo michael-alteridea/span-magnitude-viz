@@ -34,6 +34,8 @@ export interface DataActions {
   openData?(): void;
   /** Fenêtre Données, étape « Filtrer » : modifier un dataset (id) ou en créer un depuis la source (null). */
   editDataset?(id: string | null): void;
+  deleteRow?(index: number): void;
+  deleteColumn?(name: string): void;
 }
 
 const TYPE_ORDER: ColumnType[] = ["number", "date", "category", "text"];
@@ -99,7 +101,7 @@ export class DataPanel {
             "div",
             { class: "ds-src-btns" },
             h("button", { type: "button", class: "btn ds-change", "data-testid": "data-open", title: "Remplacer la source : importer un fichier, coller un tableau, rouvrir un jeu récent, choisir un exemple ou des données publiques", onclick: () => actions.openData?.() }, h("span", { html: svgIcon(ICONS.folder, 15) }), "Remplacer"),
-            h("button", { type: "button", class: "btn", "data-testid": "ds-preview", title: "Aperçu des lignes de la source (types détectés, cellules modifiables)", onclick: () => { const ds = this.store.state.ds; if (ds) openBrowse(ds); } }, h("span", { html: svgIcon(ICONS.table, 15) }), "Aperçu")
+            h("button", { type: "button", class: "btn", "data-testid": "ds-preview", title: "Aperçu des lignes de la source (types détectés, cellules modifiables)", onclick: () => openBrowse({ current: () => this.store.state.ds, deleteRow: (i) => this.actions.deleteRow?.(i), deleteColumn: (n) => this.actions.deleteColumn?.(n) }) }, h("span", { html: svgIcon(ICONS.table, 15) }), "Aperçu")
           )
         ),
         // Datasets dérivés (arbre) : l'actif est celui du graphique
