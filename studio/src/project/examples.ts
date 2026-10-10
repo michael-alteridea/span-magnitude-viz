@@ -20,6 +20,12 @@ export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
     description: "Brent (€/baril) et mazout belge (€/litre), 2019-2026 : deux axes, une scène prête",
     file: "exemples/petrole-mazout.datanime",
   },
+  {
+    id: "mazout-decroche",
+    name: "Le mazout décroche du pétrole",
+    description: "Mazout belge et Brent en euros, annuel 2019-2025 et mensuel nov. 2025 - août 2026 : 7 scènes, rapport mazout / brut",
+    file: "exemples/mazout-decroche.datanime",
+  },
 ];
 
 /** Projet d'exemple désigné par la valeur de `?projet=` (insensible à la casse et aux espaces), sinon null. */

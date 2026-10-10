@@ -1,0 +1,1168 @@
+{
+ "kind": "datanime-project",
+ "version": 1,
+ "exportedAt": "2026-10-10T05:44:46.844Z",
+ "withData": true,
+ "project": {
+  "id": "prj-mazout-decroche",
+  "name": "Le mazout décroche du pétrole",
+  "createdAt": "2026-10-10T05:44:46.844Z",
+  "updatedAt": "2026-10-10T05:44:46.844Z",
+  "source": {
+   "name": "Mazout et Brent",
+   "sampleId": null,
+   "rows": [
+    {
+     "Période": "2019",
+     "Granularité": "Année",
+     "Date": "2019-01-01",
+     "Mazout €/L": 0.7,
+     "Brent €/baril": 57.5,
+     "Rapport": 1.93,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2020",
+     "Granularité": "Année",
+     "Date": "2020-01-01",
+     "Mazout €/L": 0.49,
+     "Brent €/baril": 36.6,
+     "Rapport": 2.13,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2021",
+     "Granularité": "Année",
+     "Date": "2021-01-01",
+     "Mazout €/L": 0.68,
+     "Brent €/baril": 59.9,
+     "Rapport": 1.8,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2022",
+     "Granularité": "Année",
+     "Date": "2022-01-01",
+     "Mazout €/L": 1.23,
+     "Brent €/baril": 95.7,
+     "Rapport": 2.04,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2023",
+     "Granularité": "Année",
+     "Date": "2023-01-01",
+     "Mazout €/L": 1,
+     "Brent €/baril": 76.3,
+     "Rapport": 2.08,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2024",
+     "Granularité": "Année",
+     "Date": "2024-01-01",
+     "Mazout €/L": 0.93,
+     "Brent €/baril": 74.4,
+     "Rapport": 1.99,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "2025",
+     "Granularité": "Année",
+     "Date": "2025-01-01",
+     "Mazout €/L": 0.84,
+     "Brent €/baril": 61.3,
+     "Rapport": 2.18,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "nov. 2025",
+     "Granularité": "Mois",
+     "Date": "2025-11-01",
+     "Mazout €/L": 0.89,
+     "Brent €/baril": 55,
+     "Rapport": 2.57,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "déc. 2025",
+     "Granularité": "Mois",
+     "Date": "2025-12-01",
+     "Mazout €/L": 0.78,
+     "Brent €/baril": 52.7,
+     "Rapport": 2.36,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "janv. 2026",
+     "Granularité": "Mois",
+     "Date": "2026-01-01",
+     "Mazout €/L": 0.78,
+     "Brent €/baril": 55.1,
+     "Rapport": 2.25,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "févr. 2026",
+     "Granularité": "Mois",
+     "Date": "2026-02-01",
+     "Mazout €/L": 0.83,
+     "Brent €/baril": 58.7,
+     "Rapport": 2.25,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "mars 2026",
+     "Granularité": "Mois",
+     "Date": "2026-03-01",
+     "Mazout €/L": 1.22,
+     "Brent €/baril": 85.6,
+     "Rapport": 2.27,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "avr. 2026",
+     "Granularité": "Mois",
+     "Date": "2026-04-01",
+     "Mazout €/L": 1.39,
+     "Brent €/baril": 87.1,
+     "Rapport": 2.54,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "mai 2026",
+     "Granularité": "Mois",
+     "Date": "2026-05-01",
+     "Mazout €/L": 1.27,
+     "Brent €/baril": 88.6,
+     "Rapport": 2.28,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "juin 2026",
+     "Granularité": "Mois",
+     "Date": "2026-06-01",
+     "Mazout €/L": 1.09,
+     "Brent €/baril": 73.3,
+     "Rapport": 2.36,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "juil. 2026",
+     "Granularité": "Mois",
+     "Date": "2026-07-01",
+     "Mazout €/L": 1.23,
+     "Brent €/baril": 73.5,
+     "Rapport": 2.66,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    },
+    {
+     "Période": "août 2026",
+     "Granularité": "Mois",
+     "Date": "2026-08-01",
+     "Mazout €/L": 1.34,
+     "Brent €/baril": 75.9,
+     "Rapport": 2.81,
+     "Source": "Brent : Insee, série 010002078, € par baril ; Mazout : SPF Économie via CallMePower, prix officiel < 2 000 L, € par litre"
+    }
+   ],
+   "typeOverrides": {
+    "Période": "category",
+    "Granularité": "category",
+    "Date": "text",
+    "Mazout €/L": "number",
+    "Brent €/baril": "number",
+    "Rapport": "number",
+    "Source": "text"
+   },
+   "provenance": null,
+   "note": "Annuel 2019-2025 (D1) et mensuel nov. 2025 - août 2026 (D2). Septembre 2026 absent. Rapport = mazout €/L ÷ (Brent €/baril ÷ 159).",
+   "rowCount": 17,
+   "colCount": 7
+  },
+  "spec": {
+   "$schema": "reporting-4d-studio/spec-v1",
+   "version": 1,
+   "type": "bar",
+   "encoding": {
+    "x": "Période",
+    "y": [
+     "Rapport"
+    ],
+    "y2": null,
+    "aggregate": "sum",
+    "y2Aggregate": "mean"
+   },
+   "axes": {
+    "x": {
+     "grid": false
+    },
+    "y": {
+     "decimals": 2,
+     "title": "",
+     "min": 0,
+     "max": 3,
+     "show": false,
+     "grid": false
+    },
+    "y2": {
+     "grid": false
+    }
+   },
+   "dataset": {
+    "id": "D2",
+    "version": 1,
+    "name": "Mensuel nov. 2025 - août 2026",
+    "filters": [
+     {
+      "field": "Granularité",
+      "op": "in",
+      "values": [
+       "Mois"
+      ],
+      "value": null,
+      "label": "Mois"
+     }
+    ],
+    "columns": []
+   },
+   "transform": {
+    "calculate": [],
+    "filters": [
+     {
+      "field": "Période",
+      "op": "in",
+      "values": [
+       "août 2026"
+      ],
+      "value": null,
+      "label": "août 2026"
+     }
+    ]
+   },
+   "style": {
+    "title": "Le mazout décroche du pétrole",
+    "subtitle": "Belgique, prix officiel. Brent en euros.",
+    "source": "Sources : Insee, SPF Éco",
+    "valueLabels": true,
+    "legend": "none",
+    "curve": "linear",
+    "palette": "custom",
+    "paletteCustom": [
+     "#a88beb"
+    ],
+    "size": {
+     "preset": "custom",
+     "width": 1600,
+     "height": 800
+    },
+    "overrides": {
+     "e:août 2026": {
+      "label": "{valeur} fois (août 2026)",
+      "labelSize": 32,
+      "labelBold": true
+     }
+    },
+    "focus": {
+     "key": null,
+     "title": "",
+     "note": "",
+     "average": false
+    }
+   },
+   "story": {
+    "auto": false,
+    "edited": {
+     "title": true,
+     "subtitle": true,
+     "comments": true
+    },
+    "comments": [],
+    "showComments": false
+   },
+   "norme": {
+    "enabled": false,
+    "autoSwitch": false
+   }
+  },
+  "sequence": {
+   "title": "Le mazout décroche du pétrole",
+   "snapshots": [
+    {
+     "id": "snap-mazout-decroche-titre",
+     "name": "Le mazout décroche du pétrole",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Rapport"
+       ],
+       "y2": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "",
+        "min": 0,
+        "max": 3,
+        "show": false,
+        "grid": false
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Mensuel nov. 2025 - août 2026",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Mois"
+         ],
+         "value": null,
+         "label": "Mois"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": [
+        {
+         "field": "Période",
+         "op": "in",
+         "values": [
+          "août 2026"
+         ],
+         "value": null,
+         "label": "août 2026"
+        }
+       ]
+      },
+      "style": {
+       "title": "Le mazout décroche du pétrole",
+       "subtitle": "Belgique, prix officiel. Brent en euros.",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:août 2026": {
+         "label": "{valeur} fois (août 2026)",
+         "labelSize": 32,
+         "labelBold": true
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [],
+       "showComments": false
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Le mazout décroche du pétrole",
+     "subtitle": "Belgique, prix officiel. Brent en euros.",
+     "comments": [],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-annuel",
+     "name": "Mazout et Brent, moyennes annuelles 2019-2025",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Mazout €/L"
+       ],
+       "y2": "Brent €/baril",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Mazout, € par litre",
+        "min": 0,
+        "max": 2
+       },
+       "y2": {
+        "decimals": 1,
+        "title": "Brent, € par baril",
+        "min": 0,
+        "max": 100,
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 2019-2025",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Année"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "style": {
+       "title": "Mazout et Brent, moyennes annuelles 2019-2025",
+       "subtitle": "Mazout belge, prix officiel, € par litre (axe gauche). Brent, € par baril (axe droit).",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Les deux tombent après 2022."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Mazout et Brent, moyennes annuelles 2019-2025",
+     "subtitle": "Mazout belge, prix officiel, € par litre (axe gauche). Brent, € par baril (axe droit).",
+     "comments": [
+      "Les deux tombent après 2022."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-pic-2022",
+     "name": "2022, l'année du pic",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Mazout €/L"
+       ],
+       "y2": "Brent €/baril",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Mazout, € par litre",
+        "min": 0,
+        "max": 2
+       },
+       "y2": {
+        "decimals": 1,
+        "title": "Brent, € par baril",
+        "min": 0,
+        "max": 100,
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 2019-2025",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Année"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "style": {
+       "title": "2022, l'année du pic",
+       "subtitle": "Mazout belge, prix officiel, € par litre (axe gauche). Brent, € par baril (axe droit).",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": "2022",
+        "title": "2022",
+        "note": "Mazout 1,23 €/L, Brent 95,7 €/baril",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "2022 : mazout 1,23 €/L, Brent 95,7 €/baril."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "2022, l'année du pic",
+     "subtitle": "Mazout belge, prix officiel, € par litre (axe gauche). Brent, € par baril (axe droit).",
+     "comments": [
+      "2022 : mazout 1,23 €/L, Brent 95,7 €/baril."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-mensuel",
+     "name": "Mazout et Brent, mois par mois",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Mazout €/L"
+       ],
+       "y2": "Brent €/baril",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Mazout, € par litre",
+        "min": 0,
+        "max": 2
+       },
+       "y2": {
+        "decimals": 1,
+        "title": "Brent, € par baril",
+        "min": 0,
+        "max": 100,
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Mensuel nov. 2025 - août 2026",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Mois"
+         ],
+         "value": null,
+         "label": "Mois"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "style": {
+       "title": "Mazout et Brent, mois par mois",
+       "subtitle": "Novembre 2025 à août 2026. Mazout, € par litre (gauche). Brent, € par baril (droite).",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Septembre 2026 : inconnu pour le Brent en euros."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Mazout et Brent, mois par mois",
+     "subtitle": "Novembre 2025 à août 2026. Mazout, € par litre (gauche). Brent, € par baril (droite).",
+     "comments": [
+      "Septembre 2026 : inconnu pour le Brent en euros."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-rapport-annuel",
+     "name": "Combien de fois un litre de mazout coûte plus qu'un litre de brut",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Rapport"
+       ],
+       "y2": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Rapport (fois)",
+        "min": 0,
+        "max": 3
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 2019-2025",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Année"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "style": {
+       "title": "Combien de fois un litre de mazout coûte plus qu'un litre de brut",
+       "subtitle": "Moyennes annuelles 2019-2025. Rapport = mazout €/L ÷ (Brent €/baril ÷ 159).",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Formule : mazout €/L ÷ (Brent €/baril ÷ 159)."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Combien de fois un litre de mazout coûte plus qu'un litre de brut",
+     "subtitle": "Moyennes annuelles 2019-2025. Rapport = mazout €/L ÷ (Brent €/baril ÷ 159).",
+     "comments": [
+      "Formule : mazout €/L ÷ (Brent €/baril ÷ 159)."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-rapport-mensuel",
+     "name": "Le rapport, mois par mois",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Rapport"
+       ],
+       "y2": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Rapport (fois)",
+        "min": 0,
+        "max": 3
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Mensuel nov. 2025 - août 2026",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Mois"
+         ],
+         "value": null,
+         "label": "Mois"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "style": {
+       "title": "Le rapport, mois par mois",
+       "subtitle": "Novembre 2025 à août 2026. Rapport = mazout €/L ÷ (Brent €/baril ÷ 159).",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:janv. 2026": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        },
+        "e:août 2026": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "De janvier à août 2026, le rapport passe de 2,25 à 2,81."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Le rapport, mois par mois",
+     "subtitle": "Novembre 2025 à août 2026. Rapport = mazout €/L ÷ (Brent €/baril ÷ 159).",
+     "comments": [
+      "De janvier à août 2026, le rapport passe de 2,25 à 2,81."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    },
+    {
+     "id": "snap-mazout-decroche-conclusion",
+     "name": "Depuis janvier, le mazout grimpe plus vite que le pétrole.",
+     "createdAt": "2026-10-10T05:44:46.844Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Période",
+       "y": [
+        "Rapport"
+       ],
+       "y2": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 2,
+        "title": "Rapport (fois)",
+        "min": 0,
+        "max": 3
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Mensuel nov. 2025 - août 2026",
+       "filters": [
+        {
+         "field": "Granularité",
+         "op": "in",
+         "values": [
+          "Mois"
+         ],
+         "value": null,
+         "label": "Mois"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": [
+        {
+         "field": "Période",
+         "op": "in",
+         "values": [
+          "janv. 2026",
+          "août 2026"
+         ],
+         "value": null,
+         "label": "janvier et août 2026"
+        }
+       ]
+      },
+      "style": {
+       "title": "Depuis janvier, le mazout grimpe plus vite que le pétrole.",
+       "subtitle": "Rapport mazout / brut : 2,25 fois en janvier, 2,81 fois en août.",
+       "source": "Sources : Insee, SPF Éco",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:janv. 2026": {
+         "label": "{valeur} fois",
+         "labelSize": 32,
+         "labelBold": true
+        },
+        "e:août 2026": {
+         "label": "{valeur} fois",
+         "labelSize": 32,
+         "labelBold": true
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "2,25 fois en janvier, 2,81 fois en août."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Depuis janvier, le mazout grimpe plus vite que le pétrole.",
+     "subtitle": "Rapport mazout / brut : 2,25 fois en janvier, 2,81 fois en août.",
+     "comments": [
+      "2,25 fois en janvier, 2,81 fois en août."
+     ],
+     "source": "Sources : Insee, SPF Éco",
+     "kind": null,
+     "role": "recommendation",
+     "sampleId": null,
+     "dataName": "Mazout et Brent",
+     "generatedAt": "2026-10-10T05:44:46.844Z"
+    }
+   ],
+   "sameScale": false,
+   "film": {
+    "morph": false
+   }
+  },
+  "datasets": [
+   {
+    "id": "D1",
+    "name": "Annuel 2019-2025",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Granularité",
+      "op": "in",
+      "values": [
+       "Année"
+      ],
+      "value": null,
+      "label": "Années"
+     }
+    ],
+    "columns": [],
+    "source": "Mazout et Brent",
+    "color": "#3FA7C4",
+    "createdAt": "2026-10-10T05:44:46.844Z",
+    "updatedAt": "2026-10-10T05:44:46.844Z"
+   },
+   {
+    "id": "D2",
+    "name": "Mensuel nov. 2025 - août 2026",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Granularité",
+      "op": "in",
+      "values": [
+       "Mois"
+      ],
+      "value": null,
+      "label": "Mois"
+     }
+    ],
+    "columns": [],
+    "source": "Mazout et Brent",
+    "color": "#E3A33B",
+    "createdAt": "2026-10-10T05:44:46.844Z",
+    "updatedAt": "2026-10-10T05:44:46.844Z"
+   }
+  ],
+  "thumb": null
+ }
+}
