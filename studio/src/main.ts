@@ -259,7 +259,9 @@ function dropRow(index: number): void {
   const ds = store.state.ds;
   if (!ds || index < 0 || index >= ds.raw.length) return;
   const raw = ds.raw.filter((_, i) => i !== index);
-  store.setDataset(buildDataset(ds.name, raw, ds.typeOverrides), { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+  const nds = buildDataset(ds.name, raw, ds.typeOverrides);
+  store.setDataset(nds, { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+  attachProvenance(safeHash(() => hashRows(raw)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: ds.name, rows: nds.rows.length, cols: nds.columns.length }) : null)));
 }
 
 function dropColumn(name: string): void {
@@ -268,7 +270,9 @@ function dropColumn(name: string): void {
   const raw = ds.raw.map((r) => { const o = { ...r }; delete o[name]; return o; });
   const overrides = { ...ds.typeOverrides };
   delete overrides[name];
-  store.setDataset(buildDataset(ds.name, raw, overrides), { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+  const nds = buildDataset(ds.name, raw, overrides);
+  store.setDataset(nds, { note: store.state.importNote, sheets: store.state.sheets, sheet: store.state.sheet, provenance: null });
+  attachProvenance(safeHash(() => hashRows(raw)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: ds.name, rows: nds.rows.length, cols: nds.columns.length }) : null)));
 }
 
 async function applyImport(res: ImportResult, origin?: ImportOrigin): Promise<void> {
@@ -2274,6 +2278,10 @@ store.restoreStory();
 void ensureFont(store.state.spec.style.font).finally(() => {
   if (!store.restore()) loadSample(params.get("sample") ?? SAMPLES[0]!.id);
   else if (store.state.sampleId) attachProvenance(sampleProvenance(store.state.sampleId));
+  else if (store.state.ds && !store.state.provenance) {
+    const ds = store.state.ds;
+    attachProvenance(safeHash(() => hashRows(ds.raw)).then((hash) => (hash ? makeProvenance({ hash, kind: "config", fileName: ds.name, rows: ds.rows.length, cols: ds.columns.length }) : null)));
+  }
   applyUi();
   storyStrip.update();
   void settle()
