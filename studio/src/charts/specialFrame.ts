@@ -83,6 +83,34 @@ export class SpecialLayer {
     return true;
   }
 
+  /**
+   * Joue le film comme dans le studio (animation réelle, pas une copie figée).
+   * L'hôte est posé dans `parent`, au rectangle `box` (pixels de l'écran).
+   */
+  playLive(parent: HTMLElement, spec: ChartSpec, ds: Dataset, plot: PlotRect, theme: Theme, box: { left: number; top: number; width: number; height: number }): boolean {
+    const m = mod;
+    if (!m) return false;
+    this.dispose();
+    const host = document.createElement("div");
+    host.className = "r4d-special-host";
+    host.setAttribute("data-testid", "special-live-host");
+    host.style.cssText = `position:absolute;left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px;overflow:hidden;pointer-events:none;z-index:2`;
+    parent.append(host);
+    this.host = host;
+    this.key = "live";
+    this.mount = m.mountSpecial(host, spec, effectiveDataset(spec, ds), { ...plot, x: 0, y: 0, w: box.width, h: box.height }, theme, { animate: true });
+    this.mount.handle?.play();
+    return !this.mount.error;
+  }
+
+  pauseLive(): void {
+    this.mount?.handle?.pause();
+  }
+
+  resumeLive(): void {
+    this.mount?.handle?.play();
+  }
+
   dispose(): void {
     this.mount?.destroy();
     this.mount = null;

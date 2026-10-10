@@ -297,6 +297,7 @@ export class StoryFilm {
       this.pausedAt = performance.now() - this.t0;
       cancelAnimationFrame(this.raf);
       clearTimeout(this.timer);
+      this.special.pauseLive();
     } else {
       this.setPlaying(true);
       if (this.pausedAt !== null) {
@@ -304,6 +305,7 @@ export class StoryFilm {
         this.pausedAt = null;
         if (this.loop) this.loop();
         else this.schedule();
+        this.special.resumeLive();
       } else if (!this.loop) this.schedule();
     }
   }
@@ -504,8 +506,10 @@ export class StoryFilm {
       const sp = out ? withFocus(spec) : spec;
       const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
       const res = renderChart(this.svg, sp, ds, cache, { build, timePos: timeAt(t), ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
-      // carte / film de la bibliothèque dans la zone du graphique (sinon cadre vide) ; carte datée : remplissage pendant la construction
-      if (special) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? build : 1);
+      // carte / film : copie dans le cadre (tests, export). En lecture, un film qui évolue joue en vrai par-dessus.
+      const live = special && !!this.o.reading && sp.mode.kind === "dynamic" && !reducedMotion();
+      if (special && !live) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? build : 1);
+      if (live) this.placeLive(sp, ds, res.plot, res.theme);
       this.svg.setAttribute("data-bullets", `${shown}/${nBullets}`);
       if (d4) this.svg.setAttribute("data-time-step", `${timeAt(t)! + 1}/${nSteps}`);
       else this.svg.removeAttribute("data-time-step");
@@ -541,7 +545,27 @@ export class StoryFilm {
     frame();
   }
 
+  /** Pose le film réel (même moteur que le studio) sur la zone du graphique. */
+  private placeLive(spec: ChartSpec, ds: Dataset, plot: PlotRect, theme: import("../theme").Theme): void {
+    const vb = this.svg.viewBox.baseVal;
+    const svgR = this.svg.getBoundingClientRect();
+    const stageR = this.stage.getBoundingClientRect();
+    if (!vb.width || !svgR.width) return;
+    const sx = svgR.width / vb.width;
+    const sy = svgR.height / vb.height;
+    const box = {
+      left: svgR.left - stageR.left + plot.x * sx,
+      top: svgR.top - stageR.top + plot.y * sy,
+      width: plot.w * sx,
+      height: plot.h * sy,
+    };
+    if (this.stage.querySelector("[data-testid=special-live-host]")) return;
+    this.stage.style.position = "relative";
+    this.special.playLive(this.stage, spec, ds, plot, theme, box);
+  }
+
   private resized(): void {
+
     clearTimeout(this.resizeTimer);
     this.resizeTimer = window.setTimeout(() => {
       if (!this.isOpen || !this.o.reading || !this.redraw) return;

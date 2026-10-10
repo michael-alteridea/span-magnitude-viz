@@ -39,6 +39,8 @@ export interface PptxOptions {
   links?: Map<string, string>;
   /** Graphiques natifs par snapshot (une entrée par étape de construction) : export Morph. */
   native?: Map<string, NativeSlide[]>;
+  /** Dix images d'une scène qui évolue (début → fin). Une diapositive par image. */
+  frames?: Map<string, SlideImage[]>;
   /** Transitions Morph (repli fondu) et formes nommées « !! ». */
   morph?: boolean;
 }
@@ -99,7 +101,11 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
     const n = opts.native?.get(s.id);
     return n && n.length ? n : [null];
   };
-  const total = 2 + snaps.reduce((a, s) => a + stagesOf(s).length, 0);
+  const framesOf = (s: Snapshot): SlideImage[] | null => {
+    const f = opts.frames?.get(s.id);
+    return f && f.length > 1 ? f : null;
+  };
+  const total = 2 + snaps.reduce((a, s) => a + (framesOf(s)?.length ?? stagesOf(s).length), 0);
 
   /* ---- couverture */
   const cover = pptx.addSlide();
@@ -141,6 +147,14 @@ export async function buildPptx(story: StoryState, opts: PptxOptions): Promise<B
   /* ---- une diapositive par snapshot */
   let page = 2;
   snaps.forEach((s, i) => {
+    const frames = framesOf(s);
+    if (frames) {
+      frames.forEach((img, k) => {
+        page += 1;
+        addSnapshotSlide(pptx, s, { i, n: snaps.length, page, total, storyTitle: story.title, img, native: null, link: opts.links?.get(s.id) ?? null, morph: false, bullets: k === frames.length - 1 ? opts.bullets?.get(s.id) ?? null : null });
+      });
+      return;
+    }
     for (const native of stagesOf(s)) {
       page += 1;
       addSnapshotSlide(pptx, s, { i, n: snaps.length, page, total, storyTitle: story.title, img: opts.images.get(s.id) ?? null, native, link: opts.links?.get(s.id) ?? null, morph: !!opts.morph, bullets: opts.bullets?.get(s.id) ?? null });

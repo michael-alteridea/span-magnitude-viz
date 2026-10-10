@@ -867,6 +867,31 @@ export interface PptxBuildOptions {
   storyId?: string;
 }
 
+
+/** Dix images d'une scène qui évolue : début, étapes, fin. */
+async function tenFrames(spec: ChartSpec, ds: Dataset, now?: Date): Promise<SlideImage[]> {
+  const { SpecialLayer, loadSpecialModule } = await import("./charts/specialFrame");
+  await loadSpecialModule();
+  const layer = new SpecialLayer();
+  const out: SlideImage[] = [];
+  try {
+    for (let i = 0; i < 10; i++) {
+      const tmp = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+      const cache = prepareCache(spec, ds, null, -1);
+      const res = renderChart(tmp, spec, ds, cache, { build: 1, timePos: null }, { bare: true, now });
+      layer.paint(tmp, spec, ds, res.plot, res.theme, i / 9);
+      const svg = await composeSvg({ svg: tmp, spec, plot: res.plot, specialHost: null, embedFonts: true, ...(now ? { created: now } : {}) });
+      const blob = await svgToPngBlob(svg, res.width, res.height, 2);
+      out.push({ data: await blobToDataUrl(blob), width: res.width, height: res.height });
+    }
+  } catch (e) {
+    console.warn("Dix images : rendu impossible", e);
+  } finally {
+    layer.dispose();
+  }
+  return out;
+}
+
 async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: StoryState = store.state.story, o: PptxBuildOptions = {}) {
   const own = story === store.state.story;
   const scales = own ? storyScales() : scalesOf(story.snapshots);
@@ -899,7 +924,21 @@ async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: Sto
       }
     }
   }
-  for (const s of snaps) if (!native.has(s.id)) images.set(s.id, await snapshotImage(s, scales, !!story.sameScale, links.get(s.id) ?? null));
+  const frames = new Map<string, SlideImage[]>();
+  for (const s of snaps) {
+    if (native.has(s.id)) continue;
+    const parsed = snapshotSpec(s);
+    const ds = parsed ? datasetFor(s) : null;
+    if (parsed && ds && isSpecial(parsed.type) && parsed.mode.kind === "dynamic") {
+      const seq = await tenFrames(slideSpec(s, parsed), ds, snapNow(s));
+      if (seq.length) {
+        frames.set(s.id, seq);
+        images.set(s.id, seq[seq.length - 1]!);
+        continue;
+      }
+    }
+    images.set(s.id, await snapshotImage(s, scales, !!story.sameScale, links.get(s.id) ?? null));
+  }
   // puces « À retenir » : pastille de la couleur principale, puis une puce colorée par élément de couleur propre
   const bullets = new Map<string, SlideBullets>();
   for (const s of snaps) {
@@ -907,7 +946,7 @@ async function buildStoryPptx(outputType: "blob" | "base64" = "blob", story: Sto
     if (parsed) bullets.set(s.id, { main: mainColor(parsed), elements: snapshotElementNotes(s).map((n) => ({ text: n.text, color: n.color })) });
   }
   const { buildPptx } = await import("./story/pptx");
-  return buildPptx(story, { images, outputType, links, native, morph: !!o.morph, bullets });
+  return buildPptx(story, { images, outputType, links, native, morph: !!o.morph, bullets, frames });
 }
 
 /* ---- Pont Cadencer : « manifeste de revue » (publié à la construction, ou téléchargé pour une histoire locale) */
@@ -1196,7 +1235,7 @@ async function exportPptx(btn: HTMLButtonElement): Promise<void> {
     const morph = storyStrip.morph;
     const blob = (await buildStoryPptx("blob", store.state.story, { morph, build: morph, storyId: demoStoryOf(store.state.story.snapshots) ?? LOCAL_STORY_ID })) as Blob;
     download(blob, `${slug(store.state.story.title || "histoire")}${morph ? "-morph" : ""}.pptx`);
-    toast(morph ? "PowerPoint exporté avec transitions Morph (à ouvrir dans PowerPoint 2019 / Microsoft 365)" : `PowerPoint exporté (${store.state.story.snapshots.length + 2} diapositives)`, "ok", morph ? 5000 : 3000);
+    toast(morph ? "PowerPoint exporté avec transitions Morph (à ouvrir dans PowerPoint 2019 / Microsoft 365)" : `PowerPoint exporté (${store.state.story.snapshots.length + 2} diapositives, dix images par scène qui évolue)`, "ok", morph ? 5000 : 3000);
   } catch (e) {
     toast("Export PowerPoint impossible : " + (e instanceof Error ? e.message : String(e)), "error", 6000);
   } finally {
