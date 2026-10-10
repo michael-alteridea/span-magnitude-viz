@@ -209,13 +209,13 @@ const memo = new WeakMap<Dataset, Map<string, Dataset>>();
 const baseMemo = new WeakMap<Dataset, Map<string, Dataset>>();
 
 /** Recette d'un dataset dérivé (filtres permanents + colonnes gardées), sans version ni nom. */
-export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" }[] };
+export type DatasetRecipeLike = Pick<DatasetRef, "filters" | "columns"> & { name?: string; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[] };
 
 /**
  * Applique la recette d'un dataset dérivé à la source : filtres permanents puis colonnes gardées.
  * Les filtres sur une colonne absente sont ignorés (source remplacée) ; le nom devient celui du dataset.
  */
-function grouped(src: Dataset, idx: number[], groupBy: string, aggs: { field: string; op: "sum" | "mean" }[], name: string): Dataset {
+function grouped(src: Dataset, idx: number[], groupBy: string, aggs: { field: string; op: "sum" | "mean" | "count" }[], name: string): Dataset {
   const groups = new Map<string, number[]>();
   for (const i of idx) {
     const key = String(src.rows[i]![groupBy] ?? "");
@@ -227,6 +227,7 @@ function grouped(src: Dataset, idx: number[], groupBy: string, aggs: { field: st
   const raw = [...groups.entries()].map(([key, is]) => {
     const row: Record<string, unknown> = { [groupBy]: key };
     for (const a of aggs) {
+      if (a.op === "count") { row[a.field] = is.length; continue; }
       const nums = is.map((i) => src.rows[i]![a.field]).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
       row[a.field] = a.op === "mean" ? (nums.length ? nums.reduce((s, n) => s + n, 0) / nums.length : null) : nums.reduce((s, n) => s + n, 0);
     }
@@ -241,7 +242,7 @@ export function applyRecipe(src: Dataset, r: DatasetRecipeLike): Dataset {
   src.rows.forEach((row, i) => {
     if (filters.every((f) => passesFilter(f, row[f.field]))) idx.push(i);
   });
-  const aggs = (r.aggs ?? []).filter((a) => src.columns.some((c) => c.name === a.field && c.type === "number"));
+  const aggs = (r.aggs ?? []).filter((a) => a.op === "count" || src.columns.some((c) => c.name === a.field && c.type === "number"));
   if (r.groupBy && src.columns.some((c) => c.name === r.groupBy) && aggs.length) {
     return grouped(src, idx, r.groupBy, aggs, r.name?.trim() || src.name);
   }

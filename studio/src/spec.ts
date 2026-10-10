@@ -348,7 +348,7 @@ export const datasetRefSchema = z.object({
   /** Colonne de regroupement (région, année…). Vide = pas d'agrégat. */
   groupBy: z.string().max(120).default(""),
   /** Indicateurs agrégés sur le regroupement. */
-  aggs: z.array(z.object({ field: z.string().min(1), op: z.enum(["sum", "mean"]) })).max(30).default([]),
+  aggs: z.array(z.object({ field: z.string().min(1), op: z.enum(["sum", "mean", "count"]) })).max(30).default([]),
 });
 export type DatasetRef = z.infer<typeof datasetRefSchema>;
 

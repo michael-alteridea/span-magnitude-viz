@@ -17,7 +17,7 @@ export interface SimpleResult {
   filters: FilterSpec[];
   axes: SimpleAxes;
   groupBy: string;
-  aggs: { field: string; op: "sum" | "mean" }[];
+  aggs: { field: string; op: "sum" | "mean" | "count" }[];
 }
 
 const roleOf = (ds: Dataset): { x: string | null; y: string | null; series: string | null } => {
@@ -94,7 +94,8 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
     s.addEventListener("change", () => aggOps.set(c.name, s.value as "sum" | "mean" | ""));
     aggHost.append(h("label", { style: "display:flex;gap:8px;align-items:center" }, c.name, s));
   }
-  const groupBox = h("div", { style: "margin-bottom:14px" }, h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Regrouper"), groupSel, aggHost);
+  const countCb = h("input", { type: "checkbox" }) as HTMLInputElement;
+  const groupBox = h("div", { style: "margin-bottom:14px" }, h("h3", { style: "font-size:14px;margin:0 0 8px" }, "Regrouper"), groupSel, h("label", { style: "display:flex;gap:8px;align-items:center;margin-top:8px" }, countCb, "Compter les lignes"), aggHost);
   const name = h("input", { value: ds.name, style: "width:100%;padding:10px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#fff" }) as HTMLInputElement;
   refresh();
 
@@ -128,7 +129,8 @@ export function openSimpleDataset(ds: Dataset, onCreate: (r: SimpleResult) => vo
         const filters: FilterSpec[] = filterCol && filterVals.size ? [{ field: filterCol, op: "in", values: [...filterVals], value: null, label: "" }] : [];
         root.remove();
         const groupBy = groupSel.value;
-        const aggs = [...aggOps.entries()].filter(([, op]) => op).map(([field, op]) => ({ field, op: op as "sum" | "mean" }));
+        const aggs = [...aggOps.entries()].filter(([, op]) => op).map(([field, op]) => ({ field, op: op as "sum" | "mean" | "count" }));
+        if (groupBy && countCb.checked) aggs.unshift({ field: "Nombre de lignes", op: "count" });
         onCreate({ name: name.value.trim() || ds.name, columns: [...kept], filters, axes: { x: groupBy || (roles.x && kept.has(roles.x) ? roles.x : null), y: aggs.length ? aggs.map((a) => a.field) : roles.y && kept.has(roles.y) ? [roles.y] : [], series: groupBy ? null : roles.series && kept.has(roles.series) ? roles.series : null }, groupBy, aggs });
       } }, "Créer le dataset")
     )

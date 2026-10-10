@@ -24,7 +24,7 @@ export interface DatasetRecipe {
   /** Colonne de regroupement ; vide = pas d'agrégat. */
   groupBy: string;
   /** Indicateurs agrégés (somme ou moyenne). */
-  aggs: { field: string; op: "sum" | "mean" }[];
+  aggs: { field: string; op: "sum" | "mean" | "count" }[];
   /** Nom de la source dont il dérive. */
   source: string;
   /** Couleur du repère (point de couleur dans l'arbre et sur les scènes). */
@@ -67,7 +67,7 @@ export function isFrozenRef(ref: DatasetRef | null | undefined, d: DatasetRecipe
 }
 
 /** Nouveau dataset (version 1). */
-export function createDataset(list: readonly DatasetRecipe[], source: string, init: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" }[] }, now = new Date()): DatasetRecipe {
+export function createDataset(list: readonly DatasetRecipe[], source: string, init: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[] }, now = new Date()): DatasetRecipe {
   const id = nextDatasetId(list, source);
   const at = now.toISOString();
   return { id, name: init.name.trim() || id, version: 1, filters: structuredClone(init.filters), columns: [...init.columns], groupBy: init.groupBy ?? "", aggs: structuredClone(init.aggs ?? []), source, color: datasetColor(id), createdAt: at, updatedAt: at };
@@ -80,7 +80,7 @@ export function sameRecipe(a: Pick<DatasetRef, "filters" | "columns"> & { groupB
 }
 
 /** Modification d'un dataset : nouvelle version si la recette change (le nom seul ne change pas la version). */
-export function updateDataset(d: DatasetRecipe, next: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" }[] }, now = new Date()): DatasetRecipe {
+export function updateDataset(d: DatasetRecipe, next: { name: string; filters: FilterSpec[]; columns: string[]; groupBy?: string; aggs?: { field: string; op: "sum" | "mean" | "count" }[] }, now = new Date()): DatasetRecipe {
   const changed = !sameRecipe(d, next);
   return { ...d, name: next.name.trim() || d.name, filters: structuredClone(next.filters), columns: [...next.columns], groupBy: next.groupBy ?? d.groupBy ?? "", aggs: structuredClone(next.aggs ?? d.aggs ?? []), version: changed ? d.version + 1 : d.version, updatedAt: now.toISOString() };
 }
@@ -240,7 +240,7 @@ export function parseDatasets(input: unknown): DatasetRecipe[] {
       filters,
       columns: Array.isArray(o.columns) ? o.columns.filter((c): c is string => typeof c === "string") : [],
       groupBy: typeof o.groupBy === "string" ? o.groupBy : "",
-      aggs: Array.isArray(o.aggs) ? o.aggs.filter((a) => a && typeof a === "object" && typeof (a as { field?: unknown }).field === "string").map((a) => ({ field: String((a as { field: string }).field), op: (a as { op?: string }).op === "mean" ? "mean" as const : "sum" as const })) : [],
+      aggs: Array.isArray(o.aggs) ? o.aggs.filter((a) => a && typeof a === "object" && typeof (a as { field?: unknown }).field === "string").map((a) => ({ field: String((a as { field: string }).field), op: (a as { op?: string }).op === "mean" ? "mean" as const : (a as { op?: string }).op === "count" ? "count" as const : "sum" as const })) : [],
       source: o.source,
       color: typeof o.color === "string" && /^#[0-9a-fA-F]{6}$/.test(o.color) ? o.color : datasetColor(o.id),
       createdAt: typeof o.createdAt === "string" ? o.createdAt : now,
