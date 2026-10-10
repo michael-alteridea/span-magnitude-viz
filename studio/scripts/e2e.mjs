@@ -8,6 +8,7 @@
  *   node studio/scripts/e2e.mjs --donnees [--shots]             # seulement la fenêtre « Données » (iPad)
  *   node studio/scripts/e2e.mjs --public [--shots]              # seulement « Données publiques » + « Modifier le graphique » du Reel
  *   node studio/scripts/e2e.mjs --datasets [--shots]            # seulement les datasets dérivés (étape Filtrer, versions)
+ *   node studio/scripts/e2e.mjs --rejouer                       # seulement les liens « Rejouer » (?projet=…&lecture=1, écran de fin, Partager, QR du Reel)
  *
  * Variables : CHROME_PATH (défaut /usr/bin/google-chrome), PUPPETEER_DIR (dossier où
  * puppeteer-core est installé si ce n'est pas une dépendance du projet).
@@ -3074,6 +3075,75 @@ if (process.argv.includes("--donnees")) {
 
 if (process.argv.includes("--topn")) {
   try { await e2eTopN(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
+  console.log(results.join("\n"));
+  console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
+  await browser.close();
+  server.close();
+  process.exit(failures ? 1 : 0);
+}
+/* Liens « Rejouer » : lecture universelle d'un exemple intégré sur iPhone (contexte vierge = autre appareil),
+   écran de fin, Partager (feuille de partage puis repli copie), adresse partageable, QR du Reel vers le film. */
+async function e2eRejouer() {
+  const ctx = await browser.createBrowserContext();
+  const pg = await ctx.newPage();
+  acceptUnload(pg);
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(e.message));
+  await pg.setUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1");
+  await pg.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await pg.goto(`${origin}${BASE}?projet=mazout-decroche&lecture=1&scene=3&src=qr`, { waitUntil: "load" });
+  await pg.waitForFunction(() => window.r4d?.reader().isOpen && window.r4d.reader().current, { timeout: 30000 });
+  const st = await pg.evaluate(() => ({ idx: window.r4d.reader().index, url: location.search + location.hash, share: !document.querySelector("[data-testid=reader-share]").hidden }));
+  check("lien ?projet=mazout-decroche&lecture=1&scene=3 : mode lecture à la scène 3, appareil vierge", st.idx === 2, JSON.stringify(st));
+  check("adresse affichée partageable (src retiré)", st.url === "?projet=mazout-decroche&lecture=1&scene=3#/lire/histoire/snap-mazout-decroche-pic-2022", st.url);
+  check("bouton Partager visible (exemple intégré)", st.share);
+  await pg.evaluate(() => window.r4d.reader().goTo(6));
+  await sleep(500);
+  await pg.evaluate(() => (window.r4d.reader().finishNow(), window.r4d.reader().next()));
+  await sleep(300);
+  const end = await pg.evaluate(() => { const e = document.querySelector("[data-testid=reader-end]"); const r = e.querySelector(".film-end-card").getBoundingClientRect(); return { at: window.r4d.reader().isAtEnd, txt: e.innerText, create: e.querySelector("[data-testid=reader-end-create]")?.getAttribute("href"), fits: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight, sw: document.documentElement.scrollWidth }; });
+  check("écran de fin : Fait avec Datanime, Partager, Créez le vôtre, présentation ; tient sur iPhone", end.at && /Fait avec Datanime/.test(end.txt) && /Partager/.test(end.txt) && /Créez le vôtre/.test(end.txt) && /Découvrir la plateforme/.test(end.txt) && end.fits && end.sw <= 390, JSON.stringify(end));
+  check("aucun mot « certifié » / « authenticité »", !/certifi|authenticit/i.test(end.txt));
+  await pg.evaluate(() => { window.__shared = null; Object.defineProperty(navigator, "share", { value: async (d) => { window.__shared = d; }, configurable: true }); });
+  await pg.click("[data-testid=reader-end-share]");
+  await sleep(200);
+  const shared = await pg.evaluate(() => window.__shared);
+  check("Partager : navigator.share avec le lien universel du film", shared?.url === "https://alteridea-dashboard.web.app/reporting/?projet=mazout-decroche&lecture=1&src=partage", JSON.stringify(shared));
+  await pg.evaluate(() => { Object.defineProperty(navigator, "share", { value: undefined, configurable: true }); window.__copied = null; navigator.clipboard.writeText = async (t) => { window.__copied = t; }; });
+  await pg.click("[data-testid=reader-end-share]");
+  await sleep(200);
+  const copied = await pg.evaluate(() => window.__copied);
+  check("Partager sans feuille de partage : lien copié", copied === shared?.url, String(copied));
+  await pg.evaluate(() => window.r4d.reader().prev());
+  const back = await pg.evaluate(() => ({ at: window.r4d.reader().isAtEnd, idx: window.r4d.reader().index }));
+  check("retour depuis l'écran de fin : dernière diapositive", !back.at && back.idx === 6, JSON.stringify(back));
+  const qr = await pg.evaluate(() => [window.r4d.readUrl(window.r4d.story().snapshots[0]), window.r4d.readUrl(window.r4d.story().snapshots[3])]);
+  check("QR des diapositives d'un exemple : lien universel ?projet=…&lecture=1&scene=N&src=qr", qr[0] === "https://alteridea-dashboard.web.app/reporting/?projet=mazout-decroche&lecture=1&src=qr" && qr[1] === "https://alteridea-dashboard.web.app/reporting/?projet=mazout-decroche&lecture=1&scene=4&src=qr", qr.join(" "));
+  await pg.evaluate(() => window.r4d.reader().close());
+  const closed = await pg.evaluate(() => location.search + location.hash);
+  check("fermeture : adresse du Studio nettoyée", closed === "", closed);
+  // Reel : QR et lien de la carte de fin vers le film de l'exemple
+  await pg.setViewport({ width: 1280, height: 900 });
+  await pg.evaluate(() => window.r4d.reel());
+  await pg.waitForSelector("[data-testid=reel-frame]");
+  const reel = await pg.evaluate(async () => { const d = window.r4d.reelDialog(); d.setPlaying(false); const p = d.currentPlan; d.seek(p.scenes.reduce((a, s) => a + s.duration, 0) + p.endDuration - 0.2); await new Promise((r) => setTimeout(r, 200)); const f = document.querySelector("[data-testid=reel-frame]"); return { qr: f.querySelector(".reel-end-qr")?.getAttribute("data-qr"), link: [...f.querySelectorAll(".reel-link")].map((t) => t.textContent).join(""), pitch: f.querySelector(".reel-pitch")?.textContent }; });
+  check("Reel d'un exemple : QR → film (src=reel), lien visible, ligne de présentation", reel.qr === "https://alteridea-dashboard.web.app/reporting/?projet=mazout-decroche&lecture=1&src=reel" && reel.link === "alteridea-dashboard.web.app/reporting/?projet=mazout-decroche&lecture=1" && /Découvrir Datanime/.test(reel.pitch ?? ""), JSON.stringify(reel));
+  // ancien lien profond inchangé, et ?projet= seul ouvre le Studio sans lecture
+  const pg2 = await (await browser.createBrowserContext()).newPage();
+  acceptUnload(pg2);
+  await pg2.setViewport({ width: 1280, height: 900 });
+  await pg2.goto(`${origin}${BASE}#/lire/demo-daf`, { waitUntil: "load" });
+  await pg2.waitForFunction(() => window.r4d?.reader().isOpen && window.r4d.reader().current, { timeout: 30000 });
+  check("ancien lien #/lire/demo-daf inchangé", (await pg2.evaluate(() => window.r4d.reader().current.id)) === "daf-01-cascade");
+  await pg2.goto(`${origin}${BASE}?projet=petrole-mazout&reset`, { waitUntil: "load" });
+  await pg2.waitForFunction(() => window.r4d?.story().snapshots.length === 1, { timeout: 30000 });
+  await sleep(600);
+  check("?projet=petrole-mazout seul : Studio, pas de lecture", !(await pg2.evaluate(() => window.r4d.reader().isOpen)));
+  check("aucune erreur de page", !errs.length, errs.join(" | "));
+}
+
+if (process.argv.includes("--rejouer")) {
+  try { await e2eRejouer(); } catch (e) { failures++; results.push("✗ exception : " + (e?.stack ?? e)); }
   console.log(results.join("\n"));
   console.log(failures ? `\n${failures} échec(s)` : `\nTous les tests passent (${results.length}).`);
   await browser.close();
