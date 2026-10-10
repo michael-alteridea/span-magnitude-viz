@@ -182,7 +182,7 @@ export class StoryStrip {
       this.list.replaceChildren(h("p", { class: "story-empty" }, "Aucune scène : cliquez « 📸 Ajouter la scène » pour ajouter le graphique courant, puis ordonnez votre récit. « Créer un Reel » propose un exemple sur données publiques (Eurostat)."));
       return;
     }
-    this.list.replaceChildren(...st.snapshots.map((s, i) => this.card(s, i, scales.get(s.id), !!st.sameScale, status.scenes.get(s.id) ?? null, !!status.savedAt)));
+    this.list.replaceChildren(...st.snapshots.flatMap((s, i) => { const c = this.card(s, i, scales.get(s.id), !!st.sameScale, status.scenes.get(s.id) ?? null, !!status.savedAt); return c; }));
     this.markOpen();
   }
 
@@ -245,15 +245,19 @@ export class StoryStrip {
       : null;
     const badge = saved && state && state !== "saved" ? h("span", { class: `story-state ${state}`, "data-testid": "story-card-modified", "data-state": state, title: state === "new" ? "Ajoutée depuis le dernier enregistrement" : "Modifiée depuis le dernier enregistrement" }, state === "new" ? "nouvelle" : "modifiée") : null;
     const thumb = h("button", { class: "story-thumb", title: "Recharger cette scène dans l'éditeur", "data-testid": "story-card-open", onclick: () => this.actions.open(s) }, s.thumb ? h("img", { src: s.thumb, alt: s.title, draggable: "false" }) : h("span", { class: "muted" }, s.title.slice(0, 60)));
+    const chapter = h("input", { type: "text", class: "story-card-name", value: s.chapter ?? "", maxlength: "80", placeholder: "Chapitre", title: "Chapitre de cette scène", "data-testid": "story-card-chapter" });
+    chapter.addEventListener("change", () => this.patch(s.id, { chapter: chapter.value.trim() || undefined }));
+    const prev = i > 0 ? this.store.state.story.snapshots[i - 1]?.chapter : "";
+    const head = s.chapter && s.chapter !== prev ? h("div", { class: "story-chapter", "data-testid": "story-chapter" }, s.chapter) : null;
     const card = h(
       "article",
       { class: `story-card${state === "modified" ? " modified" : ""}`, draggable: "true", "data-testid": "story-card", "data-id": s.id, "data-index": String(i), "data-state": state ?? "" },
-      h("span", { class: "story-num" }, String(i + 1)),
+      head, h("span", { class: "story-num" }, String(i + 1)),
       badge,
       thumb,
       scale ? this.scaleBadge(scale, same) : null,
       this.datasetChip(s),
-      h("div", { class: "story-card-foot" }, role, dup, reset),
+      h("div", { class: "story-card-foot" }, role, dup, reset), chapter,
       del,
       name
     );

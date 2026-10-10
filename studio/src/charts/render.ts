@@ -36,6 +36,7 @@ import { drawVariance, refLabelOf, refStyleFor } from "./variance";
 import { normeAdvice, normeInk, scaleKey, scenarioOf, scenarioStyle, SCENARIO_NAMES } from "../norme";
 import { PRODUCT_LABEL, showSignature } from "../brand";
 import { drawCartouche, layoutCartouche } from "./cartouche";
+import { buildRace, drawRace } from "./race";
 
 export type { Frame, Prepared, PlotRect };
 
@@ -138,7 +139,7 @@ export function prepareCache(spec: ChartSpec, rawDs: Dataset | null, prev: PrepC
     return { key, full: null, time: null, frozen: {}, error: null, warnings, variance: vm };
   }
   const full = buildModel(spec, ds, allRows(ds));
-  const time = fourDActive(spec, ds) ? buildTimeModel(spec, ds) : null;
+  const time = (fourDActive(spec, ds) || spec.type === "race") ? buildTimeModel(spec, ds) : null;
   let frozen: Domains = {};
   if (time && spec.mode.fourD.freezeScales) {
     frozen = domainsOf(full, spec);
@@ -645,7 +646,11 @@ export function renderChart(svgEl: SVGSVGElement, spec: ChartSpec, rawDs: Datase
   }
 
   const model = prep.model!;
-  if (model.kind === "points") drawScatter(gChart, plot, ctx, model);
+  if (spec.type === "race" && cache.time && model.kind === "cat") {
+    const rd = buildRace(spec, ds!, cache.time, model);
+    const pos = frame.timePos ?? (cache.time.steps.length - 1);
+    drawRace(gChart, plot, ctx, rd, cache.time, pos);
+  } else if (model.kind === "points") drawScatter(gChart, plot, ctx, model);
   else if (spec.type === "pie" || spec.type === "donut") drawPie(gChart, plot, ctx, model as CatModel, spec.type === "donut");
   else if (spec.type === "radialBar") drawRadialBars(gChart, plot, ctx, model as CatModel);
   else drawCategorical(gChart, plot, ctx, model as CatModel);

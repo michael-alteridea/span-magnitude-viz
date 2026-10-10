@@ -24,6 +24,7 @@ export const SHORT: Record<ChartType, string> = {
   film: "Film 4D",
   map: "Carte",
   drill: "Zoom",
+  race: "Course",
 };
 
 /**
@@ -32,7 +33,7 @@ export const SHORT: Record<ChartType, string> = {
  * sous 1200 px : Barres, Horizontales, Groupées | Lignes, Aires | Points | Camembert (Plus = 8).
  * L'affichage, lui, suit toujours l'ordre des familles.
  */
-export const STRIP_PRIORITY: ChartType[] = ["bar", "barH", "groupedBar", "line", "area", "scatter", "pie", "stackedBar", "drill", "donut", "variance", "map", "stackedArea", "radialBar", "film"];
+export const STRIP_PRIORITY: ChartType[] = ["bar", "barH", "groupedBar", "line", "area", "scatter", "pie", "stackedBar", "drill", "donut", "variance", "map", "stackedArea", "radialBar", "film", "race"];
 
 const ORDER: ChartType[] = CHART_FAMILIES.flatMap((f) => f.types);
 const FAMILY = new Map<ChartType, number>(CHART_FAMILIES.flatMap((f, i) => f.types.map((t) => [t, i] as [ChartType, number])));

@@ -29,6 +29,7 @@ export const CHART_TYPES = [
   "film",
   "map",
   "drill",
+  "race",
 ] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
@@ -48,6 +49,7 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
   film: "Film 4D (span × magnitude)",
   map: "Carte FR·BE / Europe",
   drill: "Exploration guidée (zoom temps · espace)",
+  race: "Course de barres",
 };
 
 export const CHART_FAMILIES: { label: string; types: ChartType[] }[] = [
@@ -57,7 +59,7 @@ export const CHART_FAMILIES: { label: string; types: ChartType[] }[] = [
   { label: "Points", types: ["scatter"] },
   { label: "Circulaires", types: ["pie", "donut", "radialBar"] },
   { label: "Écarts", types: ["variance"] },
-  { label: "Spéciaux", types: ["film", "map"] },
+  { label: "Spéciaux", types: ["film", "map", "race"] },
 ];
 
 export const isCartesian = (t: ChartType) =>

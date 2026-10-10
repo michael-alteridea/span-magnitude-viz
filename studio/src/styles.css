@@ -308,6 +308,7 @@ textarea.paste:focus { outline: none; border-color: var(--accent); }
 .story-list { display: flex; gap: 10px; padding: 4px 12px 10px; overflow-x: auto; scrollbar-width: thin; }
 .story-strip.collapsed .story-list { display: none; }
 .story-empty { margin: 0; padding: 6px 2px 4px; color: var(--faint); font-size: 12px; }
+.story-chapter { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .02em; }
 .story-card { position: relative; flex: none; width: 168px; display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); cursor: grab; }
 .story-card.dragging { opacity: .45; }
 .story-card.drop-target { border-color: var(--accent); box-shadow: -3px 0 0 var(--accent); }

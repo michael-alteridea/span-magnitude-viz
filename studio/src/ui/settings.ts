@@ -726,8 +726,7 @@ export class SettingsPanel {
       const xc = cols.find((c) => c.name === spec.encoding.x);
       if (xc?.type === "date") more.push(this.row("Regrouper les dates par", this.select("encoding.xGrain", [["none", "Mois (auto)"], ["month", "Mois"], ["quarter", "Trimestre"], ["year", "Année"]]), undefined, "période mois trimestre année"));
     } else if (isSpecial(t)) {
-      main.push(this.row("Début (date ou nombre)", this.select("encoding.x", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), t === "map" ? "Facultatif sur une carte : sans date, carte statique" : undefined));
-      main.push(this.row("Fin (optionnel)", this.select("encoding.end", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Sans fin : événements ponctuels"));
+      main.push(this.kw(h("p", { class: "hint ds-help" }, "La période et le filtre se règlent sur le dataset, à gauche."), "période filtre dataset"));
       main.push(this.row("Magnitude (épaisseur)", this.ySingle(cols), undefined, "mesure valeur"));
       main.push(this.row("Groupe / couleur", this.select("encoding.series", this.colOpts(cols, (c) => c.type !== "number" || c.cardinality <= 20), true), undefined, "série"));
       more.push(this.row("Libellé", this.select("encoding.label", this.colOpts(cols), true)));
@@ -736,8 +735,9 @@ export class SettingsPanel {
       more.push(this.row("Longitude", this.select("encoding.lon", this.colOpts(cols, num), true), undefined, "carte gps"));
     } else {
       const xFilter = t === "scatter" ? (c: Column) => c.type !== "text" || c.cardinality <= 60 : undefined;
-      main.push(this.row(isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Catégories (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x"));
+      main.push(this.row(t === "race" ? "Dimension (qui court)" : isRadial(t) ? "Catégories (parts)" : t === "barH" || (isBarType(t) && spec.style.horizontal) ? "Catégories (axe vertical)" : "Dimension (axe X)", this.select("encoding.x", this.colOpts(cols, xFilter), true, (v) => t === "scatter" && this.hintUnit("axes.x", v)), undefined, "axe x dimension"));
       main.push(this.row(t === "scatter" ? "Axe Y" : isRadial(t) ? "Valeur(s)" : "Mesure(s) — axe Y", t === "scatter" ? this.ySingle(cols) : this.yMulti(cols), undefined, "mesure valeur"));
+      if (t === "race") main.push(this.row("Période (temps)", this.select("encoding.time", this.colOpts(cols, (c) => c.type === "date" || c.type === "number"), true), "Le champ qui fait avancer la course"));
       if (t !== "scatter") main.push(this.row("Calcul", this.select("encoding.aggregate", AGGREGATES.map((a) => [a, AGGREGATE_LABELS[a]] as Opt)), undefined, "agrégat somme moyenne nombre"));
       main.push(...this.topNRows(spec, cols));
       if (!isRadial(t)) {
@@ -756,8 +756,8 @@ export class SettingsPanel {
         more.push(this.row("Libellé des points", this.select("encoding.label", this.colOpts(cols), true), undefined, "étiquette"));
       }
     }
-    if (cols.length && t !== "drill") main.push(this.filterBlock(spec));
-    if (cols.length && t !== "drill") main.push(this.kw(h("p", { class: "hint ds-help", "data-testid": "view-filter-help" }, "Filtre de vue : ce graphique seulement. Filtre permanent : sur le dataset, à gauche."), "filtre de vue permanent dataset"));
+    /* Filtre de vue : sur le dataset, à gauche */
+    /* Filtre de vue déplacé sur le dataset */
     if (cols.length && !isSpecial(t) && spec.norme.enabled && spec.encoding.y.length) more.push(this.scenarioRows(spec));
     const ds = this.datasetRow(spec);
     return { main: [ds, ...main], more };

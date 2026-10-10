@@ -51,6 +51,7 @@ export const ICONS = {
   close: `<path d="M6 6 L18 18 M18 6 L6 18"/>`,
   film: `<path d="M3 18 Q6 8 9 18" /><path d="M7 18 Q12 2 17 18" stroke-width="2.6"/><path d="M14 18 Q17.5 11 21 18" opacity=".55"/><path d="M2 18.5 H22" opacity=".4"/>`,
   map: `<path d="M9 4 L3 6 V20 L9 18 L15 20 L21 18 V4 L15 6 Z" opacity=".5"/><path d="M9 4 V18 M15 6 V20" opacity=".5"/><circle cx="12" cy="10" r="2.3" fill="currentColor" stroke="none"/>`,
+  race: `<rect x="3" y="6" width="14" height="3" rx="1"/><rect x="3" y="11" width="10" height="3" rx="1" opacity=".7"/><rect x="3" y="16" width="7" height="3" rx="1" opacity=".45"/>`,
   drill: `<rect x="3.5" y="12" width="3.2" height="8" rx=".8" fill="currentColor" stroke="none" opacity=".5"/><rect x="8.5" y="8" width="3.2" height="12" rx=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="8" r="4"/><path d="M20 11 L22 13"/><path d="M15.5 8 H18.5 M17 6.5 V9.5" stroke-width="1.4"/>`,
   globe: `<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12 H20.5 M12 3.5 C9 7 9 17 12 20.5 C15 17 15 7 12 3.5"/>`,
   clock: `<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5 V12 L15 14"/>`,

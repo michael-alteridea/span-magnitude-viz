@@ -32,6 +32,8 @@ export const snapshotSchema = z.object({
   source: z.string().default(""),
   kind: z.string().nullable().default(null),
   role: z.enum(NARRATIVE_ROLES).default("context"),
+  /** Chapitre : affiché en tête quand il change. */
+  chapter: z.string().max(80).optional(),
   sampleId: z.string().nullable().default(null),
   dataName: z.string().default(""),
   generatedAt: z.string().default(""),
