@@ -1,0 +1,14 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><title>Datanime — animation du logo</title>
+<style>
+body{font:14px/1.4 Inter,system-ui,sans-serif;margin:0;color:#16232A;background:#F3F5F6}
+header{padding:20px 28px}h1{font-size:20px;margin:0 0 4px}p{margin:0;color:#4a5a62}
+.stage{display:flex;align-items:center;justify-content:center;height:300px;margin:0 28px 16px;border-radius:14px}
+.light{background:#fff}.dark{background:#0B1A20}.stage img{width:min(760px,80%)}
+button{font:inherit;padding:8px 16px;border-radius:8px;border:1px solid #c8d1d5;background:#fff;cursor:pointer;margin-left:28px}
+</style>
+<header><h1>Datanime — animation du logo (≈ 3,4 s puis tenue)</h1>
+<p>« Data » apparaît → « Anime » arrive (« Data Anime ») → les deux A glissent et fusionnent en un A jaune → l’œil du A pivote de 90° et devient le ▶ (variante C15).</p></header>
+<div class="stage light"><img src="logo-anim.svg" alt="Datanime animé, fond clair, jaune or"></div>
+<div class="stage dark"><img src="logo-anim-dark.svg" alt="Datanime animé, fond sombre, jaune vif"></div>
+<button onclick="document.querySelectorAll('.stage img').forEach(i=>{const s=i.src;i.src='';i.src=s+'?'+Date.now()})">Rejouer</button>
+</html>
