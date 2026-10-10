@@ -112,10 +112,10 @@ export class ReelCharts {
     return p;
   }
 
-  private draw(i: number, p: Prepared, build: number, focus?: number): PlotRect {
+  private draw(i: number, p: Prepared, build: number, focus?: number, timePos: number | null = null): PlotRect {
     clearZoom(this.svg);
     const it = this.items[i]!;
-    const res = renderChart(this.svg, p.spec, it.ds, p.cache, { build, timePos: null, ...(focus !== undefined ? { focus } : {}) }, { bare: true, textBoost: p.boost, now: it.snap.generatedAt ? new Date(it.snap.generatedAt) : new Date() });
+    const res = renderChart(this.svg, p.spec, it.ds, p.cache, { build, timePos, ...(focus !== undefined ? { focus } : {}) }, { bare: true, textBoost: p.boost, now: it.snap.generatedAt ? new Date(it.snap.generatedAt) : new Date() });
     return res.plot;
   }
 
@@ -149,7 +149,11 @@ export class ReelCharts {
     const build = sc.linkIn === "out" || sc.linkIn === "focus" ? 1 : Math.max(0, Math.min(1, (t - (sc.linkIn === "in" ? 0 : T.chartFrom)) / (T.chartTo - T.chartFrom)));
     const focus = src !== i ? 0 : sc.linkIn === "focus" ? Math.max(0, Math.min(1, (t - T.focusFrom) / T.focus)) : undefined;
     const fill = sc.linkIn === "in" && t < T.emerge ? this.parentFill(i, box.w, box.h, box.textPx) : null;
-    const plot = this.draw(src, p, build, focus);
+    // 4D : les pas de temps défilent un à un (valeurs réelles, sans interpolation) entre l'entrée du graphique et la fin de la scène
+    const nSteps = p.cache.time?.steps.length ?? 0;
+    const span = Math.max(0.5, dur - T.chartFrom - 0.5);
+    const timePos = nSteps >= 2 ? Math.min(nSteps - 1, Math.floor(Math.max(0, Math.min(1, (t - T.chartFrom) / span)) * (nSteps - 1) + 1e-6)) : null;
+    const plot = this.draw(src, p, nSteps >= 2 ? 1 : build, focus, timePos);
     const tail = t - (dur - T.dive);
     if (sc.linkOut === "in" && tail > 0) {
       const link = drillLinkOf(it.snap, this.items[i + 1]?.snap);

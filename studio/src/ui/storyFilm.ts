@@ -425,21 +425,27 @@ export class StoryFilm {
     // toutes les puces arrivent une à une : générales (3 au plus) puis puces colorées par élément
     const nBullets = all.map((c) => c.trim()).filter(Boolean).slice(0, 3).length + elementNotes(spec, ds).length;
     const fms = focusFx ? FOCUS_MS : 0;
-    const start = BUILD_MS * 0.7 + fms * 0.6;
-    const total = Math.max(BUILD_MS + fms, start + bulletsDuration(nBullets));
+    // 4D (animation dans le temps) : les pas défilent année par année (valeurs réelles de chaque pas, pas d'interpolation)
+    const nSteps = cache.time?.steps.length ?? 0;
+    const d4 = nSteps >= 2 ? spec.mode.fourD.durationMs : 0;
+    const timeAt = (t: number): number | null => (d4 ? Math.min(nSteps - 1, Math.floor(Math.max(0, t / d4) * (nSteps - 1) + 1e-6)) : null);
+    const start = d4 ? d4 * 0.85 : BUILD_MS * 0.7 + fms * 0.6;
+    const total = Math.max(BUILD_MS + fms, d4 + 600, start + bulletsDuration(nBullets));
     this.svg.toggleAttribute("data-focus-anim", !!focusFx);
     const now = s.generatedAt ? new Date(s.generatedAt) : new Date();
     const draw = (t: number) => {
-      const build = Math.min(1, t / BUILD_MS);
+      const build = d4 ? 1 : Math.min(1, t / BUILD_MS);
       const shown = bulletsShownAt(t, nBullets, start);
       const fp = focusFx ? Math.max(0, Math.min(1, (t - BUILD_MS) / FOCUS_MS)) : 1;
       const out = focusFx?.dir === "out" && fp < 1;
       const sp = out ? withFocus(spec) : spec;
       const focus = focusFx ? (focusFx.dir === "in" ? fp : 1 - fp) : undefined;
-      const res = renderChart(this.svg, sp, ds, cache, { build, timePos: null, ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
+      const res = renderChart(this.svg, sp, ds, cache, { build, timePos: timeAt(t), ...(focus !== undefined && (focusFx!.dir === "in" || out) ? { focus } : {}) }, { now, textBoost: boost, commentsAll: all, bulletsShown: shown });
       // carte / film de la bibliothèque dans la zone du graphique (sinon cadre vide) ; carte datée : remplissage pendant la construction
       if (special) this.special.paint(this.svg, sp, ds, res.plot, res.theme, sp.mode.kind === "dynamic" ? build : 1);
       this.svg.setAttribute("data-bullets", `${shown}/${nBullets}`);
+      if (d4) this.svg.setAttribute("data-time-step", `${timeAt(t)! + 1}/${nSteps}`);
+      else this.svg.removeAttribute("data-time-step");
       this.svg.setAttribute("data-focus-progress", focusFx ? fp.toFixed(2) : "1");
       this.svg.removeAttribute("width");
       this.svg.removeAttribute("height");

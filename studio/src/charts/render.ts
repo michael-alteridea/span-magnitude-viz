@@ -184,9 +184,12 @@ export function prepareFrame(spec: ChartSpec, rawDs: Dataset | null, cache: Prep
   const base: Prepared = { model: cache.full, domains: {}, reveal: null, stamp: null, progress: null, warnings: cache.warnings, error: cache.error, variance: cache.variance ?? null, drill: cache.drill ?? null };
   if (cache.error || !cache.full || !ds) return base;
   const tm = cache.time;
-  if (!tm || frame.timePos == null || tm.steps.length < 2) return base;
+  if (!tm || tm.steps.length < 2) return base;
   const n = tm.steps.length;
-  const pos = Math.max(0, Math.min(n - 1, frame.timePos));
+  // 4D « instantané » sans position (vignette, rendu figé) : dernier pas plutôt que la somme de tous les pas
+  const tp = frame.timePos ?? (spec.mode.fourD.mode === "snapshot" && !xIsTimeField(spec) && spec.type !== "scatter" ? n - 1 : null);
+  if (tp == null) return base;
+  const pos = Math.max(0, Math.min(n - 1, tp));
   const out: Prepared = { ...base, domains: cache.frozen, stamp: tm.label(pos), progress: pos / (n - 1) };
   if (xIsTimeField(spec) && cache.full.kind === "cat") {
     out.reveal = pos;

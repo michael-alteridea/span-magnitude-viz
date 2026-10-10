@@ -26,6 +26,12 @@ export const EXAMPLE_PROJECTS: readonly ExampleProject[] = [
     description: "Mazout belge et Brent en euros, annuel 2019-2025 et mensuel nov. 2025 - août 2026 : 7 scènes, rapport mazout / brut",
     file: "exemples/mazout-decroche.datanime",
   },
+  {
+    id: "jeunes-belgique",
+    name: "Un peu plus de jeunes, beaucoup plus d'étudiants",
+    description: "Belgique 1995-2024 : 0-14 ans, 15-24 ans (course année par année) et étudiants du supérieur, 7 scènes",
+    file: "exemples/jeunes-belgique.datanime",
+  },
 ];
 
 /** Projet d'exemple désigné par la valeur de `?projet=` (insensible à la casse et aux espaces), sinon null. */

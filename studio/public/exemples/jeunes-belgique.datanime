@@ -1,0 +1,1970 @@
+{
+ "kind": "datanime-project",
+ "version": 1,
+ "exportedAt": "2026-10-10T07:42:00.838Z",
+ "withData": true,
+ "project": {
+  "id": "prj-jeunes-belgique",
+  "name": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+  "createdAt": "2026-10-10T07:42:00.838Z",
+  "updatedAt": "2026-10-10T07:42:00.838Z",
+  "source": {
+   "name": "Jeunes et étudiants, Belgique",
+   "sampleId": null,
+   "rows": [
+    {
+     "Vue": "Annuel",
+     "Année": "1995",
+     "0-14 ans": 1821788,
+     "15-24 ans": 1291183,
+     "Étudiants du supérieur": 352630,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "1996",
+     "0-14 ans": 1814025,
+     "15-24 ans": 1276373,
+     "Étudiants du supérieur": 358214,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "1997",
+     "0-14 ans": 1809227,
+     "15-24 ans": 1263174,
+     "Étudiants du supérieur": null,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "1998",
+     "0-14 ans": 1806256,
+     "15-24 ans": 1252280,
+     "Étudiants du supérieur": null,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "1999",
+     "0-14 ans": 1804981,
+     "15-24 ans": 1245872,
+     "Étudiants du supérieur": 351788,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2000",
+     "0-14 ans": 1804863,
+     "15-24 ans": 1243304,
+     "Étudiants du supérieur": 355748,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2001",
+     "0-14 ans": 1805097,
+     "15-24 ans": 1244390,
+     "Étudiants du supérieur": 359265,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2002",
+     "0-14 ans": 1803945,
+     "15-24 ans": 1248249,
+     "Étudiants du supérieur": 366982,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2003",
+     "0-14 ans": 1800052,
+     "15-24 ans": 1253227,
+     "Étudiants du supérieur": 374532,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2004",
+     "0-14 ans": 1796128,
+     "15-24 ans": 1258474,
+     "Étudiants du supérieur": 386110,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2005",
+     "0-14 ans": 1795440,
+     "15-24 ans": 1265332,
+     "Étudiants du supérieur": 389547,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2006",
+     "0-14 ans": 1796839,
+     "15-24 ans": 1275098,
+     "Étudiants du supérieur": 394427,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2007",
+     "0-14 ans": 1800196,
+     "15-24 ans": 1286622,
+     "Étudiants du supérieur": 393687,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2008",
+     "0-14 ans": 1808777,
+     "15-24 ans": 1298758,
+     "Étudiants du supérieur": 401652,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2009",
+     "0-14 ans": 1823706,
+     "15-24 ans": 1309441,
+     "Étudiants du supérieur": 425219,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2010",
+     "0-14 ans": 1845743,
+     "15-24 ans": 1320619,
+     "Étudiants du supérieur": 445309,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2011",
+     "0-14 ans": 1874027,
+     "15-24 ans": 1335207,
+     "Étudiants du supérieur": 462419,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2012",
+     "0-14 ans": 1886147,
+     "15-24 ans": 1337870,
+     "Étudiants du supérieur": 477712,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2013",
+     "0-14 ans": 1895820,
+     "15-24 ans": 1334630,
+     "Étudiants du supérieur": 488488,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2014",
+     "0-14 ans": 1905354,
+     "15-24 ans": 1327348,
+     "Étudiants du supérieur": 495910,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2015",
+     "0-14 ans": 1915854,
+     "15-24 ans": 1324900,
+     "Étudiants du supérieur": 504745,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2016",
+     "0-14 ans": 1924367,
+     "15-24 ans": 1319970,
+     "Étudiants du supérieur": 508270,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2017",
+     "0-14 ans": 1930645,
+     "15-24 ans": 1308714,
+     "Étudiants du supérieur": 526760,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2018",
+     "0-14 ans": 1936500,
+     "15-24 ans": 1302546,
+     "Étudiants du supérieur": 515530,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2019",
+     "0-14 ans": 1940574,
+     "15-24 ans": 1305109,
+     "Étudiants du supérieur": 519200,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2020",
+     "0-14 ans": 1938530,
+     "15-24 ans": 1311385,
+     "Étudiants du supérieur": 521200,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2021",
+     "0-14 ans": 1932898,
+     "15-24 ans": 1319309,
+     "Étudiants du supérieur": 539800,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2022",
+     "0-14 ans": 1930701,
+     "15-24 ans": 1329679,
+     "Étudiants du supérieur": 549400,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2023",
+     "0-14 ans": 1919041,
+     "15-24 ans": 1340671,
+     "Étudiants du supérieur": 551000,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Annuel",
+     "Année": "2024",
+     "0-14 ans": 1896918,
+     "15-24 ans": 1362410,
+     "Étudiants du supérieur": null,
+     "Groupe": null,
+     "Population": null,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1995",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1821788,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1995",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1291183,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1996",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1814025,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1996",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1276373,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1997",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1809227,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1997",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1263174,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1998",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1806256,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1998",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1252280,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1999",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1804981,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "1999",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1245872,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2000",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1804863,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2000",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1243304,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2001",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1805097,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2001",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1244390,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2002",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1803945,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2002",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1248249,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2003",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1800052,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2003",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1253227,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2004",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1796128,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2004",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1258474,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2005",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1795440,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2005",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1265332,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2006",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1796839,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2006",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1275098,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2007",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1800196,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2007",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1286622,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2008",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1808777,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2008",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1298758,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2009",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1823706,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2009",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1309441,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2010",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1845743,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2010",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1320619,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2011",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1874027,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2011",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1335207,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2012",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1886147,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2012",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1337870,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2013",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1895820,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2013",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1334630,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2014",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1905354,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2014",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1327348,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2015",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1915854,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2015",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1324900,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2016",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1924367,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2016",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1319970,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2017",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1930645,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2017",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1308714,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2018",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1936500,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2018",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1302546,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2019",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1940574,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2019",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1305109,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2020",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1938530,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2020",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1311385,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2021",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1932898,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2021",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1319309,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2022",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1930701,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2022",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1329679,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2023",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1919041,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2023",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1340671,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2024",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "0-14 ans",
+     "Population": 1896918,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    },
+    {
+     "Vue": "Course",
+     "Année": "2024",
+     "0-14 ans": null,
+     "15-24 ans": null,
+     "Étudiants du supérieur": null,
+     "Groupe": "15-24 ans",
+     "Population": 1362410,
+     "Source": "Population : Banque mondiale, population Belgique 0-14 et 15-24 ans ; étudiants du supérieur : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023) (série fusionnée telle quelle ; 1997, 1998 et 2024 absents)"
+    }
+   ],
+   "typeOverrides": {
+    "Vue": "category",
+    "Année": "category",
+    "0-14 ans": "number",
+    "15-24 ans": "number",
+    "Étudiants du supérieur": "number",
+    "Groupe": "category",
+    "Population": "number",
+    "Source": "text"
+   },
+   "provenance": null,
+   "note": "Annuel 1995-2024 (D1, une ligne par année) et course 0-14 / 15-24 (D2, une ligne par groupe et par année). Étudiants : 1997, 1998 et 2024 absents, laissés vides.",
+   "rowCount": 90,
+   "colCount": 8
+  },
+  "spec": {
+   "$schema": "reporting-4d-studio/spec-v1",
+   "version": 1,
+   "type": "bar",
+   "encoding": {
+    "x": "Année",
+    "y": [
+     "Étudiants du supérieur"
+    ],
+    "y2": null,
+    "time": null,
+    "aggregate": "sum",
+    "y2Aggregate": "mean"
+   },
+   "axes": {
+    "x": {
+     "grid": false
+    },
+    "y": {
+     "decimals": 0,
+     "title": "",
+     "min": 0,
+     "show": false,
+     "grid": false
+    },
+    "y2": {
+     "grid": false
+    }
+   },
+   "dataset": {
+    "id": "D1",
+    "version": 1,
+    "name": "Annuel 1995-2024",
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Annuel"
+      ],
+      "value": null,
+      "label": "Années"
+     }
+    ],
+    "columns": []
+   },
+   "transform": {
+    "calculate": [],
+    "filters": [
+     {
+      "field": "Année",
+      "op": "in",
+      "values": [
+       "1995",
+       "2023"
+      ],
+      "value": null,
+      "label": "1995 et 2023"
+     }
+    ]
+   },
+   "mode": {
+    "kind": "static"
+   },
+   "style": {
+    "title": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+    "subtitle": "Belgique, 1995-2024",
+    "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+    "valueLabels": true,
+    "legend": "none",
+    "curve": "linear",
+    "palette": "custom",
+    "paletteCustom": [
+     "#a88beb"
+    ],
+    "size": {
+     "preset": "custom",
+     "width": 1600,
+     "height": 800
+    },
+    "overrides": {
+     "e:1995": {
+      "label": "{valeur}",
+      "labelSize": 32,
+      "labelBold": true
+     },
+     "e:2023": {
+      "label": "{valeur}",
+      "labelSize": 32,
+      "labelBold": true
+     }
+    },
+    "focus": {
+     "key": null,
+     "title": "",
+     "note": "",
+     "average": false
+    }
+   },
+   "story": {
+    "auto": false,
+    "edited": {
+     "title": true,
+     "subtitle": true,
+     "comments": true
+    },
+    "comments": [],
+    "showComments": false
+   },
+   "norme": {
+    "enabled": false,
+    "autoSwitch": false
+   }
+  },
+  "sequence": {
+   "title": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+   "snapshots": [
+    {
+     "id": "snap-jeunes-belgique-titre",
+     "name": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Étudiants du supérieur"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "",
+        "min": 0,
+        "show": false,
+        "grid": false
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": [
+        {
+         "field": "Année",
+         "op": "in",
+         "values": [
+          "1995",
+          "2023"
+         ],
+         "value": null,
+         "label": "1995 et 2023"
+        }
+       ]
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+       "subtitle": "Belgique, 1995-2024",
+       "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:1995": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        },
+        "e:2023": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [],
+       "showComments": false
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Un peu plus de jeunes, beaucoup plus d'étudiants",
+     "subtitle": "Belgique, 1995-2024",
+     "comments": [],
+     "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-course-4d",
+     "name": "0-14 ans et 15-24 ans, année par année",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "barH",
+      "encoding": {
+       "x": "Groupe",
+       "y": [
+        "Population"
+       ],
+       "y2": null,
+       "time": "Année",
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "",
+        "min": 0
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D2",
+       "version": 1,
+       "name": "Course 0-14 / 15-24 (une ligne par groupe et par année)",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Course"
+         ],
+         "value": null,
+         "label": "Course"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "dynamic",
+       "buildIn": true,
+       "buildInMs": 1400,
+       "fourD": {
+        "enabled": true,
+        "mode": "snapshot",
+        "step": "raw",
+        "durationMs": 9000,
+        "loop": false,
+        "stamp": true,
+        "freezeScales": true
+       }
+      },
+      "style": {
+       "title": "0-14 ans et 15-24 ans, année par année",
+       "subtitle": "Belgique, 1995 à 2024. Nombre d'habitants de chaque classe d'âge.",
+       "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:0-14 ans": {
+         "color": "#2a9dc4"
+        },
+        "e:15-24 ans": {
+         "color": "#e07a1f"
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [],
+       "showComments": false
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "0-14 ans et 15-24 ans, année par année",
+     "subtitle": "Belgique, 1995 à 2024. Nombre d'habitants de chaque classe d'âge.",
+     "comments": [],
+     "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+     "kind": null,
+     "role": "context",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-creux-2000",
+     "name": "Les 15-24 touchent un creux en 2000 (1,24 million), puis remontent",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "15-24 ans"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "15-24 ans, habitants",
+        "min": 1200000,
+        "max": 1400000
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "Les 15-24 touchent un creux en 2000 (1,24 million), puis remontent",
+       "subtitle": "Belgique, 1995-2024. Habitants de 15 à 24 ans.",
+       "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+       "valueLabels": false,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": "2000",
+        "title": "2000",
+        "note": "1 243 304 habitants de 15 à 24 ans",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Les 15-24 touchent un creux en 2000 (1,24 million), puis remontent."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Les 15-24 touchent un creux en 2000 (1,24 million), puis remontent",
+     "subtitle": "Belgique, 1995-2024. Habitants de 15 à 24 ans.",
+     "comments": [
+      "Les 15-24 touchent un creux en 2000 (1,24 million), puis remontent."
+     ],
+     "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-etudiants",
+     "name": "353 000 en 1995, 551 000 en 2023",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Étudiants du supérieur"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "Étudiants du supérieur",
+        "min": 0
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "353 000 en 1995, 551 000 en 2023",
+       "subtitle": "Étudiants inscrits dans le supérieur, Belgique. 1997, 1998 et 2024 : pas de donnée.",
+       "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+       "valueLabels": false,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "353 000 en 1995, 551 000 en 2023.",
+        "1997 et 1998 : pas de donnée (cases vides, aucune valeur estimée)."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "353 000 en 1995, 551 000 en 2023",
+     "subtitle": "Étudiants inscrits dans le supérieur, Belgique. 1997, 1998 et 2024 : pas de donnée.",
+     "comments": [
+      "353 000 en 1995, 551 000 en 2023.",
+      "1997 et 1998 : pas de donnée (cases vides, aucune valeur estimée)."
+     ],
+     "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-ensemble",
+     "name": "La classe d'âge et le supérieur",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "15-24 ans"
+       ],
+       "y2": "Étudiants du supérieur",
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "15-24 ans, habitants (gauche)",
+        "min": 0,
+        "max": 1400000
+       },
+       "y2": {
+        "decimals": 0,
+        "title": "Étudiants du supérieur (droite)",
+        "min": 0,
+        "max": 600000,
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": []
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "La classe d'âge et le supérieur",
+       "subtitle": "Belgique, 1995-2024. 15-24 ans (axe gauche) et étudiants du supérieur (axe droit).",
+       "source": "Sources : Banque mondiale, population Belgique 0-14 et 15-24 ans ; Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+       "valueLabels": false,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#e07a1f",
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Les étudiants montent plus vite que la classe d'âge."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "La classe d'âge et le supérieur",
+     "subtitle": "Belgique, 1995-2024. 15-24 ans (axe gauche) et étudiants du supérieur (axe droit).",
+     "comments": [
+      "Les étudiants montent plus vite que la classe d'âge."
+     ],
+     "source": "Sources : Banque mondiale, population Belgique 0-14 et 15-24 ans ; Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+     "kind": null,
+     "role": "revelation",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-depuis-2019",
+     "name": "Depuis 2019",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "line",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "0-14 ans",
+        "15-24 ans"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "Habitants",
+        "min": 1200000,
+        "max": 2000000
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": [
+        {
+         "field": "Année",
+         "op": "in",
+         "values": [
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+         ],
+         "value": null,
+         "label": "2019-2024"
+        }
+       ]
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "Depuis 2019",
+       "subtitle": "Belgique, 2019-2024. Habitants de 0 à 14 ans et de 15 à 24 ans.",
+       "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+       "valueLabels": true,
+       "legend": "top",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#2a9dc4",
+        "#e07a1f"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {},
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Depuis 2019 : les 0-14 baissent, les 15-24 continuent de monter.",
+        "Les 0-14 ans ont perdu environ 44 000 enfants depuis 2019 (1 940 574 → 1 896 918). Ces enfants seront les 15-24 ans de demain : la hausse actuelle des 15-24 devrait s'inverser."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "Depuis 2019",
+     "subtitle": "Belgique, 2019-2024. Habitants de 0 à 14 ans et de 15 à 24 ans.",
+     "comments": [
+      "Depuis 2019 : les 0-14 baissent, les 15-24 continuent de monter.",
+      "Les 0-14 ans ont perdu environ 44 000 enfants depuis 2019 (1 940 574 → 1 896 918). Ces enfants seront les 15-24 ans de demain : la hausse actuelle des 15-24 devrait s'inverser."
+     ],
+     "source": "Source : Banque mondiale, population Belgique 0-14 et 15-24 ans",
+     "kind": null,
+     "role": "tension",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    },
+    {
+     "id": "snap-jeunes-belgique-conclusion",
+     "name": "La classe d'âge se stabilise. Le supérieur, lui, a gagné plus de moitié.",
+     "createdAt": "2026-10-10T07:42:00.838Z",
+     "spec": {
+      "$schema": "reporting-4d-studio/spec-v1",
+      "version": 1,
+      "type": "bar",
+      "encoding": {
+       "x": "Année",
+       "y": [
+        "Étudiants du supérieur"
+       ],
+       "y2": null,
+       "time": null,
+       "aggregate": "sum",
+       "y2Aggregate": "mean"
+      },
+      "axes": {
+       "x": {
+        "grid": false
+       },
+       "y": {
+        "decimals": 0,
+        "title": "Étudiants du supérieur",
+        "min": 0
+       },
+       "y2": {
+        "grid": false
+       }
+      },
+      "dataset": {
+       "id": "D1",
+       "version": 1,
+       "name": "Annuel 1995-2024",
+       "filters": [
+        {
+         "field": "Vue",
+         "op": "in",
+         "values": [
+          "Annuel"
+         ],
+         "value": null,
+         "label": "Années"
+        }
+       ],
+       "columns": []
+      },
+      "transform": {
+       "calculate": [],
+       "filters": [
+        {
+         "field": "Année",
+         "op": "in",
+         "values": [
+          "1995",
+          "2023"
+         ],
+         "value": null,
+         "label": "1995 et 2023"
+        }
+       ]
+      },
+      "mode": {
+       "kind": "static"
+      },
+      "style": {
+       "title": "La classe d'âge se stabilise. Le supérieur, lui, a gagné plus de moitié.",
+       "subtitle": "Étudiants du supérieur, Belgique : 352 630 en 1995, 551 000 en 2023.",
+       "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+       "valueLabels": true,
+       "legend": "none",
+       "curve": "linear",
+       "palette": "custom",
+       "paletteCustom": [
+        "#a88beb"
+       ],
+       "size": {
+        "preset": "custom",
+        "width": 1600,
+        "height": 800
+       },
+       "overrides": {
+        "e:1995": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        },
+        "e:2023": {
+         "label": "{valeur}",
+         "labelSize": 32,
+         "labelBold": true
+        }
+       },
+       "focus": {
+        "key": null,
+        "title": "",
+        "note": "",
+        "average": false
+       }
+      },
+      "story": {
+       "auto": false,
+       "edited": {
+        "title": true,
+        "subtitle": true,
+        "comments": true
+       },
+       "comments": [
+        "Prochaine étape : moins d'enfants aujourd'hui, moins d'étudiants potentiels dans dix ans."
+       ],
+       "showComments": true
+      },
+      "norme": {
+       "enabled": false,
+       "autoSwitch": false
+      }
+     },
+     "svg": null,
+     "thumb": null,
+     "width": 1600,
+     "height": 800,
+     "title": "La classe d'âge se stabilise. Le supérieur, lui, a gagné plus de moitié.",
+     "subtitle": "Étudiants du supérieur, Belgique : 352 630 en 1995, 551 000 en 2023.",
+     "comments": [
+      "Prochaine étape : moins d'enfants aujourd'hui, moins d'étudiants potentiels dans dix ans."
+     ],
+     "source": "Source : Banque mondiale SE.TER.ENRL (jusqu'en 2018), Eurostat repris par le KSH (2013-2023)",
+     "kind": null,
+     "role": "recommendation",
+     "sampleId": null,
+     "dataName": "Jeunes et étudiants, Belgique",
+     "generatedAt": "2026-10-10T07:42:00.838Z"
+    }
+   ],
+   "sameScale": false,
+   "film": {
+    "morph": false
+   }
+  },
+  "datasets": [
+   {
+    "id": "D1",
+    "name": "Annuel 1995-2024",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Annuel"
+      ],
+      "value": null,
+      "label": "Années"
+     }
+    ],
+    "columns": [],
+    "source": "Jeunes et étudiants, Belgique",
+    "color": "#3FA7C4",
+    "createdAt": "2026-10-10T07:42:00.838Z",
+    "updatedAt": "2026-10-10T07:42:00.838Z"
+   },
+   {
+    "id": "D2",
+    "name": "Course 0-14 / 15-24 (une ligne par groupe et par année)",
+    "version": 1,
+    "filters": [
+     {
+      "field": "Vue",
+      "op": "in",
+      "values": [
+       "Course"
+      ],
+      "value": null,
+      "label": "Course"
+     }
+    ],
+    "columns": [],
+    "source": "Jeunes et étudiants, Belgique",
+    "color": "#E3A33B",
+    "createdAt": "2026-10-10T07:42:00.838Z",
+    "updatedAt": "2026-10-10T07:42:00.838Z"
+   }
+  ],
+  "thumb": null
+ }
+}
