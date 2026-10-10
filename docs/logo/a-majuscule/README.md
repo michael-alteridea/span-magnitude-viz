@@ -82,3 +82,9 @@ Fichiers : `anim/logo-anim-minuscules(…)` et `anim/logo-anim-minuscules-accent
 → le A fusionné jaunit APRÈS la fusion (blanc → jaune vif, 2,38–2,78 s) → pivot de l'œil en ▶ (2,88–3,78 s). 3,85 s puis tenue.
 Fichiers : `anim/logo-anim-caps-final-dark.svg` (+ `logo-anim-caps-final.svg` clair), `anim/logo-anim-caps-final-1920x1080-sombre.mp4` (5,4 s),
 `anim/logo-anim-caps-final-800-sombre.gif` (800×300, fond sombre).
+
+## Réglages finaux, minuscules (sans accents, sombre) — `anim_min_final.py`
+
+« Data » + « anime » → les deux a glissent sans changer de couleur (le a d'« anime » passe sous celui de « Data »)
+→ métamorphose a → A en blanc (2,40–2,80 s) → le A jaunit (blanc → jaune vif, 2,90–3,30 s) → pivot en ▶ (3,35–4,15 s). 4,2 s puis tenue.
+Fichiers : `anim/logo-anim-minuscules-final-dark.svg`, `anim/logo-anim-minuscules-final-1920x1080-sombre.mp4` (5,8 s), `anim/logo-anim-minuscules-final-800-sombre.gif`.
