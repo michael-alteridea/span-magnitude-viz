@@ -1991,14 +1991,19 @@ const reader: StoryFilm = new StoryFilm((s) => datasetFor(s), {
   onSlide: (s) => {
     if (!readerStory) return;
     const hash = readHash(readerStory, s.id);
-    if (location.hash !== hash) history.replaceState(null, "", hash);
+    // scène d'un exemple intégré : l'adresse affichée reste partageable telle quelle (?projet=…&lecture=1&scene=N#/lire/…)
+    const uni = readerStory === LOCAL_STORY_ID ? exampleSnapshotUrl(s.id) : null;
+    if (uni) {
+      const target = location.pathname + new URL(uni).search + hash;
+      if (location.pathname + location.search + location.hash !== target) history.replaceState(null, "", target);
+    } else if (location.hash !== hash) history.replaceState(null, "", hash);
   },
   onClose: () => {
     readerStory = null;
     if (closingFromRoute) return;
     const back = readerReturn;
     readerReturn = "";
-    history.replaceState(null, "", location.pathname + location.search + back);
+    history.replaceState(null, "", withoutShareParams(location.href.split("#")[0]!) + back);
     void reviewSpace.handleHash(back);
   },
   linkFor: (s) => (readerStory ? snapReadUrl(s, readerStory, "partage") : null),
@@ -2190,6 +2195,9 @@ preview.onModeChange = (m) => {
 /* ------------------------------------------------------------------ démarrage */
 
 const params = new URLSearchParams(location.search);
+// lien « Rejouer » d'un exemple intégré (?projet=<id>&lecture=1…) : la lecture attend l'ouverture de l'exemple
+const lectureReq = parseLectureParams(location.search);
+const lectureBoot = lectureReq.lecture && !!exampleProjectById(lectureReq.projet);
 if (params.has("reset")) {
   // ?reset : session neuve, détachée du projet ouvert (les projets enregistrés restent dans « Mes projets »)
   store.clearSession();
@@ -2210,7 +2218,7 @@ void ensureFont(store.state.spec.style.font).finally(() => {
     .then(async () => {
       // lien direct vers un projet d'exemple intégré (?projet=petrole-mazout) : jeu de données + scènes, sans import ;
       // &lecture=1[&scene=N] : puis mode lecture plein écran (lien « Rejouer » des QR, du Reel et du bouton Partager)
-      const req = parseLectureParams(location.search);
+      const req = lectureReq;
       const id = req.projet;
       if (!id) return;
       const ok = await openExampleProject(id);
@@ -2219,7 +2227,7 @@ void ensureFont(store.state.spec.style.font).finally(() => {
       } catch {
         /* adresse non modifiable (file://) */
       }
-      if (ok && req.lecture && !parseReadRoute(location.hash)) {
+      if (ok && lectureBoot) {
         const snaps = store.state.story.snapshots;
         const k = req.scene ? Math.min(snaps.length, req.scene) - 1 : 0;
         if (snaps.length) startReading(LOCAL_STORY_ID, snaps[k]!.id);
@@ -2230,7 +2238,7 @@ void ensureFont(store.state.spec.style.font).finally(() => {
 // routes de l'espace Revues (#/revues…, #/r/…) : liens et QR de partage
 // et mode lecture (#/lire/<histoire>/<snapshot>), ouvert directement depuis un lien ou un QR
 window.addEventListener("hashchange", () => void route(location.hash));
-if (parseReadRoute(location.hash)) void route(location.hash);
+if (parseReadRoute(location.hash) && !lectureBoot) void route(location.hash);
 void reviewSpace.ensureDemo().then(() => {
   updateReviewsCount();
   if (location.hash.startsWith("#/") && !parseReadRoute(location.hash)) void reviewSpace.handleHash(location.hash);
